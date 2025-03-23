@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "335567901644",
+    "project_id": "trueastrotalks",
+    "storage_bucket": "trueastrotalks.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:335567901644:android:e92dfd2294c7ee6710c369",
+        "android_client_info": {
+          "package_name": "com.trueastrotalks.www"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyADr95tbwUKREAi5t79AoysyeF0a9mFyCs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
