@@ -173,7 +173,7 @@ class AstrologerCard extends StatelessWidget {
                 ),
               ],
             ),
-            SizedBox(width: 20.0),
+            SizedBox(width: 10.0),
             // Astrologer details
             Expanded(
               flex: 1,

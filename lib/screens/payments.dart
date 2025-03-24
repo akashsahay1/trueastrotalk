@@ -7,7 +7,6 @@ import 'package:trueastrotalk/config/environment.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:trueastrotalk/screens/home.dart';
 
 class ChatPaymentScreen extends StatefulWidget {
   final Astrologer astrologer;
@@ -87,13 +86,13 @@ class _ChatPaymentScreenState extends State<ChatPaymentScreen> {
     try {
       final token = await _walletService.getAuthToken();
       final response = await http.post(
-        Uri.parse('${Environment.baseApiUrl}/chat/${_chatId}/pay-wallet'),
+        Uri.parse('${Environment.baseApiUrl}/payments/wallet'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'amount': _totalAmount,
+          'chat_id': _chatId,
         }),
       );
 
@@ -198,10 +197,7 @@ class _ChatPaymentScreenState extends State<ChatPaymentScreen> {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => Home()),
-                (route) => false,
-              );
+              Navigator.pushReplacementNamed(context, '/home');
             },
             child: Text('OK'),
           ),
@@ -413,6 +409,7 @@ class _ChatPaymentScreenState extends State<ChatPaymentScreen> {
                       onPressed: (_isLoadingWallet || _isProcessingWallet || !hasEnoughBalance) ? null : _payFromWallet,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
                         padding: EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -425,6 +422,7 @@ class _ChatPaymentScreenState extends State<ChatPaymentScreen> {
                               'Pay from Wallet',
                               style: TextStyle(
                                 fontSize: 16,
+                                color: Colors.white,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),

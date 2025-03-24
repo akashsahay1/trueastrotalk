@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:trueastrotalk/models/astrologer.dart';
 import 'package:trueastrotalk/models/customer.dart';
 import 'package:trueastrotalk/services/chatmessage.dart';
 
 class AstrologerChatRequestScreen extends StatefulWidget {
+  final Astrologer astrologer;
   final String requestId;
 
   const AstrologerChatRequestScreen({
     Key? key,
+    required this.astrologer,
     required this.requestId,
   }) : super(key: key);
 
@@ -83,6 +86,7 @@ class _AstrologerChatRequestScreenState extends State<AstrologerChatRequestScree
           context,
           '/chat',
           arguments: {
+            'astrologer': widget.astrologer,
             'chat_id': widget.requestId,
             'customer': _customer,
           },

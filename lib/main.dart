@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app_links/app_links.dart';
@@ -132,25 +134,235 @@ class TrueAstrotalkState extends State<TrueAstrotalk> {
   void initState() {
     super.initState();
     initDeepLinks();
-    setupPushNotifications();
+    setupPushNotifications(navigatorKey);
   }
 
-  void setupPushNotifications() {
+  void _handleNotificationNavigation(Map<String, dynamic> data, GlobalKey<NavigatorState> navigatorKey) {
+    print("⚡ Handling notification navigation with data: $data");
+
+    try {
+      if (data.containsKey('request_id')) {
+        // Convert string values to integers
+        final int astrologerId = int.parse(data['astrologer_id'].toString());
+        final String requestId = data['request_id'].toString();
+        final String customerId = data['customer_id'].toString();
+
+        print("astrologerId: $astrologerId");
+        print("requestId: $requestId");
+        print("customerId: $customerId");
+
+        print("🔍 Navigating to chat request screen with requestId: $requestId");
+
+        if (navigatorKey.currentState != null) {
+          // For chat requests, we might not need the astrologer details
+          // if they're provided on the request screen
+          print("👉 Pushing route to chat request screen");
+          AstrologerService().getAstrologerById(astrologerId).then(
+            (astrologer) {
+              print("👉 Pushing route to chat screen");
+              navigatorKey.currentState!.push(
+                MaterialPageRoute(
+                  builder: (context) => AstrologerChatRequestScreen(
+                    astrologer: astrologer,
+                    requestId: requestId,
+                  ),
+                  settings: const RouteSettings(name: '/chat'),
+                ),
+              );
+            },
+          ).catchError((error) {
+            print("❌ Error fetching astrologer: $error");
+          });
+        } else {
+          print("❌ Navigator state is null");
+        }
+      } else if (data.containsKey('chat_id')) {
+        final String chatId = data['chat_id'].toString();
+        final int astrologerId = int.parse(data['astrologer_id'].toString());
+
+        print("🔍 Navigating to chat screen with chatId: $chatId, astrologerId: $astrologerId");
+
+        if (navigatorKey.currentState != null) {
+          AstrologerService().getAstrologerById(astrologerId).then(
+            (astrologer) {
+              print("👉 Pushing route to chat screen");
+              navigatorKey.currentState!.push(
+                MaterialPageRoute(
+                  builder: (context) => ChatScreen(
+                    astrologer: astrologer,
+                    chatId: chatId,
+                  ),
+                  settings: const RouteSettings(name: '/chat'),
+                ),
+              );
+            },
+          ).catchError((error) {
+            print("❌ Error fetching astrologer: $error");
+          });
+        } else {
+          print("❌ Navigator state is null");
+        }
+      } else {
+        print("⚠️ No recognized navigation data in notification: $data");
+      }
+    } catch (e) {
+      print("🛑 Error in navigation handler: $e");
+      print("🛑 Data that caused the error: $data");
+    }
+  }
+
+// Improved payload parsing function with error handling
+  void handleNotificationPayload(String? payload, GlobalKey<NavigatorState> navigatorKey) {
+    if (payload == null || payload.isEmpty) {
+      print('Empty payload received');
+      return;
+    }
+
+    print('Raw payload: $payload');
+
+    try {
+      // First try to parse as JSON
+      try {
+        Map<String, dynamic> jsonData = jsonDecode(payload);
+        print('Successfully parsed JSON payload: $jsonData');
+
+        // Only proceed with navigation if we have data
+        if (jsonData.isNotEmpty) {
+          // Call navigation handler with the parsed data
+          _handleNotificationNavigation(jsonData, navigatorKey);
+        }
+        return;
+      } catch (jsonError) {
+        print('Not valid JSON, falling back to manual parsing: $jsonError');
+      }
+
+      // If JSON parsing fails, fallback to manual parsing
+      Map<String, dynamic> data = {};
+
+      // Clean up the payload string
+      String cleanPayload = payload.replaceAll('{', '').replaceAll('}', '').trim();
+
+      print('Cleaned payload: $cleanPayload');
+
+      // Split by comma, but make sure we don't split values that might contain commas
+      List<String> entries = [];
+
+      // Track current entry and whether we're inside a quoted string
+      String currentEntry = '';
+      bool insideQuotes = false;
+
+      for (int i = 0; i < cleanPayload.length; i++) {
+        String char = cleanPayload[i];
+
+        if (char == '"' || char == "'") {
+          insideQuotes = !insideQuotes;
+          currentEntry += char;
+        } else if (char == ',' && !insideQuotes) {
+          // Only split on commas that are not inside quotes
+          entries.add(currentEntry.trim());
+          currentEntry = '';
+        } else {
+          currentEntry += char;
+        }
+      }
+
+      // Add the last entry
+      if (currentEntry.isNotEmpty) {
+        entries.add(currentEntry.trim());
+      }
+
+      print('Split entries: $entries');
+
+      // Now process each key-value pair
+      for (String entry in entries) {
+        // Find the first colon that's not inside quotes
+        int colonIndex = -1;
+        insideQuotes = false;
+
+        for (int i = 0; i < entry.length; i++) {
+          if (entry[i] == '"' || entry[i] == "'") {
+            insideQuotes = !insideQuotes;
+          } else if (entry[i] == ':' && !insideQuotes && colonIndex == -1) {
+            colonIndex = i;
+          }
+        }
+
+        if (colonIndex == -1) {
+          print('No colon found in entry: $entry');
+          continue;
+        }
+
+        String key = entry.substring(0, colonIndex).trim();
+        String value = entry.substring(colonIndex + 1).trim();
+
+        // Clean up keys and values - remove any quotes
+        key = key.replaceAll('"', '').replaceAll("'", '').trim();
+        value = value.replaceAll('"', '').replaceAll("'", '').trim();
+
+        print('Parsed key: "$key", value: "$value"');
+
+        // Add to data map
+        data[key] = value;
+      }
+
+      print('Final parsed data: $data');
+
+      // Now handle the navigation with the parsed data
+      if (data.isNotEmpty) {
+        // Only one navigation attempt per payload
+        _handleNotificationNavigation(data, navigatorKey);
+      } else {
+        print('No valid data parsed from payload');
+      }
+    } catch (e) {
+      print('Error parsing notification payload: $e');
+      print('Payload that caused error: $payload');
+    }
+  }
+
+  void setupPushNotifications(GlobalKey<NavigatorState> navigatorKey) {
+    // Initialize notification channels
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'high_importance_channel',
+      'High Importance Notifications',
+      description: 'This channel is used for important notifications.',
+      importance: Importance.high,
+    );
+
+    // Create the channel on Android
+    flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()?.createNotificationChannel(channel);
+
+    // Configure local notification click handling
+    flutterLocalNotificationsPlugin.initialize(
+      const InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        iOS: DarwinInitializationSettings(),
+      ),
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        handleNotificationPayload(response.payload, navigatorKey);
+      },
+    );
+
     // Handle foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print("Got a message in the foreground!");
+      print("🔔 Got a message in the foreground!");
       print("Message data: ${message.data}");
 
-      // Extract notification details
+      // Ensure data values are strings
+      final formattedData = Map<String, String>.from(message.data.map((key, value) => MapEntry(key, value.toString())));
+
       RemoteNotification? notification = message.notification;
       AndroidNotification? android = message.notification?.android;
 
-      // Show notification if there is a notification payload
       if (notification != null) {
-        print("Message notification: ${notification.title}");
-        print("Message notification: ${notification.body}");
+        print("Notification title: ${notification.title}");
+        print("Notification body: ${notification.body}");
 
-        // Show a local notification
+        // Convert data map to JSON string
+        final jsonPayload = jsonEncode(formattedData);
+        print("Creating local notification with payload: $jsonPayload");
+
+        // Show local notification with JSON payload
         flutterLocalNotificationsPlugin.show(
           notification.hashCode,
           notification.title,
@@ -166,65 +378,37 @@ class TrueAstrotalkState extends State<TrueAstrotalk> {
             ),
             iOS: const DarwinNotificationDetails(),
           ),
-          payload: message.data.toString(),
+          payload: jsonPayload,
         );
       }
     });
 
-    // Handle notification tap when app is in background or terminated
+    // Handle notification tap when app is in background
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print("Notification tapped!");
+      print("📱 Background notification tapped!");
       print("Message data: ${message.data}");
 
-      // Handle navigation based on notification data
-      _handleNotificationNavigation(message.data);
+      // Format data to ensure all values are strings
+      final formattedData = Map<String, String>.from(message.data.map((key, value) => MapEntry(key, value.toString())));
+
+      _handleNotificationNavigation(formattedData, navigatorKey);
     });
 
-    // Check if the app was launched from a notification
+    // Check if app was launched from terminated state via notification
     FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
       if (message != null) {
-        print("App launched from notification!");
+        print("🚀 App launched from terminated state via notification!");
         print("Message data: ${message.data}");
 
-        // Handle navigation after app initializes
-        Future.delayed(Duration(seconds: 1), () {
-          _handleNotificationNavigation(message.data);
+        // Format data to ensure all values are strings
+        final formattedData = Map<String, String>.from(message.data.map((key, value) => MapEntry(key, value.toString())));
+
+        // Wait for app to initialize
+        Future.delayed(const Duration(seconds: 1), () {
+          _handleNotificationNavigation(formattedData, navigatorKey);
         });
       }
     });
-  }
-
-  void _handleNotificationNavigation(Map<String, dynamic> data) {
-    if (data.containsKey('chat_id')) {
-      final chatId = data['chat_id'];
-      final astrologerId = data['astrologer_id'];
-
-      if (navigatorKey.currentState != null) {
-        AstrologerService().getAstrologerById(astrologerId).then(
-          (astrologer) {
-            navigatorKey.currentState!.push(
-              MaterialPageRoute(
-                builder: (context) => ChatScreen(
-                  astrologer: astrologer,
-                  chatId: chatId,
-                ),
-              ),
-            );
-          },
-        );
-      }
-    } else if (data.containsKey('request_id')) {
-      final astrologer = data['astrologer_id'];
-      if (navigatorKey.currentState != null) {
-        navigatorKey.currentState!.push(
-          MaterialPageRoute(
-            builder: (context) => ChatRequestScreen(
-              astrologer: astrologer,
-            ),
-          ),
-        );
-      }
-    }
   }
 
   @override
@@ -307,7 +491,7 @@ class TrueAstrotalkState extends State<TrueAstrotalk> {
         '/chat': (context) {
           final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
           final astrologer = args['astrologer'] as Astrologer;
-          final chatId = args['chat_id'] as String;
+          final chatId = args['chat_id'];
           return ChatScreen(
             astrologer: astrologer,
             chatId: chatId,
@@ -316,8 +500,9 @@ class TrueAstrotalkState extends State<TrueAstrotalk> {
         '/chat-request-details': (context) {
           // Route for astrologers to view chat requests
           final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-          final requestId = args['request_id'] as String;
-          return AstrologerChatRequestScreen(requestId: requestId); // You would need to create this screen
+          final astrologer = args['astrologer'] as Astrologer;
+          final requestId = args['request_id'];
+          return AstrologerChatRequestScreen(astrologer: astrologer, requestId: requestId);
         },
       },
       onGenerateRoute: (settings) {

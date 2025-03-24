@@ -27,6 +27,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final ApiService _apiService = ApiService();
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _messageFocusNode = FocusNode();
 
   List<ChatMessage> _messages = [];
   bool _isLoading = true;
@@ -44,7 +45,14 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    _messageFocusNode.addListener(_onFocusChange);
     _initialize();
+  }
+
+  void _onFocusChange() {
+    if (_messageFocusNode.hasFocus) {
+      _scrollToBottom();
+    }
   }
 
   Future<void> _initialize() async {
@@ -391,100 +399,114 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
-          : Column(
+          : Stack(
               children: [
-                // Timer and info banner
-                Container(
-                  padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                  color: Colors.amber.shade100,
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline, color: Colors.amber.shade800),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'You will be charged ${widget.astrologer.price} per minute. Current duration: ${_formatDuration(_elapsedTime)}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.amber.shade900,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Chat messages
-                Expanded(
-                  child: _messages.isEmpty
-                      ? Center(
-                          child: Text(
-                            'Start chatting with ${widget.astrologer.name}',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        )
-                      : ListView.builder(
-                          controller: _scrollController,
-                          padding: EdgeInsets.all(16),
-                          itemCount: _messages.length,
-                          itemBuilder: (context, index) {
-                            final message = _messages[index];
-                            return _buildMessageBubble(message);
-                          },
-                        ),
-                ),
-                // Input area
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 4,
-                        offset: Offset(0, -1),
-                      ),
-                    ],
-                  ),
-                  child: SafeArea(
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _messageController,
-                            decoration: InputDecoration(
-                              hintText: 'Type a message...',
-                              filled: true,
-                              fillColor: Colors.grey.shade100,
-                              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(24),
-                                borderSide: BorderSide.none,
+                Column(
+                  children: [
+                    // Timer and info banner
+                    Container(
+                      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      color: Colors.amber.shade100,
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.amber.shade800),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'You will be charged ${widget.astrologer.price} per minute. Current duration: ${_formatDuration(_elapsedTime)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.amber.shade900,
                               ),
                             ),
-                            textCapitalization: TextCapitalization.sentences,
                           ),
-                        ),
-                        SizedBox(width: 8),
-                        CircleAvatar(
-                          backgroundColor: Theme.of(context).primaryColor,
-                          child: IconButton(
-                            icon: Icon(Icons.send, color: Colors.white),
-                            onPressed: _sendMessage,
+                        ],
+                      ),
+                    ),
+                    // Chat messages
+                    Expanded(
+                      child: _messages.isEmpty
+                          ? Center(
+                              child: Text(
+                                'Start chatting with ${widget.astrologer.name}',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            )
+                          : ListView.builder(
+                              controller: _scrollController,
+                              padding: EdgeInsets.all(16),
+                              itemCount: _messages.length,
+                              itemBuilder: (context, index) {
+                                final message = _messages[index];
+                                return _buildMessageBubble(message);
+                              },
+                            ),
+                    ),
+                    // Input area
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 4,
+                            offset: Offset(0, -1),
                           ),
+                        ],
+                      ),
+                      child: SafeArea(
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _messageController,
+                                focusNode: _messageFocusNode,
+                                decoration: InputDecoration(
+                                  hintText: 'Type a message...',
+                                  filled: true,
+                                  fillColor: Colors.grey.shade100,
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(24),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                                textCapitalization: TextCapitalization.sentences,
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            CircleAvatar(
+                              backgroundColor: Theme.of(context).primaryColor,
+                              child: IconButton(
+                                icon: Icon(Icons.send, color: Colors.white),
+                                onPressed: _sendMessage,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
+                    ),
+                  ],
+                ),
+                // End Chat button positioned higher from the bottom
+                if (!_isLoading)
+                  Positioned(
+                    right: 16,
+                    bottom: 120, // Increased from default FAB position
+                    child: FloatingActionButton.extended(
+                      onPressed: _isChatEnding ? null : _endChat,
+                      icon: Icon(Icons.stop_circle, color: Colors.white),
+                      label: Text(
+                        'End Chat',
+                        style: TextStyle(
+                          color: Colors.white,
+                        ),
+                      ),
+                      backgroundColor: const Color.fromARGB(255, 54, 206, 244),
                     ),
                   ),
-                ),
               ],
-            ),
-      floatingActionButton: _isLoading
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: _isChatEnding ? null : _endChat,
-              icon: Icon(Icons.stop_circle),
-              label: Text('End Chat'),
-              backgroundColor: Colors.red,
             ),
     );
   }
