@@ -1,0 +1,20 @@
+{
+  "buildFiles": [
+    "/Volumes/Projects/flutter/packages/flutter_tools/gradle/src/main/groovy/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/Users/akashsahay/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/Volumes/Projects/Projects/Trueastrotalk/trueastrotalk/android/app/.cxx/Debug/3v05d211/arm64-v8a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/Users/akashsahay/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/Volumes/Projects/Projects/Trueastrotalk/trueastrotalk/android/app/.cxx/Debug/3v05d211/arm64-v8a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {}
+}

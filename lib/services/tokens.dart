@@ -1,5 +1,6 @@
 // lib/services/token_service.dart
 import 'dart:convert';
+import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -50,7 +51,11 @@ class TokenService {
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'fcm_token': fcmToken,
+          'token': fcmToken,
+          'platform': Platform.isIOS ? 'ios' : 'android',
+          'model': Platform.localeName,
+          'os_version': Platform.operatingSystemVersion,
+          'app_version': '1.0.0',
         }),
       );
 

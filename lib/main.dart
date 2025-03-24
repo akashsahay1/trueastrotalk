@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app_links/app_links.dart';
 import 'package:trueastrotalk/models/astrologer.dart';
+import 'package:trueastrotalk/screens/astrologer_chat_request.dart';
 import 'package:trueastrotalk/screens/chatmessage.dart';
 import 'package:trueastrotalk/screens/chatrequest.dart';
 import 'package:trueastrotalk/screens/forgotpass.dart';
@@ -302,6 +303,21 @@ class TrueAstrotalkState extends State<TrueAstrotalk> {
           final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
           final astrologer = args['astrologer'] as Astrologer;
           return ChatRequestScreen(astrologer: astrologer);
+        },
+        '/chat': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          final astrologer = args['astrologer'] as Astrologer;
+          final chatId = args['chat_id'] as String;
+          return ChatScreen(
+            astrologer: astrologer,
+            chatId: chatId,
+          );
+        },
+        '/chat-request-details': (context) {
+          // Route for astrologers to view chat requests
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          final requestId = args['request_id'] as String;
+          return AstrologerChatRequestScreen(requestId: requestId); // You would need to create this screen
         },
       },
       onGenerateRoute: (settings) {

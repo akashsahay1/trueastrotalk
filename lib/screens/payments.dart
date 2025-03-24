@@ -68,7 +68,7 @@ class _ChatPaymentScreenState extends State<ChatPaymentScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load wallet details: ${e.toString()}')),
+        SnackBar(content: Text('Failed to load pp wallet details: ${e.toString()}')),
       );
     }
   }

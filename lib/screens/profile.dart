@@ -13,7 +13,7 @@ class Profile extends StatefulWidget {
 }
 
 class _ProfileState extends State<Profile> {
-  final String baseUrl = Environment.baseApiUrl;
+  final String baseApiUrl = Environment.baseApiUrl;
   late TextEditingController firstnameField = TextEditingController();
   late TextEditingController lastnameField = TextEditingController();
   late TextEditingController emailField = TextEditingController();
@@ -245,7 +245,7 @@ class _ProfileState extends State<Profile> {
 
       try {
         final response = await http.post(
-          Uri.parse('$baseUrl/api/update'),
+          Uri.parse('${baseApiUrl}/update'),
           headers: <String, String>{
             'Content-Type': 'application/json',
             'Accept': 'application/json',

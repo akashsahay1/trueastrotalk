@@ -157,13 +157,10 @@ class _SignupState extends State<Signup> {
         _isloading = false;
       });
 
-      print(response.statusCode);
-
       if (response.statusCode == 201) {
         final responseData = response.body;
         if (responseData.isNotEmpty) {
           final signupresponse = jsonDecode(responseData);
-          print(signupresponse);
           if (signupresponse['status'] == 1) {
             showDialog(
               context: context,

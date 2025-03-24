@@ -25,7 +25,7 @@ class WalletService {
       //print(response.body);
       return WalletModel.fromJson(json.decode(response.body));
     } else {
-      throw Exception('Failed to load wallet details');
+      throw Exception('Failed to load mm wallet details');
     }
   }
 
