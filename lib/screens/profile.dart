@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:trueastrotalk/common/international_phone_field.dart';
 import 'package:trueastrotalk/config/environment.dart';
 
 class Profile extends StatefulWidget {
@@ -51,6 +52,10 @@ class _ProfileState extends State<Profile> {
   // Method to load user data from storage or API
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
+
+    print(prefs.getString('user_dob'));
+    print(convertDateFormatForDisplay(prefs.getString('user_dob') ?? ""));
+
     setState(() {
       _selectedTitle = prefs.getString('title') ?? "Mr.";
       firstnameField.text = prefs.getString('first_name') ?? "";
@@ -58,7 +63,7 @@ class _ProfileState extends State<Profile> {
       emailField.text = prefs.getString('user_email') ?? "";
       phoneField.text = prefs.getString('user_phone') ?? "";
       _selectedGender = prefs.getString('user_gender') ?? "Male";
-      dobField.text = prefs.getString('user_dob') ?? "";
+      dobField.text = convertDateFormatForDisplay(prefs.getString('user_dob') ?? "");
     });
   }
 
@@ -532,39 +537,16 @@ class _ProfileState extends State<Profile> {
                   const SizedBox(
                     height: 8.0,
                   ),
-                  TextFormField(
+                  InternationalPhoneField(
                     focusNode: _phoneFocusNode,
                     controller: phoneField,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      prefixIcon: Padding(
-                        padding: EdgeInsets.only(
-                          left: 0,
-                          right: 10.0,
-                        ),
-                        child: Icon(Icons.phone),
-                      ),
-                      hintText: 'Phone number',
-                      contentPadding: EdgeInsets.symmetric(
-                        vertical: 10,
-                      ),
-                      prefixIconConstraints: BoxConstraints(
-                        minWidth: 0,
-                        minHeight: 0,
-                      ),
-                    ),
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 17.0,
-                    ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your phone number';
                       }
                       return null;
                     },
-                    textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) => _update(),
+                    onSubmitted: _update,
                   ),
                   const SizedBox(
                     height: 30.0,
@@ -602,7 +584,7 @@ class _ProfileState extends State<Profile> {
                                 ),
                                 prefixIcon: Padding(
                                   padding: EdgeInsets.only(right: 10.0),
-                                  child: Icon(Icons.people),
+                                  child: Icon(Icons.person),
                                 ),
                                 prefixIconConstraints: BoxConstraints(
                                   minWidth: 0,

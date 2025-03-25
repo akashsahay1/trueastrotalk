@@ -26,6 +26,7 @@ dependencies:
   url_launcher: ^6.3.1
   flutter_local_notifications: ^19.0.0
   device_info_plus: ^11.3.0
+  country_code_picker: ^3.2.0
 
 dev_dependencies:
   flutter_test:
