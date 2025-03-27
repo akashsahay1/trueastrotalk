@@ -22,7 +22,7 @@ class Astrologer {
     this.experience = 'N/A',
     this.rating = 0.0,
     this.price = 'N/A',
-    this.image = 'https://trueastrologgers.avenuxtechspire.com/assets/images/avatar-1.jpg',
+    this.image = 'https://www.trueastrotalk.com/assets/images/avatar-1.jpg',
     this.isOnline = false,
     this.languages = 'Not specified',
     this.astroType,
@@ -109,7 +109,7 @@ class Astrologer {
     } else if (json['image'] != null && json['image'].toString().isNotEmpty) {
       return json['image'];
     }
-    return 'https://trueastrologgers.avenuxtechspire.com/assets/images/avatar-1.jpg';
+    return 'https://www.trueastrotalk.com/assets/images/avatar-1.jpg';
   }
 
   Map<String, dynamic> toJson() {

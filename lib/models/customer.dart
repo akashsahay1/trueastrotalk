@@ -119,7 +119,7 @@ class Customer {
       experience: userExperience ?? '0 years',
       rating: 4.5, // You may want to get this from somewhere else
       price: '₹${astroCharges?.toStringAsFixed(0) ?? "40"}/min',
-      image: avatar ?? 'https://trueastrologgers.avenuxtechspire.com/assets/images/avatar-1.jpg',
+      image: avatar ?? 'https://www.trueastrotalk.com/assets/images/avatar-1.jpg',
       isOnline: isOnline,
       languages: userLanguages ?? 'Hindi, English',
       astroType: astroType,

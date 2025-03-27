@@ -5,7 +5,7 @@ import '../models/astrologer.dart';
 import '../config/environment.dart';
 
 class AstrologerService {
-  final String baseUrl = Environment.baseApiUrl;
+  final String baseApiUrl = Environment.baseApiUrl;
 
   // Get the auth token from shared preferences
   Future<String> getAuthToken() async {
@@ -19,7 +19,7 @@ class AstrologerService {
 
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/astrologers?page=$page&limit=$limit'),
+        Uri.parse('$baseApiUrl/astrologers?page=$page&limit=$limit'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -62,7 +62,7 @@ class AstrologerService {
 
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/astrologers/category/$category?page=$page&limit=$limit'),
+        Uri.parse('$baseApiUrl/astrologers/category/$category?page=$page&limit=$limit'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -95,7 +95,7 @@ class AstrologerService {
 
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/astrologers/search?query=$query'),
+        Uri.parse('$baseApiUrl/astrologers/search?query=$query'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -129,7 +129,7 @@ class AstrologerService {
 
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/astrologers/$id'),
+        Uri.parse('$baseApiUrl/astrologers/$id'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -173,7 +173,7 @@ class AstrologerService {
 
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/astrologers?page=$page&limit=$limit'),
+        Uri.parse('$baseApiUrl/astrologers?page=$page&limit=$limit'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',

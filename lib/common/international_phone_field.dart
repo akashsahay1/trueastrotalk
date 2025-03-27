@@ -4,14 +4,12 @@ import 'package:country_code_picker/country_code_picker.dart';
 class InternationalPhoneField extends StatefulWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
-  final Function() onSubmitted;
   final String? Function(String?)? validator;
 
   const InternationalPhoneField({
     Key? key,
     required this.controller,
     required this.focusNode,
-    required this.onSubmitted,
     this.validator,
   }) : super(key: key);
 
@@ -20,7 +18,7 @@ class InternationalPhoneField extends StatefulWidget {
 }
 
 class _InternationalPhoneFieldState extends State<InternationalPhoneField> {
-  String _countryCode = '+1'; // Default to US code
+  String _countryCode = '+91'; // Default to US code
   final GlobalKey<FormFieldState> _phoneFieldKey = GlobalKey<FormFieldState>();
 
   @override
@@ -34,7 +32,7 @@ class _InternationalPhoneFieldState extends State<InternationalPhoneField> {
     else if (widget.controller.text.startsWith('+')) {
       final match = RegExp(r'^\+\d+').firstMatch(widget.controller.text);
       if (match != null) {
-        _countryCode = match.group(0) ?? '+1';
+        _countryCode = match.group(0) ?? '+91';
       }
     }
   }
@@ -42,7 +40,7 @@ class _InternationalPhoneFieldState extends State<InternationalPhoneField> {
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           decoration: const BoxDecoration(
@@ -57,9 +55,7 @@ class _InternationalPhoneFieldState extends State<InternationalPhoneField> {
             onChanged: (CountryCode countryCode) {
               setState(() {
                 _countryCode = countryCode.dialCode ?? '+91';
-                // Update the controller to include the country code
                 if (widget.controller.text.isNotEmpty) {
-                  // Remove any existing country code pattern (+ followed by digits)
                   final phoneNumber = widget.controller.text.replaceFirst(RegExp(r'^\+\d+\s*'), '');
                   widget.controller.text = '$phoneNumber';
                   _phoneFieldKey.currentState?.validate();
@@ -67,10 +63,10 @@ class _InternationalPhoneFieldState extends State<InternationalPhoneField> {
               });
             },
             initialSelection: 'IN',
-            favorite: const ['IN', 'US', 'GB', 'CA'],
+            favorite: const ['IN', 'US'],
             showCountryOnly: false,
             showOnlyCountryWhenClosed: false,
-            alignLeft: false,
+            alignLeft: true,
             padding: EdgeInsets.zero,
             countryFilter: null,
             showFlagMain: true,
@@ -100,19 +96,9 @@ class _InternationalPhoneFieldState extends State<InternationalPhoneField> {
             ),
             style: const TextStyle(
               color: Colors.black,
-              fontSize: 17.0,
+              fontSize: 15.0,
             ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter your phone number';
-              }
-              if (widget.validator != null) {
-                return widget.validator!(value);
-              }
-              return null;
-            },
             textInputAction: TextInputAction.done,
-            onFieldSubmitted: (_) => widget.onSubmitted(),
             onChanged: (value) {
               // Ensure country code is always part of the phone number
               if (value.isNotEmpty && !value.startsWith('+')) {

@@ -540,13 +540,6 @@ class _ProfileState extends State<Profile> {
                   InternationalPhoneField(
                     focusNode: _phoneFocusNode,
                     controller: phoneField,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your phone number';
-                      }
-                      return null;
-                    },
-                    onSubmitted: _update,
                   ),
                   const SizedBox(
                     height: 30.0,

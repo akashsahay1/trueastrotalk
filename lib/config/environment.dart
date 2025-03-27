@@ -13,12 +13,12 @@ class Environment {
 
   // API URLs based on app mode
   static String get baseApiUrl {
-    return 'https://trueastrologgers.avenuxtechspire.com/api';
+    return 'https://www.trueastrotalk.com/api';
   }
 
   // API URLs based on app mode
   static String get baseUrl {
-    return 'https://trueastrologgers.avenuxtechspire.com';
+    return 'https://www.trueastrotalk.com';
   }
 
   // Razorpay keys based on Razorpay mode (independent of app mode)

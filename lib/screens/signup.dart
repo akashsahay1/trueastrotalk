@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:http/http.dart' as http;
+import 'package:trueastrotalk/config/colors.dart';
 import 'dart:convert';
-
 import 'package:trueastrotalk/config/environment.dart';
+import 'package:trueastrotalk/common/international_phone_field.dart';
 
 class Signup extends StatefulWidget {
   const Signup({super.key});
@@ -12,46 +14,78 @@ class Signup extends StatefulWidget {
 }
 
 class _SignupState extends State<Signup> {
-  final String baseUrl = Environment.baseApiUrl;
-  final TextEditingController fullName = TextEditingController();
+  final String baseApiUrl = Environment.baseApiUrl;
+
+  // Form fields
+  final TextEditingController salutionField = TextEditingController();
+  final TextEditingController firstNameField = TextEditingController();
+  final TextEditingController lastNameField = TextEditingController();
   final TextEditingController emailField = TextEditingController();
   final TextEditingController phoneField = TextEditingController();
   final TextEditingController passwordField = TextEditingController();
   final TextEditingController cpasswordField = TextEditingController();
+  late TextEditingController dobField = TextEditingController();
+  late TextEditingController birthPlaceField = TextEditingController();
+  late TextEditingController birthTimeField = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isCpasswordVisible = false;
 
-  late FocusNode _fullNameFocusNode;
+  late FocusNode _firstNameFocusNode;
+  late FocusNode _lastNameFocusNode;
   late FocusNode _emailFocusNode;
   late FocusNode _phoneFocusNode;
   late FocusNode _passwordFocusNode;
   late FocusNode _cpasswordFocusNode;
+  late FocusNode _birthPlaceFocusNode;
+  late FocusNode _birthTimeFocusNode;
 
   final _formKey = GlobalKey<FormState>();
   bool _isloading = false;
 
+  // Selected title value
+  String? _selectedSalution;
+
+  // Selected gender value
+  String? _selectedGender;
+
+  // List of title options
+  final List<String> _salutionOptions = ['Mr.', 'Mrs.', 'Miss', 'Ms.', 'Dr.', 'Prof.'];
+
+  // List of gender options
+  final List<String> _genderOptions = ['Male', 'Female', 'Other'];
+
   @override
   void initState() {
     super.initState();
-    _fullNameFocusNode = FocusNode();
+    _firstNameFocusNode = FocusNode();
+    _lastNameFocusNode = FocusNode();
     _emailFocusNode = FocusNode();
     _phoneFocusNode = FocusNode();
     _passwordFocusNode = FocusNode();
     _cpasswordFocusNode = FocusNode();
+    _birthPlaceFocusNode = FocusNode();
+    _birthTimeFocusNode = FocusNode();
   }
 
   @override
   void dispose() {
-    _fullNameFocusNode.dispose();
+    _firstNameFocusNode.dispose();
+    _lastNameFocusNode.dispose();
     _emailFocusNode.dispose();
     _phoneFocusNode.dispose();
     _passwordFocusNode.dispose();
     _cpasswordFocusNode.dispose();
+    _birthPlaceFocusNode.dispose();
+    _birthTimeFocusNode.dispose();
     super.dispose();
   }
 
-  void _focusOnFullname() {
-    FocusScope.of(context).requestFocus(_fullNameFocusNode);
+  void _focusOnFirstName() {
+    FocusScope.of(context).requestFocus(_firstNameFocusNode);
+  }
+
+  void _focusOnLastName() {
+    FocusScope.of(context).requestFocus(_lastNameFocusNode);
   }
 
   void _focusOnEmail() {
@@ -70,20 +104,41 @@ class _SignupState extends State<Signup> {
     FocusScope.of(context).requestFocus(_cpasswordFocusNode);
   }
 
+  void _focusOnBirthPlace() {
+    FocusScope.of(context).requestFocus(_birthPlaceFocusNode);
+  }
+
+  void _focusOnBirthTime() {
+    FocusScope.of(context).requestFocus(_birthTimeFocusNode);
+  }
+
   Future _signup() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isloading = true;
       });
 
-      final fullname = fullName.text;
-      final emailadd = emailField.text;
-      final phonenum = phoneField.text;
-      final pwasswrd = passwordField.text;
-      final cpasswrd = cpasswordField.text;
+      final salution = _selectedSalution.toString();
+      final firstname = firstNameField.text.trim();
+      final lastname = lastNameField.text.trim();
+      final emailadd = emailField.text.trim();
+      final passwrd = passwordField.text.trim();
+      final cpasswrd = cpasswordField.text.trim();
+      final phonenum = phoneField.text.trim();
+      final gender = _selectedGender.toString().trim();
+      final birthplace = birthPlaceField.text.trim();
+      final birthtime = birthTimeField.text.trim();
 
-      if (fullname == "") {
-        _focusOnFullname();
+      if (firstname == "") {
+        _focusOnFirstName();
+        setState(() {
+          _isloading = false;
+        });
+        return false;
+      }
+
+      if (lastname == "") {
+        _focusOnLastName();
         setState(() {
           _isloading = false;
         });
@@ -106,7 +161,7 @@ class _SignupState extends State<Signup> {
         return false;
       }
 
-      if (pwasswrd == "") {
+      if (passwrd == "") {
         _focusOnPassword();
         setState(() {
           _isloading = false;
@@ -122,7 +177,7 @@ class _SignupState extends State<Signup> {
         return false;
       }
 
-      if (pwasswrd != cpasswrd) {
+      if (passwrd != cpasswrd) {
         _focusOnCpassword();
         setState(() {
           _isloading = false;
@@ -130,21 +185,50 @@ class _SignupState extends State<Signup> {
         return false;
       }
 
-      print(fullName.text.trim());
-      print(emailField.text.trim());
-      print(phoneField.text.trim());
-      print(passwordField.text.trim());
+      if (birthplace == "") {
+        _focusOnBirthPlace();
+        setState(() {
+          _isloading = false;
+        });
+        return false;
+      }
+
+      if (birthtime == "") {
+        _focusOnBirthTime();
+        setState(() {
+          _isloading = false;
+        });
+        return false;
+      }
+
+      print(salution);
+      print(firstname);
+      print(lastname);
+      print(emailadd);
+      print(passwrd);
+      print(cpasswrd);
+      print(phonenum);
+      print(gender);
+      print(birthplace);
+      print(birthtime);
 
       final Map<String, String> data = {
         'signup': '1',
-        'fullname': fullName.text.trim(),
-        'email': emailField.text.trim(),
-        'phone': phoneField.text.trim(),
-        'password': passwordField.text.trim(),
+        'salution': salution,
+        'firstname': firstname,
+        'lastname': lastname,
+        'gender': gender,
+        'email': emailadd,
+        'password': passwrd,
+        'phone': phonenum,
+        'birthplace': birthplace,
+        'birthtime': birthtime,
       };
 
+      print(baseApiUrl);
+
       final response = await http.post(
-        Uri.parse(baseUrl),
+        Uri.parse('${baseApiUrl}/signup'),
         headers: <String, String>{
           'Content-Type': 'application/x-www-form-urlencoded',
         },
@@ -156,6 +240,12 @@ class _SignupState extends State<Signup> {
       setState(() {
         _isloading = false;
       });
+
+      print(response.statusCode);
+
+      if (response.statusCode == 422) {
+        print('Validation error: ${response.body}');
+      }
 
       if (response.statusCode == 201) {
         final responseData = response.body;
@@ -321,22 +411,23 @@ class _SignupState extends State<Signup> {
 
   @override
   Widget build(BuildContext context) {
+    final double rowGap = 28;
+    final double colGap = 15;
+
     return Scaffold(
-      body: Container(
-        height: double.infinity,
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            fit: BoxFit.cover,
-            image: AssetImage("assets/images/login-bg.jpg"),
-          ),
+      body: Stack(children: [
+        SvgPicture.asset(
+          "assets/images/login-bg.svg",
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
         ),
-        child: SafeArea(
+        SafeArea(
           child: SingleChildScrollView(
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.only(
-                  top: 80.0,
+                  top: 60.0,
                   left: 30.0,
                   right: 30.0,
                 ),
@@ -365,38 +456,146 @@ class _SignupState extends State<Signup> {
                         ),
                       ),
                       const SizedBox(height: 20.0),
-                      TextField(
-                        focusNode: _fullNameFocusNode,
-                        controller: fullName,
-                        decoration: const InputDecoration(
-                          prefixIcon: Padding(
-                            padding: EdgeInsets.only(
-                              left: 0,
-                              right: 10.0,
-                            ),
-                            child: Icon(
-                              Icons.face,
-                              size: 20,
-                            ),
-                          ),
-                          hintText: 'Full Name',
-                          contentPadding: EdgeInsets.symmetric(
-                            vertical: 10,
-                          ),
-                          prefixIconConstraints: BoxConstraints(
-                            minWidth: 0,
-                            minHeight: 0,
-                          ),
-                        ),
-                        style: const TextStyle(
+                      Text(
+                        "Full name",
+                        style: TextStyle(
                           color: Colors.black,
-                          fontSize: 15.0,
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(
-                        height: 10.0,
+                        height: 1.0,
                       ),
-                      TextField(
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: Theme(
+                              data: Theme.of(context).copyWith(
+                                popupMenuTheme: PopupMenuThemeData(
+                                  menuPadding: EdgeInsets.symmetric(horizontal: 8.0),
+                                ),
+                              ),
+                              child: DropdownButtonFormField<String>(
+                                value: _selectedSalution,
+                                decoration: const InputDecoration(
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 0,
+                                    vertical: 0,
+                                  ),
+                                  hintText: 'Title',
+                                ),
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 15.0,
+                                ),
+                                hint: const Text('Title'),
+                                isExpanded: true,
+                                icon: const Icon(Icons.arrow_drop_down),
+                                menuMaxHeight: 320,
+                                alignment: AlignmentDirectional.centerStart,
+                                items: _salutionOptions.map((String title) {
+                                  return DropdownMenuItem<String>(
+                                    value: title,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(left: 0.0),
+                                      child: Text(title),
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (String? newValue) {
+                                  setState(() {
+                                    _selectedSalution = newValue;
+                                  });
+                                },
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Required';
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: colGap),
+                          Expanded(
+                            flex: 3,
+                            child: TextFormField(
+                              focusNode: _firstNameFocusNode,
+                              controller: firstNameField,
+                              decoration: const InputDecoration(
+                                hintText: 'First name',
+                                contentPadding: EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                                prefixIconConstraints: BoxConstraints(
+                                  minWidth: 0,
+                                  minHeight: 0,
+                                ),
+                              ),
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 15.0,
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Required';
+                                }
+                                return null;
+                              },
+                              keyboardType: TextInputType.text,
+                              textInputAction: TextInputAction.next,
+                              onFieldSubmitted: (_) => _focusOnLastName(),
+                            ),
+                          ),
+                          SizedBox(width: colGap),
+                          Expanded(
+                            flex: 3,
+                            child: TextFormField(
+                              focusNode: _lastNameFocusNode,
+                              controller: lastNameField,
+                              decoration: const InputDecoration(
+                                hintText: 'Last name',
+                                contentPadding: EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                                prefixIconConstraints: BoxConstraints(
+                                  minWidth: 0,
+                                  minHeight: 0,
+                                ),
+                              ),
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 15.0,
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Required';
+                                }
+                                return null;
+                              },
+                              keyboardType: TextInputType.text,
+                              textInputAction: TextInputAction.next,
+                              onFieldSubmitted: (_) => _focusOnEmail(),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: rowGap),
+                      Text(
+                        "Email address",
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(
+                        height: 1.0,
+                      ),
+                      TextFormField(
                         focusNode: _emailFocusNode,
                         controller: emailField,
                         decoration: const InputDecoration(
@@ -423,140 +622,283 @@ class _SignupState extends State<Signup> {
                           color: Colors.black,
                           fontSize: 15.0,
                         ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Email is required!';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: rowGap),
+                      Text(
+                        "Passwords",
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       const SizedBox(
-                        height: 10.0,
+                        height: 1.0,
                       ),
-                      TextField(
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: TextField(
+                              focusNode: _passwordFocusNode,
+                              controller: passwordField,
+                              obscureText: !_isPasswordVisible, // Toggle based on state
+                              decoration: InputDecoration(
+                                prefixIcon: const Padding(
+                                  padding: EdgeInsets.only(
+                                    left: 0,
+                                    right: 10.0,
+                                  ),
+                                  child: Icon(
+                                    Icons.lock,
+                                    size: 20,
+                                  ),
+                                ),
+                                suffixIcon: Padding(
+                                  padding: EdgeInsets.only(
+                                    left: 0,
+                                    right: 10.0,
+                                  ),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _isPasswordVisible = !_isPasswordVisible;
+                                      });
+                                    },
+                                    child: Icon(
+                                      _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                                    ),
+                                  ),
+                                ),
+                                hintText: 'Password',
+                                contentPadding: EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                                prefixIconConstraints: BoxConstraints(
+                                  minWidth: 0,
+                                  minHeight: 0,
+                                ),
+                              ),
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 15.0,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: colGap),
+                          Expanded(
+                            flex: 3,
+                            child: TextField(
+                              focusNode: _cpasswordFocusNode,
+                              controller: cpasswordField,
+                              obscureText: !_isCpasswordVisible,
+                              decoration: InputDecoration(
+                                prefixIcon: Padding(
+                                  padding: EdgeInsets.only(
+                                    left: 0,
+                                    right: 10.0,
+                                  ),
+                                  child: Icon(
+                                    Icons.lock,
+                                    size: 20,
+                                  ),
+                                ),
+                                suffixIcon: Padding(
+                                  padding: EdgeInsets.only(
+                                    left: 0,
+                                    right: 10.0,
+                                  ),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(
+                                        () {
+                                          _isCpasswordVisible = !_isCpasswordVisible;
+                                        },
+                                      );
+                                    },
+                                    child: Icon(
+                                      _isCpasswordVisible ? Icons.visibility : Icons.visibility_off,
+                                    ),
+                                  ),
+                                ),
+                                hintText: 'Confirm',
+                                contentPadding: EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                                prefixIconConstraints: BoxConstraints(
+                                  minWidth: 0,
+                                  minHeight: 0,
+                                ),
+                              ),
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 15.0,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: rowGap),
+                      Text(
+                        "Phone number",
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(
+                        height: 1.0,
+                      ),
+                      InternationalPhoneField(
                         focusNode: _phoneFocusNode,
                         controller: phoneField,
-                        keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(
-                          prefixIcon: Padding(
-                            padding: EdgeInsets.only(
-                              left: 0,
-                              right: 10.0,
-                            ),
-                            child: Icon(
-                              Icons.phone,
-                              size: 20,
-                            ),
-                          ),
-                          hintText: 'Phone number',
-                          contentPadding: EdgeInsets.symmetric(
-                            vertical: 10,
-                          ),
-                          prefixIconConstraints: BoxConstraints(
-                            minWidth: 0,
-                            minHeight: 0,
-                          ),
-                        ),
-                        style: const TextStyle(
+                      ),
+                      SizedBox(height: rowGap),
+                      Text(
+                        "Gender, Birth place & Time",
+                        style: TextStyle(
                           color: Colors.black,
-                          fontSize: 15.0,
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(
-                        height: 10.0,
+                        height: 1.0,
                       ),
-                      TextField(
-                        focusNode: _passwordFocusNode,
-                        controller: passwordField,
-                        obscureText: !_isPasswordVisible, // Toggle based on state
-                        decoration: InputDecoration(
-                          prefixIcon: const Padding(
-                            padding: EdgeInsets.only(
-                              left: 0,
-                              right: 10.0,
-                            ),
-                            child: Icon(
-                              Icons.lock,
-                              size: 20,
-                            ),
-                          ),
-                          suffixIcon: Padding(
-                            padding: EdgeInsets.only(
-                              left: 0,
-                              right: 10.0,
-                            ),
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _isPasswordVisible = !_isPasswordVisible;
-                                });
-                              },
-                              child: Icon(
-                                _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Expanded(
+                            child: Theme(
+                              data: Theme.of(context).copyWith(
+                                popupMenuTheme: PopupMenuThemeData(
+                                  menuPadding: EdgeInsets.symmetric(horizontal: 8.0),
+                                ),
+                              ),
+                              child: DropdownButtonFormField<String>(
+                                value: _selectedSalution,
+                                decoration: const InputDecoration(
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 0,
+                                    vertical: 0,
+                                  ),
+                                  hintText: 'Gender',
+                                ),
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 15.0,
+                                ),
+                                hint: const Text('Gender'),
+                                isExpanded: true,
+                                icon: const Icon(Icons.arrow_drop_down),
+                                menuMaxHeight: 320,
+                                alignment: AlignmentDirectional.centerStart,
+                                items: _genderOptions.map((String gender) {
+                                  return DropdownMenuItem<String>(
+                                    value: gender,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(left: 0.0),
+                                      child: Text(gender),
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (String? newValue) {
+                                  setState(() {
+                                    _selectedGender = newValue;
+                                  });
+                                },
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Required';
+                                  }
+                                  return null;
+                                },
                               ),
                             ),
                           ),
-                          hintText: 'Password',
-                          contentPadding: EdgeInsets.symmetric(
-                            vertical: 10,
-                          ),
-                          prefixIconConstraints: BoxConstraints(
-                            minWidth: 0,
-                            minHeight: 0,
-                          ),
-                        ),
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 15.0,
-                        ),
-                      ),
-                      const SizedBox(
-                        height: 20.0,
-                      ),
-                      TextField(
-                        focusNode: _cpasswordFocusNode,
-                        controller: cpasswordField,
-                        obscureText: !_isCpasswordVisible,
-                        decoration: InputDecoration(
-                          prefixIcon: Padding(
-                            padding: EdgeInsets.only(
-                              left: 0,
-                              right: 10.0,
-                            ),
-                            child: Icon(
-                              Icons.lock,
-                              size: 20,
-                            ),
-                          ),
-                          suffixIcon: Padding(
-                            padding: EdgeInsets.only(
-                              left: 0,
-                              right: 10.0,
-                            ),
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(
-                                  () {
-                                    _isCpasswordVisible = !_isCpasswordVisible;
-                                  },
-                                );
-                              },
-                              child: Icon(
-                                _isCpasswordVisible ? Icons.visibility : Icons.visibility_off,
+                          SizedBox(width: colGap),
+                          Expanded(
+                            child: TextFormField(
+                              focusNode: _birthPlaceFocusNode,
+                              controller: birthPlaceField,
+                              decoration: const InputDecoration(
+                                prefixIcon: Padding(
+                                  padding: EdgeInsets.only(
+                                    left: 0,
+                                    right: 10.0,
+                                  ),
+                                  child: Icon(
+                                    Icons.location_city,
+                                    size: 20,
+                                  ),
+                                ),
+                                hintText: 'Birth place',
+                                contentPadding: EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                                prefixIconConstraints: BoxConstraints(
+                                  minWidth: 0,
+                                  minHeight: 0,
+                                ),
+                              ),
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 15.0,
                               ),
                             ),
                           ),
-                          hintText: 'Confirm password',
-                          contentPadding: EdgeInsets.symmetric(
-                            vertical: 10,
+                          SizedBox(width: colGap),
+                          Expanded(
+                            child: TextFormField(
+                              focusNode: _birthTimeFocusNode,
+                              controller: birthTimeField,
+                              decoration: const InputDecoration(
+                                prefixIcon: Padding(
+                                  padding: EdgeInsets.only(
+                                    left: 0,
+                                    right: 10.0,
+                                  ),
+                                  child: Icon(
+                                    Icons.access_time_outlined,
+                                    size: 20,
+                                  ),
+                                ),
+                                hintText: 'Birth time',
+                                contentPadding: EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                                prefixIconConstraints: BoxConstraints(
+                                  minWidth: 0,
+                                  minHeight: 0,
+                                ),
+                              ),
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 15.0,
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Time is required!';
+                                }
+                                return null;
+                              },
+                            ),
                           ),
-                          prefixIconConstraints: BoxConstraints(
-                            minWidth: 0,
-                            minHeight: 0,
-                          ),
-                        ),
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 15.0,
-                        ),
+                        ],
                       ),
-                      const SizedBox(
-                        height: 30.0,
-                      ),
+                      SizedBox(height: rowGap),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -565,13 +907,13 @@ class _SignupState extends State<Signup> {
                               _signup(),
                             },
                             style: const ButtonStyle(
-                              backgroundColor: WidgetStatePropertyAll(Color(0xffFFE70D)),
-                              foregroundColor: WidgetStatePropertyAll(Colors.black),
+                              backgroundColor: WidgetStatePropertyAll(AppColors.accentColor),
+                              foregroundColor: WidgetStatePropertyAll(Colors.white),
                               shape: WidgetStatePropertyAll<RoundedRectangleBorder>(
                                 RoundedRectangleBorder(
                                   borderRadius: BorderRadius.all(Radius.circular(30.0)),
                                   side: BorderSide(
-                                    color: Color(0xffFFE70D),
+                                    color: AppColors.accentColor,
                                   ),
                                 ),
                               ),
@@ -585,7 +927,7 @@ class _SignupState extends State<Signup> {
                                         width: 20.0,
                                         height: 20.0,
                                         child: CircularProgressIndicator(
-                                          color: Colors.black,
+                                          color: Colors.white,
                                           strokeWidth: 2.0,
                                         ),
                                       ),
@@ -596,7 +938,7 @@ class _SignupState extends State<Signup> {
                                         "Processing...",
                                         style: TextStyle(
                                           fontSize: 16.0,
-                                          fontWeight: FontWeight.w700,
+                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
                                     ],
@@ -604,9 +946,8 @@ class _SignupState extends State<Signup> {
                                 : const Text(
                                     "Create account",
                                     style: TextStyle(
-                                      color: Colors.black,
                                       fontSize: 17.0,
-                                      fontWeight: FontWeight.w700,
+                                      fontWeight: FontWeight.w500,
                                       letterSpacing: 0.0,
                                     ),
                                   ),
@@ -614,7 +955,7 @@ class _SignupState extends State<Signup> {
                         ],
                       ),
                       const SizedBox(
-                        height: 40.0,
+                        height: 30.0,
                       ),
                       Row(
                         children: [
@@ -622,7 +963,7 @@ class _SignupState extends State<Signup> {
                             "Already have an account?",
                             style: TextStyle(
                               color: Color(0xff000000),
-                              fontSize: 18.0,
+                              fontSize: 16.0,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -634,9 +975,9 @@ class _SignupState extends State<Signup> {
                             child: const Text(
                               "Login",
                               style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 18.0,
-                                fontWeight: FontWeight.w700,
+                                color: AppColors.accentColor,
+                                fontSize: 16.0,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
                           )
@@ -649,7 +990,7 @@ class _SignupState extends State<Signup> {
             ),
           ),
         ),
-      ),
+      ]),
     );
   }
 }

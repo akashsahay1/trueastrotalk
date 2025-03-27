@@ -8,6 +8,7 @@ import 'package:trueastrotalk/screens/astrologer_chat_request.dart';
 import 'package:trueastrotalk/screens/chatmessage.dart';
 import 'package:trueastrotalk/screens/chatrequest.dart';
 import 'package:trueastrotalk/screens/forgotpass.dart';
+import 'package:trueastrotalk/screens/incoming_calls.dart';
 import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:trueastrotalk/screens/init.dart';
@@ -503,6 +504,15 @@ class TrueAstrotalkState extends State<TrueAstrotalk> {
           final astrologer = args['astrologer'] as Astrologer;
           final requestId = args['request_id'];
           return AstrologerChatRequestScreen(astrologer: astrologer, requestId: requestId);
+        },
+        '/incoming-call': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          return IncomingCallScreen(
+            callId: args['call_id'],
+            callerName: args['caller_name'],
+            callerImage: args['caller_image'],
+            callerId: args['caller_id'],
+          );
         },
       },
       onGenerateRoute: (settings) {
