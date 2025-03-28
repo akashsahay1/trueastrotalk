@@ -159,14 +159,6 @@ class _SignupState extends State<Signup> {
         return false;
       }
 
-      print(salution);
-      print(firstname);
-      print(lastname);
-      print(emailadd);
-      print(passwrd);
-      print(cpasswrd);
-      print(phonenum);
-
       final Map<String, String> data = {
         'signup': '1',
         'salution': salution,
