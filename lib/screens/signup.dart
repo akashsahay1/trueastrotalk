@@ -24,9 +24,6 @@ class _SignupState extends State<Signup> {
   final TextEditingController phoneField = TextEditingController();
   final TextEditingController passwordField = TextEditingController();
   final TextEditingController cpasswordField = TextEditingController();
-  late TextEditingController dobField = TextEditingController();
-  late TextEditingController birthPlaceField = TextEditingController();
-  late TextEditingController birthTimeField = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isCpasswordVisible = false;
 
@@ -36,8 +33,6 @@ class _SignupState extends State<Signup> {
   late FocusNode _phoneFocusNode;
   late FocusNode _passwordFocusNode;
   late FocusNode _cpasswordFocusNode;
-  late FocusNode _birthPlaceFocusNode;
-  late FocusNode _birthTimeFocusNode;
 
   final _formKey = GlobalKey<FormState>();
   bool _isloading = false;
@@ -45,14 +40,8 @@ class _SignupState extends State<Signup> {
   // Selected title value
   String? _selectedSalution;
 
-  // Selected gender value
-  String? _selectedGender;
-
   // List of title options
   final List<String> _salutionOptions = ['Mr.', 'Mrs.', 'Miss', 'Ms.', 'Dr.', 'Prof.'];
-
-  // List of gender options
-  final List<String> _genderOptions = ['Male', 'Female', 'Other'];
 
   @override
   void initState() {
@@ -63,8 +52,6 @@ class _SignupState extends State<Signup> {
     _phoneFocusNode = FocusNode();
     _passwordFocusNode = FocusNode();
     _cpasswordFocusNode = FocusNode();
-    _birthPlaceFocusNode = FocusNode();
-    _birthTimeFocusNode = FocusNode();
   }
 
   @override
@@ -75,8 +62,6 @@ class _SignupState extends State<Signup> {
     _phoneFocusNode.dispose();
     _passwordFocusNode.dispose();
     _cpasswordFocusNode.dispose();
-    _birthPlaceFocusNode.dispose();
-    _birthTimeFocusNode.dispose();
     super.dispose();
   }
 
@@ -104,14 +89,6 @@ class _SignupState extends State<Signup> {
     FocusScope.of(context).requestFocus(_cpasswordFocusNode);
   }
 
-  void _focusOnBirthPlace() {
-    FocusScope.of(context).requestFocus(_birthPlaceFocusNode);
-  }
-
-  void _focusOnBirthTime() {
-    FocusScope.of(context).requestFocus(_birthTimeFocusNode);
-  }
-
   Future _signup() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -125,9 +102,6 @@ class _SignupState extends State<Signup> {
       final passwrd = passwordField.text.trim();
       final cpasswrd = cpasswordField.text.trim();
       final phonenum = phoneField.text.trim();
-      final gender = _selectedGender.toString().trim();
-      final birthplace = birthPlaceField.text.trim();
-      final birthtime = birthTimeField.text.trim();
 
       if (firstname == "") {
         _focusOnFirstName();
@@ -185,22 +159,6 @@ class _SignupState extends State<Signup> {
         return false;
       }
 
-      if (birthplace == "") {
-        _focusOnBirthPlace();
-        setState(() {
-          _isloading = false;
-        });
-        return false;
-      }
-
-      if (birthtime == "") {
-        _focusOnBirthTime();
-        setState(() {
-          _isloading = false;
-        });
-        return false;
-      }
-
       print(salution);
       print(firstname);
       print(lastname);
@@ -208,24 +166,16 @@ class _SignupState extends State<Signup> {
       print(passwrd);
       print(cpasswrd);
       print(phonenum);
-      print(gender);
-      print(birthplace);
-      print(birthtime);
 
       final Map<String, String> data = {
         'signup': '1',
         'salution': salution,
         'firstname': firstname,
         'lastname': lastname,
-        'gender': gender,
         'email': emailadd,
         'password': passwrd,
         'phone': phonenum,
-        'birthplace': birthplace,
-        'birthtime': birthtime,
       };
-
-      print(baseApiUrl);
 
       final response = await http.post(
         Uri.parse('${baseApiUrl}/signup'),
@@ -240,12 +190,6 @@ class _SignupState extends State<Signup> {
       setState(() {
         _isloading = false;
       });
-
-      print(response.statusCode);
-
-      if (response.statusCode == 422) {
-        print('Validation error: ${response.body}');
-      }
 
       if (response.statusCode == 201) {
         final responseData = response.body;
@@ -359,13 +303,13 @@ class _SignupState extends State<Signup> {
                                   Navigator.pushReplacementNamed(context, '/login');
                                 },
                                 style: ButtonStyle(
-                                  backgroundColor: const WidgetStatePropertyAll(Color(0xffFFE70D)),
-                                  foregroundColor: const WidgetStatePropertyAll(Colors.black),
+                                  backgroundColor: const WidgetStatePropertyAll(AppColors.accentColor),
+                                  foregroundColor: const WidgetStatePropertyAll(Colors.white),
                                   shape: WidgetStatePropertyAll<RoundedRectangleBorder>(
                                     RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(30.0),
                                       side: const BorderSide(
-                                        color: Color(0xffFFE70D),
+                                        color: AppColors.accentColor,
                                       ),
                                     ),
                                   ),
@@ -379,7 +323,6 @@ class _SignupState extends State<Signup> {
                                 child: const Text(
                                   'Get Started',
                                   style: TextStyle(
-                                    color: Colors.black,
                                     fontFamily: 'OpenSans',
                                     fontWeight: FontWeight.w700,
                                     letterSpacing: 1.0,
@@ -427,7 +370,7 @@ class _SignupState extends State<Signup> {
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.only(
-                  top: 60.0,
+                  top: 70.0,
                   left: 30.0,
                   right: 30.0,
                 ),
@@ -647,7 +590,7 @@ class _SignupState extends State<Signup> {
                         mainAxisSize: MainAxisSize.max,
                         children: [
                           Expanded(
-                            flex: 3,
+                            flex: 1,
                             child: TextField(
                               focusNode: _passwordFocusNode,
                               controller: passwordField,
@@ -696,7 +639,7 @@ class _SignupState extends State<Signup> {
                           ),
                           SizedBox(width: colGap),
                           Expanded(
-                            flex: 3,
+                            flex: 1,
                             child: TextField(
                               focusNode: _cpasswordFocusNode,
                               controller: cpasswordField,
@@ -762,141 +705,6 @@ class _SignupState extends State<Signup> {
                       InternationalPhoneField(
                         focusNode: _phoneFocusNode,
                         controller: phoneField,
-                      ),
-                      SizedBox(height: rowGap),
-                      Text(
-                        "Gender, Birth place & Time",
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 14.0,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(
-                        height: 1.0,
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.max,
-                        children: [
-                          Expanded(
-                            child: Theme(
-                              data: Theme.of(context).copyWith(
-                                popupMenuTheme: PopupMenuThemeData(
-                                  menuPadding: EdgeInsets.symmetric(horizontal: 8.0),
-                                ),
-                              ),
-                              child: DropdownButtonFormField<String>(
-                                value: _selectedSalution,
-                                decoration: const InputDecoration(
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 0,
-                                    vertical: 0,
-                                  ),
-                                  hintText: 'Gender',
-                                ),
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 15.0,
-                                ),
-                                hint: const Text('Gender'),
-                                isExpanded: true,
-                                icon: const Icon(Icons.arrow_drop_down),
-                                menuMaxHeight: 320,
-                                alignment: AlignmentDirectional.centerStart,
-                                items: _genderOptions.map((String gender) {
-                                  return DropdownMenuItem<String>(
-                                    value: gender,
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(left: 0.0),
-                                      child: Text(gender),
-                                    ),
-                                  );
-                                }).toList(),
-                                onChanged: (String? newValue) {
-                                  setState(() {
-                                    _selectedGender = newValue;
-                                  });
-                                },
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Required';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: colGap),
-                          Expanded(
-                            child: TextFormField(
-                              focusNode: _birthPlaceFocusNode,
-                              controller: birthPlaceField,
-                              decoration: const InputDecoration(
-                                prefixIcon: Padding(
-                                  padding: EdgeInsets.only(
-                                    left: 0,
-                                    right: 10.0,
-                                  ),
-                                  child: Icon(
-                                    Icons.location_city,
-                                    size: 20,
-                                  ),
-                                ),
-                                hintText: 'Birth place',
-                                contentPadding: EdgeInsets.symmetric(
-                                  vertical: 10,
-                                ),
-                                prefixIconConstraints: BoxConstraints(
-                                  minWidth: 0,
-                                  minHeight: 0,
-                                ),
-                              ),
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 15.0,
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: colGap),
-                          Expanded(
-                            child: TextFormField(
-                              focusNode: _birthTimeFocusNode,
-                              controller: birthTimeField,
-                              decoration: const InputDecoration(
-                                prefixIcon: Padding(
-                                  padding: EdgeInsets.only(
-                                    left: 0,
-                                    right: 10.0,
-                                  ),
-                                  child: Icon(
-                                    Icons.access_time_outlined,
-                                    size: 20,
-                                  ),
-                                ),
-                                hintText: 'Birth time',
-                                contentPadding: EdgeInsets.symmetric(
-                                  vertical: 10,
-                                ),
-                                prefixIconConstraints: BoxConstraints(
-                                  minWidth: 0,
-                                  minHeight: 0,
-                                ),
-                              ),
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 15.0,
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Time is required!';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                        ],
                       ),
                       SizedBox(height: rowGap),
                       Row(
