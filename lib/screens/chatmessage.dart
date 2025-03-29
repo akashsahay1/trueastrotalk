@@ -366,19 +366,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(widget.astrologer.name),
-            Text(
-              widget.astrologer.price,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
+        title: Text(widget.astrologer.name),
         actions: [
           Container(
             padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),

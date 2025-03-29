@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:trueastrotalk/config/colors.dart';
 import 'package:trueastrotalk/models/astrologer.dart';
 import 'package:trueastrotalk/screens/chatrequest.dart';
+import 'package:trueastrotalk/utilities/strings.dart';
 
 class AstrologerDetails extends StatelessWidget {
   final Astrologer? astrologer;
@@ -67,9 +69,17 @@ class AstrologerDetails extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(
+                        displayAstrologer.name.toTitleCase(),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 10),
                       Row(
                         children: [
-                          Icon(Icons.star, color: Colors.amber, size: 20),
+                          Icon(Icons.star, color: AppColors.accentColor, size: 20),
                           SizedBox(width: 4),
                           Text(
                             '${displayAstrologer.rating}',
@@ -86,38 +96,8 @@ class AstrologerDetails extends StatelessWidget {
                           Icon(Icons.work_outline, color: Colors.grey.shade700, size: 18),
                           SizedBox(width: 8),
                           Text(
-                            'Experience: ${displayAstrologer.experience}',
+                            'Experience: ${displayAstrologer.experience} years',
                             style: TextStyle(fontSize: 14),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.auto_graph, size: 18, color: Colors.grey[700]),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              displayAstrologer.speciality,
-                              style: TextStyle(
-                                color: Colors.grey.shade700,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.language, size: 18, color: Colors.grey[700]),
-                          SizedBox(width: 8),
-                          Text(
-                            displayAstrologer.languages,
-                            style: TextStyle(
-                              color: Colors.grey.shade700,
-                              fontSize: 14,
-                            ),
                           ),
                         ],
                       ),
@@ -221,8 +201,6 @@ class AstrologerDetails extends StatelessWidget {
               ],
             ),
           ),
-
-          /* Call button section (commented out as requested) */
           Divider(),
 
           Padding(
@@ -231,91 +209,94 @@ class AstrologerDetails extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Call',
+                  'Consultation',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: 12),
-                ElevatedButton(
-                  onPressed: () {
-                    // Call functionality
-                  },
-                  style: ButtonStyle(
-                    backgroundColor: WidgetStatePropertyAll(Color(0xFF00C16e)),
-                    minimumSize: WidgetStatePropertyAll(Size(double.infinity, 45)),
-                    shape: WidgetStatePropertyAll(
-                      RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.call, color: Colors.white),
-                      SizedBox(width: 8),
-                      Text(
-                        'Call: ${displayAstrologer.price}',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // Call functionality
+                        },
+                        style: ButtonStyle(
+                          backgroundColor: WidgetStatePropertyAll(AppColors.accentColor),
+                          foregroundColor: WidgetStatePropertyAll(Colors.white),
+                          minimumSize: WidgetStatePropertyAll(Size(double.infinity, 45)),
+                          shape: WidgetStatePropertyAll(
+                            RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.call, color: Colors.white),
+                            SizedBox(width: 8),
+                            Text(
+                              'Call Now',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // Chat functionality
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ChatRequestScreen(
+                                astrologer: displayAstrologer,
+                              ),
+                            ),
+                          );
+                        },
+                        style: ButtonStyle(
+                          backgroundColor: WidgetStatePropertyAll(Color.fromARGB(255, 1, 141, 20)),
+                          foregroundColor: WidgetStatePropertyAll(Colors.white),
+                          minimumSize: WidgetStatePropertyAll(Size(double.infinity, 45)),
+                          shape: WidgetStatePropertyAll(
+                            RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.chat_bubble_outline_rounded,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Chat Now',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-
-          // Chat button
-          Padding(
-            padding: EdgeInsets.all(16),
-            child: ElevatedButton(
-              onPressed: () {
-                // Chat functionality
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ChatRequestScreen(
-                      astrologer: displayAstrologer,
-                    ),
-                  ),
-                );
-              },
-              style: ButtonStyle(
-                backgroundColor: WidgetStatePropertyAll(Color(0xFFFFE70D)),
-                minimumSize: WidgetStatePropertyAll(Size(double.infinity, 45)),
-                shape: WidgetStatePropertyAll(
-                  RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.chat_bubble_outline,
-                    color: Colors.black,
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    'Chat Now',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
           SizedBox(height: 30),
         ],
       ),

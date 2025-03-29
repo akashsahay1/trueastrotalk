@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:trueastrotalk/config/colors.dart';
 import 'package:trueastrotalk/models/astrologer.dart';
 import 'package:trueastrotalk/screens/chatrequest.dart';
+import 'package:trueastrotalk/utilities/strings.dart';
 
 class AstrologerCard extends StatelessWidget {
   final Astrologer astrologer;
@@ -134,21 +136,6 @@ class AstrologerCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // Online indicator
-                    if (astrologer.isOnline)
-                      Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: Container(
-                          width: 15,
-                          height: 15,
-                          decoration: BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                        ),
-                      ),
                   ],
                 ),
                 SizedBox(height: 10),
@@ -166,14 +153,14 @@ class AstrologerCard extends StatelessWidget {
                     SizedBox(width: 2),
                     Icon(
                       Icons.star,
-                      color: Color(0xFF1877F2),
+                      color: AppColors.accentColor,
                       size: 22,
                     ),
                   ],
                 ),
               ],
             ),
-            SizedBox(width: 10.0),
+            SizedBox(width: 30.0),
             // Astrologer details
             Expanded(
               flex: 1,
@@ -185,24 +172,34 @@ class AstrologerCard extends StatelessWidget {
                     child: Row(
                       children: [
                         Text(
-                          astrologer.name,
+                          astrologer.name.toTitleCase(),
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                            fontSize: 18,
                             color: Color(0xFF19295C),
                           ),
                         ),
                         SizedBox(width: 5),
                         Icon(
                           Icons.check_circle_rounded,
-                          color: Color(0xFF1877F2),
+                          color: AppColors.accentColor,
                           size: 20,
                         )
                       ],
                     ),
                   ),
                   SizedBox(height: 4),
+                  Text(
+                    astrologer.price,
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: AppColors.accentColor,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  SizedBox(height: 10),
                   Row(
+                    mainAxisSize: MainAxisSize.max,
                     children: [
                       Icon(
                         Icons.auto_graph,
@@ -210,11 +207,15 @@ class AstrologerCard extends StatelessWidget {
                         color: Color(0xFF19295C),
                       ),
                       SizedBox(width: 8),
-                      Text(
-                        astrologer.speciality,
-                        style: TextStyle(
-                          color: Color(0xFF19295C),
-                          fontSize: 13,
+                      Expanded(
+                        child: Text(
+                          astrologer.speciality,
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: true,
+                          style: TextStyle(
+                            color: Color(0xFF19295C),
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                     ],
@@ -228,11 +229,15 @@ class AstrologerCard extends StatelessWidget {
                         color: Color(0xFF19295C),
                       ),
                       SizedBox(width: 8),
-                      Text(
-                        astrologer.languages,
-                        style: TextStyle(
-                          color: Color(0xFF19295C),
-                          fontSize: 13,
+                      Expanded(
+                        child: Text(
+                          'Languages ${astrologer.languages}',
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: true,
+                          style: TextStyle(
+                            color: Color(0xFF19295C),
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                     ],
@@ -250,61 +255,68 @@ class AstrologerCard extends StatelessWidget {
                         'Experience ${astrologer.experience}',
                         style: TextStyle(
                           color: Color(0xFF19295C),
-                          fontSize: 13,
+                          fontSize: 16,
                         ),
                       )
                     ],
-                  )
+                  ),
+                  SizedBox(height: 10),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () => _handleCallPressed(context),
+                        style: ButtonStyle(
+                          backgroundColor: WidgetStatePropertyAll(Color(0xFF1877F2)),
+                          padding: WidgetStatePropertyAll(EdgeInsets.only(left: 10, right: 10, top: 2, bottom: 2)),
+                          minimumSize: WidgetStatePropertyAll(Size(90, 30)),
+                          shape: WidgetStatePropertyAll(
+                            RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5),
+                              side: BorderSide(color: Color(0xFF1877F2), width: 1),
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          "Call",
+                          style: TextStyle(
+                            color: Color(0xFFFFFFFF),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 15),
+                      ElevatedButton(
+                        onPressed: () => _handleChatPressed(context),
+                        style: ButtonStyle(
+                          backgroundColor: WidgetStatePropertyAll(Color(0xFFF1F4F5)),
+                          foregroundColor: WidgetStatePropertyAll(AppColors.accentColor),
+                          padding: WidgetStatePropertyAll(EdgeInsets.only(left: 10, right: 10, top: 2, bottom: 2)),
+                          minimumSize: WidgetStatePropertyAll(Size(90, 30)),
+                          shape: WidgetStatePropertyAll(
+                            RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          'Chat',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 15),
+                      GestureDetector(
+                        onTap: () => _handleProfileTap(context),
+                        child: Icon(Icons.share, color: AppColors.accentColor, size: 20),
+                      ),
+                    ],
+                  ),
                 ],
               ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                ElevatedButton(
-                  onPressed: () => _handleChatPressed(context),
-                  style: ButtonStyle(
-                    backgroundColor: WidgetStatePropertyAll(Color(0xFF1877F2)),
-                    padding: WidgetStatePropertyAll(EdgeInsets.only(left: 10, right: 10, top: 2, bottom: 2)),
-                    minimumSize: WidgetStatePropertyAll(Size(90, 30)),
-                    shape: WidgetStatePropertyAll(
-                      RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5),
-                        side: BorderSide(color: Color(0xFF1877F2), width: 1),
-                      ),
-                    ),
-                  ),
-                  child: Text(
-                    "Call",
-                    style: TextStyle(
-                      color: Color(0xFFFFFFFF),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: () => _handleCallPressed(context),
-                  style: ButtonStyle(
-                    backgroundColor: WidgetStatePropertyAll(Color(0xFFF1F4F5)),
-                    padding: WidgetStatePropertyAll(EdgeInsets.only(left: 10, right: 10, top: 2, bottom: 2)),
-                    minimumSize: WidgetStatePropertyAll(Size(90, 30)),
-                    shape: WidgetStatePropertyAll(
-                      RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                    ),
-                  ),
-                  child: Text(
-                    astrologer.price,
-                    style: TextStyle(
-                      color: Color(0xFF1877F2),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-                ),
-              ],
             ),
           ],
         ),

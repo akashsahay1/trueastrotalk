@@ -28,7 +28,7 @@ class _HomeState extends State<Home> {
 
     try {
       // Load 5 astrologers initially
-      final astrologers = await _astrologerService.getAstrologers(limit: 5);
+      final astrologers = await _astrologerService.getAstrologers(limit: 10);
       setState(() {
         _astrologers = astrologers;
       });

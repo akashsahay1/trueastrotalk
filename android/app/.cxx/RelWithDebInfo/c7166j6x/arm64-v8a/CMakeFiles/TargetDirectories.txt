@@ -1,0 +1,2 @@
+/Volumes/Projects/Projects/Trueastrotalk/trueastrotalk/android/app/.cxx/RelWithDebInfo/c7166j6x/arm64-v8a/CMakeFiles/edit_cache.dir
+/Volumes/Projects/Projects/Trueastrotalk/trueastrotalk/android/app/.cxx/RelWithDebInfo/c7166j6x/arm64-v8a/CMakeFiles/rebuild_cache.dir

@@ -111,6 +111,7 @@ class _LoginState extends State<Login> {
               prefs.setString('user_dob', loginresponse['user']['user_dob'] ?? '1980-01-01');
               prefs.setString('user_gender', loginresponse['user']['user_gender'] ?? 'Male');
               prefs.setString('user_type', loginresponse['user']['astro_type']);
+              prefs.setString('user_role', loginresponse['user']['user_role']);
               await TokenService().refreshAndUpdateFCMToken();
               Navigator.pushReplacementNamed(context, '/home');
             } else {

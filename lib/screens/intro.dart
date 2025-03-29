@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lottie/lottie.dart';
+import 'package:trueastrotalk/config/colors.dart';
 
 class Intro extends StatefulWidget {
   const Intro({super.key});
@@ -15,7 +16,6 @@ class _OnboardingSliderState extends State<Intro> with SingleTickerProviderState
   int _currentPage = 0;
 
   // Theme colors
-  final Color _primaryColor = const Color(0xFFFFE70D);
   final Color _textDarkColor = Colors.black87;
   final Color _textLightColor = Colors.black54;
 
@@ -205,7 +205,7 @@ class _OnboardingSliderState extends State<Intro> with SingleTickerProviderState
                           height: 8,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(4),
-                            color: i == _currentPage ? _primaryColor : Colors.grey.withValues(alpha: 0.5),
+                            color: i == _currentPage ? AppColors.accentColor : Colors.grey.withValues(alpha: 0.5),
                           ),
                         ),
                       ),
@@ -297,10 +297,10 @@ class _OnboardingSliderState extends State<Intro> with SingleTickerProviderState
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _primaryColor,
-          foregroundColor: Colors.black,
+          backgroundColor: AppColors.accentColor,
+          foregroundColor: Colors.white,
           elevation: 3,
-          shadowColor: _primaryColor.withValues(alpha: .5),
+          shadowColor: AppColors.accentColor.withValues(alpha: .5),
           padding: const EdgeInsets.symmetric(
             horizontal: 20,
             vertical: 12,
@@ -343,12 +343,12 @@ class _OnboardingSliderState extends State<Intro> with SingleTickerProviderState
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _primaryColor,
-          foregroundColor: Colors.black87,
+          backgroundColor: AppColors.accentColor,
+          foregroundColor: Colors.white,
           elevation: 2,
           shadowColor: Colors.grey.withValues(alpha: 0.3),
           side: BorderSide(
-            color: _primaryColor.withValues(alpha: 0.5),
+            color: AppColors.accentColor,
             width: 1.5,
           ),
           padding: const EdgeInsets.symmetric(
@@ -371,7 +371,6 @@ class _OnboardingSliderState extends State<Intro> with SingleTickerProviderState
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: _textDarkColor,
               ),
             ),
           ],

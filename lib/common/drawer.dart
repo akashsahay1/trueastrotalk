@@ -22,6 +22,7 @@ class _AppDrawerState extends State<AppDrawer> {
   String _userGender = "";
   String _userDob = "";
   bool _isLoggedIn = false;
+  bool _isAstrologer = false;
 
   @override
   void initState() {
@@ -32,6 +33,18 @@ class _AppDrawerState extends State<AppDrawer> {
   // Method to load user data from storage or API
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
+
+    // Check if user is astrologer
+
+    if (prefs.getString('user_role') == 'astrologer') {
+      setState(() {
+        _isAstrologer = true;
+      });
+    }
+
+    print(prefs.getString('user_role'));
+    print(_isAstrologer);
+
     setState(() {
       _userFullName = prefs.getString('user_name') ?? "Guest User";
       _userGender = prefs.getString('user_gender') ?? "";
@@ -84,7 +97,7 @@ class _AppDrawerState extends State<AppDrawer> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_logged_in', false);
     await prefs.setString('user_name', 'Guest User');
-    await prefs.setString('user_type', 'Customer');
+    await prefs.setString('user_role', 'customer');
     await TokenService().removeFCMTokenFromBackend();
     Navigator.pop(context);
     Navigator.push(
@@ -146,6 +159,17 @@ class _AppDrawerState extends State<AppDrawer> {
                     ),
                     textAlign: TextAlign.center,
                   ),
+                const SizedBox(height: 4),
+                // Display user type
+                Text(
+                  _isAstrologer ? 'Astrologer' : 'Customer',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ],
             ),
           ),

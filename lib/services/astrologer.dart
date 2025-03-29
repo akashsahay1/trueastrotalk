@@ -52,7 +52,7 @@ class AstrologerService {
     } catch (e) {
       print('Exception in getAstrologers: $e');
       // Return dummy data when API fails or during development
-      return _getDummyAstrologers();
+      return [];
     }
   }
 
@@ -83,9 +83,7 @@ class AstrologerService {
         throw Exception('Failed to load astrologers by category: ${response.statusCode}');
       }
     } catch (e) {
-      // Filter dummy data by category
-      final allAstrologers = _getDummyAstrologers();
-      return allAstrologers.where((astrologer) => astrologer.speciality.toLowerCase() == category.toLowerCase() || astrologer.astroType?.toLowerCase() == category.toLowerCase()).toList();
+      return [];
     }
   }
 
@@ -115,11 +113,7 @@ class AstrologerService {
         throw Exception('Failed to search astrologers: ${response.statusCode}');
       }
     } catch (e) {
-      // Search in dummy data
-      final allAstrologers = _getDummyAstrologers();
-      final lowercaseQuery = query.toLowerCase();
-
-      return allAstrologers.where((astrologer) => astrologer.name.toLowerCase().contains(lowercaseQuery) || astrologer.speciality.toLowerCase().contains(lowercaseQuery) || astrologer.languages.toLowerCase().contains(lowercaseQuery)).toList();
+      return [];
     }
   }
 
@@ -149,7 +143,7 @@ class AstrologerService {
       }
     } catch (e) {
       // Return a dummy astrologer with the requested ID
-      final allAstrologers = _getDummyAstrologers();
+      final allAstrologers = [];
       return allAstrologers.firstWhere((a) => a.id == id, orElse: () => allAstrologers.first);
     }
   }
@@ -163,7 +157,7 @@ class AstrologerService {
       allAstrologers.sort((a, b) => b.rating.compareTo(a.rating));
       return allAstrologers.take(limit).toList();
     } catch (e) {
-      return _getDummyAstrologers().take(limit).toList();
+      return [];
     }
   }
 
@@ -205,86 +199,5 @@ class AstrologerService {
       // Return default pagination on error
       return {'current_page': 1, 'last_page': 1, 'per_page': 10, 'total': 0, 'has_more': false};
     }
-  }
-
-  // Dummy data for fallback or development
-  List<Astrologer> _getDummyAstrologers() {
-    return [
-      Astrologer(
-        id: 1,
-        name: 'Acharya Vinod',
-        speciality: 'Vedic Astrology',
-        experience: '15 years',
-        rating: 4.8,
-        price: '₹40/min',
-        image: 'assets/images/avatar.jpg',
-        isOnline: true,
-        languages: 'Hindi, English, Bangla',
-        astroType: 'Vedic',
-        userAbout: 'Expert in Vedic astrology with 15+ years of experience',
-        userExperience: '15 years',
-        userPhone: '1234567890',
-      ),
-      Astrologer(
-        id: 2,
-        name: 'Sunita Sharma',
-        speciality: 'Tarot Reading',
-        experience: '10 years',
-        rating: 4.6,
-        price: '₹35/min',
-        image: 'assets/images/avatar.jpg',
-        isOnline: true,
-        languages: 'Hindi, English, Bangla',
-        astroType: 'Tarot',
-        userAbout: 'Professional tarot card reader and spiritual guide',
-        userExperience: '10 years',
-        userPhone: '2345678901',
-      ),
-      Astrologer(
-        id: 3,
-        name: 'Guru Patel',
-        speciality: 'Numerology',
-        experience: '8 years',
-        rating: 4.5,
-        price: '₹30/min',
-        image: 'assets/images/avatar.jpg',
-        isOnline: false,
-        languages: 'Hindi, English',
-        astroType: 'Numerology',
-        userAbout: 'Numbers expert who can help you understand your life path',
-        userExperience: '8 years',
-        userPhone: '3456789012',
-      ),
-      Astrologer(
-        id: 4,
-        name: 'Dr. Meena Kapoor',
-        speciality: 'Palmistry',
-        experience: '12 years',
-        rating: 4.9,
-        price: '₹45/min',
-        image: 'assets/images/avatar.jpg',
-        isOnline: true,
-        languages: 'Hindi, Bangla',
-        astroType: 'Palmistry',
-        userAbout: 'Expert in reading palm lines and predicting future',
-        userExperience: '12 years',
-        userPhone: '4567890123',
-      ),
-      Astrologer(
-        id: 5,
-        name: 'Pandit Rajesh',
-        speciality: 'Vaastu Shastra',
-        experience: '20 years',
-        rating: 4.7,
-        price: '₹50/min',
-        image: 'assets/images/avatar.jpg',
-        isOnline: false,
-        languages: 'Hindi, English',
-        astroType: 'Vaastu',
-        userAbout: 'Vaastu expert who can help improve your home energy',
-        userExperience: '20 years',
-        userPhone: '5678901234',
-      ),
-    ];
   }
 }

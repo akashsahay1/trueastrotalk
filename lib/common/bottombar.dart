@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:trueastrotalk/config/colors.dart';
 
 class Bottombar extends StatelessWidget {
   final int initialIndex;
@@ -17,7 +18,7 @@ class Bottombar extends StatelessWidget {
       type: BottomNavigationBarType.fixed,
       currentIndex: initialIndex,
       onTap: onTap,
-      selectedItemColor: Colors.black,
+      selectedItemColor: AppColors.accentColor,
       items: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.home),

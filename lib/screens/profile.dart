@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:trueastrotalk/common/international_phone_field.dart';
+import 'package:trueastrotalk/config/colors.dart';
 import 'package:trueastrotalk/config/environment.dart';
 
 class Profile extends StatefulWidget {
@@ -666,17 +667,14 @@ class _ProfileState extends State<Profile> {
                   ElevatedButton(
                     onPressed: _isloading ? null : _update,
                     style: ButtonStyle(
-                      backgroundColor: WidgetStatePropertyAll(const Color(0xffFFE70D)),
-                      foregroundColor: WidgetStatePropertyAll(Colors.black),
+                      backgroundColor: WidgetStatePropertyAll(AppColors.accentColor),
+                      foregroundColor: WidgetStatePropertyAll(Colors.white),
                       shape: WidgetStatePropertyAll<RoundedRectangleBorder>(
                         const RoundedRectangleBorder(
                           borderRadius: BorderRadius.all(Radius.circular(30.0)),
-                          side: BorderSide(
-                            color: Color(0xffFFE70D),
-                          ),
                         ),
                       ),
-                      minimumSize: WidgetStatePropertyAll(const Size(190.0, 55.0)),
+                      minimumSize: WidgetStatePropertyAll(const Size(190.0, 50.0)),
                     ),
                     child: _isloading
                         ? const Row(
@@ -687,7 +685,7 @@ class _ProfileState extends State<Profile> {
                                 width: 20.0,
                                 height: 20.0,
                                 child: CircularProgressIndicator(
-                                  color: Colors.black,
+                                  color: Colors.white,
                                   strokeWidth: 2.0,
                                 ),
                               ),

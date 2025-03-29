@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app_links/app_links.dart';
+import 'package:trueastrotalk/config/colors.dart';
 import 'package:trueastrotalk/models/astrologer.dart';
 import 'package:trueastrotalk/screens/astrologer_chat_request.dart';
 import 'package:trueastrotalk/screens/chatmessage.dart';
@@ -457,7 +458,7 @@ class TrueAstrotalkState extends State<TrueAstrotalk> {
       title: 'True Astrotalk',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFFFE70D),
+          seedColor: AppColors.accentColor,
         ),
         useMaterial3: true,
       ),

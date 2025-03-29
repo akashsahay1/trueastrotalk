@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trueastrotalk/models/astrologer.dart';
 import 'package:trueastrotalk/services/chatmessage.dart';
 import 'package:trueastrotalk/screens/chatmessage.dart';
+import 'package:trueastrotalk/utilities/strings.dart';
 
 class ChatRequestScreen extends StatefulWidget {
   final Astrologer astrologer;
@@ -54,9 +55,9 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
       // Start polling for status updates
       _startStatusPolling();
     } catch (e) {
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   SnackBar(content: Text('Error: ${e.toString()}')),
-      // );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
       Navigator.pop(context);
     } finally {
       setState(
@@ -270,7 +271,11 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
         ),
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? Center(
+              child: CircularProgressIndicator(
+                color: Color.fromARGB(255, 1, 141, 20),
+              ),
+            )
           : Column(
               children: [
                 Expanded(
@@ -287,7 +292,7 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
                           ),
                           SizedBox(height: 20),
                           Text(
-                            widget.astrologer.name,
+                            widget.astrologer.name.toTitleCase(),
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -316,7 +321,9 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
                           ),
                           SizedBox(height: 40),
                           if (_requestStatus == 'pending') ...[
-                            CircularProgressIndicator(),
+                            CircularProgressIndicator(
+                              color: Color.fromARGB(255, 1, 141, 20),
+                            ),
                             SizedBox(height: 24),
                             Text(
                               'Waiting for ${widget.astrologer.name} to accept your chat request...',
@@ -362,10 +369,11 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
                       child: ElevatedButton(
                         onPressed: _isCancelling ? null : _cancelRequest,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
+                          backgroundColor: Color.fromARGB(255, 1, 141, 20),
+                          foregroundColor: Colors.white,
                           minimumSize: Size(double.infinity, 50),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(30),
                           ),
                         ),
                         child: _isCancelling
