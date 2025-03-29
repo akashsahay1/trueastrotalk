@@ -54,9 +54,9 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
       // Start polling for status updates
       _startStatusPolling();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(content: Text('Error: ${e.toString()}')),
+      // );
       Navigator.pop(context);
     } finally {
       setState(

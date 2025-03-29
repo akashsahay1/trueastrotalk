@@ -44,9 +44,9 @@ class _NotificationsState extends State<Notifications> {
     } catch (e) {
       if (mounted) {
         // Handle error
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to m load notifications: ${e.toString()}')),
-        );
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   SnackBar(content: Text('Failed to m load notifications: ${e.toString()}')),
+        // );
       }
     } finally {
       setState(() {

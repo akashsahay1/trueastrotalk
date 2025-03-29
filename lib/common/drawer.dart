@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trueastrotalk/screens/login.dart';
 import 'package:trueastrotalk/services/tokens.dart';
 
+import '../config/colors.dart';
+
 class AppDrawer extends StatefulWidget {
   final VoidCallback? onLogout;
 
@@ -106,7 +108,7 @@ class _AppDrawerState extends State<AppDrawer> {
             ),
             width: double.infinity,
             decoration: const BoxDecoration(
-              color: Color(0xFFFFE70D),
+              color: AppColors.accentColor,
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -118,7 +120,7 @@ class _AppDrawerState extends State<AppDrawer> {
                   child: Icon(
                     Icons.person,
                     size: 40,
-                    color: Colors.black,
+                    color: AppColors.accentColor,
                   ),
                 ),
                 const SizedBox(height: 15),
@@ -127,7 +129,7 @@ class _AppDrawerState extends State<AppDrawer> {
                   _userFullName,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.black,
+                    color: Colors.white,
                     fontSize: 18,
                   ),
                   textAlign: TextAlign.center,
@@ -139,7 +141,7 @@ class _AppDrawerState extends State<AppDrawer> {
                     formattedUserInfo,
                     style: const TextStyle(
                       fontSize: 15,
-                      color: Colors.black,
+                      color: Colors.white,
                       fontWeight: FontWeight.w600,
                     ),
                     textAlign: TextAlign.center,

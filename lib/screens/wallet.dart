@@ -47,9 +47,9 @@ class _WalletState extends State<Wallet> {
       setState(() {
         _isLoading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load wallet details: ${e.toString()}')),
-      );
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(content: Text('Failed to load wallet details: ${e.toString()}')),
+      // );
     }
   }
 

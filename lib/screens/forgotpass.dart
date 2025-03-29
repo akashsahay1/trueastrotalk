@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:http/http.dart' as http;
 import 'package:trueastrotalk/config/environment.dart';
 import 'dart:convert';
 import 'package:trueastrotalk/screens/login.dart';
+
+import '../config/colors.dart';
 
 class Forgotpass extends StatefulWidget {
   const Forgotpass({super.key});
@@ -234,174 +237,174 @@ class _ForgotpassState extends State<Forgotpass> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        height: double.infinity,
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          image: DecorationImage(
+      body: Stack(
+        children: [
+          SvgPicture.asset(
+            "assets/images/login-bg.svg",
             fit: BoxFit.cover,
-            image: AssetImage("assets/images/login-bg.png"),
+            width: double.infinity,
+            height: double.infinity,
           ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.only(
-                  top: 170.0,
-                  left: 30.0,
-                  right: 30.0,
-                ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      const Text(
-                        "Forgot Password?",
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 26.0,
-                          fontWeight: FontWeight.w800,
+          Center(
+            child:SingleChildScrollView(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    top: 170.0,
+                    left: 30.0,
+                    right: 30.0,
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        const Text(
+                          "Forgot Password?",
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 26.0,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
-                      ),
-                      const SizedBox(
-                        height: 10.0,
-                      ),
-                      const Text(
-                        "Please enter email to continue",
-                        style: TextStyle(
-                          color: Colors.black54,
-                          fontSize: 17.0,
-                          fontWeight: FontWeight.w600,
+                        const SizedBox(
+                          height: 10.0,
                         ),
-                      ),
-                      const SizedBox(
-                        height: 20.0,
-                      ),
-                      TextField(
-                        focusNode: _emailFocusNode,
-                        controller: emailField,
-                        decoration: const InputDecoration(
-                          prefixIcon: Padding(
-                            padding: EdgeInsets.only(
-                              left: 0,
-                              right: 10.0,
+                        const Text(
+                          "Please enter email to continue",
+                          style: TextStyle(
+                            color: Colors.black54,
+                            fontSize: 17.0,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(
+                          height: 20.0,
+                        ),
+                        TextField(
+                          focusNode: _emailFocusNode,
+                          controller: emailField,
+                          decoration: const InputDecoration(
+                            prefixIcon: Padding(
+                              padding: EdgeInsets.only(
+                                left: 0,
+                                right: 10.0,
+                              ),
+                              child: Icon(Icons.person),
                             ),
-                            child: Icon(Icons.person),
+                            hintText: 'Email address',
+                            contentPadding: EdgeInsets.symmetric(
+                              vertical: 10,
+                            ),
+                            prefixIconConstraints: BoxConstraints(
+                              minWidth: 0,
+                              minHeight: 0,
+                            ),
                           ),
-                          hintText: 'Email address',
-                          contentPadding: EdgeInsets.symmetric(
-                            vertical: 10,
-                          ),
-                          prefixIconConstraints: BoxConstraints(
-                            minWidth: 0,
-                            minHeight: 0,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 16.0,
                           ),
                         ),
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 16.0,
+                        const SizedBox(
+                          height: 15.0,
                         ),
-                      ),
-                      const SizedBox(
-                        height: 15.0,
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          ElevatedButton(
-                            onPressed: () => {_forgotpass()},
-                            style: const ButtonStyle(
-                              backgroundColor: WidgetStatePropertyAll(Color(0xffFFE70D)),
-                              foregroundColor: WidgetStatePropertyAll(Colors.black),
-                              shape: WidgetStatePropertyAll<RoundedRectangleBorder>(
-                                RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.all(Radius.circular(30.0)),
-                                  side: BorderSide(
-                                    color: Color(0xffFFE70D),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            ElevatedButton(
+                              onPressed: () => {_forgotpass()},
+                              style: const ButtonStyle(
+                                backgroundColor: WidgetStatePropertyAll(AppColors.accentColor),
+                                foregroundColor: WidgetStatePropertyAll(Colors.white),
+                                shape: WidgetStatePropertyAll<RoundedRectangleBorder>(
+                                  RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.all(Radius.circular(30.0)),
+                                    side: BorderSide(
+                                      color: AppColors.accentColor,
+                                    ),
                                   ),
                                 ),
+                                minimumSize: WidgetStatePropertyAll(Size(140.0, 55.0)),
                               ),
-                              minimumSize: WidgetStatePropertyAll(Size(140.0, 55.0)),
-                            ),
-                            child: _isloading
-                                ? const Row(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
-                                      SizedBox(
-                                        width: 20.0,
-                                        height: 20.0,
-                                        child: CircularProgressIndicator(
-                                          color: Colors.black,
-                                          strokeWidth: 2.0,
-                                        ),
-                                      ),
-                                      SizedBox(
-                                        width: 10.0,
-                                      ),
-                                      Text(
-                                        "Processing...",
-                                        style: TextStyle(
-                                          fontSize: 16.0,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : const Text(
-                                    "Reset Password",
+                              child: _isloading
+                                  ? const Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    width: 20.0,
+                                    height: 20.0,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2.0,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 10.0,
+                                  ),
+                                  Text(
+                                    "Processing...",
                                     style: TextStyle(
                                       fontSize: 16.0,
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(
-                        height: 30.0,
-                      ),
-                      Row(
-                        children: [
-                          const Text(
-                            "Continue to Login?",
-                            style: TextStyle(
-                              color: Color(0xff000000),
-                              fontSize: 16.0,
-                              fontWeight: FontWeight.w500,
+                                ],
+                              )
+                                  : const Text(
+                                "Reset Password",
+                                style: TextStyle(
+                                  fontSize: 16.0,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ),
-                          ),
-                          const SizedBox(
-                            width: 5.0,
-                          ),
-                          GestureDetector(
-                            onTap: () => {
-                              Navigator.pushReplacementNamed(context, '/login'),
-                            },
-                            child: const Text(
-                              "Login",
+                          ],
+                        ),
+                        const SizedBox(
+                          height: 30.0,
+                        ),
+                        Row(
+                          children: [
+                            const Text(
+                              "Continue to Login?",
                               style: TextStyle(
                                 color: Color(0xff000000),
                                 fontSize: 16.0,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
-                          )
-                        ],
-                      ),
-                      const SizedBox(
-                        height: 30.0,
-                      ),
-                    ],
+                            const SizedBox(
+                              width: 5.0,
+                            ),
+                            GestureDetector(
+                              onTap: () => {
+                                Navigator.pushReplacementNamed(context, '/login'),
+                              },
+                              child: const Text(
+                                "Login",
+                                style: TextStyle(
+                                  color: AppColors.accentColor,
+                                  fontSize: 16.0,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            )
+                          ],
+                        ),
+                        const SizedBox(
+                          height: 30.0,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
+        ]
       ),
     );
   }
