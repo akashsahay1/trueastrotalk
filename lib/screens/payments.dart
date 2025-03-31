@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:trueastrotalk/models/astrologer.dart';
+import 'package:trueastrotalk/models/user.dart';
 import 'package:trueastrotalk/models/wallet.dart';
 import 'package:trueastrotalk/services/wallet.dart';
 import 'package:trueastrotalk/config/environment.dart';
@@ -9,7 +9,7 @@ import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 
 class ChatPaymentScreen extends StatefulWidget {
-  final Astrologer astrologer;
+  final User astrologer;
   final Map<String, dynamic> chatSummary;
 
   const ChatPaymentScreen({

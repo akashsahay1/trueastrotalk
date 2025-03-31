@@ -316,249 +316,67 @@ class _ProfileState extends State<Profile> {
     }
   }
 
+  _showNotifications() {
+    Navigator.pushReplacementNamed(context, '/notifications');
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  const SizedBox(
-                    height: 10.0,
-                  ),
-                  const Text(
-                    "Update Profile",
-                    style: TextStyle(
-                      color: Colors.black54,
-                      fontSize: 17.0,
-                      fontWeight: FontWeight.w600,
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Profile',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: false,
+        backgroundColor: Color(0xFFFFFFFF),
+        foregroundColor: Colors.black,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.notifications),
+            onPressed: _showNotifications,
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    const SizedBox(
+                      height: 10.0,
                     ),
-                  ),
-                  const SizedBox(
-                    height: 20.0,
-                  ),
-                  Text(
-                    "Full name",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 14.0,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 8.0,
-                  ),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 1,
-                        child: Theme(
-                          data: Theme.of(context).copyWith(
-                            popupMenuTheme: PopupMenuThemeData(
-                              menuPadding: EdgeInsets.symmetric(horizontal: 8.0),
-                            ),
-                          ),
-                          child: DropdownButtonFormField<String>(
-                            value: _selectedTitle,
-                            decoration: const InputDecoration(
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 0,
-                                vertical: 0,
-                              ),
-                              hintText: 'Title',
-                            ),
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 17.0,
-                            ),
-                            hint: const Text('Title'),
-                            isExpanded: true,
-                            icon: const Icon(Icons.arrow_drop_down),
-                            menuMaxHeight: 320,
-                            alignment: AlignmentDirectional.centerStart,
-                            items: _titleOptions.map((String title) {
-                              return DropdownMenuItem<String>(
-                                value: title,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(left: 0.0),
-                                  child: Text(title),
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (String? newValue) {
-                              setState(() {
-                                _selectedTitle = newValue;
-                              });
-                            },
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Required';
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 15),
-                      Expanded(
-                        flex: 3,
-                        child: TextFormField(
-                          focusNode: _firstnameFocusNode,
-                          controller: firstnameField,
-                          decoration: const InputDecoration(
-                            prefixIcon: Padding(
-                              padding: EdgeInsets.only(
-                                left: 0,
-                                right: 10,
-                              ),
-                              child: Icon(Icons.face),
-                            ),
-                            hintText: 'First name',
-                            contentPadding: EdgeInsets.symmetric(
-                              vertical: 10,
-                            ),
-                            prefixIconConstraints: BoxConstraints(
-                              minWidth: 0,
-                              minHeight: 0,
-                            ),
-                          ),
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 17.0,
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Required';
-                            }
-                            return null;
-                          },
-                          keyboardType: TextInputType.text,
-                          textInputAction: TextInputAction.next,
-                          onFieldSubmitted: (_) => _focusOnLastname(),
-                        ),
-                      ),
-                      const SizedBox(width: 15),
-                      Expanded(
-                        flex: 3,
-                        child: TextFormField(
-                          focusNode: _lastnameFocusNode,
-                          controller: lastnameField,
-                          decoration: const InputDecoration(
-                            prefixIcon: Padding(
-                              padding: EdgeInsets.only(
-                                left: 0,
-                                right: 10,
-                              ),
-                              child: Icon(Icons.face),
-                            ),
-                            hintText: 'Last name',
-                            contentPadding: EdgeInsets.symmetric(
-                              vertical: 10,
-                            ),
-                            prefixIconConstraints: BoxConstraints(
-                              minWidth: 0,
-                              minHeight: 0,
-                            ),
-                          ),
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 17.0,
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Required';
-                            }
-                            return null;
-                          },
-                          keyboardType: TextInputType.text,
-                          textInputAction: TextInputAction.next,
-                          onFieldSubmitted: (_) => _focusOnEmail(),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 30),
-                  Text(
-                    "Email address",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 14.0,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 8.0,
-                  ),
-                  TextFormField(
-                    focusNode: _emailFocusNode,
-                    controller: emailField,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      prefixIcon: Padding(
-                        padding: EdgeInsets.only(
-                          left: 0,
-                          right: 10.0,
-                        ),
-                        child: Icon(Icons.email),
-                      ),
-                      hintText: 'Email address',
-                      contentPadding: EdgeInsets.symmetric(
-                        vertical: 10,
-                      ),
-                      prefixIconConstraints: BoxConstraints(
-                        minWidth: 0,
-                        minHeight: 0,
+                    const Text(
+                      "Update Profile",
+                      style: TextStyle(
+                        color: Colors.black54,
+                        fontSize: 17.0,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 17.0,
+                    const SizedBox(
+                      height: 20.0,
                     ),
-                  ),
-                  const SizedBox(
-                    height: 30.0,
-                  ),
-                  Text(
-                    "Phone number",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 14.0,
-                      fontWeight: FontWeight.w700,
+                    Text(
+                      "Full name",
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 14.0,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  const SizedBox(
-                    height: 8.0,
-                  ),
-                  InternationalPhoneField(
-                    focusNode: _phoneFocusNode,
-                    controller: phoneField,
-                  ),
-                  const SizedBox(
-                    height: 30.0,
-                  ),
-                  Text(
-                    "Gender & Date of birth",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 14.0,
-                      fontWeight: FontWeight.w700,
+                    const SizedBox(
+                      height: 8.0,
                     ),
-                  ),
-                  const SizedBox(
-                    height: 8.0,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
-                    child: Row(
+                    Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
@@ -570,43 +388,35 @@ class _ProfileState extends State<Profile> {
                               ),
                             ),
                             child: DropdownButtonFormField<String>(
-                              value: _selectedGender,
+                              value: _selectedTitle,
                               decoration: const InputDecoration(
                                 contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
+                                  horizontal: 0,
+                                  vertical: 0,
                                 ),
-                                prefixIcon: Padding(
-                                  padding: EdgeInsets.only(right: 10.0),
-                                  child: Icon(Icons.person),
-                                ),
-                                prefixIconConstraints: BoxConstraints(
-                                  minWidth: 0,
-                                  minHeight: 0,
-                                ),
-                                hintText: 'Gender',
+                                hintText: 'Title',
                               ),
                               style: const TextStyle(
                                 color: Colors.black,
                                 fontSize: 17.0,
                               ),
-                              hint: const Text('Gender'),
+                              hint: const Text('Title'),
                               isExpanded: true,
                               icon: const Icon(Icons.arrow_drop_down),
-                              menuMaxHeight: 300,
+                              menuMaxHeight: 320,
                               alignment: AlignmentDirectional.centerStart,
-                              items: _genderOptions.map((String gender) {
+                              items: _titleOptions.map((String title) {
                                 return DropdownMenuItem<String>(
-                                  value: gender,
+                                  value: title,
                                   child: Padding(
-                                    padding: const EdgeInsets.only(left: 8.0),
-                                    child: Text(gender),
+                                    padding: const EdgeInsets.only(left: 0.0),
+                                    child: Text(title),
                                   ),
                                 );
                               }).toList(),
                               onChanged: (String? newValue) {
                                 setState(() {
-                                  _selectedGender = newValue;
+                                  _selectedTitle = newValue;
                                 });
                               },
                               validator: (value) {
@@ -620,34 +430,205 @@ class _ProfileState extends State<Profile> {
                         ),
                         const SizedBox(width: 15),
                         Expanded(
-                          flex: 1,
-                          child: GestureDetector(
-                            onTap: () => _selectDate(context),
-                            child: AbsorbPointer(
-                              child: TextFormField(
-                                focusNode: _dobFocusNode,
-                                controller: dobField,
+                          flex: 3,
+                          child: TextFormField(
+                            focusNode: _firstnameFocusNode,
+                            controller: firstnameField,
+                            decoration: const InputDecoration(
+                              prefixIcon: Padding(
+                                padding: EdgeInsets.only(
+                                  left: 0,
+                                  right: 10,
+                                ),
+                                child: Icon(Icons.face),
+                              ),
+                              hintText: 'First name',
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: 10,
+                              ),
+                              prefixIconConstraints: BoxConstraints(
+                                minWidth: 0,
+                                minHeight: 0,
+                              ),
+                            ),
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 17.0,
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Required';
+                              }
+                              return null;
+                            },
+                            keyboardType: TextInputType.text,
+                            textInputAction: TextInputAction.next,
+                            onFieldSubmitted: (_) => _focusOnLastname(),
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+                        Expanded(
+                          flex: 3,
+                          child: TextFormField(
+                            focusNode: _lastnameFocusNode,
+                            controller: lastnameField,
+                            decoration: const InputDecoration(
+                              prefixIcon: Padding(
+                                padding: EdgeInsets.only(
+                                  left: 0,
+                                  right: 10,
+                                ),
+                                child: Icon(Icons.face),
+                              ),
+                              hintText: 'Last name',
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: 10,
+                              ),
+                              prefixIconConstraints: BoxConstraints(
+                                minWidth: 0,
+                                minHeight: 0,
+                              ),
+                            ),
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 17.0,
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Required';
+                              }
+                              return null;
+                            },
+                            keyboardType: TextInputType.text,
+                            textInputAction: TextInputAction.next,
+                            onFieldSubmitted: (_) => _focusOnEmail(),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 30),
+                    Text(
+                      "Email address",
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 14.0,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 8.0,
+                    ),
+                    TextFormField(
+                      focusNode: _emailFocusNode,
+                      controller: emailField,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        prefixIcon: Padding(
+                          padding: EdgeInsets.only(
+                            left: 0,
+                            right: 10.0,
+                          ),
+                          child: Icon(Icons.email),
+                        ),
+                        hintText: 'Email address',
+                        contentPadding: EdgeInsets.symmetric(
+                          vertical: 10,
+                        ),
+                        prefixIconConstraints: BoxConstraints(
+                          minWidth: 0,
+                          minHeight: 0,
+                        ),
+                      ),
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 17.0,
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 30.0,
+                    ),
+                    Text(
+                      "Phone number",
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 14.0,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 8.0,
+                    ),
+                    InternationalPhoneField(
+                      focusNode: _phoneFocusNode,
+                      controller: phoneField,
+                    ),
+                    const SizedBox(
+                      height: 30.0,
+                    ),
+                    Text(
+                      "Gender & Date of birth",
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 14.0,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 8.0,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 1,
+                            child: Theme(
+                              data: Theme.of(context).copyWith(
+                                popupMenuTheme: PopupMenuThemeData(
+                                  menuPadding: EdgeInsets.symmetric(horizontal: 8.0),
+                                ),
+                              ),
+                              child: DropdownButtonFormField<String>(
+                                value: _selectedGender,
                                 decoration: const InputDecoration(
-                                  prefixIcon: Padding(
-                                    padding: EdgeInsets.only(
-                                      left: 0,
-                                      right: 10,
-                                    ),
-                                    child: Icon(Icons.calendar_today),
-                                  ),
-                                  hintText: 'Date of Birth',
                                   contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12,
                                     vertical: 10,
+                                  ),
+                                  prefixIcon: Padding(
+                                    padding: EdgeInsets.only(right: 10.0),
+                                    child: Icon(Icons.person),
                                   ),
                                   prefixIconConstraints: BoxConstraints(
                                     minWidth: 0,
                                     minHeight: 0,
                                   ),
+                                  hintText: 'Gender',
                                 ),
                                 style: const TextStyle(
                                   color: Colors.black,
                                   fontSize: 17.0,
                                 ),
+                                hint: const Text('Gender'),
+                                isExpanded: true,
+                                icon: const Icon(Icons.arrow_drop_down),
+                                menuMaxHeight: 300,
+                                alignment: AlignmentDirectional.centerStart,
+                                items: _genderOptions.map((String gender) {
+                                  return DropdownMenuItem<String>(
+                                    value: gender,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(left: 8.0),
+                                      child: Text(gender),
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (String? newValue) {
+                                  setState(() {
+                                    _selectedGender = newValue;
+                                  });
+                                },
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
                                     return 'Required';
@@ -657,69 +638,109 @@ class _ProfileState extends State<Profile> {
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 40.0,
-                  ),
-                  ElevatedButton(
-                    onPressed: _isloading ? null : _update,
-                    style: ButtonStyle(
-                      backgroundColor: WidgetStatePropertyAll(AppColors.accentColor),
-                      foregroundColor: WidgetStatePropertyAll(Colors.white),
-                      shape: WidgetStatePropertyAll<RoundedRectangleBorder>(
-                        const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(30.0)),
-                        ),
-                      ),
-                      minimumSize: WidgetStatePropertyAll(const Size(190.0, 50.0)),
-                    ),
-                    child: _isloading
-                        ? const Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SizedBox(
-                                width: 20.0,
-                                height: 20.0,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2.0,
+                          const SizedBox(width: 15),
+                          Expanded(
+                            flex: 1,
+                            child: GestureDetector(
+                              onTap: () => _selectDate(context),
+                              child: AbsorbPointer(
+                                child: TextFormField(
+                                  focusNode: _dobFocusNode,
+                                  controller: dobField,
+                                  decoration: const InputDecoration(
+                                    prefixIcon: Padding(
+                                      padding: EdgeInsets.only(
+                                        left: 0,
+                                        right: 10,
+                                      ),
+                                      child: Icon(Icons.calendar_today),
+                                    ),
+                                    hintText: 'Date of Birth',
+                                    contentPadding: EdgeInsets.symmetric(
+                                      vertical: 10,
+                                    ),
+                                    prefixIconConstraints: BoxConstraints(
+                                      minWidth: 0,
+                                      minHeight: 0,
+                                    ),
+                                  ),
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 17.0,
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Required';
+                                    }
+                                    return null;
+                                  },
                                 ),
                               ),
-                              SizedBox(
-                                width: 10.0,
-                              ),
-                              Text(
-                                "Processing...",
-                                style: TextStyle(
-                                  fontSize: 16.0,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          )
-                        : const Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                "Update Profile",
-                                style: TextStyle(
-                                  fontSize: 16.0,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: -0.2,
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                  ),
-                ],
-              ),
-            )
-          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 40.0,
+                    ),
+                    ElevatedButton(
+                      onPressed: _isloading ? null : _update,
+                      style: ButtonStyle(
+                        backgroundColor: WidgetStatePropertyAll(AppColors.accentColor),
+                        foregroundColor: WidgetStatePropertyAll(Colors.white),
+                        shape: WidgetStatePropertyAll<RoundedRectangleBorder>(
+                          const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(30.0)),
+                          ),
+                        ),
+                        minimumSize: WidgetStatePropertyAll(const Size(190.0, 50.0)),
+                      ),
+                      child: _isloading
+                          ? const Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 20.0,
+                                  height: 20.0,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2.0,
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 10.0,
+                                ),
+                                Text(
+                                  "Processing...",
+                                  style: TextStyle(
+                                    fontSize: 16.0,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  "Update Profile",
+                                  style: TextStyle(
+                                    fontSize: 16.0,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: -0.2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ],
+                ),
+              )
+            ],
+          ),
         ),
       ),
     );

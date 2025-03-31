@@ -2,13 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
-import 'package:trueastrotalk/models/astrologer.dart';
+import 'package:trueastrotalk/models/user.dart';
 import 'package:trueastrotalk/models/chatmessage.dart';
 import 'package:trueastrotalk/services/chatmessage.dart';
 import 'package:trueastrotalk/screens/payments.dart';
 
 class ChatScreen extends StatefulWidget {
-  final Astrologer astrologer;
+  final User astrologer;
   final String chatId;
   final Map<String, dynamic>? chatData;
 

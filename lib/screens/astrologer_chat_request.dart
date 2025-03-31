@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:trueastrotalk/models/astrologer.dart';
-import 'package:trueastrotalk/models/customer.dart';
+import 'package:trueastrotalk/models/user.dart';
 import 'package:trueastrotalk/services/chatmessage.dart';
 
 class AstrologerChatRequestScreen extends StatefulWidget {
-  final Astrologer astrologer;
+  final User astrologer;
   final String requestId;
 
   const AstrologerChatRequestScreen({
@@ -25,7 +24,7 @@ class _AstrologerChatRequestScreenState extends State<AstrologerChatRequestScree
   bool _isAccepting = false;
   bool _isRejecting = false;
   Map<String, dynamic>? _requestData;
-  Customer? _customer;
+  User? _customer;
 
   @override
   void initState() {
@@ -45,7 +44,7 @@ class _AstrologerChatRequestScreenState extends State<AstrologerChatRequestScree
       if (response['success'] == true) {
         setState(() {
           _requestData = response['data'];
-          _customer = Customer.fromJson(response['data']['customer']);
+          _customer = User.fromJson(response['data']['customer']);
         });
       } else {
         throw Exception(response['message'] ?? 'Failed to load request details');
@@ -216,7 +215,7 @@ class _AstrologerChatRequestScreenState extends State<AstrologerChatRequestScree
                 // Customer avatar
                 CircleAvatar(
                   radius: 60,
-                  backgroundImage: _customer!.avatar != null && _customer!.avatar!.isNotEmpty ? NetworkImage(_customer!.avatar!) : AssetImage('assets/images/avatar.jpg') as ImageProvider,
+                  backgroundImage: NetworkImage(_customer!.image),
                   backgroundColor: Colors.grey.shade200,
                 ),
                 SizedBox(height: 16),

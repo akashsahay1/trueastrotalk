@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/astrologer.dart';
+import '../models/user.dart';
 import '../models/session.dart';
 import '../services/sessions.dart';
 
 class PurchaseMinutesScreen extends StatefulWidget {
-  final Astrologer astrologer;
+  final User astrologer;
 
   const PurchaseMinutesScreen({
     Key? key,

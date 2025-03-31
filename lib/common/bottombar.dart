@@ -25,16 +25,16 @@ class Bottombar extends StatelessWidget {
           label: 'Home',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.people),
-          label: 'Astrologers',
-        ),
-        BottomNavigationBarItem(
           icon: Icon(Icons.phone),
           label: 'Calls',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.chat),
+          icon: Icon(Icons.message),
           label: 'Chats',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.question_mark_sharp),
+          label: 'Help',
         ),
       ],
     );

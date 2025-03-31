@@ -4,12 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app_links/app_links.dart';
 import 'package:trueastrotalk/config/colors.dart';
-import 'package:trueastrotalk/models/astrologer.dart';
 import 'package:trueastrotalk/screens/astrologer_chat_request.dart';
 import 'package:trueastrotalk/screens/chatmessage.dart';
-import 'package:trueastrotalk/screens/chatrequest.dart';
 import 'package:trueastrotalk/screens/forgotpass.dart';
-import 'package:trueastrotalk/screens/incoming_calls.dart';
 import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:trueastrotalk/screens/init.dart';
@@ -471,50 +468,14 @@ class TrueAstrotalkState extends State<TrueAstrotalk> {
         '/login': (context) => const Login(),
         '/forgotpass': (context) => const Forgotpass(),
         '/home': (context) => const Init(initialIndex: 0, arguments: null),
-        '/astrologers': (context) => const Init(initialIndex: 1),
-        '/calls': (context) => const Init(initialIndex: 2),
-        '/chats': (context) => const Init(initialIndex: 3),
-        '/profile': (context) => const Init(initialIndex: 4),
-        '/notifications': (context) => const Init(initialIndex: 5),
-        '/wallet': (context) => const Init(initialIndex: 6),
-        '/about': (context) => const Init(initialIndex: 7),
-        '/terms': (context) => const Init(initialIndex: 8),
-        '/help': (context) => const Init(initialIndex: 9),
-        '/astrologer-details': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-          final Astrologer astrologer = args['astrologer'] as Astrologer;
-          return Init(initialIndex: 10, arguments: astrologer);
-        },
-        '/chatrequest': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-          final astrologer = args['astrologer'] as Astrologer;
-          return ChatRequestScreen(astrologer: astrologer);
-        },
-        '/chat': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-          final astrologer = args['astrologer'] as Astrologer;
-          final chatId = args['chat_id'];
-          return ChatScreen(
-            astrologer: astrologer,
-            chatId: chatId,
-          );
-        },
-        '/chat-request-details': (context) {
-          // Route for astrologers to view chat requests
-          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-          final astrologer = args['astrologer'] as Astrologer;
-          final requestId = args['request_id'];
-          return AstrologerChatRequestScreen(astrologer: astrologer, requestId: requestId);
-        },
-        '/incoming-call': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-          return IncomingCallScreen(
-            callId: args['call_id'],
-            callerName: args['caller_name'],
-            callerImage: args['caller_image'],
-            callerId: args['caller_id'],
-          );
-        },
+        '/astrocalls': (context) => const Init(initialIndex: 1),
+        '/astrochats': (context) => const Init(initialIndex: 2),
+        '/help': (context) => const Init(initialIndex: 3),
+        '/wallet': (context) => const Init(initialIndex: 4),
+        '/about': (context) => const Init(initialIndex: 5),
+        '/terms': (context) => const Init(initialIndex: 6),
+        '/notifications': (context) => const Init(initialIndex: 7),
+        '/privacy': (context) => const Init(initialIndex: 8),
       },
       onGenerateRoute: (settings) {
         // Handle dynamic routes like password reset

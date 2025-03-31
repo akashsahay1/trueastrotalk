@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:trueastrotalk/common/astrologercard.dart';
-import 'package:trueastrotalk/models/astrologer.dart';
+import 'package:trueastrotalk/common/astrologerCallCard.dart';
+import 'package:trueastrotalk/models/user.dart';
 import 'package:trueastrotalk/services/astrologer.dart';
 
-class Astrologers extends StatefulWidget {
-  const Astrologers({super.key});
+class Astrocalls extends StatefulWidget {
+  const Astrocalls({super.key});
 
   @override
-  State<Astrologers> createState() => _AstrologersState();
+  State<Astrocalls> createState() => _AstrologersState();
 }
 
-class _AstrologersState extends State<Astrologers> {
+class _AstrologersState extends State<Astrocalls> {
   final AstrologerService _astrologerService = AstrologerService();
-  List<Astrologer> _astrologers = [];
+  List<User> _astrologers = [];
   bool _isLoading = true;
   bool _hasMore = true;
   int _currentPage = 1;
@@ -78,13 +78,15 @@ class _AstrologersState extends State<Astrologers> {
       });
     } catch (e) {
       // Handle error
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load more astrologers: ${e.toString()}')),
-      );
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load more astrologers: ${e.toString()}')),
+        );
     } finally {
-      setState(() {
-        _isLoadingMore = false;
-      });
+      if (mounted)
+        setState(() {
+          _isLoadingMore = false;
+        });
     }
   }
 
@@ -109,7 +111,7 @@ class _AstrologersState extends State<Astrologers> {
       },
       child: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(8.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -121,7 +123,7 @@ class _AstrologersState extends State<Astrologers> {
                   if (index == _astrologers.length) {
                     return _buildLoadingIndicator();
                   }
-                  return AstrologerCard(
+                  return AstrologerCallCard(
                     astrologer: _astrologers[index],
                   );
                 },

@@ -1,13 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:trueastrotalk/models/astrologer.dart';
+import 'package:trueastrotalk/models/user.dart';
+import 'package:trueastrotalk/screens/astrologer_details.dart';
 import 'package:trueastrotalk/services/chatmessage.dart';
 import 'package:trueastrotalk/screens/chatmessage.dart';
 import 'package:trueastrotalk/utilities/strings.dart';
 
 class ChatRequestScreen extends StatefulWidget {
-  final Astrologer astrologer;
+  final User astrologer;
   final String? chatRequestId;
 
   const ChatRequestScreen({
@@ -215,11 +216,25 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
 
       if (response['success'] == true) {
         _statusCheckTimer?.cancel();
-        Navigator.pushReplacementNamed(context, '/astrologer-details', arguments: {
-          'astrologer': widget.astrologer,
-        });
+        Navigator.pop(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AstrologerDetails(
+              astrologer: widget.astrologer,
+            ),
+          ),
+        );
       } else {
-        throw Exception(response['message'] ?? 'Failed to cancel request');
+        Navigator.pop(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AstrologerDetails(
+              astrologer: widget.astrologer,
+            ),
+          ),
+        );
       }
     } catch (e) {
       setState(() {

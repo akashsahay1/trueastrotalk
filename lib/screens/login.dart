@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:trueastrotalk/config/colors.dart';
 import 'package:trueastrotalk/config/environment.dart';
+import 'package:trueastrotalk/models/user.dart';
 import 'dart:convert';
 
 import 'package:trueastrotalk/services/tokens.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:trueastrotalk/services/userservice.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -80,70 +81,36 @@ class _LoginState extends State<Login> {
         'password': passwordField.text.trim(),
       };
 
-      try {
-        final response = await http.post(
-          Uri.parse('$baseApiUrl/login'),
-          headers: <String, String>{
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: data,
-        );
+      final response = await http.post(
+        Uri.parse('$baseApiUrl/login'),
+        headers: <String, String>{
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: data,
+      );
 
-        if (!mounted) return;
+      if (!mounted) return;
 
-        setState(() {
-          _isloading = false;
-        });
-        final responseData = response.body;
-        if (response.statusCode == 201) {
-          if (responseData.isNotEmpty) {
-            final loginresponse = jsonDecode(responseData);
-            if (loginresponse['status'] == 1) {
-              final prefs = await SharedPreferences.getInstance();
-              prefs.setBool('is_logged_in', true);
-              prefs.setString('user_token', loginresponse['token']);
-              prefs.setString('salution', loginresponse['user']['salution']);
-              prefs.setString('user_name', loginresponse['user']['first_name'] + ' ' + loginresponse['user']['last_name']);
-              prefs.setString('first_name', loginresponse['user']['first_name']);
-              prefs.setString('last_name', loginresponse['user']['last_name']);
-              prefs.setString('user_email', loginresponse['user']['user_email']);
-              prefs.setString('user_phone', loginresponse['user']['user_phone']);
-              prefs.setString('user_dob', loginresponse['user']['user_dob'] ?? '1980-01-01');
-              prefs.setString('user_gender', loginresponse['user']['user_gender'] ?? 'Male');
-              prefs.setString('user_type', loginresponse['user']['astro_type']);
-              prefs.setString('user_role', loginresponse['user']['user_role']);
-              await TokenService().refreshAndUpdateFCMToken();
-              Navigator.pushReplacementNamed(context, '/home');
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(loginresponse['message'] ?? 'Login failed')),
-              );
-            }
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('No data returned from API')),
-            );
-          }
+      setState(() {
+        _isloading = false;
+      });
+      final responseData = response.body;
+      if (response.statusCode == 201) {
+        final loginresponse = jsonDecode(responseData);
+        if (loginresponse['status'] == 1) {
+          final user = User.fromJson(loginresponse['user']);
+          final token = loginresponse['token'];
+          final userService = UserService();
+          await userService.saveUserSession(user, token);
+          // Update FCM token if needed
+          await TokenService().refreshAndUpdateFCMToken();
+          // Navigate to home
+          Navigator.pushReplacementNamed(context, '/home');
         } else {
-          final loginresponse = jsonDecode(responseData);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Login failed: ${loginresponse.message}')),
+            SnackBar(content: Text(loginresponse['message'] ?? 'Login failed')),
           );
         }
-      } catch (e) {
-        if (!mounted) return;
-
-        setState(() {
-          _isloading = false;
-        });
-
-        print('Error type: ${e.runtimeType}');
-        print('Error value: $e');
-        print(e.toString());
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
       }
     }
   }
@@ -151,6 +118,7 @@ class _LoginState extends State<Login> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           SvgPicture.asset(

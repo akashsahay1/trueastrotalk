@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:trueastrotalk/common/astrologercard.dart';
-import 'package:trueastrotalk/models/astrologer.dart';
+import 'package:trueastrotalk/common/astrologerCallCard.dart';
+import 'package:trueastrotalk/models/user.dart';
 import 'package:trueastrotalk/services/astrologer.dart';
 
 class Home extends StatefulWidget {
@@ -12,7 +12,7 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   final AstrologerService _astrologerService = AstrologerService();
-  List<Astrologer> _astrologers = [];
+  List<User> _astrologers = [];
   bool _isLoading = true;
 
   @override
@@ -53,6 +53,15 @@ class _HomeState extends State<Home> {
           children: [
             _buildDailyHoroscopeBanner(),
             SizedBox(height: 16),
+            Text(
+              "Top Astrologers",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Colors.black,
+              ),
+            ),
+            SizedBox(height: 10),
             _isLoading
                 ? Column(
                     children: [
@@ -79,11 +88,12 @@ class _HomeState extends State<Home> {
                           ),
                         );
                       }
-                      return AstrologerCard(
+                      return AstrologerCallCard(
                         astrologer: _astrologers[index],
                       );
                     },
                   ),
+            _buildPrivacySection(),
             _buildSpecialOffersBanner(),
           ],
         ),
@@ -123,6 +133,75 @@ class _HomeState extends State<Home> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPrivacySection() {
+    return Card(
+      color: Colors.white,
+      margin: EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // First column
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.privacy_tip_rounded,
+                  size: 30,
+                  color: Colors.amber,
+                ),
+                SizedBox(
+                  height: 4,
+                ),
+                Text('Private &'),
+                Text('Confidential')
+              ],
+            ),
+
+            // Second column
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.verified,
+                  size: 30,
+                  color: Colors.green,
+                ),
+                SizedBox(
+                  height: 4,
+                ),
+                Text('Verified'),
+                Text('Astrologers')
+              ],
+            ),
+
+            // Third column
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.security,
+                  size: 30,
+                  color: Colors.blueAccent,
+                ),
+                SizedBox(
+                  height: 4,
+                ),
+                Text('Secure'),
+                Text('Payments')
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

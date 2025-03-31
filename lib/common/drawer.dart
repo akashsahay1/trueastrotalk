@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trueastrotalk/screens/login.dart';
+import 'package:trueastrotalk/screens/profile.dart';
 import 'package:trueastrotalk/services/tokens.dart';
+import 'package:trueastrotalk/services/userservice.dart';
 
 import '../config/colors.dart';
 
@@ -32,24 +34,23 @@ class _AppDrawerState extends State<AppDrawer> {
 
   // Method to load user data from storage or API
   Future<void> _loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
+    final userService = UserService();
+    final user = await userService.getCurrentUser();
+    final isloggedin = await userService.isLoggedIn();
 
     // Check if user is astrologer
 
-    if (prefs.getString('user_role') == 'astrologer') {
+    if (user?.role == 'astrologer') {
       setState(() {
         _isAstrologer = true;
       });
     }
 
-    print(prefs.getString('user_role'));
-    print(_isAstrologer);
-
     setState(() {
-      _userFullName = prefs.getString('user_name') ?? "Guest User";
-      _userGender = prefs.getString('user_gender') ?? "";
-      _userDob = prefs.getString('user_dob') ?? "";
-      _isLoggedIn = prefs.getBool('is_logged_in') ?? false;
+      _userFullName = user?.name ?? "";
+      _userGender = user?.gender ?? "";
+      _userDob = user?.dob ?? "";
+      _isLoggedIn = isloggedin;
     });
   }
 
@@ -181,7 +182,12 @@ class _AppDrawerState extends State<AppDrawer> {
                   leading: const Icon(Icons.person),
                   title: const Text('Profile'),
                   onTap: () {
-                    Navigator.pushReplacementNamed(context, '/profile');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Profile(),
+                      ),
+                    );
                   },
                 ),
                 ListTile(
@@ -207,10 +213,10 @@ class _AppDrawerState extends State<AppDrawer> {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.help),
-                  title: const Text('Help'),
+                  leading: const Icon(Icons.privacy_tip),
+                  title: const Text('Privacy'),
                   onTap: () {
-                    Navigator.pushReplacementNamed(context, '/help');
+                    Navigator.pushReplacementNamed(context, '/privacy');
                   },
                 ),
               ],
@@ -231,10 +237,7 @@ class _AppDrawerState extends State<AppDrawer> {
                   _handleLogout();
                 } else {
                   Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const Login()),
-                  );
+                  Navigator.pushReplacementNamed(context, '/login');
                 }
               },
             ),

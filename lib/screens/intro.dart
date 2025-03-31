@@ -322,7 +322,11 @@ class _OnboardingSliderState extends State<Intro> with SingleTickerProviderState
             ),
             if (icon != null) ...[
               const SizedBox(width: 8),
-              Icon(icon, size: 18),
+              Icon(
+                icon,
+                size: 18,
+                color: Colors.white,
+              ),
             ],
           ],
         ),
@@ -363,7 +367,7 @@ class _OnboardingSliderState extends State<Intro> with SingleTickerProviderState
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 16),
+              Icon(icon, size: 16, color: Colors.white),
               const SizedBox(width: 8),
             ],
             Text(

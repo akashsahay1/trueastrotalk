@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/astrologer.dart';
+import '../models/user.dart';
 import '../config/environment.dart';
 
 class AstrologerService {
@@ -14,7 +14,7 @@ class AstrologerService {
   }
 
   // Get all astrologers with pagination support
-  Future<List<Astrologer>> getAstrologers({int limit = 5, int page = 1}) async {
+  Future<List<User>> getAstrologers({int limit = 5, int page = 1}) async {
     final token = await getAuthToken();
 
     try {
@@ -39,7 +39,7 @@ class AstrologerService {
           if (astrologersData['data'] != null && astrologersData['data'] is List) {
             // Map each JSON object to an Astrologer object
             final List<dynamic> astrologersList = astrologersData['data'];
-            return astrologersList.map((item) => Astrologer.fromJson(item)).toList();
+            return astrologersList.map((item) => User.fromJson(item)).toList();
           }
         }
 
@@ -57,7 +57,7 @@ class AstrologerService {
   }
 
   // Get astrologers by category
-  Future<List<Astrologer>> getAstrologersByCategory(String category, {int limit = 10, int page = 1}) async {
+  Future<List<User>> getAstrologersByCategory(String category, {int limit = 10, int page = 1}) async {
     final token = await getAuthToken();
 
     try {
@@ -75,7 +75,7 @@ class AstrologerService {
         // Structure might be different for categories, adjust as needed
         if (responseData['status'] == 1 && responseData.containsKey('data')) {
           final List<dynamic> astrologersList = responseData['data'];
-          return astrologersList.map((item) => Astrologer.fromJson(item)).toList();
+          return astrologersList.map((item) => User.fromJson(item)).toList();
         }
 
         return [];
@@ -88,7 +88,7 @@ class AstrologerService {
   }
 
   // Search astrologers
-  Future<List<Astrologer>> searchAstrologers(String query) async {
+  Future<List<User>> searchAstrologers(String query) async {
     final token = await getAuthToken();
 
     try {
@@ -105,7 +105,7 @@ class AstrologerService {
 
         if (responseData['status'] == 1 && responseData.containsKey('data')) {
           final List<dynamic> astrologersList = responseData['data'];
-          return astrologersList.map((item) => Astrologer.fromJson(item)).toList();
+          return astrologersList.map((item) => User.fromJson(item)).toList();
         }
 
         return [];
@@ -118,7 +118,7 @@ class AstrologerService {
   }
 
   // Get astrologer details by ID
-  Future<Astrologer> getAstrologerById(int id) async {
+  Future<User> getAstrologerById(int id) async {
     final token = await getAuthToken();
 
     try {
@@ -134,7 +134,7 @@ class AstrologerService {
         final Map<String, dynamic> responseData = json.decode(response.body);
 
         if (responseData['status'] == 1 && responseData.containsKey('data')) {
-          return Astrologer.fromJson(responseData['data']);
+          return User.fromJson(responseData['data']);
         } else {
           throw Exception('Astrologer data is null or invalid format');
         }
@@ -149,7 +149,7 @@ class AstrologerService {
   }
 
   // Get featured/top astrologers
-  Future<List<Astrologer>> getFeaturedAstrologers({int limit = 5}) async {
+  Future<List<User>> getFeaturedAstrologers({int limit = 5}) async {
     try {
       final allAstrologers = await getAstrologers(limit: 20);
 

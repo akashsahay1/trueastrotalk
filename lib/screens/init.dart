@@ -2,16 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:trueastrotalk/common/appbar.dart';
 import 'package:trueastrotalk/common/bottombar.dart';
 import 'package:trueastrotalk/common/drawer.dart';
-import 'package:trueastrotalk/models/astrologer.dart';
+import 'package:trueastrotalk/models/user.dart';
 import 'package:trueastrotalk/screens/about.dart';
-import 'package:trueastrotalk/screens/astrologer_details.dart';
-import 'package:trueastrotalk/screens/astrologers.dart';
-import 'package:trueastrotalk/screens/calls.dart';
-import 'package:trueastrotalk/screens/chats.dart';
+import 'package:trueastrotalk/screens/astrocalls.dart';
+import 'package:trueastrotalk/screens/astrochats.dart';
 import 'package:trueastrotalk/screens/help.dart';
 import 'package:trueastrotalk/screens/home.dart';
 import 'package:trueastrotalk/screens/notifications.dart';
-import 'package:trueastrotalk/screens/profile.dart';
+import 'package:trueastrotalk/screens/privacy.dart';
 import 'package:trueastrotalk/screens/terms.dart';
 import 'package:trueastrotalk/screens/wallet.dart';
 
@@ -32,21 +30,18 @@ class Init extends StatefulWidget {
 class _InitState extends State<Init> {
   late int _selectedIndex;
   late int _bottomIndex;
-  Astrologer? astrologer;
+  User? astrologer;
 
   final List<String> _titles = [
     'True Astrotalk',
     'Astrologers',
-    'Calls',
-    'Chats',
-    'Profile',
-    'Notifications',
+    'Astrologers',
+    'Help & Support',
     'Wallet',
     'About',
     'Terms of Services',
-    'Help & Support',
-    'Astrologer Details',
-    'Chat Request',
+    'Notifications',
+    'Privacy Policy',
   ];
 
   @override
@@ -61,7 +56,7 @@ class _InitState extends State<Init> {
 
     // Initialize astrologer here if arguments exist
     if (widget.arguments != null) {
-      astrologer = widget.arguments as Astrologer;
+      astrologer = widget.arguments as User;
     }
   }
 
@@ -77,13 +72,13 @@ class _InitState extends State<Init> {
           route = '/home';
           break;
         case 1:
-          route = '/astrologers';
+          route = '/astrocalls';
           break;
         case 2:
-          route = '/calls';
+          route = '/astrochats';
           break;
         case 3:
-          route = '/chats';
+          route = '/help';
           break;
         default:
           break;
@@ -107,16 +102,14 @@ class _InitState extends State<Init> {
         index: _selectedIndex,
         children: [
           Home(),
-          Astrologers(),
-          Calls(),
-          Chats(),
-          Profile(),
-          Notifications(),
+          Astrocalls(),
+          Astrochats(),
+          Help(),
           Wallet(),
           About(),
           Terms(),
-          Help(),
-          AstrologerDetails(astrologer: widget.arguments is Astrologer ? widget.arguments : null),
+          Notifications(),
+          Privacy(),
         ],
       ),
       bottomNavigationBar: Bottombar(

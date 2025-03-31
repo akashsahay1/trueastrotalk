@@ -1,48 +1,53 @@
 import 'package:trueastrotalk/config/environment.dart';
 
-class Astrologer {
+class User {
   final int id;
   final String name;
+  final String uname;
+  final String gender;
+  final String dob;
   final String speciality;
   final String experience;
   final double rating;
   final String price;
   final String image;
-  final bool isOnline;
   final String languages;
-  final String? astroType;
+  final String? role;
   final String? userAbout;
   final String? userExperience;
   final String? userPhone;
 
-  Astrologer({
+  User({
     this.id = 0,
-    this.name = 'Unknown Astrologer',
-    this.speciality = 'Astrology',
+    this.name = 'Unknown',
+    this.uname = 'Unknown',
+    this.gender = 'Unknown',
+    this.dob = '01-10-1988',
+    this.speciality = 'N/A',
     this.experience = 'N/A',
     this.rating = 0.0,
     this.price = 'N/A',
     this.image = 'https://www.trueastrotalk.com/assets/images/avatar-1.jpg',
-    this.isOnline = false,
     this.languages = 'Not specified',
-    this.astroType,
+    this.role,
     this.userAbout,
     this.userExperience,
     this.userPhone,
   });
 
-  factory Astrologer.fromJson(Map<String, dynamic> json) {
-    return Astrologer(
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User(
       id: json['ID'] ?? json['id'] ?? 0,
       name: _formatName(json),
-      speciality: json['astro_type'] ?? 'Astrology',
+      uname: _formatUserName(json),
+      gender: json['user_gender'] ?? '',
+      speciality: json['astro_type'],
       experience: json['user_experience'] ?? '0 years',
       rating: _parseRating(json),
       price: _formatPrice(json),
       image: _formatImageUrl(json),
-      isOnline: json['is_online'] == true || json['is_online'] == 1 || false,
       languages: json['user_languages'] ?? 'Hindi, English',
-      astroType: json['astro_type'],
+      role: json['user_role'],
       userAbout: json['user_about'],
       userExperience: json['user_experience'],
       userPhone: json['user_phone'],
@@ -58,10 +63,21 @@ class Astrologer {
       return '$firstName $lastName';
     } else if (firstName.isNotEmpty) {
       return firstName;
-    } else if (json['name'] != null) {
-      return json['name'];
+    } else if (json['first_name'] != null) {
+      return json['first_name'];
     } else {
-      return 'Unnamed Astrologer';
+      return 'Unknown';
+    }
+  }
+
+  // Helper methods for JSON parsing
+  static String _formatUserName(Map<String, dynamic> json) {
+    final userName = json['user_name'] ?? '';
+
+    if (userName.isNotEmpty) {
+      return '$userName';
+    } else {
+      return '';
     }
   }
 
@@ -84,15 +100,15 @@ class Astrologer {
 
   static String _formatPrice(Map<String, dynamic> json) {
     if (json['astro_charges'] != null) {
-      return '₹${json['astro_charges']}/min';
+      return '₹${json['astro_charges']}/m';
     } else if (json['price'] != null) {
       if (json['price'].toString().contains('₹')) {
         return json['price'];
       } else {
-        return '₹${json['price']}/min';
+        return '₹${json['price']}/m';
       }
     }
-    return '₹40/min'; // Default price
+    return '₹40/m'; // Default price
   }
 
   static String _formatImageUrl(Map<String, dynamic> json) {
@@ -116,14 +132,16 @@ class Astrologer {
     return {
       'id': id,
       'name': name,
+      'uname': uname,
+      'gender': gender,
+      'dob': dob,
       'speciality': speciality,
       'experience': experience,
       'rating': rating,
       'price': price,
       'image': image,
-      'isOnline': isOnline,
       'languages': languages,
-      'astroType': astroType,
+      'role': role,
       'userAbout': userAbout,
       'userExperience': userExperience,
       'userPhone': userPhone,

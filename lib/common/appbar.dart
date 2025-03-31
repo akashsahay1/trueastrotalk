@@ -43,13 +43,10 @@ class _AppbarState extends State<Appbar> {
         _title,
         style: TextStyle(fontWeight: FontWeight.bold),
       ),
+      centerTitle: false,
       backgroundColor: Color(0xFFFFFFFF),
       foregroundColor: Colors.black,
       actions: [
-        // IconButton(
-        //   icon: Icon(Icons.search),
-        //   onPressed: _navigatetoSearch,
-        // ),
         IconButton(
           icon: Icon(Icons.notifications),
           onPressed: _showNotifications,
