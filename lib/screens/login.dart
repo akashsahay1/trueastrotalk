@@ -98,7 +98,6 @@ class _LoginState extends State<Login> {
       if (response.statusCode == 201) {
         final loginresponse = jsonDecode(responseData);
         if (loginresponse['status'] == 1) {
-          print(loginresponse['user']);
           final user = User.fromJson(loginresponse['user']);
           final token = loginresponse['token'];
           final userService = UserService();

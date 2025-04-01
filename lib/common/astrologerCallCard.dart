@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:trueastrotalk/config/colors.dart';
+import 'package:trueastrotalk/config/environment.dart';
 import 'package:trueastrotalk/models/user.dart';
 import 'package:trueastrotalk/screens/astrologer_details.dart';
 import 'package:trueastrotalk/utilities/strings.dart';
 
 class AstrologerCallCard extends StatelessWidget {
   final User astrologer;
-
   // Optional callbacks that can be used to override default behavior
   final Function(User)? onCallOverride;
   final Function(User)? onChatOverride;
@@ -70,6 +70,7 @@ class AstrologerCallCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String baseUrl = Environment.baseUrl;
     return Card(
       color: Colors.white,
       margin: EdgeInsets.only(bottom: 16),
@@ -99,7 +100,7 @@ class AstrologerCallCard extends StatelessWidget {
                         ),
                         child: ClipOval(
                           child: Image.network(
-                            astrologer.userAvatar ?? '',
+                            '$baseUrl/${astrologer.userAvatar}',
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
                               return Image.asset(
@@ -275,7 +276,7 @@ class AstrologerCallCard extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    '${astrologer.astroCharges}',
+                    '₹${astrologer.astroCharges}/min',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,

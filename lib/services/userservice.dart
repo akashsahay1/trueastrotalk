@@ -34,6 +34,15 @@ class UserService {
     return prefs.getString(_tokenKey);
   }
 
+  // Get required token
+  Future<String> getRequiredToken() async {
+    final token = await getToken();
+    if (token == null) {
+      throw Exception('Authentication token not found');
+    }
+    return token;
+  }
+
   // Check if user is logged in
   Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();

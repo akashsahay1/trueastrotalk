@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:trueastrotalk/common/international_phone_field.dart';
 import 'package:trueastrotalk/config/colors.dart';
 import 'package:trueastrotalk/config/environment.dart';
+import 'package:trueastrotalk/models/user.dart';
+import 'package:trueastrotalk/services/userservice.dart';
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -52,19 +53,16 @@ class _ProfileState extends State<Profile> {
 
   // Method to load user data from storage or API
   Future<void> _loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    print(prefs.getString('user_dob'));
-    print(convertDateFormatForDisplay(prefs.getString('user_dob') ?? ""));
-
+    final userService = UserService();
+    final user = await userService.getCurrentUser();
     setState(() {
-      _selectedTitle = prefs.getString('title') ?? "Mr.";
-      firstnameField.text = prefs.getString('first_name') ?? "";
-      lastnameField.text = prefs.getString('last_name') ?? "";
-      emailField.text = prefs.getString('user_email') ?? "";
-      phoneField.text = prefs.getString('user_phone') ?? "";
-      _selectedGender = prefs.getString('user_gender') ?? "Male";
-      dobField.text = convertDateFormatForDisplay(prefs.getString('user_dob') ?? "");
+      _selectedTitle = user?.salution ?? "Mr.";
+      firstnameField.text = user?.firstName ?? "";
+      lastnameField.text = user?.lastName ?? "";
+      emailField.text = user?.userEmail ?? "";
+      phoneField.text = user?.userPhone ?? "";
+      _selectedGender = user?.userGender ?? "Male";
+      dobField.text = convertDateFormatForDisplay(user?.userDob ?? "");
     });
   }
 
@@ -232,8 +230,7 @@ class _ProfileState extends State<Profile> {
         return;
       }
 
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('user_token') ?? '';
+      final userService = UserService();
 
       final Map<String, String> data = {
         'salution': _selectedTitle!,
@@ -250,6 +247,7 @@ class _ProfileState extends State<Profile> {
       };
 
       try {
+        final token = await userService.getRequiredToken();
         final response = await http.post(
           Uri.parse('${baseApiUrl}/update'),
           headers: <String, String>{
@@ -271,17 +269,8 @@ class _ProfileState extends State<Profile> {
           final updateResponse = jsonDecode(responseData);
           if (response.statusCode == 200) {
             if (updateResponse['status'] == 1) {
-              final userData = updateResponse['data']['user'];
-              final prefs = await SharedPreferences.getInstance();
-              prefs.setBool('is_logged_in', true);
-              prefs.setString('salution', userData['salution'] ?? '');
-              prefs.setString('first_name', userData['first_name'] ?? '');
-              prefs.setString('last_name', userData['last_name'] ?? '');
-              prefs.setString('user_name', '${userData['first_name'] ?? ''} ${userData['last_name'] ?? ''}');
-              prefs.setString('user_email', userData['user_email'] ?? '');
-              prefs.setString('user_phone', userData['user_phone'] ?? '');
-              prefs.setString('user_dob', convertDateFormatForDisplay(userData['user_dob']));
-              prefs.setString('user_type', userData['astro_type'] ?? '');
+              final user = User.fromJson(updateResponse['user']);
+              await userService.saveUserSession(user, token);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text(updateResponse['message'] ?? 'Profile updated successfully')),
               );

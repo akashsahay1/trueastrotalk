@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:trueastrotalk/config/colors.dart';
 
 class About extends StatelessWidget {
   const About({super.key});
@@ -12,7 +13,7 @@ class About extends StatelessWidget {
           // App Banner
           Container(
             width: double.infinity,
-            color: Colors.green.shade50,
+            color: Colors.blue.shade50,
             padding: const EdgeInsets.symmetric(vertical: 30),
             child: Column(
               children: [
@@ -20,7 +21,7 @@ class About extends StatelessWidget {
                   height: 100,
                   width: 100,
                   decoration: BoxDecoration(
-                    color: Color(0xFFFFE70D),
+                    color: AppColors.accentColor,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Icon(
@@ -60,13 +61,15 @@ class About extends StatelessWidget {
                 _buildSectionText('At True Astrotalk, our mission is to make authentic astrological guidance accessible to everyone. We strive to connect individuals with experienced astrologers who can provide insights and clarity for life\'s important decisions.'),
                 const SizedBox(height: 24),
                 _buildSectionTitle('Our Story'),
-                _buildSectionText('True Astrotalk was founded in 2025 with a vision to bridge the gap between people seeking guidance and authentic astrologers. What started as a small platform has now grown into a trusted community of astrologers and users from around the world.\n\nOur journey began when our founder recognized the need for reliable astrological services in the digital age. With dedication and a passion for astrology, we\'ve built a platform that maintains the essence of traditional astrological practices while leveraging modern technology.'),
+                _buildSectionText(
+                    'True Astrotalk was founded in 2025 with a vision to bridge the gap between people seeking guidance and authentic astrologers. What started as a small platform has now grown into a trusted community of astrologers and users from around the world.\n\nOur journey began when our founder recognized the need for reliable astrological services in the digital age. With dedication and a passion for astrology, we\'ve built a platform that maintains the essence of traditional astrological practices while leveraging modern technology.'),
                 const SizedBox(height: 24),
                 _buildSectionTitle('What We Offer'),
                 _buildSectionText('• Live consultations with verified astrologers\n• Personalized horoscope readings\n• Remedial solutions for various life challenges\n• Expert guidance on career, relationships, health, and more\n• Vedic astrology, numerology, tarot reading, and more'),
                 const SizedBox(height: 24),
                 _buildSectionTitle('Our Values'),
-                _buildSectionText('• Authenticity: We verify all our astrologers to ensure genuine guidance\n• Accessibility: We make astrological services available to everyone at affordable rates\n• Privacy: We respect your confidentiality and secure your personal information\n• Quality: We maintain high standards in our services and user experience'),
+                _buildSectionText(
+                    '• Authenticity: We verify all our astrologers to ensure genuine guidance\n• Accessibility: We make astrological services available to everyone at affordable rates\n• Privacy: We respect your confidentiality and secure your personal information\n• Quality: We maintain high standards in our services and user experience'),
                 const SizedBox(height: 24),
                 _buildDivider(),
                 const SizedBox(height: 24),
@@ -131,7 +134,7 @@ class About extends StatelessWidget {
         Icon(
           icon,
           size: 20,
-          color: Colors.green,
+          color: AppColors.accentColor,
         ),
         const SizedBox(width: 8),
         Expanded(

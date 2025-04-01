@@ -199,17 +199,17 @@ class _AppDrawerState extends State<AppDrawer> {
                 ),
                 const Divider(),
                 ListTile(
-                  leading: const Icon(Icons.description),
-                  title: const Text('Terms'),
-                  onTap: () {
-                    Navigator.pushReplacementNamed(context, '/terms');
-                  },
-                ),
-                ListTile(
                   leading: const Icon(Icons.info),
                   title: const Text('About'),
                   onTap: () {
                     Navigator.pushReplacementNamed(context, '/about');
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.description),
+                  title: const Text('Terms'),
+                  onTap: () {
+                    Navigator.pushReplacementNamed(context, '/terms');
                   },
                 ),
                 ListTile(
@@ -224,13 +224,12 @@ class _AppDrawerState extends State<AppDrawer> {
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            child: OutlinedButton.icon(
-              icon: const Icon(Icons.logout),
-              label: Text(_isLoggedIn ? 'Logout' : 'Login'),
+            child: ElevatedButton(
+              child: Text(_isLoggedIn ? 'Logout' : 'Login'),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 45),
-                side: BorderSide(color: Colors.red.shade300),
-                foregroundColor: Colors.red.shade400,
+                backgroundColor: AppColors.accentColor,
+                foregroundColor: Colors.white,
               ),
               onPressed: () {
                 if (_isLoggedIn) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:trueastrotalk/config/colors.dart';
+import 'package:trueastrotalk/config/environment.dart';
 import 'package:trueastrotalk/models/user.dart';
 import 'package:trueastrotalk/screens/astrologer_details.dart';
 import 'package:trueastrotalk/screens/chatrequest.dart';
@@ -39,7 +40,7 @@ class AstrologerChatCard extends StatelessWidget {
   }
 
   // Format speciality to show only first 2 specialities with "+1" indicator if more exist
-  String _formatSpeciality(String speciality) {
+  String _formatAstrotypes(String speciality) {
     final List<String> specialities = speciality.split(',');
 
     if (specialities.length <= 2) {
@@ -51,6 +52,7 @@ class AstrologerChatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String baseUrl = Environment.baseUrl;
     return Card(
       color: Colors.white,
       margin: EdgeInsets.only(bottom: 16),
@@ -80,7 +82,7 @@ class AstrologerChatCard extends StatelessWidget {
                         ),
                         child: ClipOval(
                           child: Image.network(
-                            astrologer.userAvatar ?? '',
+                            '$baseUrl/${astrologer.userAvatar}',
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
                               return Image.asset(
@@ -157,7 +159,7 @@ class AstrologerChatCard extends StatelessWidget {
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          _formatSpeciality(astrologer.userExperience.toString()),
+                          _formatAstrotypes(astrologer.astroType.toString()),
                           overflow: TextOverflow.ellipsis,
                           softWrap: true,
                           style: TextStyle(
@@ -265,7 +267,7 @@ class AstrologerChatCard extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    '${astrologer.astroCharges}',
+                    '₹${astrologer.astroCharges}/min',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
