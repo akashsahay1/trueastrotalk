@@ -80,7 +80,7 @@ class AstrologerChatCard extends StatelessWidget {
                         ),
                         child: ClipOval(
                           child: Image.network(
-                            astrologer.image,
+                            astrologer.userAvatar ?? '',
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
                               return Image.asset(
@@ -100,7 +100,7 @@ class AstrologerChatCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      astrologer.rating.toString(),
+                      '4.5',
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 18,
@@ -134,7 +134,7 @@ class AstrologerChatCard extends StatelessWidget {
                         SizedBox(width: 5),
                         Expanded(
                           child: Text(
-                            astrologer.uname.toTitleCase(),
+                            astrologer.userName.toTitleCase(),
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
@@ -157,7 +157,7 @@ class AstrologerChatCard extends StatelessWidget {
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          _formatSpeciality(astrologer.speciality),
+                          _formatSpeciality(astrologer.userExperience.toString()),
                           overflow: TextOverflow.ellipsis,
                           softWrap: true,
                           style: TextStyle(
@@ -179,7 +179,7 @@ class AstrologerChatCard extends StatelessWidget {
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          '${astrologer.languages}',
+                          '${astrologer.userLanguages}',
                           overflow: TextOverflow.ellipsis,
                           softWrap: true,
                           style: TextStyle(
@@ -201,7 +201,7 @@ class AstrologerChatCard extends StatelessWidget {
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Exp- ${astrologer.experience} years',
+                          'Exp- ${astrologer.userExperience} years',
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Color(0xFF19295C),
@@ -265,7 +265,7 @@ class AstrologerChatCard extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    '${astrologer.price}',
+                    '${astrologer.astroCharges}',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,

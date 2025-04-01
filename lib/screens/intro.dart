@@ -28,23 +28,23 @@ class _OnboardingSliderState extends State<Intro> with SingleTickerProviderState
 
   // Sample Lottie animation URLs - replace with your actual assets
   final List<String> _lottieAnimations = [
-    'assets/lotties/intro.json',
-    'assets/lotties/intro.json',
-    'assets/lotties/intro.json',
+    'assets/lotties/intro1.json',
+    'assets/lotties/intro2.json',
+    'assets/lotties/intro3.json',
   ];
 
   // Title texts for each slide
   final List<String> _titles = [
     'Welcome to True Astrotalk',
-    'Explore Cosmic Insights',
-    'Explore Cosmic Insights',
+    'Convenient Chat Message',
+    'Easy & Secure Payments',
   ];
 
   // Description texts for each slide
   final List<String> _descriptions = [
-    'Discover your cosmic journey with expert astrologers',
-    'Get personalized readings and daily horoscopes from verified astrologers',
-    'Connect with your spiritual side and find guidance for your life path',
+    'Discover your cosmic journey with our selected, verified & experienced astrologers.',
+    'Connect with our astrologers with one on one personalized chat service with our verified astrologers',
+    'Make your payments with ease and peace with active and passive security with payment gateway.',
   ];
 
   @override
@@ -148,7 +148,7 @@ class _OnboardingSliderState extends State<Intro> with SingleTickerProviderState
                             ),
                           ),
 
-                          const SizedBox(height: 30),
+                          const SizedBox(height: 0),
 
                           // Title with shadow for depth
                           Text(
@@ -157,7 +157,7 @@ class _OnboardingSliderState extends State<Intro> with SingleTickerProviderState
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                               color: _textDarkColor,
-                              letterSpacing: 0.5,
+                              letterSpacing: 0,
                               shadows: [
                                 Shadow(
                                   blurRadius: 2.0,

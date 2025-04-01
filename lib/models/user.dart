@@ -1,150 +1,139 @@
-import 'package:trueastrotalk/config/environment.dart';
-
 class User {
-  final int id;
-  final String name;
-  final String uname;
-  final String gender;
-  final String dob;
-  final String speciality;
-  final String experience;
-  final double rating;
-  final String price;
-  final String image;
-  final String languages;
-  final String? role;
-  final String? userAbout;
+  final int ID;
+  final int? authorId;
+  final String salution;
+  final String firstName;
+  final String lastName;
+  final String userGender;
+  final String? userDob;
+  final String userName;
+  final String userEmail;
+  final String userPassword;
+  final String userRole;
+  final String authType;
+  final String? authToken;
+  final String? astroType;
+  final String? astroCharges;
+  final String? userLanguages;
   final String? userExperience;
+  final String? userBirthtime;
+  final String? userBirthplace;
   final String? userPhone;
+  final String? userCountry;
+  final String? userState;
+  final String? userCity;
+  final String? userAbout;
+  final String? userAvatar;
+  final String userRegistered;
+  final String? firebaseToken;
+  final String? razorpayContactId;
+  final String? razorpayFundAccountId;
+  final String createdAt;
+  final String updatedAt;
 
   User({
-    this.id = 0,
-    this.name = 'Unknown',
-    this.uname = 'Unknown',
-    this.gender = 'Unknown',
-    this.dob = '01-10-1988',
-    this.speciality = 'N/A',
-    this.experience = 'N/A',
-    this.rating = 0.0,
-    this.price = 'N/A',
-    this.image = 'https://www.trueastrotalk.com/assets/images/avatar-1.jpg',
-    this.languages = 'Not specified',
-    this.role,
-    this.userAbout,
+    required this.ID,
+    this.authorId,
+    required this.salution,
+    required this.firstName,
+    required this.lastName,
+    required this.userGender,
+    this.userDob,
+    required this.userName,
+    required this.userEmail,
+    required this.userPassword,
+    required this.userRole,
+    required this.authType,
+    this.authToken,
+    this.astroType,
+    this.astroCharges,
+    this.userLanguages,
     this.userExperience,
+    this.userBirthtime,
+    this.userBirthplace,
     this.userPhone,
+    this.userCountry,
+    this.userState,
+    this.userCity,
+    this.userAbout,
+    this.userAvatar,
+    required this.userRegistered,
+    this.firebaseToken,
+    this.razorpayContactId,
+    this.razorpayFundAccountId,
+    required this.createdAt,
+    required this.updatedAt,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['ID'] ?? json['id'] ?? 0,
-      name: _formatName(json),
-      uname: _formatUserName(json),
-      gender: json['user_gender'] ?? '',
-      speciality: json['astro_type'],
-      experience: json['user_experience'] ?? '0 years',
-      rating: _parseRating(json),
-      price: _formatPrice(json),
-      image: _formatImageUrl(json),
-      languages: json['user_languages'] ?? 'Hindi, English',
-      role: json['user_role'],
-      userAbout: json['user_about'],
-      userExperience: json['user_experience'],
-      userPhone: json['user_phone'],
+      ID: json['ID'] as int,
+      authorId: json['author_id'] != null ? json['author_id'] as int : null,
+      salution: json['salution'] as String,
+      firstName: json['first_name'] as String,
+      lastName: json['last_name'] as String,
+      userGender: json['user_gender'] as String,
+      userDob: json['user_dob'] as String?,
+      userName: json['user_name'] as String,
+      userEmail: json['user_email'] as String,
+      userPassword: json['user_password'] ?? '', // Password likely isn't returned in API
+      userRole: json['user_role'] as String,
+      authType: json['auth_type'] as String,
+      authToken: json['auth_token'] as String?,
+      astroType: json['astro_type'] as String?,
+      astroCharges: json['astro_charges'] as String?,
+      userLanguages: json['user_languages'] as String?,
+      userExperience: json['user_experience'] as String?,
+      userBirthtime: json['user_birthtime'] as String?,
+      userBirthplace: json['user_birthplace'] as String?,
+      userPhone: json['user_phone'] as String?,
+      userCountry: json['user_country'] as String?,
+      userState: json['user_state'] as String?,
+      userCity: json['user_city'] as String?,
+      userAbout: json['user_about'] as String?,
+      userAvatar: json['user_avatar'] as String?,
+      userRegistered: json['user_registered'] as String,
+      firebaseToken: json['firebase_token'] as String?,
+      razorpayContactId: json['razorpay_contact_id'] as String?,
+      razorpayFundAccountId: json['razorpay_fund_account_id'] as String?,
+      createdAt: json['created_at'] as String,
+      updatedAt: json['updated_at'] as String,
     );
-  }
-
-  // Helper methods for JSON parsing
-  static String _formatName(Map<String, dynamic> json) {
-    final firstName = json['first_name'] ?? '';
-    final lastName = json['last_name'] ?? '';
-
-    if (firstName.isNotEmpty && lastName.isNotEmpty) {
-      return '$firstName $lastName';
-    } else if (firstName.isNotEmpty) {
-      return firstName;
-    } else if (json['first_name'] != null) {
-      return json['first_name'];
-    } else {
-      return 'Unknown';
-    }
-  }
-
-  // Helper methods for JSON parsing
-  static String _formatUserName(Map<String, dynamic> json) {
-    final userName = json['user_name'] ?? '';
-
-    if (userName.isNotEmpty) {
-      return '$userName';
-    } else {
-      return '';
-    }
-  }
-
-  static double _parseRating(Map<String, dynamic> json) {
-    if (json['rating'] != null) {
-      try {
-        if (json['rating'] is double) {
-          return json['rating'];
-        } else if (json['rating'] is int) {
-          return json['rating'].toDouble();
-        } else {
-          return double.tryParse(json['rating'].toString()) ?? 4.5;
-        }
-      } catch (e) {
-        return 4.5; // Default rating
-      }
-    }
-    return 4.5; // Default rating
-  }
-
-  static String _formatPrice(Map<String, dynamic> json) {
-    if (json['astro_charges'] != null) {
-      return '₹${json['astro_charges']}/m';
-    } else if (json['price'] != null) {
-      if (json['price'].toString().contains('₹')) {
-        return json['price'];
-      } else {
-        return '₹${json['price']}/m';
-      }
-    }
-    return '₹40/m'; // Default price
-  }
-
-  static String _formatImageUrl(Map<String, dynamic> json) {
-    final baseUrl = Environment.baseUrl;
-    if (json['user_avatar'] != null && json['user_avatar'].toString().isNotEmpty) {
-      final String avatar = json['user_avatar'];
-      if (avatar.startsWith('http')) {
-        return avatar;
-      } else if (avatar.startsWith('uploads/')) {
-        return '$baseUrl/${avatar}';
-      } else {
-        return avatar;
-      }
-    } else if (json['image'] != null && json['image'].toString().isNotEmpty) {
-      return json['image'];
-    }
-    return 'https://www.trueastrotalk.com/assets/images/avatar-1.jpg';
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'name': name,
-      'uname': uname,
-      'gender': gender,
-      'dob': dob,
-      'speciality': speciality,
-      'experience': experience,
-      'rating': rating,
-      'price': price,
-      'image': image,
-      'languages': languages,
-      'role': role,
-      'userAbout': userAbout,
-      'userExperience': userExperience,
-      'userPhone': userPhone,
+      'ID': ID,
+      'author_id': authorId,
+      'salution': salution,
+      'first_name': firstName,
+      'last_name': lastName,
+      'user_gender': userGender,
+      'user_dob': userDob,
+      'user_name': userName,
+      'user_email': userEmail,
+      'user_password': userPassword,
+      'user_role': userRole,
+      'auth_type': authType,
+      'auth_token': authToken,
+      'astro_type': astroType,
+      'astro_charges': astroCharges,
+      'user_languages': userLanguages,
+      'user_experience': userExperience,
+      'user_birthtime': userBirthtime,
+      'user_birthplace': userBirthplace,
+      'user_phone': userPhone,
+      'user_country': userCountry,
+      'user_state': userState,
+      'user_city': userCity,
+      'user_about': userAbout,
+      'user_avatar': userAvatar,
+      'user_registered': userRegistered,
+      'firebase_token': firebaseToken,
+      'razorpay_contact_id': razorpayContactId,
+      'razorpay_fund_account_id': razorpayFundAccountId,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
     };
   }
 }

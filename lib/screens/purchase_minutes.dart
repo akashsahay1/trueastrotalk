@@ -41,7 +41,7 @@ class PurchaseMinutesScreenState extends State<PurchaseMinutesScreen> {
 
     try {
       final sessionService = Provider.of<SessionService>(context, listen: false);
-      _activeSession = await sessionService.getActiveSessionForAstrologer(widget.astrologer.id);
+      _activeSession = await sessionService.getActiveSessionForAstrologer(widget.astrologer.ID);
     } catch (e) {
       print('Error checking active session: $e');
     } finally {
@@ -61,7 +61,7 @@ class PurchaseMinutesScreenState extends State<PurchaseMinutesScreen> {
       final package = _packages[_selectedPackageIndex];
 
       final session = await sessionService.purchaseSession(
-        widget.astrologer.id,
+        widget.astrologer.ID,
         package['minutes'],
         package['price'].toDouble(),
       );
@@ -120,28 +120,28 @@ class PurchaseMinutesScreenState extends State<PurchaseMinutesScreen> {
                       children: [
                         CircleAvatar(
                           radius: 30,
-                          backgroundImage: NetworkImage(widget.astrologer.image),
+                          backgroundImage: NetworkImage(widget.astrologer.userAvatar.toString()),
                         ),
                         const SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              widget.astrologer.name,
+                              '${widget.astrologer.firstName} ${widget.astrologer.lastName}',
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             Text(
-                              widget.astrologer.experience,
+                              widget.astrologer.userExperience.toString(),
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[600],
                               ),
                             ),
                             Text(
-                              'Rate: ₹${widget.astrologer.price}/min',
+                              'Rate: ₹${widget.astrologer.astroCharges}/min',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Theme.of(context).colorScheme.primary,

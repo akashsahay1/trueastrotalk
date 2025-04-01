@@ -45,10 +45,12 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
 
     try {
       if (widget.chatRequestId != null) {
+        print(widget.chatRequestId);
         // Resume existing chat request
         _chatRequestId = widget.chatRequestId;
         await _checkRequestStatus();
       } else {
+        //print(widget.chatRequestId);
         // Create a new chat request
         await _createChatRequest();
       }
@@ -57,7 +59,7 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
       _startStatusPolling();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
+        SnackBar(content: Text('${e.toString()}')),
       );
       Navigator.pop(context);
     } finally {
@@ -82,7 +84,7 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
       // Make API call to create chat request
       final response = await _apiService.post(
         'chat/request',
-        {'astrologer_id': widget.astrologer.id},
+        {'astrologer_id': widget.astrologer.ID},
       );
 
       if (response['success'] == true) {
@@ -91,6 +93,7 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
           _requestStatus = response['data']['status'];
         });
       } else {
+        print("Error creating new chat request!");
         throw Exception(response['message'] ?? 'Failed to create chat request');
       }
     } catch (e) {
@@ -146,7 +149,7 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
     // Show success toast
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${widget.astrologer.name} has accepted your chat request!'),
+        content: Text('${widget.astrologer.firstName} ${widget.astrologer.lastName} has accepted your chat request!'),
         backgroundColor: Colors.green,
       ),
     );
@@ -266,7 +269,7 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
               context: context,
               builder: (context) => AlertDialog(
                 title: Text('Cancel Request?'),
-                content: Text('Do you want to cancel your chat request with ${widget.astrologer.name}?'),
+                content: Text('Do you want to cancel your chat request with ${widget.astrologer.firstName} ${widget.astrologer.lastName}?'),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
@@ -302,19 +305,19 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
                         children: [
                           CircleAvatar(
                             radius: 60,
-                            backgroundImage: NetworkImage(widget.astrologer.image),
+                            backgroundImage: NetworkImage(widget.astrologer.userAvatar.toString()),
                             backgroundColor: Colors.grey.shade200,
                           ),
                           SizedBox(height: 20),
                           Text(
-                            widget.astrologer.name.toTitleCase(),
+                            '${widget.astrologer.firstName} ${widget.astrologer.lastName}'.toTitleCase(),
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           Text(
-                            widget.astrologer.speciality,
+                            widget.astrologer.astroType.toString(),
                             style: TextStyle(
                               fontSize: 16,
                               color: Colors.grey.shade600,
@@ -328,7 +331,7 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              widget.astrologer.price,
+                              widget.astrologer.astroCharges.toString(),
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -341,7 +344,7 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
                             ),
                             SizedBox(height: 24),
                             Text(
-                              'Waiting for ${widget.astrologer.name} to accept your chat request...',
+                              'Waiting for ${widget.astrologer.firstName} ${widget.astrologer.lastName} to accept your chat request...',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 16,

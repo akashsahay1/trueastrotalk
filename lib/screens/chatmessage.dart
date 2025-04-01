@@ -366,7 +366,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.astrologer.name),
+        title: Text('${widget.astrologer.firstName} ${widget.astrologer.lastName}'),
         actions: [
           Container(
             padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -401,7 +401,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'You will be charged ${widget.astrologer.price} per minute. Current duration: ${_formatDuration(_elapsedTime)}',
+                              'You will be charged ${widget.astrologer.astroCharges} per minute. Current duration: ${_formatDuration(_elapsedTime)}',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.amber.shade900,
@@ -416,7 +416,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       child: _messages.isEmpty
                           ? Center(
                               child: Text(
-                                'Start chatting with ${widget.astrologer.name}',
+                                'Start chatting with ${widget.astrologer.firstName} ${widget.astrologer.lastName}',
                                 style: TextStyle(color: Colors.grey),
                               ),
                             )
@@ -512,7 +512,7 @@ class _ChatScreenState extends State<ChatScreen> {
           if (!isCurrentUser)
             CircleAvatar(
               radius: 16,
-              backgroundImage: NetworkImage(widget.astrologer.image),
+              backgroundImage: NetworkImage(widget.astrologer.userAvatar.toString()),
               backgroundColor: Colors.grey.shade200,
             ),
           SizedBox(width: isCurrentUser ? 0 : 8),

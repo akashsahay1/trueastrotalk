@@ -148,19 +148,6 @@ class AstrologerService {
     }
   }
 
-  // Get featured/top astrologers
-  Future<List<User>> getFeaturedAstrologers({int limit = 5}) async {
-    try {
-      final allAstrologers = await getAstrologers(limit: 20);
-
-      // Sort by rating descending and take the top 'limit' astrologers
-      allAstrologers.sort((a, b) => b.rating.compareTo(a.rating));
-      return allAstrologers.take(limit).toList();
-    } catch (e) {
-      return [];
-    }
-  }
-
   // Get pagination information for astrologers list
   Future<Map<String, dynamic>> getAstrologersPagination({int page = 1, int limit = 5}) async {
     final token = await getAuthToken();

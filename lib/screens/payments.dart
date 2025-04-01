@@ -279,19 +279,19 @@ class _ChatPaymentScreenState extends State<ChatPaymentScreen> {
                       children: [
                         CircleAvatar(
                           radius: 40,
-                          backgroundImage: NetworkImage(widget.astrologer.image),
+                          backgroundImage: NetworkImage(widget.astrologer.userAvatar.toString()),
                           backgroundColor: Colors.grey.shade200,
                         ),
                         SizedBox(height: 16),
                         Text(
-                          widget.astrologer.name,
+                          '${widget.astrologer.firstName} ${widget.astrologer.lastName}',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         Text(
-                          widget.astrologer.speciality,
+                          widget.astrologer.astroType.toString(),
                           style: TextStyle(
                             color: Colors.grey.shade600,
                           ),

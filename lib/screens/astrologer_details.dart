@@ -82,9 +82,9 @@ class AstrologerDetails extends StatelessWidget {
                                       shape: BoxShape.circle,
                                     ),
                                     child: ClipOval(
-                                      child: astrologer.image.startsWith('http') || astrologer.image.startsWith('https')
+                                      child: astrologer.userAvatar.toString().startsWith('http') || astrologer.userAvatar.toString().startsWith('https')
                                           ? Image.network(
-                                              astrologer.image,
+                                              astrologer.userAvatar.toString(),
                                               fit: BoxFit.cover,
                                               errorBuilder: (context, error, stackTrace) {
                                                 return Image.asset(
@@ -94,7 +94,7 @@ class AstrologerDetails extends StatelessWidget {
                                               },
                                             )
                                           : Image.asset(
-                                              astrologer.image,
+                                              astrologer.userAvatar.toString(),
                                               fit: BoxFit.cover,
                                               errorBuilder: (context, error, stackTrace) {
                                                 return Image.asset(
@@ -113,7 +113,7 @@ class AstrologerDetails extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   Text(
-                                    astrologer.rating.toString(),
+                                    '4.5',
                                     style: TextStyle(
                                       fontWeight: FontWeight.w500,
                                       fontSize: 18,
@@ -145,7 +145,7 @@ class AstrologerDetails extends StatelessWidget {
                                     SizedBox(width: 5),
                                     Expanded(
                                       child: Text(
-                                        astrologer.name.toTitleCase(),
+                                        '${astrologer.firstName} ${astrologer.lastName}'.toTitleCase(),
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
@@ -167,7 +167,7 @@ class AstrologerDetails extends StatelessWidget {
                                     SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        astrologer.speciality,
+                                        astrologer.astroType.toString(),
                                         overflow: TextOverflow.ellipsis,
                                         softWrap: true,
                                         style: TextStyle(
@@ -189,7 +189,7 @@ class AstrologerDetails extends StatelessWidget {
                                     SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        '${astrologer.languages}',
+                                        '${astrologer.userLanguages}',
                                         overflow: TextOverflow.ellipsis,
                                         softWrap: true,
                                         style: TextStyle(
@@ -211,7 +211,7 @@ class AstrologerDetails extends StatelessWidget {
                                     SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        'Exp- ${astrologer.experience} years',
+                                        'Exp- ${astrologer.userExperience} years',
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           color: Color(0xFF19295C),
@@ -245,7 +245,7 @@ class AstrologerDetails extends StatelessWidget {
                                   ),
                                 ),
                                 child: Text(
-                                  '${astrologer.price}',
+                                  '${astrologer.astroCharges}',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 15,

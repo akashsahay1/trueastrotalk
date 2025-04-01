@@ -20,6 +20,8 @@ class UserService {
     final prefs = await SharedPreferences.getInstance();
     final userData = prefs.getString(_userKey);
 
+    print(userData);
+
     if (userData != null) {
       return User.fromJson(jsonDecode(userData));
     }

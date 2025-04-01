@@ -40,16 +40,16 @@ class _AppDrawerState extends State<AppDrawer> {
 
     // Check if user is astrologer
 
-    if (user?.role == 'astrologer') {
+    if (user!.userRole == 'astrologer') {
       setState(() {
         _isAstrologer = true;
       });
     }
 
     setState(() {
-      _userFullName = user?.name ?? "";
-      _userGender = user?.gender ?? "";
-      _userDob = user?.dob ?? "";
+      _userFullName = '${user.firstName} ${user.lastName}';
+      _userGender = user.userGender;
+      _userDob = user.userDob ?? "";
       _isLoggedIn = isloggedin;
     });
   }

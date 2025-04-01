@@ -50,7 +50,7 @@ class AstrologerCallCard extends StatelessWidget {
       // For now, just show a snackbar
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Calling ${astrologer.name}'),
+          content: Text('Calling ${astrologer.firstName} ${astrologer.lastName}'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -98,27 +98,16 @@ class AstrologerCallCard extends StatelessWidget {
                           shape: BoxShape.circle,
                         ),
                         child: ClipOval(
-                          child: astrologer.image.startsWith('http') || astrologer.image.startsWith('https')
-                              ? Image.network(
-                                  astrologer.image,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Image.asset(
-                                      'assets/images/avatar.jpg',
-                                      fit: BoxFit.cover,
-                                    );
-                                  },
-                                )
-                              : Image.asset(
-                                  astrologer.image,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Image.asset(
-                                      'assets/images/avatar.jpg',
-                                      fit: BoxFit.cover,
-                                    );
-                                  },
-                                ),
+                          child: Image.network(
+                            astrologer.userAvatar ?? '',
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Image.asset(
+                                'assets/images/avatar.jpg',
+                                fit: BoxFit.cover,
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ),
@@ -130,7 +119,7 @@ class AstrologerCallCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      astrologer.rating.toString(),
+                      '4.5',
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 18,
@@ -164,7 +153,7 @@ class AstrologerCallCard extends StatelessWidget {
                         SizedBox(width: 5),
                         Expanded(
                           child: Text(
-                            astrologer.uname.toTitleCase(),
+                            astrologer.userName.toTitleCase(),
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
@@ -187,7 +176,7 @@ class AstrologerCallCard extends StatelessWidget {
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          _formatSpeciality(astrologer.speciality),
+                          _formatSpeciality(astrologer.astroType.toString()),
                           overflow: TextOverflow.ellipsis,
                           softWrap: true,
                           style: TextStyle(
@@ -209,7 +198,7 @@ class AstrologerCallCard extends StatelessWidget {
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          '${astrologer.languages}',
+                          '${astrologer.userLanguages}',
                           overflow: TextOverflow.ellipsis,
                           softWrap: true,
                           style: TextStyle(
@@ -231,7 +220,7 @@ class AstrologerCallCard extends StatelessWidget {
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Exp- ${astrologer.experience} years',
+                          'Exp- ${astrologer.userExperience} years',
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Color(0xFF19295C),
@@ -286,7 +275,7 @@ class AstrologerCallCard extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    '${astrologer.price}',
+                    '${astrologer.astroCharges}',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,

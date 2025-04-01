@@ -215,14 +215,14 @@ class _AstrologerChatRequestScreenState extends State<AstrologerChatRequestScree
                 // Customer avatar
                 CircleAvatar(
                   radius: 60,
-                  backgroundImage: NetworkImage(_customer!.image),
+                  backgroundImage: NetworkImage(_customer!.userAvatar.toString()),
                   backgroundColor: Colors.grey.shade200,
                 ),
                 SizedBox(height: 16),
 
                 // Customer name
                 Text(
-                  _customer!.name,
+                  '${_customer!.firstName} ${_customer!.lastName}',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
