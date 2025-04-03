@@ -108,15 +108,11 @@ void main() async {
     print('FCM token does not exist');
   }
 
-  // Get first launch status
-  final isUserLoggedIn = UserService().isLoggedIn();
-
-  runApp(TrueAstrotalk(isUserLoggedIn: isUserLoggedIn));
+  runApp(TrueAstrotalk());
 }
 
 class TrueAstrotalk extends StatefulWidget {
-  final isUserLoggedIn;
-  const TrueAstrotalk({super.key, required this.isUserLoggedIn});
+  const TrueAstrotalk({super.key});
 
   @override
   TrueAstrotalkState createState() => TrueAstrotalkState();
@@ -126,6 +122,8 @@ class TrueAstrotalkState extends State<TrueAstrotalk> {
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
   Uri? _initialDeepLink;
+  String? _initialRoute;
+  final UserService _userService = UserService();
 
   // Global navigation key to use for navigation from outside of widgets
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -135,6 +133,7 @@ class TrueAstrotalkState extends State<TrueAstrotalk> {
     super.initState();
     initDeepLinks();
     setupPushNotifications(navigatorKey);
+    _determineInitialRoute();
   }
 
   void _handleNotificationNavigation(Map<String, dynamic> data, GlobalKey<NavigatorState> navigatorKey) {
@@ -435,23 +434,43 @@ class TrueAstrotalkState extends State<TrueAstrotalk> {
   }
 
   // Determine initial route based on deep links and first launch status
-  String _determineInitialRoute() {
+  Future<void> _determineInitialRoute() async {
+    String route;
+
     // Check if there's a deep link for password reset
     if (_initialDeepLink != null && _initialDeepLink!.scheme == 'trueastrotalk' && _initialDeepLink!.host == 'resetpassword') {
       final token = _initialDeepLink!.queryParameters['token'];
       final email = _initialDeepLink!.queryParameters['email'];
       if (token != null && email != null) {
-        // Return a route string that will be caught by onGenerateRoute
-        return '/resetpassword?token=$token&email=$email';
+        route = '/resetpassword?token=$token&email=$email';
+      } else {
+        // Check login status
+        bool isLoggedIn = await _userService.isLoggedIn();
+        route = isLoggedIn ? '/home' : '/intro';
       }
+    } else {
+      // No deep link, just check login status
+      bool isLoggedIn = await _userService.isLoggedIn();
+      route = isLoggedIn ? '/home' : '/intro';
     }
 
-    // If no valid deep link, use the original logic
-    return widget.isUserLoggedIn ? '/intro' : '/home';
+    setState(() {
+      _initialRoute = route;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_initialRoute == null) {
+      return MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+
     return MaterialApp(
       title: 'True Astrotalk',
       theme: ThemeData(
@@ -462,7 +481,7 @@ class TrueAstrotalkState extends State<TrueAstrotalk> {
       ),
       debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey,
-      initialRoute: _determineInitialRoute(),
+      initialRoute: _initialRoute,
       routes: {
         '/intro': (context) => const Intro(),
         '/signup': (context) => const Signup(),

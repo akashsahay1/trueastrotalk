@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:trueastrotalk/common/astrologerChatCard.dart';
+import 'package:trueastrotalk/common/astrocard.dart';
 import 'package:trueastrotalk/models/user.dart';
 import 'package:trueastrotalk/services/astrologer.dart';
 
@@ -121,8 +121,9 @@ class _AstrologersState extends State<Astrochats> {
                   if (index == _astrologers.length) {
                     return _buildLoadingIndicator();
                   }
-                  return AstrologerChatCard(
+                  return AstrologerCard(
                     astrologer: _astrologers[index],
+                    cardType: 'chat',
                   );
                 },
               ),

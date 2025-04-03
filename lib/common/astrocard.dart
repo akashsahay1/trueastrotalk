@@ -6,17 +6,18 @@ import 'package:trueastrotalk/screens/astrologer_details.dart';
 import 'package:trueastrotalk/screens/chatrequest.dart';
 import 'package:trueastrotalk/utilities/strings.dart';
 
-class AstrologerChatCard extends StatelessWidget {
+class AstrologerCard extends StatelessWidget {
   final User astrologer;
-
+  final String cardType;
   // Optional callbacks that can be used to override default behavior
   final Function(User)? onCallOverride;
   final Function(User)? onChatOverride;
   final Function(User)? onProfileOverride;
 
-  const AstrologerChatCard({
+  const AstrologerCard({
     Key? key,
     required this.astrologer,
+    required this.cardType,
     this.onCallOverride,
     this.onChatOverride,
     this.onProfileOverride,
@@ -39,8 +40,39 @@ class AstrologerChatCard extends StatelessWidget {
     }
   }
 
+  // Handle call button press
+  void _handleCallPressed(BuildContext context) {
+    if (onCallOverride != null) {
+      onCallOverride!(astrologer);
+    } else {
+      // Default call handling logic
+      // You can implement your call functionality here
+      // For example:
+      // CallService().initiateCall(astrologer.id);
+
+      // For now, just show a snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Calling ${astrologer.firstName} ${astrologer.lastName}'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  void _handleChatPressed(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatRequestScreen(
+          astrologer: astrologer,
+        ),
+      ),
+    );
+  }
+
   // Format speciality to show only first 2 specialities with "+1" indicator if more exist
-  String _formatAstrotypes(String speciality) {
+  String _formatSpeciality(String speciality) {
     final List<String> specialities = speciality.split(',');
 
     if (specialities.length <= 2) {
@@ -159,7 +191,7 @@ class AstrologerChatCard extends StatelessWidget {
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          _formatAstrotypes(astrologer.astroType.toString()),
+                          _formatSpeciality(astrologer.astroType.toString()),
                           overflow: TextOverflow.ellipsis,
                           softWrap: true,
                           style: TextStyle(
@@ -223,16 +255,7 @@ class AstrologerChatCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 ElevatedButton(
-                  onPressed: () => {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ChatRequestScreen(
-                          astrologer: astrologer,
-                        ),
-                      ),
-                    )
-                  },
+                  onPressed: () => cardType == "call" ? _handleCallPressed(context) : _handleChatPressed(context),
                   style: ButtonStyle(
                     backgroundColor: WidgetStatePropertyAll(Color(0xFF1877F2)),
                     padding: WidgetStatePropertyAll(EdgeInsets.only(left: 10, right: 10, top: 2, bottom: 2)),
@@ -245,7 +268,7 @@ class AstrologerChatCard extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    "Chat",
+                    cardType == "call" ? "Call" : "Chat",
                     style: TextStyle(
                       color: Color(0xFFFFFFFF),
                       fontWeight: FontWeight.w600,

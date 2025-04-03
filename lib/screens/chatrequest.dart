@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:trueastrotalk/config/environment.dart';
 import 'package:trueastrotalk/models/user.dart';
 import 'package:trueastrotalk/screens/astrologer_details.dart';
 import 'package:trueastrotalk/services/chatmessage.dart';
@@ -305,7 +306,7 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
                         children: [
                           CircleAvatar(
                             radius: 60,
-                            backgroundImage: NetworkImage(widget.astrologer.userAvatar.toString()),
+                            backgroundImage: NetworkImage('${Environment.baseUrl}/${widget.astrologer.userAvatar.toString()}'),
                             backgroundColor: Colors.grey.shade200,
                           ),
                           SizedBox(height: 20),
@@ -314,6 +315,7 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
+                              letterSpacing: -0.6,
                             ),
                           ),
                           Text(
@@ -331,7 +333,7 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              widget.astrologer.astroCharges.toString(),
+                              '₹${widget.astrologer.astroCharges.toString()}/min',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -348,6 +350,7 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 16,
+                                letterSpacing: 0,
                               ),
                             ),
                           ] else if (_requestStatus == 'accepted') ...[

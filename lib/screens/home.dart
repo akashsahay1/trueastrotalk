@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:trueastrotalk/common/astrologerCallCard.dart';
+import 'package:trueastrotalk/common/astrocard.dart';
 import 'package:trueastrotalk/models/user.dart';
 import 'package:trueastrotalk/services/astrologer.dart';
 
@@ -88,8 +88,9 @@ class _HomeState extends State<Home> {
                           ),
                         );
                       }
-                      return AstrologerCallCard(
+                      return AstrologerCard(
                         astrologer: _astrologers[index],
+                        cardType: 'call',
                       );
                     },
                   ),
