@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-//import 'package:trueastrotalk/screens/astrologers.dart';
 
 class Appbar extends StatefulWidget implements PreferredSizeWidget {
   final String title;
@@ -24,13 +23,6 @@ class _AppbarState extends State<Appbar> {
     super.initState();
     _title = widget.title;
   }
-
-//   _navigatetoSearch() {
-//     Navigator.pushReplacement(
-//       context,
-//       MaterialPageRoute(builder: (context) => Astrologers()),
-//     );
-//   }
 
   _showNotifications() {
     Navigator.pushReplacementNamed(context, '/notifications');

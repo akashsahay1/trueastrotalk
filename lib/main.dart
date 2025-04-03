@@ -20,6 +20,7 @@ import 'package:trueastrotalk/screens/signup.dart';
 import 'package:trueastrotalk/services/astrologer.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:trueastrotalk/services/tokens.dart';
+import 'package:trueastrotalk/services/userservice.dart';
 
 // Define global FlutterLocalNotificationsPlugin for showing notifications when app is in foreground
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
@@ -108,14 +109,14 @@ void main() async {
   }
 
   // Get first launch status
-  final isFirstLaunch = prefs.getBool('first_launch') ?? true;
+  final isUserLoggedIn = UserService().isLoggedIn();
 
-  runApp(TrueAstrotalk(isFirstLaunch: isFirstLaunch));
+  runApp(TrueAstrotalk(isUserLoggedIn: isUserLoggedIn));
 }
 
 class TrueAstrotalk extends StatefulWidget {
-  final bool isFirstLaunch;
-  const TrueAstrotalk({super.key, required this.isFirstLaunch});
+  final isUserLoggedIn;
+  const TrueAstrotalk({super.key, required this.isUserLoggedIn});
 
   @override
   TrueAstrotalkState createState() => TrueAstrotalkState();
@@ -446,7 +447,7 @@ class TrueAstrotalkState extends State<TrueAstrotalk> {
     }
 
     // If no valid deep link, use the original logic
-    return widget.isFirstLaunch ? '/intro' : '/home';
+    return widget.isUserLoggedIn ? '/intro' : '/home';
   }
 
   @override
@@ -460,7 +461,7 @@ class TrueAstrotalkState extends State<TrueAstrotalk> {
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-      navigatorKey: navigatorKey, // Set navigator key for outside navigation
+      navigatorKey: navigatorKey,
       initialRoute: _determineInitialRoute(),
       routes: {
         '/intro': (context) => const Intro(),
