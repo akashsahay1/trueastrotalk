@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:trueastrotalk/models/user.dart';
 import 'package:trueastrotalk/models/wallet.dart';
+import 'package:trueastrotalk/services/userservice.dart';
 import 'package:trueastrotalk/services/wallet.dart';
 import 'package:trueastrotalk/config/environment.dart';
 import 'package:http/http.dart' as http;
@@ -24,6 +25,7 @@ class ChatPaymentScreen extends StatefulWidget {
 
 class _ChatPaymentScreenState extends State<ChatPaymentScreen> {
   final WalletService _walletService = WalletService();
+  final UserService _UserService = UserService();
 
   bool _isLoadingWallet = true;
   bool _isProcessingWallet = false;
@@ -84,9 +86,10 @@ class _ChatPaymentScreenState extends State<ChatPaymentScreen> {
     });
 
     try {
-      final token = await _walletService.getAuthToken();
+      final String baseApiUrl = Environment.baseApiUrl;
+      final token = _UserService.getToken();
       final response = await http.post(
-        Uri.parse('${Environment.baseApiUrl}/payments/wallet'),
+        Uri.parse('${baseApiUrl}/payments/wallet'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -124,9 +127,10 @@ class _ChatPaymentScreenState extends State<ChatPaymentScreen> {
     });
 
     try {
-      final token = await _walletService.getAuthToken();
+      final baseApiUrl = Environment.baseApiUrl;
+      final token = await _UserService.getToken();
       final response = await http.post(
-        Uri.parse('${Environment.baseApiUrl}/chat/${_chatId}/payment-link'),
+        Uri.parse('${baseApiUrl}/chat/${_chatId}/payment-link'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',

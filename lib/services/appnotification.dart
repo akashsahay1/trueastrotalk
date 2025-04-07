@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:trueastrotalk/services/userservice.dart';
 import '../models/appnotification.dart';
 import '../config/environment.dart';
 
@@ -15,7 +16,7 @@ class AppnotificationService {
 
   // Get all astrologers with pagination support
   Future<List<Appnotification>> getNotifications({int limit = 5, int page = 1}) async {
-    final token = await getAuthToken();
+    final token = await UserService().getRequiredToken();
     final response = await http.get(
       Uri.parse('$baseApiUrl/notifications?page=$page&limit=$limit'),
       headers: {

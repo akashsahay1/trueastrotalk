@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:trueastrotalk/config/colors.dart';
+import 'package:trueastrotalk/config/environment.dart';
 import 'package:trueastrotalk/models/user.dart';
 import 'package:trueastrotalk/screens/chatrequest.dart';
 import 'package:trueastrotalk/utilities/expandable_text.dart';
-import 'package:trueastrotalk/utilities/strings.dart';
 
 class AstrologerDetails extends StatelessWidget {
   final User astrologer;
@@ -22,7 +22,7 @@ class AstrologerDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayAstrologer = astrologer;
+    final baseUrl = Environment.baseUrl;
 
     _showNotifications() {
       Navigator.pushReplacementNamed(context, '/notifications');
@@ -69,7 +69,7 @@ class AstrologerDetails extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.start,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Astrologer image with online indicator
+                          // Astrologer image
                           Column(
                             children: [
                               Stack(
@@ -82,27 +82,17 @@ class AstrologerDetails extends StatelessWidget {
                                       shape: BoxShape.circle,
                                     ),
                                     child: ClipOval(
-                                      child: astrologer.userAvatar.toString().startsWith('http') || astrologer.userAvatar.toString().startsWith('https')
-                                          ? Image.network(
-                                              astrologer.userAvatar.toString(),
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (context, error, stackTrace) {
-                                                return Image.asset(
-                                                  'assets/images/avatar.jpg',
-                                                  fit: BoxFit.cover,
-                                                );
-                                              },
-                                            )
-                                          : Image.asset(
-                                              astrologer.userAvatar.toString(),
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (context, error, stackTrace) {
-                                                return Image.asset(
-                                                  'assets/images/avatar.jpg',
-                                                  fit: BoxFit.cover,
-                                                );
-                                              },
-                                            ),
+                                      child: Image.network(
+                                        '${baseUrl}/${astrologer.userAvatar}',
+                                        key: ValueKey('profile-${astrologer.ID}'),
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return Image.asset(
+                                            'assets/images/avatar.jpg',
+                                            fit: BoxFit.cover,
+                                          );
+                                        },
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -145,7 +135,7 @@ class AstrologerDetails extends StatelessWidget {
                                     SizedBox(width: 5),
                                     Expanded(
                                       child: Text(
-                                        '${astrologer.firstName} ${astrologer.lastName}'.toTitleCase(),
+                                        '${astrologer.userName}',
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
@@ -224,36 +214,36 @@ class AstrologerDetails extends StatelessWidget {
                               ],
                             ),
                           ),
-                          SizedBox(
-                            width: 10,
-                          ),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ElevatedButton(
-                                onPressed: () => {},
-                                style: ButtonStyle(
-                                  backgroundColor: WidgetStatePropertyAll(Color(0xFFF1F4F5)),
-                                  foregroundColor: WidgetStatePropertyAll(AppColors.accentColor),
-                                  padding: WidgetStatePropertyAll(EdgeInsets.only(left: 10, right: 10, top: 2, bottom: 2)),
-                                  minimumSize: WidgetStatePropertyAll(Size(90, 30)),
-                                  shape: WidgetStatePropertyAll(
-                                    RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(5),
-                                    ),
-                                  ),
-                                ),
-                                child: Text(
-                                  '${astrologer.astroCharges}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                              )
-                            ],
-                          )
+                          // SizedBox(
+                          //   width: 10,
+                          // ),
+                          // Column(
+                          //   mainAxisAlignment: MainAxisAlignment.start,
+                          //   crossAxisAlignment: CrossAxisAlignment.start,
+                          //   children: [
+                          //     ElevatedButton(
+                          //       onPressed: () => {},
+                          //       style: ButtonStyle(
+                          //         backgroundColor: WidgetStatePropertyAll(Color(0xFFF1F4F5)),
+                          //         foregroundColor: WidgetStatePropertyAll(AppColors.accentColor),
+                          //         padding: WidgetStatePropertyAll(EdgeInsets.only(left: 10, right: 10, top: 2, bottom: 2)),
+                          //         minimumSize: WidgetStatePropertyAll(Size(90, 30)),
+                          //         shape: WidgetStatePropertyAll(
+                          //           RoundedRectangleBorder(
+                          //             borderRadius: BorderRadius.circular(5),
+                          //           ),
+                          //         ),
+                          //       ),
+                          //       child: Text(
+                          //         '${astrologer.astroCharges}',
+                          //         style: TextStyle(
+                          //           fontWeight: FontWeight.bold,
+                          //           fontSize: 15,
+                          //         ),
+                          //       ),
+                          //     )
+                          //   ],
+                          // )
                         ],
                       ),
                     ),
@@ -304,7 +294,7 @@ class AstrologerDetails extends StatelessWidget {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => ChatRequestScreen(
-                                      astrologer: displayAstrologer,
+                                      astrologer: astrologer,
                                     ),
                                   ),
                                 );
@@ -368,7 +358,7 @@ class AstrologerDetails extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           ExpandableText(
-                            text: displayAstrologer.userAbout ?? 'No description available.',
+                            text: astrologer.userAbout ?? 'No description available.',
                             style: TextStyle(
                               fontSize: 15,
                               color: Colors.black87,

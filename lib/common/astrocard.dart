@@ -3,6 +3,7 @@ import 'package:trueastrotalk/config/colors.dart';
 import 'package:trueastrotalk/config/environment.dart';
 import 'package:trueastrotalk/models/user.dart';
 import 'package:trueastrotalk/screens/astrologer_details.dart';
+import 'package:trueastrotalk/screens/callrequest.dart';
 import 'package:trueastrotalk/screens/chatrequest.dart';
 import 'package:trueastrotalk/utilities/strings.dart';
 
@@ -45,16 +46,12 @@ class AstrologerCard extends StatelessWidget {
     if (onCallOverride != null) {
       onCallOverride!(astrologer);
     } else {
-      // Default call handling logic
-      // You can implement your call functionality here
-      // For example:
-      // CallService().initiateCall(astrologer.id);
-
-      // For now, just show a snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Calling ${astrologer.firstName} ${astrologer.lastName}'),
-          duration: Duration(seconds: 2),
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CallRequestScreen(
+            astrologer: astrologer,
+          ),
         ),
       );
     }
@@ -114,7 +111,7 @@ class AstrologerCard extends StatelessWidget {
                         ),
                         child: ClipOval(
                           child: Image.network(
-                            '$baseUrl/${astrologer.userAvatar}',
+                            '${baseUrl}/${astrologer.userAvatar}',
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
                               return Image.asset(

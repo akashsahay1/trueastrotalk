@@ -1,21 +1,16 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trueastrotalk/models/wallet.dart';
 import 'package:trueastrotalk/config/environment.dart';
+import 'package:trueastrotalk/services/userservice.dart';
 
 class WalletService {
-  final String baseUrl = Environment.baseApiUrl;
-
-  Future<String> getAuthToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('user_token') ?? '';
-  }
+  final String baseApiUrl = Environment.baseApiUrl;
+  final token = UserService().getRequiredToken();
 
   Future<WalletModel> getWalletDetails() async {
-    final token = await getAuthToken();
     final response = await http.get(
-      Uri.parse('$baseUrl/wallet'),
+      Uri.parse('${baseApiUrl}/wallet'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -30,9 +25,8 @@ class WalletService {
   }
 
   Future<Map<String, dynamic>> createRazorpayOrder(double amount) async {
-    final token = await getAuthToken();
     final response = await http.post(
-      Uri.parse('$baseUrl/wallet/create-order'),
+      Uri.parse('${baseApiUrl}/wallet/create-order'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -55,9 +49,8 @@ class WalletService {
     required String signature,
     required double amount,
   }) async {
-    final token = await getAuthToken();
     final response = await http.post(
-      Uri.parse('$baseUrl/wallet/verify-payment'),
+      Uri.parse('${baseApiUrl}/wallet/verify-payment'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',

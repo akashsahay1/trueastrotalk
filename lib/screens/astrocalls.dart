@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:trueastrotalk/common/astrocard.dart';
 import 'package:trueastrotalk/models/user.dart';
-import 'package:trueastrotalk/services/astrologer.dart';
+import 'package:trueastrotalk/services/userservice.dart';
 
 class Astrocalls extends StatefulWidget {
   const Astrocalls({super.key});
@@ -11,7 +11,7 @@ class Astrocalls extends StatefulWidget {
 }
 
 class _AstrologersState extends State<Astrocalls> {
-  final AstrologerService _astrologerService = AstrologerService();
+  final UserService _userService = UserService();
   List<User> _astrologers = [];
   bool _isLoading = true;
   bool _hasMore = true;
@@ -32,10 +32,10 @@ class _AstrologersState extends State<Astrocalls> {
 
     try {
       // Load initial astrologers
-      final astrologers = await _astrologerService.getAstrologers(limit: _perPage, page: 1);
+      final astrologers = await _userService.getAstrologers(limit: _perPage, page: 1);
 
       // Get pagination info to know if there are more astrologers
-      final pagination = await _astrologerService.getAstrologersPagination(limit: _perPage, page: 1);
+      final pagination = await _userService.getAstrologersPagination(limit: _perPage, page: 1);
 
       setState(() {
         _astrologers = astrologers;
@@ -64,10 +64,10 @@ class _AstrologersState extends State<Astrocalls> {
     try {
       // Load more astrologers
       final nextPage = _currentPage + 1;
-      final moreAstrologers = await _astrologerService.getAstrologers(limit: _perPage, page: nextPage);
+      final moreAstrologers = await _userService.getAstrologers(limit: _perPage, page: nextPage);
 
       // Get updated pagination info
-      final pagination = await _astrologerService.getAstrologersPagination(limit: _perPage, page: nextPage);
+      final pagination = await _userService.getAstrologersPagination(limit: _perPage, page: nextPage);
 
       setState(() {
         if (moreAstrologers.isNotEmpty) {

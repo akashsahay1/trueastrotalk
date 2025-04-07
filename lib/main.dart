@@ -17,7 +17,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:trueastrotalk/screens/signup.dart';
-import 'package:trueastrotalk/services/astrologer.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:trueastrotalk/services/tokens.dart';
 import 'package:trueastrotalk/services/userservice.dart';
@@ -156,7 +155,7 @@ class TrueAstrotalkState extends State<TrueAstrotalk> {
           // For chat requests, we might not need the astrologer details
           // if they're provided on the request screen
           print("👉 Pushing route to chat request screen");
-          AstrologerService().getAstrologerById(astrologerId).then(
+          UserService().getAstrologerById(astrologerId).then(
             (astrologer) {
               print("👉 Pushing route to chat screen");
               navigatorKey.currentState!.push(
@@ -182,7 +181,7 @@ class TrueAstrotalkState extends State<TrueAstrotalk> {
         print("🔍 Navigating to chat screen with chatId: $chatId, astrologerId: $astrologerId");
 
         if (navigatorKey.currentState != null) {
-          AstrologerService().getAstrologerById(astrologerId).then(
+          UserService().getAstrologerById(astrologerId).then(
             (astrologer) {
               print("👉 Pushing route to chat screen");
               navigatorKey.currentState!.push(

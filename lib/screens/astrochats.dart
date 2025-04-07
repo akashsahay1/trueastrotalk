@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:trueastrotalk/common/astrocard.dart';
 import 'package:trueastrotalk/models/user.dart';
-import 'package:trueastrotalk/services/astrologer.dart';
+import 'package:trueastrotalk/services/userservice.dart';
 
 class Astrochats extends StatefulWidget {
   const Astrochats({super.key});
@@ -11,7 +11,7 @@ class Astrochats extends StatefulWidget {
 }
 
 class _AstrologersState extends State<Astrochats> {
-  final AstrologerService _astrologerService = AstrologerService();
+  final UserService _astrologerService = UserService();
   List<User> _astrologers = [];
   bool _isLoading = true;
   bool _hasMore = true;
