@@ -22,8 +22,6 @@ class ChatMessage {
       senderId: json['sender_id'].toString(),
       message: json['message'] ?? '',
       timestamp: json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now(),
-      // Usually the backend would tell us if this message is from the current user
-      // or we could compare senderId with the current user ID
       isFromCurrentUser: json['is_from_current_user'] ?? false,
     );
   }

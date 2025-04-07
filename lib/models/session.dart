@@ -1,4 +1,3 @@
-// File: lib/models/session.dart
 class AstrologerSession {
   final int id;
   final int customerId;

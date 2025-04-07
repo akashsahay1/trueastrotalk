@@ -1,4 +1,8 @@
 {
 	"editor.tabSize": 2,
-	"editor.detectIndentation": false
+	"editor.detectIndentation": false,
+	"dart.lineLength": 3000000,
+	"editor.rulers": [
+		
+	]
 }

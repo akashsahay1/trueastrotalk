@@ -51,7 +51,7 @@ class UserService {
 
   // Get all astrologers with pagination support
   Future<List<User>> getAstrologers({int limit = 5, int page = 1}) async {
-    final token = await UserService().getRequiredToken();
+    final token = await getRequiredToken();
 
     try {
       final response = await http.get(
