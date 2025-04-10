@@ -50,14 +50,14 @@ class UserService {
   }
 
   // Get all astrologers with pagination support
-  Future<List<User>> getAstrologers({int limit = 5, int page = 1}) async {
+  Future<List<User>> getAstrologers({int limit = 15, int page = 1}) async {
     final token = await getRequiredToken();
 
     try {
       final response = await http.get(
-        Uri.parse('$_baseApiUrl/astrologers?page=$page&limit=$limit'),
+        Uri.parse('${_baseApiUrl}/astrologers?page=${page}&limit=${limit}'),
         headers: {
-          'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer ${token}',
           'Content-Type': 'application/json',
         },
       );
@@ -75,7 +75,8 @@ class UserService {
           if (astrologersData['data'] != null && astrologersData['data'] is List) {
             // Map each JSON object to an Astrologer object
             final List<dynamic> astrologersList = astrologersData['data'];
-            return astrologersList.map((item) => User.fromJson(item)).toList();
+            final shuffledList = astrologersList.toList()..shuffle();
+            return shuffledList.map((item) => User.fromJson(item)).toList();
           }
         }
 
@@ -207,20 +208,20 @@ class UserService {
           return {
             'current_page': astrologersData['current_page'] ?? 1,
             'last_page': astrologersData['last_page'] ?? 1,
-            'per_page': astrologersData['per_page'] ?? 10,
+            'per_page': astrologersData['per_page'] ?? 15,
             'total': astrologersData['total'] ?? 0,
             'has_more': (astrologersData['current_page'] ?? 1) < (astrologersData['last_page'] ?? 1),
           };
         }
 
         // Return default pagination if structure doesn't match
-        return {'current_page': 1, 'last_page': 1, 'per_page': 10, 'total': 0, 'has_more': false};
+        return {'current_page': 1, 'last_page': 1, 'per_page': 15, 'total': 0, 'has_more': false};
       } else {
         throw Exception('Failed to load pagination: ${response.statusCode}');
       }
     } catch (e) {
       // Return default pagination on error
-      return {'current_page': 1, 'last_page': 1, 'per_page': 10, 'total': 0, 'has_more': false};
+      return {'current_page': 1, 'last_page': 1, 'per_page': 15, 'total': 0, 'has_more': false};
     }
   }
 

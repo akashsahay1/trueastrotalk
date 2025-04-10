@@ -64,6 +64,7 @@ class _AstrologersState extends State<Astrocalls> {
     try {
       // Load more astrologers
       final nextPage = _currentPage + 1;
+      print(nextPage);
       final moreAstrologers = await _userService.getAstrologers(limit: _perPage, page: nextPage);
 
       // Get updated pagination info
