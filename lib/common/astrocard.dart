@@ -193,7 +193,7 @@ class AstrologerCard extends StatelessWidget {
                           softWrap: true,
                           style: TextStyle(
                             color: Color(0xFF19295C),
-                            fontSize: 16,
+                            fontSize: 14,
                           ),
                         ),
                       )
@@ -215,7 +215,7 @@ class AstrologerCard extends StatelessWidget {
                           softWrap: true,
                           style: TextStyle(
                             color: Color(0xFF19295C),
-                            fontSize: 16,
+                            fontSize: 14,
                           ),
                         ),
                       ),
@@ -236,7 +236,7 @@ class AstrologerCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Color(0xFF19295C),
-                            fontSize: 16,
+                            fontSize: 14,
                           ),
                         ),
                       )
