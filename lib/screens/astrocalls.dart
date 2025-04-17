@@ -33,12 +33,15 @@ class _AstrologersState extends State<Astrocalls> {
     try {
       // Load initial astrologers
       final astrologers = await _userService.getAstrologers(limit: _perPage, page: 1);
+      final currentUserId = await _userService.getCurrentUserID();
+
+      final filteredAstrologers = astrologers.where((user) => user.ID != currentUserId).toList();
 
       // Get pagination info to know if there are more astrologers
       final pagination = await _userService.getAstrologersPagination(limit: _perPage, page: 1);
 
       setState(() {
-        _astrologers = astrologers;
+        _astrologers = filteredAstrologers;
         _hasMore = pagination['has_more'];
         _currentPage = 1;
       });
@@ -64,15 +67,17 @@ class _AstrologersState extends State<Astrocalls> {
     try {
       // Load more astrologers
       final nextPage = _currentPage + 1;
-      print(nextPage);
       final moreAstrologers = await _userService.getAstrologers(limit: _perPage, page: nextPage);
+      final currentUserId = await _userService.getCurrentUserID();
+
+      final filteredMoreAstrologers = moreAstrologers.where((user) => user.ID != currentUserId).toList();
 
       // Get updated pagination info
       final pagination = await _userService.getAstrologersPagination(limit: _perPage, page: nextPage);
 
       setState(() {
-        if (moreAstrologers.isNotEmpty) {
-          _astrologers.addAll(moreAstrologers);
+        if (filteredMoreAstrologers.isNotEmpty) {
+          _astrologers.addAll(filteredMoreAstrologers);
           _currentPage = nextPage;
         }
         _hasMore = pagination['has_more'];

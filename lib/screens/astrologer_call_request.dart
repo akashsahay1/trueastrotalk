@@ -4,15 +4,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trueastrotalk/config/environment.dart';
 import 'package:trueastrotalk/models/user.dart';
 import 'package:trueastrotalk/screens/astrologer_details.dart';
-import 'package:trueastrotalk/services/chatmessage.dart';
 import 'package:trueastrotalk/screens/chatmessage.dart';
+import 'package:trueastrotalk/services/apiservice.dart';
 import 'package:trueastrotalk/utilities/strings.dart';
 
-class CallRequestScreen extends StatefulWidget {
+class AstrologerCallRequestScreen extends StatefulWidget {
   final User astrologer;
   final String? callRequestId;
 
-  const CallRequestScreen({
+  const AstrologerCallRequestScreen({
     Key? key,
     required this.astrologer,
     this.callRequestId,
@@ -22,7 +22,7 @@ class CallRequestScreen extends StatefulWidget {
   _CallRequestScreenState createState() => _CallRequestScreenState();
 }
 
-class _CallRequestScreenState extends State<CallRequestScreen> {
+class _CallRequestScreenState extends State<AstrologerCallRequestScreen> {
   final ApiService _apiService = ApiService();
 
   String _requestStatus = 'pending';
@@ -82,11 +82,8 @@ class _CallRequestScreenState extends State<CallRequestScreen> {
         throw Exception('User not authenticated');
       }
 
-      // Make API call to create chat request
-      final response = await _apiService.post(
-        'call/request',
-        {'astrologer_id': widget.astrologer.ID},
-      );
+      // Make API call to create call request
+      final response = await _apiService.post('calls/request', body: {'astrologer_id': widget.astrologer.ID});
 
       if (response['success'] == true) {
         setState(() {
@@ -215,7 +212,7 @@ class _CallRequestScreenState extends State<CallRequestScreen> {
       // Make API call to cancel request
       final response = await _apiService.post(
         'call/request/$_callRequestId/cancel',
-        {},
+        body: {},
       );
 
       if (response['success'] == true) {

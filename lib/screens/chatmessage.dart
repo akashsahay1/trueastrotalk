@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:trueastrotalk/models/user.dart';
 import 'package:trueastrotalk/models/chatmessage.dart';
-import 'package:trueastrotalk/services/chatmessage.dart';
+import 'package:trueastrotalk/services/apiservice.dart';
 import 'package:trueastrotalk/screens/payments.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -98,7 +98,7 @@ class _ChatScreenState extends State<ChatScreen> {
         // First time entering chat after acceptance - start the timer
         final response = await _apiService.post(
           'chat/${widget.chatId}/start',
-          {},
+          body: {},
         );
 
         if (response['success'] != true) {
@@ -255,7 +255,7 @@ class _ChatScreenState extends State<ChatScreen> {
       // Send message to API
       final response = await _apiService.post(
         'chat/${widget.chatId}/messages',
-        {'message': messageText},
+        body: {'message': messageText},
       );
 
       if (response['success'] != true) {
@@ -325,7 +325,7 @@ class _ChatScreenState extends State<ChatScreen> {
       // End the chat
       final response = await _apiService.post(
         'chat/${widget.chatId}/end',
-        {},
+        body: {},
       );
 
       if (response['success'] != true) {

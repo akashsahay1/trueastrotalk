@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:trueastrotalk/models/user.dart';
-import 'package:trueastrotalk/services/chatmessage.dart';
+import 'package:trueastrotalk/services/apiservice.dart';
 
 class AstrologerChatRequestScreen extends StatefulWidget {
   final User astrologer;
@@ -69,7 +69,7 @@ class _AstrologerChatRequestScreenState extends State<AstrologerChatRequestScree
     try {
       final response = await _apiService.post(
         'chat/request/${widget.requestId}/accept',
-        {},
+        body: {},
       );
 
       if (response['success'] == true) {
@@ -119,7 +119,7 @@ class _AstrologerChatRequestScreenState extends State<AstrologerChatRequestScree
     try {
       final response = await _apiService.post(
         'chat/request/${widget.requestId}/reject',
-        {'rejection_reason': _rejectionReasonController.text.trim()},
+        body: {'rejection_reason': _rejectionReasonController.text.trim()},
       );
 
       if (response['success'] == true) {

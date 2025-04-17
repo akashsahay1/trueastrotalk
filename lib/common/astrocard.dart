@@ -3,7 +3,7 @@ import 'package:trueastrotalk/config/colors.dart';
 import 'package:trueastrotalk/config/environment.dart';
 import 'package:trueastrotalk/models/user.dart';
 import 'package:trueastrotalk/screens/astrologer_details.dart';
-import 'package:trueastrotalk/screens/callrequest.dart';
+import 'package:trueastrotalk/screens/astrologer_call_request.dart';
 import 'package:trueastrotalk/screens/chatrequest.dart';
 import 'package:trueastrotalk/utilities/strings.dart';
 
@@ -49,7 +49,7 @@ class AstrologerCard extends StatelessWidget {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => CallRequestScreen(
+          builder: (context) => AstrologerCallRequestScreen(
             astrologer: astrologer,
           ),
         ),
@@ -171,6 +171,7 @@ class AstrologerCard extends StatelessWidget {
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
                               color: Color(0xFF19295C),
+                              letterSpacing: 0.0,
                             ),
                           ),
                         ),
@@ -194,6 +195,7 @@ class AstrologerCard extends StatelessWidget {
                           style: TextStyle(
                             color: Color(0xFF19295C),
                             fontSize: 14,
+                            letterSpacing: 0.0,
                           ),
                         ),
                       )
@@ -216,6 +218,7 @@ class AstrologerCard extends StatelessWidget {
                           style: TextStyle(
                             color: Color(0xFF19295C),
                             fontSize: 14,
+                            letterSpacing: 0.0,
                           ),
                         ),
                       ),
@@ -237,6 +240,7 @@ class AstrologerCard extends StatelessWidget {
                           style: TextStyle(
                             color: Color(0xFF19295C),
                             fontSize: 14,
+                            letterSpacing: 0.0,
                           ),
                         ),
                       )
@@ -269,6 +273,7 @@ class AstrologerCard extends StatelessWidget {
                     style: TextStyle(
                       color: Color(0xFFFFFFFF),
                       fontWeight: FontWeight.w600,
+                      letterSpacing: 0.0,
                     ),
                   ),
                 ),
@@ -291,6 +296,7 @@ class AstrologerCard extends StatelessWidget {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
+                      letterSpacing: 0.0,
                     ),
                   ),
                 ),

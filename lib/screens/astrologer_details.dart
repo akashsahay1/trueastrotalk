@@ -4,6 +4,7 @@ import 'package:trueastrotalk/config/environment.dart';
 import 'package:trueastrotalk/models/user.dart';
 import 'package:trueastrotalk/screens/chatrequest.dart';
 import 'package:trueastrotalk/utilities/expandable_text.dart';
+import 'package:trueastrotalk/utilities/strings.dart';
 
 class AstrologerDetails extends StatelessWidget {
   final User astrologer;
@@ -27,6 +28,8 @@ class AstrologerDetails extends StatelessWidget {
     _showNotifications() {
       Navigator.pushReplacementNamed(context, '/notifications');
     }
+
+    final astrologerName = astrologer.firstName.toTitleCase() + ' ' + astrologer.lastName.toTitleCase();
 
     return Scaffold(
       appBar: AppBar(
@@ -127,6 +130,23 @@ class AstrologerDetails extends StatelessWidget {
                               children: [
                                 Row(
                                   children: [
+                                    Expanded(
+                                      child: Text(
+                                        astrologerName,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 18,
+                                          color: Color(0xFF19295C),
+                                          letterSpacing: 0.0,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 4),
+                                Row(
+                                  children: [
                                     Icon(
                                       Icons.check_circle_rounded,
                                       color: AppColors.accentColor,
@@ -141,6 +161,7 @@ class AstrologerDetails extends StatelessWidget {
                                           fontWeight: FontWeight.bold,
                                           fontSize: 18,
                                           color: Color(0xFF19295C),
+                                          letterSpacing: 0.0,
                                         ),
                                       ),
                                     ),
@@ -162,7 +183,8 @@ class AstrologerDetails extends StatelessWidget {
                                         softWrap: true,
                                         style: TextStyle(
                                           color: Color(0xFF19295C),
-                                          fontSize: 16,
+                                          fontSize: 14,
+                                          letterSpacing: 0.0,
                                         ),
                                       ),
                                     )
@@ -184,7 +206,8 @@ class AstrologerDetails extends StatelessWidget {
                                         softWrap: true,
                                         style: TextStyle(
                                           color: Color(0xFF19295C),
-                                          fontSize: 16,
+                                          fontSize: 14,
+                                          letterSpacing: 0.0,
                                         ),
                                       ),
                                     ),
@@ -205,7 +228,8 @@ class AstrologerDetails extends StatelessWidget {
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           color: Color(0xFF19295C),
-                                          fontSize: 16,
+                                          fontSize: 14,
+                                          letterSpacing: 0.0,
                                         ),
                                       ),
                                     )
@@ -279,6 +303,7 @@ class AstrologerDetails extends StatelessWidget {
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
+                                      letterSpacing: 0.0,
                                     ),
                                   ),
                                 ],
@@ -322,6 +347,7 @@ class AstrologerDetails extends StatelessWidget {
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
+                                      letterSpacing: 0.0,
                                     ),
                                   ),
                                 ],
@@ -338,6 +364,7 @@ class AstrologerDetails extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
+                      letterSpacing: 0.0,
                     ),
                     textAlign: TextAlign.left,
                   ),
@@ -363,6 +390,7 @@ class AstrologerDetails extends StatelessWidget {
                               fontSize: 15,
                               color: Colors.black87,
                               height: 1.5,
+                              letterSpacing: 0.0,
                             ),
                             maxChars: 135,
                           ),
@@ -375,6 +403,7 @@ class AstrologerDetails extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
+                      letterSpacing: 0.0,
                     ),
                     textAlign: TextAlign.left,
                   ),

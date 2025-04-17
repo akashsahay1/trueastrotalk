@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trueastrotalk/config/environment.dart';
 import 'package:trueastrotalk/models/user.dart';
 import 'package:trueastrotalk/screens/astrologer_details.dart';
-import 'package:trueastrotalk/services/chatmessage.dart';
+import 'package:trueastrotalk/services/apiservice.dart';
 import 'package:trueastrotalk/screens/chatmessage.dart';
 import 'package:trueastrotalk/utilities/strings.dart';
 
@@ -85,7 +85,7 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
       // Make API call to create chat request
       final response = await _apiService.post(
         'chat/request',
-        {'astrologer_id': widget.astrologer.ID},
+        body: {'astrologer_id': widget.astrologer.ID},
       );
 
       if (response['success'] == true) {
@@ -215,7 +215,7 @@ class _ChatRequestScreenState extends State<ChatRequestScreen> {
       // Make API call to cancel request
       final response = await _apiService.post(
         'chat/request/$_chatRequestId/cancel',
-        {},
+        body: {},
       );
 
       if (response['success'] == true) {

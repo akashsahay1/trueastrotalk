@@ -1,11 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:trueastrotalk/config/environment.dart';
 
 class ApiService {
-  final String baseUrl;
-
-  ApiService({required this.baseUrl});
+  ApiService();
 
   // Get authentication token
   Future<String?> _getToken() async {
@@ -25,9 +24,10 @@ class ApiService {
 
   // Generic GET request
   Future<dynamic> get(String endpoint) async {
+    final baseApiUrl = Environment.baseApiUrl;
     final headers = await getHeaders();
     final response = await http.get(
-      Uri.parse('$baseUrl/$endpoint'),
+      Uri.parse('$baseApiUrl/$endpoint'),
       headers: headers,
     );
 
@@ -36,9 +36,10 @@ class ApiService {
 
   // Generic POST request
   Future<dynamic> post(String endpoint, {Map<String, dynamic>? body}) async {
+    final baseApiUrl = Environment.baseApiUrl;
     final headers = await getHeaders();
     final response = await http.post(
-      Uri.parse('$baseUrl/$endpoint'),
+      Uri.parse('$baseApiUrl/$endpoint'),
       headers: headers,
       body: body != null ? jsonEncode(body) : null,
     );
@@ -48,9 +49,10 @@ class ApiService {
 
   // Generic PUT request
   Future<dynamic> put(String endpoint, {Map<String, dynamic>? body}) async {
+    final baseApiUrl = Environment.baseApiUrl;
     final headers = await getHeaders();
     final response = await http.put(
-      Uri.parse('$baseUrl/$endpoint'),
+      Uri.parse('$baseApiUrl/$endpoint'),
       headers: headers,
       body: body != null ? jsonEncode(body) : null,
     );
@@ -60,9 +62,10 @@ class ApiService {
 
   // Generic DELETE request
   Future<dynamic> delete(String endpoint) async {
+    final baseApiUrl = Environment.baseApiUrl;
     final headers = await getHeaders();
     final response = await http.delete(
-      Uri.parse('$baseUrl/$endpoint'),
+      Uri.parse('$baseApiUrl/$endpoint'),
       headers: headers,
     );
 

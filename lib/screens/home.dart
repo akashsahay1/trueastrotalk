@@ -11,7 +11,7 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  final UserService _astrologerService = UserService();
+  final UserService _userService = UserService();
   List<User> _astrologers = [];
   bool _isLoading = true;
 
@@ -28,9 +28,13 @@ class _HomeState extends State<Home> {
 
     try {
       // Load 5 astrologers initially
-      final astrologers = await _astrologerService.getAstrologers(limit: 10);
+      final astrologers = await _userService.getAstrologers(limit: 10);
+      final currentUserId = await _userService.getCurrentUserID();
+
+      final filteredAstrologers = astrologers.where((user) => user.ID != currentUserId).toList();
+
       setState(() {
-        _astrologers = astrologers;
+        _astrologers = filteredAstrologers;
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

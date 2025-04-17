@@ -28,6 +28,16 @@ class UserService {
     return null;
   }
 
+  // Get current user
+  Future<int?> getCurrentUserID() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userData = prefs.getString(_userKey);
+    if (userData != null) {
+      return User.fromJson(jsonDecode(userData)).ID;
+    }
+    return null;
+  }
+
   // Get token
   Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
