@@ -162,7 +162,6 @@ class TrueAstrotalkState extends State<TrueAstrotalk> {
                 MaterialPageRoute(
                   builder: (context) => AstrologerChatRequestScreen(
                     astrologer: astrologer,
-                    requestId: requestId,
                   ),
                   settings: const RouteSettings(name: '/chat'),
                 ),

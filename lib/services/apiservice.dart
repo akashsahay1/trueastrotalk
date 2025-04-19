@@ -1,20 +1,16 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trueastrotalk/config/environment.dart';
+import 'package:trueastrotalk/services/userservice.dart';
 
 class ApiService {
   ApiService();
 
-  // Get authentication token
-  Future<String?> _getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('auth_token');
-  }
-
   // Get headers for API requests
   Future<Map<String, String>> getHeaders() async {
-    final token = await _getToken();
+    final _userService = await UserService();
+    final token = await _userService.getRequiredToken();
+    print(token);
     return {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',

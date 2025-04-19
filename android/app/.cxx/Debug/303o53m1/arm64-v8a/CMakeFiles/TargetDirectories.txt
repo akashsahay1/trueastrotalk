@@ -1,0 +1,2 @@
+/Users/akash/Desktop/trueastrotalk/android/app/.cxx/Debug/303o53m1/arm64-v8a/CMakeFiles/edit_cache.dir
+/Users/akash/Desktop/trueastrotalk/android/app/.cxx/Debug/303o53m1/arm64-v8a/CMakeFiles/rebuild_cache.dir

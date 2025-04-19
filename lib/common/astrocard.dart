@@ -4,7 +4,7 @@ import 'package:trueastrotalk/config/environment.dart';
 import 'package:trueastrotalk/models/user.dart';
 import 'package:trueastrotalk/screens/astrologer_details.dart';
 import 'package:trueastrotalk/screens/astrologer_call_request.dart';
-import 'package:trueastrotalk/screens/chatrequest.dart';
+import 'package:trueastrotalk/screens/astrologer_chat_request.dart';
 import 'package:trueastrotalk/utilities/strings.dart';
 
 class AstrologerCard extends StatelessWidget {
@@ -61,7 +61,7 @@ class AstrologerCard extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ChatRequestScreen(
+        builder: (context) => AstrologerChatRequestScreen(
           astrologer: astrologer,
         ),
       ),

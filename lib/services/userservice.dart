@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trueastrotalk/config/environment.dart';
+import 'package:trueastrotalk/models/review.dart';
 import 'package:trueastrotalk/models/user.dart';
 
 class UserService {
@@ -98,6 +99,48 @@ class UserService {
       }
     } catch (e) {
       print('Exception in getAstrologers: $e');
+      // Return dummy data when API fails or during development
+      return [];
+    }
+  }
+
+  // Get all astrologers with pagination support
+  Future<List<Review>> getAstrologerReviews({int astrologer = 0, int limit = 15, int page = 1}) async {
+    final token = await getRequiredToken();
+    try {
+      final response = await http.get(
+        Uri.parse('${_baseApiUrl}/reviews/${astrologer}?page=${page}&limit=${limit}'),
+        headers: {
+          'Authorization': 'Bearer ${token}',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // Parse the response
+        final Map<String, dynamic> responseData = json.decode(response.body);
+
+        // Check if response has valid structure
+        if (responseData['status'] == 1 && responseData.containsKey('reviews')) {
+          // Get the astrologers data object which contains the pagination and data array
+          final reviewsData = responseData['reviews'];
+
+          // Check if the data array exists and is a list
+          if (reviewsData['data'] != null && reviewsData['data'] is List) {
+            // Map each JSON object to an Astrologer object
+            final List<dynamic> reviewsList = reviewsData['data'];
+            return reviewsList.map((item) => Review.fromJson(item)).toList();
+          }
+        }
+
+        // Return empty list if structure doesn't match
+        return [];
+      } else {
+        print('API Error: ${response.statusCode} - ${response.body}');
+        throw Exception('Failed to load astrologer reviews: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Exception in getAstrologerReviews: $e');
       // Return dummy data when API fails or during development
       return [];
     }
