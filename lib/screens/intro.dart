@@ -79,7 +79,7 @@ class _OnboardingSliderState extends State<Intro> with SingleTickerProviderState
 
   void _goToSignup() async {
     // Play a quick animation
-    await _animationController.forward();
+    //await _animationController.forward();
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('first_launch', false);

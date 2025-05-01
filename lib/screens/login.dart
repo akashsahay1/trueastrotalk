@@ -4,7 +4,6 @@ import 'package:trueastrotalk/config/colors.dart';
 import 'package:trueastrotalk/config/environment.dart';
 import 'package:trueastrotalk/models/user.dart';
 import 'dart:convert';
-
 import 'package:trueastrotalk/services/tokens.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:trueastrotalk/services/userservice.dart';
@@ -144,6 +143,7 @@ class _LoginState extends State<Login> {
                           color: Colors.black,
                           fontSize: 26.0,
                           fontWeight: FontWeight.w800,
+                          letterSpacing: 0.0,
                         ),
                       ),
                       const SizedBox(
@@ -155,6 +155,7 @@ class _LoginState extends State<Login> {
                           color: Colors.black54,
                           fontSize: 17.0,
                           fontWeight: FontWeight.w600,
+                          letterSpacing: 0.0,
                         ),
                       ),
                       const SizedBox(
@@ -186,6 +187,7 @@ class _LoginState extends State<Login> {
                         style: const TextStyle(
                           color: Colors.black,
                           fontSize: 15.0,
+                          letterSpacing: 0.0,
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -248,6 +250,7 @@ class _LoginState extends State<Login> {
                         style: const TextStyle(
                           color: Colors.black,
                           fontSize: 15.0,
+                          letterSpacing: 0.0,
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -299,6 +302,7 @@ class _LoginState extends State<Login> {
                                         style: TextStyle(
                                           fontSize: 16.0,
                                           fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.0,
                                         ),
                                       ),
                                     ],
@@ -308,6 +312,7 @@ class _LoginState extends State<Login> {
                                     style: TextStyle(
                                       fontSize: 18.0,
                                       fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.0,
                                     ),
                                   ),
                           ),
@@ -321,6 +326,7 @@ class _LoginState extends State<Login> {
                                 color: AppColors.accentColor,
                                 fontSize: 16.0,
                                 fontWeight: FontWeight.w500,
+                                letterSpacing: 0.0,
                               ),
                             ),
                           )
@@ -337,6 +343,7 @@ class _LoginState extends State<Login> {
                               color: Color(0xff000000),
                               fontSize: 17.0,
                               fontWeight: FontWeight.w500,
+                              letterSpacing: 0.0,
                             ),
                           ),
                           const SizedBox(
@@ -352,6 +359,7 @@ class _LoginState extends State<Login> {
                                 color: AppColors.accentColor,
                                 fontSize: 17.0,
                                 fontWeight: FontWeight.w700,
+                                letterSpacing: 0.0,
                               ),
                             ),
                           )

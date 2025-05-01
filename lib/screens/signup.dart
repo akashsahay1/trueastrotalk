@@ -379,6 +379,7 @@ class _SignupState extends State<Signup> {
                           color: Colors.black,
                           fontSize: 26.0,
                           fontWeight: FontWeight.w800,
+                          letterSpacing: 0.0,
                         ),
                       ),
                       const SizedBox(height: 5.0),
@@ -388,6 +389,7 @@ class _SignupState extends State<Signup> {
                           color: Colors.black54,
                           fontSize: 15.0,
                           fontWeight: FontWeight.w400,
+                          letterSpacing: 0.0,
                         ),
                       ),
                       const SizedBox(height: 20.0),
@@ -397,6 +399,7 @@ class _SignupState extends State<Signup> {
                           color: Colors.black,
                           fontSize: 14.0,
                           fontWeight: FontWeight.w700,
+                          letterSpacing: 0.0,
                         ),
                       ),
                       const SizedBox(
@@ -473,6 +476,7 @@ class _SignupState extends State<Signup> {
                               style: const TextStyle(
                                 color: Colors.black,
                                 fontSize: 15.0,
+                                letterSpacing: 0.0,
                               ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
@@ -504,6 +508,7 @@ class _SignupState extends State<Signup> {
                               style: const TextStyle(
                                 color: Colors.black,
                                 fontSize: 15.0,
+                                letterSpacing: 0.0,
                               ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
@@ -525,6 +530,7 @@ class _SignupState extends State<Signup> {
                           color: Colors.black,
                           fontSize: 14.0,
                           fontWeight: FontWeight.w700,
+                          letterSpacing: 0.0,
                         ),
                       ),
                       const SizedBox(
@@ -556,6 +562,7 @@ class _SignupState extends State<Signup> {
                         style: const TextStyle(
                           color: Colors.black,
                           fontSize: 15.0,
+                          letterSpacing: 0.0,
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -571,6 +578,7 @@ class _SignupState extends State<Signup> {
                           color: Colors.black,
                           fontSize: 14.0,
                           fontWeight: FontWeight.w700,
+                          letterSpacing: 0.0,
                         ),
                       ),
                       const SizedBox(
@@ -626,6 +634,7 @@ class _SignupState extends State<Signup> {
                               style: const TextStyle(
                                 color: Colors.black,
                                 fontSize: 15.0,
+                                letterSpacing: 0.0,
                               ),
                             ),
                           ),
@@ -677,6 +686,7 @@ class _SignupState extends State<Signup> {
                               style: const TextStyle(
                                 color: Colors.black,
                                 fontSize: 15.0,
+                                letterSpacing: 0.0,
                               ),
                             ),
                           ),
@@ -689,6 +699,7 @@ class _SignupState extends State<Signup> {
                           color: Colors.black,
                           fontSize: 14.0,
                           fontWeight: FontWeight.w700,
+                          letterSpacing: 0.0,
                         ),
                       ),
                       const SizedBox(
@@ -739,6 +750,7 @@ class _SignupState extends State<Signup> {
                                         style: TextStyle(
                                           fontSize: 16.0,
                                           fontWeight: FontWeight.w500,
+                                          letterSpacing: 0.0,
                                         ),
                                       ),
                                     ],
@@ -765,6 +777,7 @@ class _SignupState extends State<Signup> {
                               color: Color(0xff000000),
                               fontSize: 16.0,
                               fontWeight: FontWeight.w500,
+                              letterSpacing: 0.0,
                             ),
                           ),
                           const SizedBox(
@@ -778,6 +791,7 @@ class _SignupState extends State<Signup> {
                                 color: AppColors.accentColor,
                                 fontSize: 16.0,
                                 fontWeight: FontWeight.w800,
+                                letterSpacing: 0.0,
                               ),
                             ),
                           )
