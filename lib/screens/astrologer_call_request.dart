@@ -85,6 +85,8 @@ class _CallRequestScreenState extends State<AstrologerCallRequestScreen> {
       // Make API call to create call request
       final response = await _apiService.post('calls/request', body: {'astrologer_id': widget.astrologer.ID});
 
+      print(response);
+
       if (response['success'] == true) {
         setState(() {
           _callRequestId = response['data']['id'].toString();

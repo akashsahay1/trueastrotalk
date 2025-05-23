@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   // Primary accent color for the app
-  static const Color accentColor = Color(0xFF1877F2); // Slate blue as an example
+  static const Color accentColor = Color(0xFF1877F2);
 
   // You can add more colors as needed
   static const Color astrologerCardbg = Color(0xFFF1F4F5);

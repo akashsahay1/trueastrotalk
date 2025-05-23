@@ -70,6 +70,9 @@ class ApiService {
 
   // Handle API response
   dynamic _handleResponse(http.Response response) {
+    print(response.statusCode);
+    print(response.body);
+
     // Handle different status codes
     if (response.statusCode >= 200 && response.statusCode < 300) {
       // Success
