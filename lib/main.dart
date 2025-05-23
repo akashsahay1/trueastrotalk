@@ -142,14 +142,6 @@ class TrueAstrotalkState extends State<TrueAstrotalk> {
       if (data.containsKey('request_id')) {
         // Convert string values to integers
         final int astrologerId = int.parse(data['astrologer_id'].toString());
-        final String requestId = data['request_id'].toString();
-        final String customerId = data['customer_id'].toString();
-
-        print("astrologerId: $astrologerId");
-        print("requestId: $requestId");
-        print("customerId: $customerId");
-
-        print("🔍 Navigating to chat request screen with requestId: $requestId");
 
         if (navigatorKey.currentState != null) {
           // For chat requests, we might not need the astrologer details
@@ -176,8 +168,6 @@ class TrueAstrotalkState extends State<TrueAstrotalk> {
       } else if (data.containsKey('chat_id')) {
         final String chatId = data['chat_id'].toString();
         final int astrologerId = int.parse(data['astrologer_id'].toString());
-
-        print("🔍 Navigating to chat screen with chatId: $chatId, astrologerId: $astrologerId");
 
         if (navigatorKey.currentState != null) {
           UserService().getAstrologerById(astrologerId).then(
