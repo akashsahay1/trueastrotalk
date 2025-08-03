@@ -1,0 +1,276 @@
+# === TRUE ASTROTALK REPOSITORY GITIGNORE ===
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.metadata
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# === ADMIN PANEL (Next.js/Node.js) ===
+
+# Dependencies
+admin/node_modules/
+admin/.pnp
+admin/.pnp.js
+
+# Production builds
+admin/.next/
+admin/out/
+admin/build/
+admin/dist/
+
+# Runtime data
+admin/pids
+admin/*.pid
+admin/*.seed
+admin/*.pid.lock
+
+# Coverage directory used by tools like istanbul
+admin/coverage/
+admin/.nyc_output
+
+# Environment variables
+admin/.env
+admin/.env.local
+admin/.env.development.local
+admin/.env.test.local
+admin/.env.production.local
+admin/.env.production
+
+# Logs
+admin/npm-debug.log*
+admin/yarn-debug.log*
+admin/yarn-error.log*
+admin/lerna-debug.log*
+
+# Vercel deployment
+admin/.vercel
+
+# TypeScript
+admin/*.tsbuildinfo
+admin/.tsbuildinfo
+
+# === FLUTTER MOBILE APP ===
+
+# Flutter/Dart/Pub related
+mobile/build/
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/.pub-cache/
+mobile/.pub/
+mobile/build/
+mobile/flutter_*.png
+
+# Android related
+mobile/android/**/gradle-wrapper.jar
+mobile/android/.gradle
+mobile/android/captures/
+mobile/android/gradlew
+mobile/android/gradlew.bat
+mobile/android/local.properties
+mobile/android/**/GeneratedPluginRegistrant.java
+mobile/android/key.properties
+mobile/android/**/*.keystore
+mobile/android/**/*.jks
+
+# iOS related
+mobile/ios/**/*.mode1v3
+mobile/ios/**/*.mode2v3
+mobile/ios/**/*.moved-aside
+mobile/ios/**/*.pbxuser
+mobile/ios/**/*.perspectivev3
+mobile/ios/**/*sync/
+mobile/ios/**/.sconsign.dblite
+mobile/ios/**/.tags*
+mobile/ios/**/.vagrant/
+mobile/ios/**/DerivedData/
+mobile/ios/**/Icon?
+mobile/ios/**/Pods/
+mobile/ios/**/.symlinks/
+mobile/ios/**/profile
+mobile/ios/**/xcuserdata
+mobile/ios/.generated/
+mobile/ios/Flutter/App.framework
+mobile/ios/Flutter/Flutter.framework
+mobile/ios/Flutter/Flutter.podspec
+mobile/ios/Flutter/Generated.xcconfig
+mobile/ios/Flutter/app.flx
+mobile/ios/Flutter/app.zip
+mobile/ios/Flutter/flutter_assets/
+mobile/ios/Flutter/flutter_export_environment.sh
+mobile/ios/ServiceDefinitions.json
+mobile/ios/Runner/GeneratedPluginRegistrant.*
+
+# macOS related
+mobile/macos/Flutter/GeneratedPluginRegistrant.swift
+mobile/macos/Flutter/Flutter-Debug.xcconfig
+mobile/macos/Flutter/Flutter-Release.xcconfig
+mobile/macos/Flutter/ephemeral
+
+# Linux related
+mobile/linux/flutter/generated_plugin_registrant.cc
+mobile/linux/flutter/generated_plugin_registrant.h
+mobile/linux/flutter/generated_plugins.cmake
+
+# Windows related
+mobile/windows/flutter/generated_plugin_registrant.cc
+mobile/windows/flutter/generated_plugin_registrant.h
+mobile/windows/flutter/generated_plugins.cmake
+
+# Web related
+mobile/web/favicon.png
+
+# Exceptions to above rules
+!mobile/android/app/src/main/res/mipmap-*/
+!mobile/ios/Runner/Assets.xcassets/
+!mobile/web/icons/
+
+# === CONFIGURATION FILES (SENSITIVE) ===
+
+# API Keys and secrets
+.env
+.env.local
+.env.*.local
+google-services.json
+GoogleService-Info.plist
+firebase-config.json
+config.production.dart
+api-keys.json
+
+# Database credentials
+database.env
+db-config.json
+
+# SSL certificates
+*.pem
+*.crt
+*.key
+*.p12
+*.pfx
+
+# === DEVELOPMENT FILES ===
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+server.log
+
+# Cache directories
+.cache/
+.parcel-cache/
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+*.temp
+
+# Backup files
+*.backup
+*.bak
+*.orig
+
+# === DEPLOYMENT AND BUILD ARTIFACTS ===
+
+# Docker
+.dockerignore
+Dockerfile.prod
+
+# CI/CD
+.github/workflows/secrets.yml
+
+# Build outputs
+dist/
+build/
+out/
+
+# === THIRD-PARTY TEMPLATES ===
+
+# Influence template (keeping original files but ignoring if modified)
+influence/influence-html/
+influence/influence-scss/node_modules/
+favicon_io.zip
+favicon_io/
+
+# === ASSETS AND MEDIA ===
+
+# Large media files that should be managed separately
+# (keeping essential project images but ignoring generated/uploaded content)
+public/uploads/temp/
+public/uploads/cache/
+
+# Generated thumbnails
+**/thumbnails/
+**/*_thumb.*
+
+# === DATABASE ===
+
+# Local database files
+*.sqlite
+*.sqlite3
+*.db
+
+# Database backups
+*.sql.backup
+*.dump
+
+# === SCRIPTS AND UTILITIES (DEVELOPMENT ONLY) ===
+
+# One-time setup scripts (keeping for reference but not tracking changes)
+setup-db.js
+seed_*.js
+add-*.js
+update_*.js
+check-*.js
+create-placeholder-images.html
+
+# === DOCUMENTATION EXCEPTIONS ===
+
+# Keep important documentation
+!README.md
+!docs/
+!docs/**
+!LICENSE
+!CHANGELOG.md
+
+# === PROJECT SPECIFIC ===
+
+# Server files
+server.js
+
+# Test files (if not needed in production)
+**/*.test.js
+**/*.spec.js
+test/
+
+# Coverage reports
+coverage/
+
+# === KEEP THESE IMPORTANT FILES ===
+!.gitignore
+!package.json
+!pubspec.yaml
+!tsconfig.json
+!next.config.ts
+!eslint.config.mjs

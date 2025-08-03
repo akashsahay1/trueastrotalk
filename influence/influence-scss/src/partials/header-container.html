@@ -1,0 +1,457 @@
+ <!-- ============================================================== -->
+ <!-- navbar -->
+ <!-- ============================================================== -->
+ <div class="dashboard-header navbar-horizontal ">
+ 	<nav class="navbar navbar-expand-lg bg-white navbar-light fixed-top">
+ 		<div class="container">
+ 			<a class="navbar-brand" href="../index.html"><img src="../assets/images/logo.png" alt=""></a>
+ 			<ul class="navbar-nav navbar-right-top align-items-center flex-row ml-md-auto">
+ 				<li class="nav-item d-none d-sm-inline-block dropdown notification ">
+ 					<a class="nav-link nav-icons" href="#" id="navbarDropdownMenuLink1" data-toggle="dropdown"
+ 						aria-haspopup="true" aria-expanded="false"><i class="fas fa-fw fa-bell"></i> <span
+ 							class="indicator"></span></a>
+ 					<ul class="dropdown-menu dropdown-menu-right notification-dropdown">
+ 						<li>
+ 							<div class="notification-title"> Notification</div>
+ 							<div class="notification-list">
+ 								<div class="list-group">
+ 									<a href="#" class="list-group-item list-group-item-action active">
+ 										<div class="notification-info">
+ 											<div class="notification-list-user-img"><img src="../assets/images/avatar-2.jpg" alt=""
+ 													class="avatar-xs rounded-circle"></div>
+ 											<div class="notification-list-user-block"><span class="notification-list-user-name">Jeremy
+ 													Rakestraw</span>accepted your invitation to join the team.
+ 												<div class="notification-date">2 min ago</div>
+ 											</div>
+ 										</div>
+ 									</a>
+ 									<a href="#" class="list-group-item list-group-item-action">
+ 										<div class="notification-info">
+ 											<div class="notification-list-user-img"><img src="../assets/images/avatar-3.jpg" alt=""
+ 													class="avatar-xs rounded-circle"></div>
+ 											<div class="notification-list-user-block"><span class="notification-list-user-name">John
+ 													Deo</span>is now following you
+ 												<div class="notification-date">2 days ago</div>
+ 											</div>
+ 										</div>
+ 									</a>
+ 									<a href="#" class="list-group-item list-group-item-action">
+ 										<div class="notification-info">
+ 											<div class="notification-list-user-img"><img src="../assets/images/avatar-4.jpg" alt=""
+ 													class="avatar-xs rounded-circle"></div>
+ 											<div class="notification-list-user-block"><span class="notification-list-user-name">Monaan
+ 													Pechi</span> is watching your main repository
+ 												<div class="notification-date">2 min ago</div>
+ 											</div>
+ 										</div>
+ 									</a>
+ 									<a href="#" class="list-group-item list-group-item-action">
+ 										<div class="notification-info">
+ 											<div class="notification-list-user-img"><img src="../assets/images/avatar-5.jpg" alt=""
+ 													class="avatar-xs rounded-circle"></div>
+ 											<div class="notification-list-user-block"><span class="notification-list-user-name">Jessica
+ 													Caruso</span>accepted your invitation to join the team.
+ 												<div class="notification-date">2 min ago</div>
+ 											</div>
+ 										</div>
+ 									</a>
+ 								</div>
+ 							</div>
+ 						</li>
+ 						<li>
+ 							<div class="list-footer"> <a href="#">View all notifications</a></div>
+ 						</li>
+ 					</ul>
+ 				</li>
+ 				<li class="nav-item d-none d-sm-inline-block dropdown connection">
+ 					<a class="nav-link" href="#" id="navbarDropdown" data-toggle="dropdown" aria-haspopup="true"
+ 						aria-expanded="false"> <i class="fas fa-fw fa-th"></i> </a>
+ 					<ul class="dropdown-menu dropdown-menu-right connection-dropdown">
+ 						<li class="connection-list">
+ 							<div class="row">
+ 								<div class="col-xl-4 col-lg-4 col-md-6 col-sm-12 col-12 ">
+ 									<a href="#" class="connection-item"><img src="../assets/images/github.png" alt="">
+ 										<span>Github</span></a>
+ 								</div>
+ 								<div class="col-xl-4 col-lg-4 col-md-6 col-sm-12 col-12 ">
+ 									<a href="#" class="connection-item"><img src="../assets/images/dribbble.png" alt="">
+ 										<span>Dribbble</span></a>
+ 								</div>
+ 								<div class="col-xl-4 col-lg-4 col-md-6 col-sm-12 col-12 ">
+ 									<a href="#" class="connection-item"><img src="../assets/images/dropbox.png" alt="">
+ 										<span>Dropbox</span></a>
+ 								</div>
+ 							</div>
+ 							<div class="row">
+ 								<div class="col-xl-4 col-lg-4 col-md-6 col-sm-12 col-12 ">
+ 									<a href="#" class="connection-item"><img src="../assets/images/bitbucket.png" alt="">
+ 										<span>Bitbucket</span></a>
+ 								</div>
+ 								<div class="col-xl-4 col-lg-4 col-md-6 col-sm-12 col-12 ">
+ 									<a href="#" class="connection-item"><img src="../assets/images/mail_chimp.png" alt=""><span>Mail
+ 											chimp</span></a>
+ 								</div>
+ 								<div class="col-xl-4 col-lg-4 col-md-6 col-sm-12 col-12 ">
+ 									<a href="#" class="connection-item"><img src="../assets/images/slack.png" alt="">
+ 										<span>Slack</span></a>
+ 								</div>
+ 							</div>
+ 						</li>
+ 						<li>
+ 							<div class="connection-footer"><a href="#">More</a></div>
+ 						</li>
+ 					</ul>
+ 				</li>
+ 				<li class="nav-item dropdown nav-user">
+ 					<a class="nav-link nav-user-img" href="#" id="navbarDropdownMenuLink2" data-toggle="dropdown"
+ 						aria-haspopup="true" aria-expanded="false"><img src="../assets/images/avatar-1.jpg" alt=""
+ 							class="avatar-xs rounded-circle"></a>
+ 					<div class="dropdown-menu dropdown-menu-right nav-user-dropdown" aria-labelledby="navbarDropdownMenuLink2">
+ 						<div class="nav-user-info">
+ 							<h5 class="mb-0 text-white nav-user-name">John Deo</h5>
+ 							<span class="status"></span><span>Available</span>
+ 						</div>
+ 						<a class="dropdown-item" href="#"><i class="fas fa-user mr-2"></i>Account</a>
+ 						<a class="dropdown-item" href="#"><i class="fas fa-cog mr-2"></i>Setting</a>
+ 						<a class="dropdown-item" href="#"><i class="fas fa-power-off mr-2"></i>Logout</a>
+ 					</div>
+ 				</li>
+ 			</ul>
+ 			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+ 				aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+ 				<span class="navbar-toggler-icon"></span>
+ 			</button>
+ 			<div class="collapse navbar-collapse " id="navbarSupportedContent">
+ 				<ul class="navbar-nav">
+ 					<li class="nav-item dropdown">
+ 						<a class="nav-link dropdown-toggle " href="#" id="dashboardDropdownelement" data-toggle="dropdown"
+ 							aria-haspopup="true" aria-expanded="false">
+ 							Dashboard
+ 						</a>
+ 						<ul class="dropdown-menu" aria-labelledby="dashboardDropdown">
+ 							<li class="dropdown-submenu dropright">
+ 								<a class="dropdown-item dropdown-toggle" href="#!" data-toggle="dropdown" aria-expanded="false"
+ 									aria-haspopup="true" id="dashboardDropdownEcommerce">E-Commerce</a>
+ 								<ul class="dropdown-menu" aria-labelledby="dashboardDropdownEcommerce">
+ 									<li>
+ 										<a class="dropdown-item" href="../index.html">E Commerce Dashboard</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="../dashboard/ecommerce-product.html">Product List</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="../dashboard/ecommerce-product-single.html">Product Single</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="../dashboard/ecommerce-product-checkout.html">Product Checkout</a>
+ 									</li>
+ 								</ul>
+ 							</li>
+ 							<li>
+ 								<a class="dropdown-item" href="../dashboard/dashboard-finance.html">Finance</a>
+ 							</li>
+ 							<li>
+ 								<a class="dropdown-item" href="../dashboard/dashboard-sales.html">Sales</a>
+ 							</li>
+ 							<li class="dropdown-submenu dropright">
+ 								<a class="dropdown-item dropdown-toggle" href="#!" data-toggle="dropdown" aria-expanded="false"
+ 									aria-haspopup="true" id="dashboardDropdownInfluence">Influencer</a>
+ 								<ul class="dropdown-menu" aria-labelledby="dashboardDropdownInfluence">
+ 									<li>
+ 										<a class="dropdown-item" href="../dashboard/dashboard-influencer.html">Influencer</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="../dashboard/influencer-finder.html">Influencer Finder</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="../dashboard/influencer-profile.html">Influencer Profile</a>
+ 									</li>
+ 								</ul>
+ 							</li>
+ 							<li class="dropdown-submenu dropright">
+ 								<a class="dropdown-item dropdown-toggle" href="#!" data-toggle="dropdown" aria-expanded="false"
+ 									aria-haspopup="true" id="dashboardDropdownContact">Contact</a>
+ 								<ul class="dropdown-menu" aria-labelledby="dashboardDropdownContact">
+ 									<li>
+ 										<a class="dropdown-item" href="../dashboard/dashboard-contact.html">Contacts</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="../dashboard/dashboard-contact-list.html">Contact List</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="../dashboard/dashboard-contact-cardlist.html">Contact Cardlist</a>
+ 									</li>
+ 								</ul>
+ 							</li>
+ 							<li class="dropdown-submenu dropright">
+ 								<a class="dropdown-item dropdown-toggle" href="#!" data-toggle="dropdown" aria-expanded="false"
+ 									aria-haspopup="true" id="dashboardDropdownInvoice">Invoice</a>
+ 								<ul class="dropdown-menu" aria-labelledby="dashboardDropdownInvoice">
+ 									<li>
+ 										<a class="dropdown-item" href="../dashboard/dashboard-invoice.html">Invoice</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="../dashboard/dashboard-invoice-list.html">Invoice List</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="../dashboard/dashboard-invoice-form.html">Invoice Form</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="dashboard-invoice-sample.html">Invoice Form Sample</a>
+ 									</li>
+ 								</ul>
+ 							</li>
+ 						</ul>
+ 					</li>
+ 					<li class="nav-item dropdown">
+ 						<a class="nav-link dropdown-toggle " href="#" id="dashboardDropdownPages" data-toggle="dropdown"
+ 							aria-haspopup="true" aria-expanded="false">
+ 							Pages
+ 						</a>
+ 						<ul class="dropdown-menu" aria-labelledby="dashboardDropdownPages">
+ 							<li class="dropdown-submenu dropright">
+ 								<a class="dropdown-item dropdown-toggle " href="#" id="dashboardDropdownChart" data-toggle="dropdown"
+ 									aria-haspopup="true" aria-expanded="false">
+ 									Chart
+ 								</a>
+ 								<ul class="dropdown-menu" aria-labelledby="dashboardDropdownChart">
+ 									<li>
+ 										<a class="dropdown-item" href="chart-c3.html">C3 Charts</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="chart-chartist.html">Chartist Charts</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="chart-charts.html">Chart</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="chart-morris.html">Morris</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="chart-sparkline.html">Sparkline</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="chart-gauge.html">Guage</a>
+ 									</li>
+ 								</ul>
+
+ 							</li>
+ 							<li class="dropdown-submenu dropright">
+ 								<a class="dropdown-item dropdown-toggle " href="#" id="dashboardDropdownForms" data-toggle="dropdown"
+ 									aria-haspopup="true" aria-expanded="false">
+ 									Forms
+ 								</a>
+ 								<ul class="dropdown-menu" aria-labelledby="dashboardDropdownForms">
+ 									<li>
+ 										<a class="dropdown-item" href="form-elements.html">Form Elements</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="form-validation.html">Parsely Validations</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="multiselect.html">Multiselect</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="datepicker.html">Date Picker</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="bootstrap-select.html">Bootstrap Select</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="bootstrap-touchspin.html">Bootstrap Touchspin</a>
+ 									</li>
+ 								</ul>
+ 							</li>
+ 							<li class="dropdown-submenu dropright">
+ 								<a class="dropdown-item dropdown-toggle " href="#" id="dashboardDropdownIcons" data-toggle="dropdown"
+ 									aria-haspopup="true" aria-expanded="false">
+ 									Icons
+ 								</a>
+ 								<ul class="dropdown-menu" aria-labelledby="dashboardDropdownIcons">
+ 									<li>
+ 										<a class="dropdown-item" href="icon-fontawesome.html">FontAwesome Icons</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="icon-material.html">Material Icons</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="icon-simple-lineicon.html">Simpleline Icon</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="icon-themify.html">Themify Icon</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="icon-flag.html">Flag Icons</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="icon-weather.html">Weather Icon</a>
+ 									</li>
+ 								</ul>
+ 							</li>
+ 							<li class="dropdown-submenu dropright">
+ 								<a class="dropdown-item dropdown-toggle " href="#" id="dashboardDropdownMaps" data-toggle="dropdown"
+ 									aria-haspopup="true" aria-expanded="false">
+ 									Maps
+ 								</a>
+ 								<ul class="dropdown-menu" aria-labelledby="dashboardDropdownMaps">
+
+ 									<li>
+ 										<a class="dropdown-item" href="map-vector.html">Vector Maps</a>
+ 									</li>
+ 								</ul>
+ 							</li>
+ 							<li class="dropdown-submenu dropright">
+ 								<a class="dropdown-item dropdown-toggle " href="#" id="dashboardDropdownTable" data-toggle="dropdown"
+ 									aria-haspopup="true" aria-expanded="false">
+ 									Table
+ 								</a>
+ 								<ul class="dropdown-menu" aria-labelledby="dashboardDropdownTable">
+ 									<li>
+ 										<a class="dropdown-item" href="general-table.html">General Tables</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="data-tables.html">Data Tables</a>
+ 									</li>
+ 								</ul>
+ 							</li>
+ 							<li class="dropdown-submenu dropright">
+ 								<a class="dropdown-item dropdown-toggle " href="#" id="dashboardDropdownElements"
+ 									data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+ 									UI Elements
+ 								</a>
+ 								<ul class="dropdown-menu" aria-labelledby="dashboardDropdownElements">
+
+ 									<li>
+ 										<a class="dropdown-item" href="cards.html">Cards</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="general.html">General</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="carousel.html">Carousel</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="listgroup.html">List Group</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="typography.html">Typography</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="accordions.html">Accordions</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="tabs.html">Tabs</a>
+ 									</li>
+ 								</ul>
+
+ 							</li>
+ 							<li>
+ 								<a class="dropdown-item" href="blank-page.html">Blank Page</a>
+ 							</li>
+ 							<li>
+ 								<a class="dropdown-item" href="blank-page-header.html">Blank Page Header</a>
+ 							</li>
+ 							<li>
+ 								<a class="dropdown-item" href="login.html">Login</a>
+ 							</li>
+ 							<li>
+ 								<a class="dropdown-item" href="404-page.html">404 page</a>
+ 							</li>
+ 							<li>
+ 								<a class="dropdown-item" href="sign-up.html">Sign up Page</a>
+ 							</li>
+ 							<li>
+ 								<a class="dropdown-item" href="forgot-password.html">Forgot Password</a>
+ 							</li>
+ 							<li>
+ 								<a class="dropdown-item" href="pricing.html">Pricing Tables</a>
+ 							</li>
+ 							<li>
+ 								<a class="dropdown-item" href="timeline.html">Timeline</a>
+ 							</li>
+ 							<li>
+ 								<a class="dropdown-item" href="calendar.html">Calendar</a>
+ 							</li>
+ 							<li>
+ 								<a class="dropdown-item" href="sortable-nestable-lists.html">Sortable/Nestable List</a>
+ 							</li>
+ 							<li>
+ 								<a class="dropdown-item" href="widgets.html">Widgets</a>
+ 							</li>
+ 							<li>
+ 								<a class="dropdown-item" href="media-object.html">Media Objects</a>
+ 							</li>
+ 							<li>
+ 								<a class="dropdown-item" href="cropper-image.html">Cropper</a>
+ 							</li>
+ 							<li>
+ 								<a class="dropdown-item" href="color-picker.html">Color Picker</a>
+ 							</li>
+ 							<li>
+ 								<a class="dropdown-item" href="tags-input.html">Tags Input</a>
+ 							</li>
+ 						</ul>
+ 					</li>
+ 					<li class="nav-item dropdown">
+ 						<a class="nav-link dropdown-toggle " href="#" id="dashboardDropdownApps" data-toggle="dropdown"
+ 							aria-haspopup="true" aria-expanded="false">
+ 							Apps
+ 						</a>
+ 						<ul class="dropdown-menu" aria-labelledby="dashboardDropdownApps">
+ 							<li>
+ 								<a class="dropdown-item" href="inbox.html">Inbox</a>
+ 							</li>
+ 							<li>
+ 								<a class="dropdown-item" href="email-details.html">Email Detail</a>
+ 							</li>
+ 							<li>
+ 								<a class="dropdown-item" href="email-compose.html">Email Compose</a>
+ 							</li>
+ 							<li>
+ 								<a class="dropdown-item" href="message-chat.html">Message Chat</a>
+ 							</li>
+ 						</ul>
+
+ 					</li>
+ 					<li class="nav-item">
+ 						<a class="nav-link" href="layouts.html">Layouts <span class="badge badge-secondary">New</span></a>
+ 					</li>
+ 					<li class="nav-item dropdown">
+ 						<a class="nav-link dropdown-toggle" href="#" id="dashboardDropdownMenuLevel" data-toggle="dropdown"
+ 							aria-haspopup="true" aria-expanded="false">Menu Level</a>
+
+ 						<ul class="dropdown-menu" aria-labelledby="dashboardDropdownMenuLevel">
+ 							<li>
+ 								<a class="dropdown-item" href="#">Level 1</a>
+ 							</li>
+ 							<li class="dropdown-submenu dropright">
+ 								<a class="dropdown-item dropdown-toggle " href="#" id="dashboardDropdownMenuLevelOne"
+ 									data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Level 2</a>
+
+ 								<ul class="dropdown-menu" aria-labelledby="dashboardDropdownMenuLevelOne">
+ 									<li>
+ 										<a class="dropdown-item" href="#">Level 1</a>
+ 									</li>
+ 									<li>
+ 										<a class="dropdown-item" href="#">Level 2</a>
+ 									</li>
+ 								</ul>
+
+ 							</li>
+ 							<li>
+ 								<a class="dropdown-item" href="#">Level 3</a>
+ 							</li>
+ 						</ul>
+
+ 					</li>
+ 					<li class="nav-item">
+ 						<a class="nav-link" href="../docs/index.html">Docs</a>
+ 					</li>
+ 				</ul>
+ 			</div>
+ 		</div>
+ 	</nav>
+ </div>
+ <!-- ============================================================== -->
+ <!-- end navbar -->
+ <!-- ============================================================== -->

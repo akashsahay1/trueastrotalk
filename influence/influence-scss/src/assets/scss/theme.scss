@@ -1,0 +1,39 @@
+/* Imports */
+
+@import url("https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;1,300;1,400;1,600;1,700;1,800&display=swap");
+@import url("../fonts/materialdesign/css/materialdesignicons.css");
+@import url("../fonts/crypto-icons/cryptocoins.css");
+@import url("../fonts/flag-icon-css/flag-icon.min.css");
+@import url("../fonts/fontawesome/css/all.min.css");
+@import url("../fonts/simple-line-icons/css/simple-line-icons.css");
+@import url("../fonts/themify-icons/themify-icons.css");
+@import url("../fonts/weather-icons/css/weather-icons.css");
+// Bootstrap functions
+@import "bootstrap/functions";
+// User Variables
+@import "user-variables";
+// theme variables
+@import "variables";
+// Bootstrap
+@import "bootstrap/bootstrap";
+// Components
+@import "components";
+// User
+@import "user";
+
+
+.is-sidebar-mini .dashboard-wrapper{
+    margin-left: 4.25rem;
+    @media (max-width: 990px) {
+        margin-left: 0rem;
+
+    }
+}
+
+.is-sidebar-compact.dashboard-wrapper{
+    margin-left: 144px;
+    @media (max-width: 990px) {
+        margin-left: 0rem;
+
+    }
+}

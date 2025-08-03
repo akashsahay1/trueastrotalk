@@ -1,0 +1,304 @@
+/*  Tabs  */
+
+.tab-regular {
+    .nav.nav-tabs {
+        border-bottom: transparent;
+        .nav-link {
+            display: block;
+            padding: 17px 49px;
+            color: $gray-900;
+            background-color: $gray-300;
+            margin-right: 5px;
+            border-color: $gray-300;
+            @media(max-width: 576px) {
+                padding: 14px;
+            }
+            @media(max-width: 1300px) {
+                padding: 14px;
+            }
+        }
+    }
+    .nav-tabs {
+        .nav-link.active {
+            background-color: $white;
+            border-color: #e6e6f2 #e6e6f2 #fff;
+            color: $primary;
+        }
+    }
+    .tab-content {
+        background-color: $white;
+        padding: 30px;
+        border: 1px solid #e6e6f2;
+        border-radius: 4px;
+        border-top-left-radius: 0px;
+    }
+}
+
+.tab-vertical {
+    .nav.nav-tabs {
+        float: left;
+        display: block;
+        margin-right: 0px;
+        border-bottom: 0;
+        .nav-item {
+            margin-bottom: 6px;
+        }
+    }
+    .nav-tabs {
+        .nav-link {
+            border: 1px solid transparent;
+            border-top-left-radius: 0.25rem;
+            border-top-right-radius: 0.25rem;
+            background: #fff;
+            padding: 17px 49px;
+            color: $gray-900;
+            background-color: $gray-400;
+            -webkit-border-radius: 4px 0px 0px 4px;
+            -moz-border-radius: 4px 0px 0px 4px;
+            border-radius: 4px 0px 0px 4px;
+            border: 1px solid transparent;
+            border-top-left-radius: 4px !important;
+            border-top-right-radius: 0px !important;
+            @media(max-width: 768px) {
+                padding: 14px;
+            }
+        }
+        .nav-link.active {
+            color: $primary;
+            background-color: $white !important;
+            border-color: transparent !important;
+        }
+    }
+    .tab-content {
+        overflow: auto;
+        -webkit-border-radius: 0px 4px 4px 4px;
+        -moz-border-radius: 0px 4px 4px 4px;
+        border-radius: 0px 4px 4px 4px;
+        background: #fff;
+        padding: 30px;
+    }
+}
+
+.tab-vertical-outline {
+    .nav.nav-tabs {
+        float: left;
+        display: block;
+        margin-right: 0px;
+        border-bottom: 0;
+        .nav-item {
+            margin-bottom: 6px;
+        }
+    }
+    .nav-tabs {
+        .nav-link {
+            border: 1px solid transparent;
+            border-top-left-radius: 0.25rem;
+            border-top-right-radius: 0.25rem;
+            background: #fff;
+            padding: 17px 49px;
+            color: $gray-900;
+            background-color: $gray-300;
+            -webkit-border-radius: 4px 0px 0px 4px;
+            -moz-border-radius: 4px 0px 0px 4px;
+            border-radius: 4px 0px 0px 4px;
+            border: 1px solid #c4c4cf !important;
+            border: 1px solid transparent;
+            border-top-left-radius: 4px !important;
+            border-top-right-radius: 0px !important;
+        }
+        .nav-link.active {
+            color: $primary;
+            border: 1px solid #c4c4cf !important;
+            background: transparent;
+            border-right: 1px solid #efeff6 !important;
+        }
+    }
+    .tab-content {
+        overflow: auto;
+        -webkit-border-radius: 0px 4px 4px 4px;
+        -moz-border-radius: 0px 4px 4px 4px;
+        border-radius: 0px 4px 4px 4px;
+        background: transparent;
+        padding: 30px;
+        border: 1px solid #c4c4cf;
+        left: -1px;
+        position: relative;
+        z-index: 1;
+    }
+}
+
+.simple-card {
+    background-color: $white;
+    border-radius: 4px;
+    border: transparent;
+    .nav.nav-tabs {
+        border-bottom: 1px solid #e6e6f2;
+        .nav-item {
+            .nav-link {
+                padding: 17px 49px;
+                color: $gray-900;
+                background: #f8f8fb;
+                border-color: #e9e9f2 #e9e9f2 #e9e9f2;
+                margin-right: -1px;
+                border-radius: 0px;
+                border-top: transparent;
+            }
+        }
+    }
+    .nav-tabs {
+        .nav-link.active {
+            color: $primary !important;
+            background-color: transparent !important;
+            border-color: #e9e9f2 #e9e9f2 #fff !important;
+        }
+    }
+    .tab-content {
+        padding: 30px;
+    }
+}
+
+.simple-outline-card {
+    border-radius: 4px;
+    border: 1px solid #c4c4cf;
+    .nav.nav-tabs {
+        border-bottom: 1px solid #c4c4cf;
+        .nav-item {
+            .nav-link {
+                padding: 17px 49px;
+                color: $gray-900;
+                background: #e9e9f2;
+                border-color: #c4c4cf #c4c4cf #c4c4cf;
+                margin-right: -1px;
+                border-radius: 0px;
+                border-top: transparent;
+                @media(max-width: 576px) {
+                    padding: 14px;
+                }
+            }
+        }
+    }
+    .nav-tabs {
+        .nav-link.active {
+            color: $primary !important;
+            background-color: transparent !important;
+            border-color: #c4c4cf #c4c4cf #efeff6 !important;
+        }
+    }
+    .tab-content {
+        padding: 30px;
+    }
+}
+
+.pills-regular {
+    .nav.nav-pills {
+        .nav-item {
+            .nav-link {
+                background-color: $gray-300;
+                padding: 14px 32px;
+                margin-right: 3px;
+                color: $gray-900;
+                font-size: 16px;
+                @media(max-width: 768px) {
+                    padding: 14px;
+                }
+            }
+            .nav-link.active {
+                background-color: $white;
+                color: $primary;
+            }
+        }
+    }
+    .tab-content {
+        background-color: $white;
+        padding: 30px;
+        border-radius: 4px;
+    }
+}
+
+.pills-outline {
+    .nav.nav-pills {
+        .nav-item {
+            .nav-link {
+                background-color: transparent;
+                padding: 16px 52px;
+                margin-right: 3px;
+                color: $gray-900;
+                border: 1px solid #c4c4cf;
+            }
+            .nav-link.active {
+                background-color: transparent;
+                color: $primary;
+            }
+        }
+    }
+    .tab-content {
+        background-color: transparent;
+        padding: 30px;
+        border-radius: 4px;
+        border: 1px solid #c4c4cf;
+    }
+}
+
+.pills-vertical {
+    .nav.nav-pills {
+        .nav-link {
+            background-color: $gray-300;
+            padding: 16px 52px;
+            margin-bottom: 4px;
+            color: $gray-900;
+        }
+        .nav-link.active {
+            background-color: $white;
+            color: $primary;
+        }
+    }
+    .tab-content {
+        background-color: $white;
+        padding: 30px;
+        border-radius: 4px;
+    }
+}
+
+.tab-outline {
+    .nav.nav-tabs {
+        border-bottom: transparent;
+        .nav-item {
+            .nav-link {
+                display: block;
+                padding: 17px 49px;
+                color: $gray-900;
+                background-color: $gray-300;
+                border-color: #c4c4cf #c4c4cf #c4c4cf;
+                margin-right: 3px;
+            }
+        }
+    }
+    .nav-tabs {
+        .nav-link.active {
+            color: $primary !important;
+            background-color: transparent !important;
+            border-color: #c4c4cf #c4c4cf #efeff6 !important;
+        }
+        .nav-link {
+            &:focus {
+                border-color: transparent;
+                color: $primary !important;
+            }
+        }
+    }
+    .tab-content {
+        padding: 30px;
+        border: 1px solid #c4c4cf;
+        border-radius: 4px;
+        border-top-left-radius: 0px;
+    }
+}
+
+.nav-tabs {
+    .nav-link {
+        &:hover {
+            border-color: transparent;
+            color: $primary !important;
+        }
+    }
+}

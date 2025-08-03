@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+
+  @@include("../partials/head.html")
+  <title>Sign Up - Influence Bootstrap Admin Dashboard Template</title>
+
+</head>
+<!-- ============================================================== -->
+<!-- signup form  -->
+<!-- ============================================================== -->
+
+<body class="custom-body bg-light">
+  <!-- ============================================================== -->
+  <!-- signup form  -->
+  <!-- ============================================================== -->
+  <div class="min-vh-100 d-flex align-items-center">
+    <div class="splash-container">
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h3 class="mb-1">Registrations Form</h3>
+          <p class="mb-0">Please enter your user information.</p>
+        </div>
+        <div class="card-body">
+          <form>
+            <div class="form-group mb-2">
+              <input class="form-control" type="text" name="nick" required="" placeholder="Username" autocomplete="off">
+            </div>
+            <div class="form-group mb-2">
+              <input class="form-control" type="email" name="email" required="" placeholder="E-mail" autocomplete="off">
+            </div>
+            <div class="form-group mb-2">
+              <input class="form-control" id="pass1" type="password" required="" placeholder="Password">
+            </div>
+            <div class="form-group mb-2">
+              <input class="form-control" required="" placeholder="Confirm">
+            </div>
+            <div class="form-group mb-2">
+              <button class="btn btn-block btn-primary" type="submit">Register My Account</button>
+            </div>
+            <div class="form-group mb-4">
+              <label class="custom-control custom-checkbox">
+                <input class="custom-control-input" type="checkbox"><span class="custom-control-label">By creating an
+                  account, you agree the <a href="#">terms
+                    and conditions</a></span>
+              </label>
+            </div>
+            <div class="form-group row pt-0">
+              <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12 mb-2">
+                <button class="btn btn-block btn-social btn-facebook " type="button">Facebook</button>
+              </div>
+              <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+                <button class="btn  btn-block btn-social btn-twitter" type="button">Twitter</button>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="card-footer bg-white">
+          <p class="mb-0">Already member? <a href="login.html" class="text-secondary">Login Here.</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  @@include("../partials/scripts.html")
+</body>
+
+</html>

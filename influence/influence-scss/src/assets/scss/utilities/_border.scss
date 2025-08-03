@@ -1,0 +1,22 @@
+/* border */
+
+.border-top-primary {
+  border-top: solid $primary !important;
+}
+.border-top-info {
+  border-top: solid $info !important;
+}
+.border-top-warning {
+  border-top: solid $warning !important;
+}
+.border-top-danger {
+  border-top: solid $danger !important;
+}
+
+.border-boxes span {
+  display: inline-block;
+  width: 5rem;
+  height: 5rem;
+  margin: .25rem;
+  background-color:$gray-100;
+}
