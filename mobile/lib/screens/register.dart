@@ -49,14 +49,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    
+
     // Check if we received Google data from login screen
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    
+
     if (args != null && args['auth_type'] == 'google') {
       // Mark this as a Google user
       _isGoogleUser = true;
-      
+
       // Pre-fill name and email from Google account
       if (_nameController.text.isEmpty) {
         _nameController.text = args['name'] ?? '';
@@ -124,7 +124,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
               // Welcome Text
               Text(
-                'Join True Astrotalk',
+                'True Astrotalk',
                 style: AppTextStyles.heading3.copyWith(color: AppColors.textPrimaryLight),
                 textAlign: TextAlign.center,
               ),
@@ -145,54 +145,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Role Selection
-                    Text(
-                      'What would you like to do?',
-                      style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textPrimaryLight, fontWeight: FontWeight.w600),
-                    ),
-
-                    const SizedBox(height: Dimensions.spacingSm),
-
-                    // Role Radio Buttons
-                    Container(
-                      padding: const EdgeInsets.all(Dimensions.paddingMd),
-                      decoration: BoxDecoration(
-                        color: AppColors.white,
-                        borderRadius: BorderRadius.circular(Dimensions.radiusMd),
-                        border: Border.all(color: AppColors.borderLight),
-                      ),
-                      child: Column(
-                        children: [
-                          RadioListTile<String>(
-                            title: const Text('Get Consultation'),
-                            subtitle: const Text('Find and consult with astrologers'),
-                            value: 'customer',
-                            groupValue: _selectedRole,
-                            activeColor: AppColors.primary,
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedRole = value!;
-                              });
-                            },
-                          ),
-                          RadioListTile<String>(
-                            title: const Text('Give Consultation'),
-                            subtitle: const Text('Become an astrologer and help others'),
-                            value: 'astrologer',
-                            groupValue: _selectedRole,
-                            activeColor: AppColors.primary,
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedRole = value!;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: Dimensions.spacingLg),
-
                     // Full Name Field
                     TextFormField(
                       controller: _nameController,
@@ -346,15 +298,61 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
                     const SizedBox(height: Dimensions.spacingLg),
 
+                    // Role Selection
+                    Text(
+                      'What would you like to do?',
+                      style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textPrimaryLight, fontWeight: FontWeight.w600),
+                    ),
+
+                    const SizedBox(height: Dimensions.spacingSm),
+
+                    // Role Radio Buttons
+                    Container(
+                      padding: const EdgeInsets.all(Dimensions.paddingMd),
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(Dimensions.radiusMd),
+                        border: Border.all(color: AppColors.borderLight),
+                      ),
+                      child: Column(
+                        children: [
+                          RadioListTile<String>(
+                            title: const Text('Get Consultation'),
+                            value: 'customer',
+                            groupValue: _selectedRole,
+                            activeColor: AppColors.primary,
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedRole = value!;
+                              });
+                            },
+                          ),
+                          RadioListTile<String>(
+                            title: const Text('Give Consultation'),
+                            value: 'astrologer',
+                            groupValue: _selectedRole,
+                            activeColor: AppColors.primary,
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedRole = value!;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: Dimensions.spacingLg),
+
                     // Terms and Conditions
                     CheckboxListTile(
                       title: RichText(
                         text: TextSpan(
-                          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimaryLight),
+                          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimaryLight, fontSize: 14),
                           children: const [
-                            TextSpan(text: 'I agree to the '),
+                            TextSpan(text: 'I agree to '),
                             TextSpan(
-                              text: 'Terms of Service',
+                              text: 'Terms',
                               style: TextStyle(color: AppColors.primary, decoration: TextDecoration.underline),
                             ),
                             TextSpan(text: ' and '),
@@ -513,7 +511,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       // Get Google data from arguments if this is a Google user
       final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
       final isGoogleRegistration = args != null && args['auth_type'] == 'google';
-      
+
       if (isGoogleRegistration) {
         // Register Google user via Next.js API
         await _authService.registerWithEmailPassword(
@@ -636,10 +634,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               Icon(Icons.info_outline, color: AppColors.primary, size: 28),
               const SizedBox(width: Dimensions.spacingSm),
               Expanded(
-                child: Text(
-                  'Account Already Exists',
-                  style: AppTextStyles.heading4.copyWith(color: AppColors.textPrimaryLight),
-                ),
+                child: Text('Account Already Exists', style: AppTextStyles.heading4.copyWith(color: AppColors.textPrimaryLight)),
               ),
             ],
           ),
@@ -647,10 +642,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'An astrologer account with this email already exists.',
-                style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textPrimaryLight),
-              ),
+              Text('An astrologer account with this email already exists.', style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textPrimaryLight)),
               const SizedBox(height: Dimensions.spacingMd),
               Container(
                 padding: const EdgeInsets.all(Dimensions.paddingMd),
@@ -664,16 +656,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   children: [
                     Text(
                       'Account Status:',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimaryLight,
-                      ),
+                      style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppColors.textPrimaryLight),
                     ),
                     const SizedBox(height: Dimensions.spacingSm),
-                    Text(
-                      'Your astrologer account is under review by our team. You will receive an email once verified.',
-                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight),
-                    ),
+                    Text('Your astrologer account is under review by our team. You will receive an email once verified.', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight)),
                   ],
                 ),
               ),
@@ -687,10 +673,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               },
               child: Text(
                 'Go to Login',
-                style: AppTextStyles.bodyLarge.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: AppTextStyles.bodyLarge.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -710,18 +693,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(Dimensions.paddingSm),
-                decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.2), shape: BoxShape.circle),
                 child: Icon(Icons.check_circle, color: AppColors.success, size: 32),
               ),
               const SizedBox(width: Dimensions.spacingMd),
               Expanded(
-                child: Text(
-                  'Registration Successful!',
-                  style: AppTextStyles.heading4.copyWith(color: AppColors.success),
-                ),
+                child: Text('Registration Successful!', style: AppTextStyles.heading4.copyWith(color: AppColors.success)),
               ),
             ],
           ),
@@ -731,10 +708,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             children: [
               Text(
                 '🎉 Welcome to True Astrotalk!',
-                style: AppTextStyles.bodyLarge.copyWith(
-                  color: AppColors.textPrimaryLight,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textPrimaryLight, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: Dimensions.spacingMd),
               Container(
@@ -753,28 +727,19 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         const SizedBox(width: Dimensions.spacingSm),
                         Text(
                           'Account Under Review',
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primary,
-                          ),
+                          style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppColors.primary),
                         ),
                       ],
                     ),
                     const SizedBox(height: Dimensions.spacingSm),
-                    Text(
-                      'Your astrologer profile is being reviewed by our True Astrotalk team to ensure quality and authenticity.',
-                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight),
-                    ),
+                    Text('Your astrologer profile is being reviewed by our True Astrotalk team to ensure quality and authenticity.', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight)),
                     const SizedBox(height: Dimensions.spacingMd),
                     Row(
                       children: [
                         Icon(Icons.email_outlined, color: AppColors.primary, size: 20),
                         const SizedBox(width: Dimensions.spacingSm),
                         Expanded(
-                          child: Text(
-                            'You will receive an email with next steps once verified.',
-                            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight),
-                          ),
+                          child: Text('You will receive an email with next steps once verified.', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight)),
                         ),
                       ],
                     ),
@@ -796,10 +761,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               ),
               child: Text(
                 'Continue to Login',
-                style: AppTextStyles.bodyLarge.copyWith(
-                  color: AppColors.white,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: AppTextStyles.bodyLarge.copyWith(color: AppColors.white, fontWeight: FontWeight.w600),
               ),
             ),
           ],

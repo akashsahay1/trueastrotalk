@@ -188,7 +188,7 @@ export default function CustomersPage() {
             <div className="row">
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                 <div className="page-header">
-                  <h2 className="pageheader-title">Customers Management</h2>
+                  <h2 className="pageheader-title">Customers</h2>
                   <p className="pageheader-text">Manage all customer accounts</p>
                   <div className="page-breadcrumb">
                     <nav aria-label="breadcrumb">
@@ -310,6 +310,8 @@ export default function CustomersPage() {
                                         src={user.profile_image} 
                                         alt={user.full_name}
                                         className="rounded-circle mr-2"
+																				width={40}
+																				height={40}
                                         style={{ width: '40px', height: '40px', objectFit: 'cover' }}
                                       />
 

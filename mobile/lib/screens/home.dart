@@ -506,12 +506,26 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: astrologer.isOnline ? () => _startCallWithAstrologer(astrologer) : null,
+                  icon: const Icon(Icons.video_call, size: 18),
+                  label: const Text('Video'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: astrologer.isOnline ? AppColors.primary : AppColors.grey300,
+                    foregroundColor: astrologer.isOnline ? AppColors.white : AppColors.grey600,
+                    padding: const EdgeInsets.symmetric(vertical: 0),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: Dimensions.spacingMd),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: astrologer.isOnline ? () => _startCallWithAstrologer(astrologer) : null,
                   icon: const Icon(Icons.phone, size: 18),
                   label: const Text('Call'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: astrologer.isOnline ? const Color(0xFFFF6B35) : AppColors.grey300,
+                    backgroundColor: astrologer.isOnline ? AppColors.primary : AppColors.grey300,
                     foregroundColor: astrologer.isOnline ? AppColors.white : AppColors.grey600,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 0),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                 ),
@@ -523,9 +537,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   icon: const Icon(Icons.chat_bubble, size: 18),
                   label: const Text('Chat'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: astrologer.isOnline ? const Color(0xFFFF6B35) : AppColors.grey300,
+                    backgroundColor: astrologer.isOnline ? AppColors.primary : AppColors.grey300,
                     foregroundColor: astrologer.isOnline ? AppColors.white : AppColors.grey600,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 0),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                 ),

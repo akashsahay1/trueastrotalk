@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient, ObjectId } from 'mongodb';
 import crypto from 'crypto';
+import { omit } from '@/utils/omit';
 
 const url = 'mongodb://localhost:27017';
 const dbName = 'trueastrotalkDB';
@@ -40,7 +41,7 @@ export async function GET(
     }
 
     // Remove sensitive data
-    const { password: _omit, ...userResponse } = user;
+    const userResponse = omit(user, ['password']);
 
     return NextResponse.json({
       success: true,
@@ -215,7 +216,7 @@ export async function PUT(
 
     // Get updated user data
     const updatedUser = await usersCollection.findOne({ _id: new ObjectId(id) });
-    const { password, ...userResponse } = updatedUser!;
+    const userResponse = omit(updatedUser!, ['password']);
 
     return NextResponse.json({
       message: 'User updated successfully',

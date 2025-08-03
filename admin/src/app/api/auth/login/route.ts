@@ -146,7 +146,12 @@ export async function POST(request: NextRequest) {
       .sign(JWT_SECRET);
 
     // Update user's online status and Google profile data if applicable
-    const updateData: any = { 
+    const updateData: {
+      is_online: boolean;
+      updated_at: Date;
+      profile_image?: string;
+      full_name?: string;
+    } = { 
       is_online: true,
       updated_at: new Date()
     };

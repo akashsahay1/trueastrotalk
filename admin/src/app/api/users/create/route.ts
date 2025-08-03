@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient } from 'mongodb';
 import crypto from 'crypto';
+import { omit } from '@/utils/omit';
 
 const url = 'mongodb://localhost:27017';
 const dbName = 'trueastrotalkDB';
@@ -136,7 +137,7 @@ export async function POST(request: NextRequest) {
 
     if (result.insertedId) {
       // Return success response without sensitive data
-      const { password: __, ...userResponse } = userData;
+      const userResponse = omit(userData, ['password']);
       
       return NextResponse.json({
         message: 'User created successfully',

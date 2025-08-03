@@ -40,6 +40,19 @@ export async function GET(request: NextRequest) {
       .limit(limit)
       .toArray();
 
+    // Get sessions collection to calculate real session counts
+    const sessionsCollection = db.collection('sessions');
+
+    // Calculate actual session counts for each astrologer
+    const astrologerSessionCounts = new Map();
+    
+    for (const astrologer of astrologers) {
+      const sessionCount = await sessionsCollection.countDocuments({
+        astrologer_id: astrologer._id
+      });
+      astrologerSessionCounts.set(astrologer._id.toString(), sessionCount);
+    }
+
     await client.close();
 
     // Sample profile images for demo
@@ -52,29 +65,34 @@ export async function GET(request: NextRequest) {
     ];
 
     // Format the response
-    const formattedAstrologers = astrologers.map((astrologer, index) => ({
-      id: astrologer._id.toString(),
-      full_name: astrologer.full_name,
-      email_address: astrologer.email_address,
-      phone_number: astrologer.phone_number,
-      profile_image: astrologer.profile_image || sampleImages[index % sampleImages.length],
-      bio: astrologer.bio || '',
-      specializations: astrologer.specializations || ['Vedic', 'Numerology'],
-      languages: astrologer.languages || ['Hindi', 'English'],
-      experience_years: astrologer.experience_years || 5,
-      is_online: astrologer.is_online || false,
-      account_status: astrologer.account_status,
-      verification_status: astrologer.verification_status,
-      rating: astrologer.rating || 4.5,
-      total_reviews: astrologer.total_reviews || 0,
-      total_consultations: astrologer.total_consultations || 0,
-      chat_rate: astrologer.chat_rate || 15,
-      call_rate: astrologer.call_rate || 25,
-      video_rate: astrologer.video_rate || 35,
-      is_available: astrologer.is_online,
-      created_at: astrologer.created_at,
-      updated_at: astrologer.updated_at
-    }));
+    const formattedAstrologers = astrologers.map((astrologer, index) => {
+      const astrologerId = astrologer._id.toString();
+      const realSessionCount = astrologerSessionCounts.get(astrologerId) || 0;
+      
+      return {
+        id: astrologerId,
+        full_name: astrologer.full_name,
+        email_address: astrologer.email_address,
+        phone_number: astrologer.phone_number,
+        profile_image: astrologer.profile_image || sampleImages[index % sampleImages.length],
+        bio: astrologer.bio || '',
+        specializations: astrologer.specializations || ['Vedic', 'Numerology'],
+        languages: astrologer.languages || ['Hindi', 'English'],
+        experience_years: astrologer.experience_years || 5,
+        is_online: astrologer.is_online || false,
+        account_status: astrologer.account_status,
+        verification_status: astrologer.verification_status,
+        rating: astrologer.rating || 4.5,
+        total_reviews: astrologer.total_reviews || 0,
+        total_consultations: realSessionCount, // Use real count from sessions collection
+        chat_rate: astrologer.chat_rate || 15,
+        call_rate: astrologer.call_rate || 25,
+        video_rate: astrologer.video_rate || 35,
+        is_available: astrologer.is_online,
+        created_at: astrologer.created_at,
+        updated_at: astrologer.updated_at
+      };
+    });
 
     return NextResponse.json({
       success: true,

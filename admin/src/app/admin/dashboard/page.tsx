@@ -67,8 +67,8 @@ export default function DashboardPage() {
             <div className="row">
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                 <div className="page-header">
-                  <h2 className="pageheader-title">True Astrotalk Admin Dashboard</h2>
-                  <p className="pageheader-text">Welcome to the administrative control panel</p>
+                  <h2 className="pageheader-title">Dashboard</h2>
+                  <p className="pageheader-text">Welcome to the panel!</p>
                   <div className="page-breadcrumb">
                     <nav aria-label="breadcrumb">
                       <ol className="breadcrumb">

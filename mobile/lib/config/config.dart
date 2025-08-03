@@ -1,7 +1,7 @@
 class Config {
   // 🔧 CHANGE THIS TO SWITCH MODES
   static const String mode = 'local'; // Change to 'local' or 'prod'
-  
+
   // Environment Detection
   static bool get isLocal => mode == 'local';
   static bool get isProduction => mode == 'prod';
@@ -23,7 +23,7 @@ class Config {
         return 'http://localhost:3000/api';
     }
   }
-  
+
   static String get socketUrl {
     switch (mode) {
       case 'local':
