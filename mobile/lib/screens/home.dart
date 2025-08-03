@@ -49,14 +49,22 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Future<void> _loadUserData() async {
     try {
       _currentUser = _authService.currentUser;
+      debugPrint('🏠 Home: User data loaded - profilePicture: ${_currentUser?.profilePicture}');
       setState(() {
         _isLoading = false;
       });
     } catch (e) {
+      debugPrint('Error loading user data: $e');
       setState(() {
         _isLoading = false;
       });
     }
+  }
+
+  // Method to refresh user data - can be called when returning from profile screen
+  Future<void> refreshUserData() async {
+    debugPrint('🏠 Home: Refreshing user data...');
+    await _loadUserData();
   }
 
   Future<void> _loadWalletBalance() async {
@@ -799,13 +807,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit, color: AppColors.white),
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => const ProfileScreen(),
                 ),
               );
+              // Always refresh user data when returning from profile screen
+              await refreshUserData();
             },
           ),
         ],
@@ -902,13 +912,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         'icon': Icons.edit,
         'title': 'Edit Profile',
         'subtitle': 'Update your personal information',
-        'onTap': () {
-          Navigator.push(
+        'onTap': () async {
+          await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => const ProfileScreen(),
             ),
           );
+          // Always refresh user data when returning from profile screen
+          await refreshUserData();
         },
       },
       {
@@ -1111,12 +1123,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Widget _buildProfileImage() {
     // Check if user has profile picture in database (works for Google and other users)
     if (_currentUser?.profilePicture != null && _currentUser!.profilePicture!.isNotEmpty) {
+      final imageUrl = _getFullImageUrl(_currentUser!.profilePicture!);
+      debugPrint('🏠 Home: Loading profile image: $imageUrl');
+      
       return Image.network(
-        _currentUser!.profilePicture!,
+        imageUrl,
         width: 70,
         height: 70,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
+          debugPrint('❌ Home: Profile image load error: $error');
           // If image fails to load, use appropriate fallback
           if (_currentUser?.authType == AuthType.google) {
             return _buildGoogleFallbackAvatar();
@@ -1124,7 +1140,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           return _buildFallbackAvatar();
         },
         loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
+          if (loadingProgress == null) {
+            debugPrint('✅ Home: Profile image loaded successfully');
+            return child;
+          }
           return _buildLoadingAvatar();
         },
       );
@@ -1198,4 +1217,5 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     final baseUrl = Config.mode == 'local' ? 'http://localhost:3000' : 'https://www.trueastrotalk.com';
     return '$baseUrl/$cleanPath';
   }
+
 }
