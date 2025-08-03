@@ -226,6 +226,35 @@ class UserApiService {
     }
   }
 
+  // Upload profile image
+  Future<String> uploadProfileImage({required String token, required String imagePath}) async {
+    try {
+      final formData = FormData.fromMap({
+        'profile_image': await MultipartFile.fromFile(
+          imagePath,
+          filename: imagePath.split('/').last,
+        ),
+      });
+
+      final response = await _dio.post(
+        '/upload/profile-image',
+        data: formData,
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+          contentType: 'multipart/form-data',
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data['image_url'] as String;
+      } else {
+        throw Exception('Failed to upload image: ${response.data['message']}');
+      }
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    }
+  }
+
   // Get featured products
   Future<List<Product>> getFeaturedProducts({int limit = 6}) async {
     try {

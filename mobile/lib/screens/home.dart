@@ -10,6 +10,7 @@ import '../../models/enums.dart';
 import '../../models/astrologer.dart';
 import '../../models/product.dart';
 import '../../config/config.dart';
+import 'profile.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -279,12 +280,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               Navigator.pop(context);
               _openHelp();
             },
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.logout, color: AppColors.error),
-            title: const Text('Logout', style: TextStyle(color: AppColors.error)),
-            onTap: _handleLogout,
           ),
         ],
       ),
@@ -792,7 +787,244 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildProfileScreen() {
-    return const Center(child: Text('Profile Screen - Coming Soon'));
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Profile',
+          style: AppTextStyles.heading4.copyWith(color: AppColors.white),
+        ),
+        backgroundColor: AppColors.primary,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit, color: AppColors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProfileScreen(),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              // Profile Summary Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.black.withValues(alpha: 0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Profile Image
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.primary, width: 3),
+                      ),
+                      child: ClipOval(
+                        child: _buildProfileImage(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _currentUser?.name ?? 'User',
+                      style: AppTextStyles.heading5.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimaryLight,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _currentUser?.email ?? '',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textSecondaryLight,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildProfileStat('Wallet Balance', '₹${_walletBalance.toStringAsFixed(0)}'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Quick Actions
+              _buildQuickActionsList(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileStat(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: AppTextStyles.bodyLarge.copyWith(
+            fontWeight: FontWeight.bold,
+            color: AppColors.primary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: AppTextStyles.bodySmall.copyWith(
+            color: AppColors.textSecondaryLight,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickActionsList() {
+    final actions = [
+      {
+        'icon': Icons.edit,
+        'title': 'Edit Profile',
+        'subtitle': 'Update your personal information',
+        'onTap': () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ProfileScreen(),
+            ),
+          );
+        },
+      },
+      {
+        'icon': Icons.account_balance_wallet,
+        'title': 'Wallet',
+        'subtitle': 'Manage your wallet and transactions',
+        'onTap': () {
+          setState(() {
+            _selectedBottomNavIndex = 3;
+          });
+        },
+      },
+      {
+        'icon': Icons.history,
+        'title': 'History',
+        'subtitle': 'View your past consultations',
+        'onTap': _viewConsultationHistory,
+      },
+      {
+        'icon': Icons.help,
+        'title': 'Help',
+        'subtitle': 'Get help and contact support',
+        'onTap': _openHelp,
+      },
+      {
+        'icon': Icons.logout,
+        'title': 'Logout',
+        'subtitle': 'Sign out of your account',
+        'onTap': _handleLogout,
+        'isDestructive': true,
+      },
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Quick Actions',
+          style: AppTextStyles.heading6.copyWith(
+            color: AppColors.textPrimaryLight,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        ...actions.map((action) => _buildQuickActionItem(action)),
+      ],
+    );
+  }
+
+  Widget _buildQuickActionItem(Map<String, dynamic> action) {
+    final isDestructive = action['isDestructive'] == true;
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        elevation: 2,
+        shadowColor: AppColors.black.withValues(alpha: 0.08),
+        child: InkWell(
+          onTap: action['onTap'],
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: isDestructive 
+                        ? AppColors.error.withValues(alpha: 0.1)
+                        : AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    action['icon'],
+                    color: isDestructive ? AppColors.error : AppColors.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        action['title'],
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: isDestructive 
+                              ? AppColors.error 
+                              : AppColors.textPrimaryLight,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        action['subtitle'],
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondaryLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: AppColors.textSecondaryLight,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildBottomNavigationBar() {
