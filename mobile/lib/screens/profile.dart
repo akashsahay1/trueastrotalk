@@ -311,14 +311,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
           });
           
           String errorMessage = 'Failed to upload image';
-          if (uploadError.toString().contains('File too large')) {
+          final errorString = uploadError.toString();
+          
+          if (errorString.contains('File too large')) {
             errorMessage = 'Image file is too large. Please choose a smaller image (max 5MB).';
-          } else if (uploadError.toString().contains('Invalid file type')) {
-            errorMessage = 'Invalid file type. Please choose a JPEG, PNG, or WebP image.';
-          } else if (uploadError.toString().contains('Authentication failed')) {
+          } else if (errorString.contains('Invalid file type') || errorString.contains('file format')) {
+            errorMessage = 'Invalid file format. Please choose a JPEG, PNG, WebP, or HEIC image.';
+          } else if (errorString.contains('Authentication failed') || errorString.contains('401')) {
             errorMessage = 'Session expired. Please log in again.';
+          } else if (errorString.contains('network') || errorString.contains('connection')) {
+            errorMessage = 'Network error. Please check your internet connection and try again.';
+          } else {
+            // Extract server error message if available
+            final match = RegExp(r'Exception: (.+)').firstMatch(errorString);
+            if (match != null) {
+              errorMessage = match.group(1) ?? errorMessage;
+            }
           }
           
+          debugPrint('Image upload error: $errorString'); // Debug log
           _showErrorSnackBar(errorMessage);
           return; // Don't proceed with profile update if image upload fails
         }

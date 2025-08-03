@@ -51,11 +51,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
+    // Validate file type - be more flexible with MIME types
+    const allowedTypes = [
+      'image/jpeg', 
+      'image/jpg', 
+      'image/png', 
+      'image/webp',
+      'image/heic', // iOS HEIC format
+      'image/heif', // iOS HEIF format
+    ];
+    
+    // Also check file extension as fallback
+    const fileExtension = file.name.toLowerCase().split('.').pop();
+    const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'];
+    
+    const isValidMimeType = allowedTypes.includes(file.type.toLowerCase());
+    const isValidExtension = fileExtension && allowedExtensions.includes(fileExtension);
+    
+    // Debug logging
+    console.log('Upload Debug Info:', {
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+      extension: fileExtension,
+      isValidMimeType,
+      isValidExtension
+    });
+    
+    if (!isValidMimeType && !isValidExtension) {
       return NextResponse.json(
-        { success: false, error: 'Invalid file type. Only JPEG, PNG, and WebP are allowed.' },
+        { success: false, error: `Invalid file type. Received: ${file.type}. Only JPEG, PNG, WebP, and HEIC are allowed.` },
         { status: 400 }
       );
     }

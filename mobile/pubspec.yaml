@@ -106,6 +106,7 @@ dependencies:
   carousel_slider: ^4.2.1
   pull_to_refresh: ^2.0.0
   flutter_native_splash: ^2.4.4
+  http_parser: ^4.1.2
 
 dev_dependencies:
   flutter_test:
