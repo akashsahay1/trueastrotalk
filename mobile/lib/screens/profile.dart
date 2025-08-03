@@ -300,6 +300,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           );
           updateData['profile_image'] = uploadedImageUrl;
           
+          debugPrint('✅ Image uploaded successfully, URL: $uploadedImageUrl');
+          
           // Update the profile image URL immediately for UI feedback
           setState(() {
             _profileImageUrl = uploadedImageUrl;
@@ -340,6 +342,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       setState(() {
         _currentUser = updatedUser;
+        _profileImageUrl = updatedUser.profilePicture; // Update profile image URL from server response
+        _selectedProfileImage = null; // Clear selected image after successful upload
       });
 
       _showSuccessSnackBar('Profile updated successfully!');
@@ -636,8 +640,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileImage() {
+    debugPrint('🖼️ Building profile image: selectedImage=${_selectedProfileImage?.path}, profileImageUrl=$_profileImageUrl');
+    
     // Show selected image first
     if (_selectedProfileImage != null) {
+      debugPrint('📱 Showing selected local image');
       return Image.file(
         _selectedProfileImage!,
         width: 120,
@@ -648,14 +655,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     
     // Show existing profile image
     if (_profileImageUrl?.isNotEmpty == true) {
+      final fullUrl = _getFullImageUrl(_profileImageUrl!);
+      debugPrint('🌐 Showing network image: $fullUrl');
       return Image.network(
-        _getFullImageUrl(_profileImageUrl!),
+        fullUrl,
         width: 120,
         height: 120,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildFallbackAvatar(),
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint('❌ Image load error: $error');
+          return _buildFallbackAvatar();
+        },
         loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
+          if (loadingProgress == null) {
+            debugPrint('✅ Image loaded successfully');
+            return child;
+          }
+          debugPrint('⏳ Loading image...');
           return Container(
             width: 120,
             height: 120,
@@ -669,6 +685,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     
     // Show fallback avatar
+    debugPrint('👤 Showing fallback avatar');
     return _buildFallbackAvatar();
   }
 
