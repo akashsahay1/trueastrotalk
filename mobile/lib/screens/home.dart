@@ -408,7 +408,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   CircleAvatar(
                     radius: 30,
                     backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                    backgroundImage: astrologer.profileImage?.isNotEmpty == true ? NetworkImage(astrologer.profileImage!) : null,
+                    backgroundImage: astrologer.profileImage?.isNotEmpty == true ? NetworkImage(_getFullImageUrl(astrologer.profileImage!)) : null,
                     child: astrologer.profileImage?.isEmpty != false ? const Icon(Icons.person, size: 32, color: AppColors.primary) : null,
                   ),
                   Positioned(
