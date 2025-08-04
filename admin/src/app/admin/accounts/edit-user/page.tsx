@@ -336,6 +336,26 @@ function EditUserContent() {
 
     // Astrologer-specific validation
     if (formData.user_type === 'astrologer') {
+      // Birth time validation for astrologers
+      if (!formData.birth_time) {
+        customErrors.birth_time = 'Birth time is required for astrologers';
+      }
+
+      // Birth place validation for astrologers
+      if (!formData.birth_place.trim()) {
+        customErrors.birth_place = 'Birth place is required for astrologers';
+      }
+
+      // Address validation for astrologers
+      if (!formData.address.trim()) {
+        customErrors.address = 'Address is required for astrologers';
+      }
+
+      // ZIP code validation for astrologers
+      if (!formData.zip.trim()) {
+        customErrors.zip = 'ZIP code is required for astrologers';
+      }
+
       if (formData.experience_years < 0 || formData.experience_years > 50) {
         customErrors.experience_years = 'Experience must be between 0 and 50 years';
       }
