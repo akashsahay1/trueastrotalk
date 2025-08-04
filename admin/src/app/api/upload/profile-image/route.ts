@@ -4,13 +4,11 @@ import { existsSync } from 'fs';
 import path from 'path';
 import { jwtVerify } from 'jose';
 import { MongoClient, ObjectId } from 'mongodb';
+import { envConfig } from '@/lib/env-config';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-);
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+const JWT_SECRET = new TextEncoder().encode(envConfig.JWT_SECRET);
+const MONGODB_URL = envConfig.MONGODB_URL;
+const DB_NAME = envConfig.DB_NAME;
 
 async function verifyAuthToken(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
@@ -94,34 +92,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create upload directory structure
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'profile-images');
+    // Get current date for directory structure (same as media library)
+    const now = new Date();
+    const year = now.getFullYear().toString();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+
+    // Generate unique filename with ta- prefix (consistent with media library)
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 8);
+    const extension = path.extname(file.name);
+    const filename = `ta-${timestamp}${randomString}${extension}`;
+    
+    // Create uploads directory with year/month structure (same as media library)
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads', year, month);
     if (!existsSync(uploadDir)) {
       await mkdir(uploadDir, { recursive: true });
     }
 
-    // Generate unique filename
-    const timestamp = Date.now();
-    const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, '');
-    const extension = path.extname(originalName);
-    const filename = `profile_${userId}_${timestamp}${extension}`;
+    // Save file to public/uploads/YYYY/MM/ directory
     const filepath = path.join(uploadDir, filename);
-
-    // Save file
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     await writeFile(filepath, buffer);
 
-    // Generate URL path
-    const imageUrl = `/uploads/profile-images/${filename}`;
+    // Generate URL path (consistent with media library)
+    const imageUrl = `/uploads/${year}/${month}/${filename}`;
 
-    // Update user profile in database
+    // Update user profile in database and add to media library
     const client = new MongoClient(MONGODB_URL);
     await client.connect();
     
     const db = client.db(DB_NAME);
     const usersCollection = db.collection('users');
+    const mediaCollection = db.collection('media_files');
 
+    // Add file to media library (consistent with admin media uploads)
+    const fileData = {
+      filename,
+      original_name: file.name,
+      file_path: imageUrl,
+      file_size: file.size,
+      mime_type: file.type,
+      file_type: 'profile_image',
+      uploaded_by: userId,
+      associated_record: userId, // Link to user record
+      is_external: false, // This is an internal upload
+      uploaded_at: new Date(),
+      created_at: new Date(),
+      updated_at: new Date()
+    };
+
+    await mediaCollection.insertOne(fileData);
+
+    // Update user profile with new image
     const updateResult = await usersCollection.updateOne(
       { _id: new ObjectId(userId) },
       { 

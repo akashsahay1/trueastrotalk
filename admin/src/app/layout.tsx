@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
+import "../styles/sweetalert-custom.css";
 
 export const metadata: Metadata = {
   title: "True Astrotalk",

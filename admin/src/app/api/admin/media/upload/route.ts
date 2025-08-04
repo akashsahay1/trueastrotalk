@@ -76,6 +76,10 @@ export async function POST(request: NextRequest) {
       file_path: `/uploads/${year}/${month}/${filename}`,
       file_size: file.size,
       mime_type: file.type,
+      file_type: 'admin_upload', // Admin uploaded file
+      uploaded_by: null, // Could be extended to track admin user
+      associated_record: null, // Could be linked to specific records later
+      is_external: false, // This is an internal upload
       uploaded_at: new Date(),
       created_at: new Date(),
       updated_at: new Date()

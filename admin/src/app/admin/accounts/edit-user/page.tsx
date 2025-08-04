@@ -6,6 +6,8 @@ import { useEffect, useState, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { validateForm, getUserFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/validation';
+import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
 
 interface FormData {
   profile_image: string;
@@ -282,79 +284,103 @@ function EditUserContent() {
     setImagePreview('');
   };
 
-  const validateForm = () => {
-    const errors: {[key: string]: string} = {};
+  const validateUserForm = () => {
+    // Clear previous validation errors
+    clearValidationErrors();
+    
+    // Prepare form data for validation
+    const formDataForValidation = {
+      full_name: formData.full_name,
+      email_address: formData.email_address,
+      phone_number: formData.phone_number,
+      city: formData.city,
+      state: formData.state,
+      user_type: formData.user_type,
+      account_status: formData.account_status
+    };
 
-    // Basic validation
-    if (!formData.full_name.trim()) {
-      errors.full_name = 'Full name is required';
-    }
+    // Get validation rules
+    const rules = getUserFormRules(formData.user_type);
+    
+    // Validate form
+    const validation = validateForm(formDataForValidation, rules);
+    
+    // Additional custom validations for edit user
+    const customErrors: {[key: string]: string} = {};
 
-    if (!formData.email_address.trim()) {
-      errors.email_address = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email_address)) {
-      errors.email_address = 'Please enter a valid email address';
-    }
-
-    if (!formData.phone_number.trim()) {
-      errors.phone_number = 'Phone number is required';
-    } else if (!/^[+]?[\d\s-()]{10,}$/.test(formData.phone_number)) {
-      errors.phone_number = 'Please enter a valid phone number';
-    }
-
-    if (!formData.gender) {
-      errors.gender = 'Gender is required';
-    }
-
+    // Date of birth validation
     if (!formData.date_of_birth) {
-      errors.date_of_birth = 'Date of birth is required';
+      customErrors.date_of_birth = 'Date of birth is required';
+    } else {
+      const birthDate = new Date(formData.date_of_birth);
+      const today = new Date();
+      const minAge = new Date(today.getFullYear() - 100, today.getMonth(), today.getDate());
+      const maxAge = new Date(today.getFullYear() - 13, today.getMonth(), today.getDate());
+      
+      if (birthDate > maxAge) {
+        customErrors.date_of_birth = 'User must be at least 13 years old';
+      } else if (birthDate < minAge) {
+        customErrors.date_of_birth = 'Please enter a valid birth date';
+      }
     }
 
-    if (!formData.city.trim()) {
-      errors.city = 'City is required';
+    // Gender validation
+    if (!formData.gender) {
+      customErrors.gender = 'Gender is required';
     }
 
-    if (!formData.state.trim()) {
-      errors.state = 'State is required';
-    }
-
+    // Country validation
     if (!formData.country.trim()) {
-      errors.country = 'Country is required';
+      customErrors.country = 'Country is required';
     }
 
     // Astrologer-specific validation
     if (formData.user_type === 'astrologer') {
-      if (formData.experience_years < 0) {
-        errors.experience_years = 'Experience years cannot be negative';
+      if (formData.experience_years < 0 || formData.experience_years > 50) {
+        customErrors.experience_years = 'Experience must be between 0 and 50 years';
       }
 
       if (!formData.specialization.trim()) {
-        errors.specialization = 'Specialization is required';
+        customErrors.specialization = 'Specialization is required for astrologers';
       }
 
-      if (formData.commission_rates.call_rate < 0 || formData.commission_rates.call_rate > 100) {
-        errors.call_rate = 'Call commission rate must be between 0 and 100';
-      }
+      // Commission rates validation
+      const validateRate = (rate: number, fieldName: string, displayName: string) => {
+        if (rate < 0 || rate > 100) {
+          customErrors[fieldName] = `${displayName} must be between 0% and 100%`;
+        }
+      };
 
-      if (formData.commission_rates.chat_rate < 0 || formData.commission_rates.chat_rate > 100) {
-        errors.chat_rate = 'Chat commission rate must be between 0 and 100';
-      }
-
-      if (formData.commission_rates.video_rate < 0 || formData.commission_rates.video_rate > 100) {
-        errors.video_rate = 'Video commission rate must be between 0 and 100';
-      }
+      validateRate(formData.commission_rates.call_rate, 'call_rate', 'Call commission rate');
+      validateRate(formData.commission_rates.chat_rate, 'chat_rate', 'Chat commission rate');
+      validateRate(formData.commission_rates.video_rate, 'video_rate', 'Video commission rate');
 
       if (formData.skills.length === 0) {
-        errors.skills = 'At least one skill is required';
+        customErrors.skills = 'At least one skill is required for astrologers';
       }
 
       if (formData.qualifications.length === 0) {
-        errors.qualifications = 'At least one qualification is required';
+        customErrors.qualifications = 'At least one qualification is required for astrologers';
       }
     }
 
-    setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
+    // Combine all errors
+    const allErrors = { ...validation.errors, ...customErrors };
+    
+    // Display errors on form fields
+    if (Object.keys(allErrors).length > 0) {
+      displayFieldErrors(allErrors);
+      setFieldErrors(allErrors);
+      
+      // Show first error in SweetAlert
+      const firstError = Object.values(allErrors)[0];
+      errorMessages.updateFailed(`Validation Error: ${firstError}`);
+      
+      return false;
+    }
+
+    setFieldErrors({});
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -364,10 +390,12 @@ function EditUserContent() {
     setFieldErrors({});
 
     // Validate form first
-    if (!validateForm()) {
+    if (!validateUserForm()) {
       return;
     }
 
+    // Show loading alert
+    showLoadingAlert('Updating user...');
     setLoading(true);
 
     try {
@@ -382,24 +410,30 @@ function EditUserContent() {
       const data = await response.json();
 
       if (response.ok) {
-        setSuccess('User updated successfully!');
-        setTimeout(() => {
-          let redirectPath = '/admin/accounts/customers'; // default
-          if (formData.user_type === 'administrator') {
-            redirectPath = '/admin/accounts/admins';
-          } else if (formData.user_type === 'manager') {
-            redirectPath = '/admin/accounts/managers';
-          } else if (formData.user_type === 'astrologer') {
-            redirectPath = '/admin/accounts/astrologers';
-          } else if (formData.user_type === 'customer') {
-            redirectPath = '/admin/accounts/customers';
-          }
-          router.push(redirectPath);
-        }, 2000);
+        closeSweetAlert();
+        await successMessages.updated('User');
+        
+        // Redirect to appropriate page
+        let redirectPath = '/admin/accounts/customers'; // default
+        if (formData.user_type === 'administrator') {
+          redirectPath = '/admin/accounts/admins';
+        } else if (formData.user_type === 'manager') {
+          redirectPath = '/admin/accounts/managers';
+        } else if (formData.user_type === 'astrologer') {
+          redirectPath = '/admin/accounts/astrologers';
+        } else if (formData.user_type === 'customer') {
+          redirectPath = '/admin/accounts/customers';
+        }
+        
+        router.push(redirectPath);
       } else {
+        closeSweetAlert();
+        errorMessages.updateFailed(`user: ${data.error || 'Unknown error occurred'}`);
         setError(data.error || 'Failed to update user');
       }
     } catch (error) {
+      closeSweetAlert();
+      errorMessages.networkError();
       setError('An error occurred. Please try again.');
       console.error('Update user error:', error);
     } finally {

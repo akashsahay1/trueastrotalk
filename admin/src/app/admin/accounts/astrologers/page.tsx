@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert';
 
 interface User {
   _id: string;
@@ -109,9 +110,8 @@ export default function AstrologersPage() {
   };
 
   const handleDelete = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      return;
-    }
+    const confirmed = await confirmDialogs.deleteItem('user');
+    if (!confirmed) return;
 
     setDeleting(userId);
     try {
@@ -120,11 +120,11 @@ export default function AstrologersPage() {
       });
 
       if (response.ok) {
-        alert('User deleted successfully');
+        successMessages.deleted('User');
         fetchUsers(pagination.currentPage, search);
       } else {
         const error = await response.json();
-        alert('Error deleting user: ' + error.error);
+        errorMessages.deleteFailed('user');
       }
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -136,13 +136,12 @@ export default function AstrologersPage() {
 
   const handleBulkDelete = async () => {
     if (selectedUsers.length === 0) {
-      alert('Please select users to delete');
+      errorMessages.deleteFailed('users - Please select users to delete');
       return;
     }
 
-    if (!confirm(`Are you sure you want to delete ${selectedUsers.length} selected users? This action cannot be undone.`)) {
-      return;
-    }
+    const confirmed = await confirmDialogs.deleteMultiple(selectedUsers.length, 'users');
+    if (!confirmed) return;
 
     setDeleting('bulk');
     try {
@@ -155,9 +154,9 @@ export default function AstrologersPage() {
       const failed = results.length - successful;
 
       if (failed === 0) {
-        alert(`Successfully deleted ${successful} users`);
+        successMessages.deleted(`${successful} users`);
       } else {
-        alert(`Deleted ${successful} users, ${failed} failed`);
+        errorMessages.deleteFailed(`${successful} users deleted, ${failed} failed`);
       }
 
       setSelectedUsers([]);

@@ -2,24 +2,45 @@ import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
+import { MongoClient } from 'mongodb';
+
+const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
+const DB_NAME = 'trueastrotalkDB';
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const fileType = formData.get('file_type') as string || 'general';
+    const uploadedBy = formData.get('uploaded_by') as string || null;
+    const associatedRecord = formData.get('associated_record') as string || null;
     
     if (!file) {
       return NextResponse.json(
-        { error: 'No file uploaded' },
+        { success: false, error: 'No file uploaded' },
         { status: 400 }
       );
     }
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
+    // Validate file type - be more flexible like profile image upload
+    const allowedTypes = [
+      'image/jpeg', 
+      'image/jpg', 
+      'image/png', 
+      'image/webp',
+      'image/heic', 
+      'image/heif', 
+    ];
+    
+    const fileExtension = file.name.toLowerCase().split('.').pop();
+    const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'];
+    
+    const isValidMimeType = allowedTypes.includes(file.type.toLowerCase());
+    const isValidExtension = fileExtension && allowedExtensions.includes(fileExtension);
+    
+    if (!isValidMimeType && !isValidExtension) {
       return NextResponse.json(
-        { error: 'Invalid file type. Only JPEG, PNG, and WebP are allowed.' },
+        { success: false, error: `Invalid file type. Received: ${file.type}. Only JPEG, PNG, WebP, and HEIC are allowed.` },
         { status: 400 }
       );
     }
@@ -28,7 +49,7 @@ export async function POST(request: NextRequest) {
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: 'File size too large. Maximum size is 5MB.' },
+        { success: false, error: 'File size too large. Maximum size is 5MB.' },
         { status: 400 }
       );
     }
@@ -46,11 +67,11 @@ export async function POST(request: NextRequest) {
       await mkdir(uploadDir, { recursive: true });
     }
 
-    // Generate unique filename with timestamp and random string
+    // Generate unique filename with timestamp and random string (consistent with other uploads)
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 8);
-    const fileExtension = path.extname(file.name);
-    const fileName = `ta-${timestamp}${randomString}${fileExtension}`;
+    const extension = path.extname(file.name);
+    const fileName = `ta-${timestamp}${randomString}${extension}`;
     
     // Full file path
     const filePath = path.join(uploadDir, fileName);
@@ -63,19 +84,47 @@ export async function POST(request: NextRequest) {
     
     // Return the public URL path
     const publicUrl = `/uploads/${year}/${month}/${fileName}`;
+
+    // Save to media library in database (consistent with other uploads)
+    const client = new MongoClient(MONGODB_URL);
+    await client.connect();
+    
+    const db = client.db(DB_NAME);
+    const mediaCollection = db.collection('media_files');
+
+    const fileData = {
+      filename: fileName,
+      original_name: file.name,
+      file_path: publicUrl,
+      file_size: file.size,
+      mime_type: file.type,
+      file_type: fileType,
+      uploaded_by: uploadedBy,
+      associated_record: associatedRecord,
+      is_external: false, // This is an internal upload
+      uploaded_at: new Date(),
+      created_at: new Date(),
+      updated_at: new Date()
+    };
+
+    const result = await mediaCollection.insertOne(fileData);
+    
+    await client.close();
     
     return NextResponse.json({
       success: true,
+      message: 'File uploaded successfully',
       url: publicUrl,
       filename: fileName,
       size: file.size,
-      type: file.type
+      type: file.type,
+      file_id: result.insertedId
     });
 
   } catch(error) {
-    console.error(error);
+    console.error('Upload error:', error);
     return NextResponse.json(
-      { error: 'Failed to upload file' },
+      { success: false, error: 'Failed to upload file' },
       { status: 500 }
     );
   }

@@ -6,6 +6,8 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import MediaLibrary from '@/components/MediaLibrary';
 import Image from 'next/image';
+import { validateForm, getProductFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/validation';
+import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
 
 interface Product {
   _id: string;
@@ -35,6 +37,7 @@ export default function EditProductPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showMediaLibrary, setShowMediaLibrary] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -62,12 +65,12 @@ export default function EditProductPage() {
           image_url: productData.image_url || ''
         });
       } else {
-        alert('Product not found');
+        errorMessages.notFound('Product');
         router.push('/admin/products');
       }
     } catch (error) {
       console.error('Error fetching product:', error);
-      alert('Error loading product');
+      errorMessages.networkError();
       router.push('/admin/products');
     } finally {
       setLoading(false);
@@ -94,8 +97,50 @@ export default function EditProductPage() {
     }
   }, [productId, fetchProduct, fetchCategories]);
 
+  const validateProductForm = () => {
+    clearValidationErrors();
+    
+    const formDataForValidation = {
+      name: formData.name,
+      description: formData.description,
+      price: formData.price,
+      category: formData.category,
+      stock_quantity: formData.stock_quantity
+    };
+
+    const rules = getProductFormRules();
+    const validation = validateForm(formDataForValidation, rules);
+    
+    const customErrors: {[key: string]: string} = {};
+
+    if (!formData.category.trim()) {
+      customErrors.category = 'Please select a category';
+    }
+
+    const allErrors = { ...validation.errors, ...customErrors };
+    
+    if (Object.keys(allErrors).length > 0) {
+      displayFieldErrors(allErrors);
+      setFieldErrors(allErrors);
+      
+      const firstError = Object.values(allErrors)[0];
+      errorMessages.updateFailed(`Validation Error: ${firstError}`);
+      
+      return false;
+    }
+
+    setFieldErrors({});
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateProductForm()) {
+      return;
+    }
+
+    showLoadingAlert('Updating product...');
     setSaving(true);
     
     const productData = {
@@ -114,15 +159,18 @@ export default function EditProductPage() {
       });
 
       if (response.ok) {
-        alert('Product updated successfully!');
+        closeSweetAlert();
+        await successMessages.updated('Product');
         router.push('/admin/products');
       } else {
         const error = await response.json();
-        alert(error.message || 'Error updating product');
+        closeSweetAlert();
+        errorMessages.updateFailed(`product: ${error.message || 'Unknown error occurred'}`);
       }
     } catch (error) {
+      closeSweetAlert();
+      errorMessages.networkError();
       console.error('Error updating product:', error);
-      alert('Error updating product');
     } finally {
       setSaving(false);
     }

@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert';
 
 interface ChatSession {
   _id: string;
@@ -136,9 +137,8 @@ export default function ChatSessionsPage() {
   };
 
   const handleDelete = async (sessionId: string) => {
-    if (!confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
-      return;
-    }
+    const confirmed = await confirmDialogs.deleteItem('session');
+    if (!confirmed) return;
 
     setDeleting(sessionId);
     try {
@@ -147,11 +147,11 @@ export default function ChatSessionsPage() {
       });
 
       if (response.ok) {
-        alert('Session deleted successfully');
+        successMessages.deleted('Session');
         fetchSessions(pagination.currentPage, search, statusFilter);
       } else {
         const error = await response.json();
-        alert('Error deleting session: ' + error.error);
+        errorMessages.deleteFailed('session');
       }
     } catch (error) {
       console.error('Error deleting session:', error);
@@ -163,13 +163,12 @@ export default function ChatSessionsPage() {
 
   const handleBulkDelete = async () => {
     if (selectedSessions.length === 0) {
-      alert('Please select sessions to delete');
+      errorMessages.deleteFailed('sessions - Please select sessions to delete');
       return;
     }
 
-    if (!confirm(`Are you sure you want to delete ${selectedSessions.length} selected sessions? This action cannot be undone.`)) {
-      return;
-    }
+    const confirmed = await confirmDialogs.deleteMultiple(selectedSessions.length, 'sessions');
+    if (!confirmed) return;
 
     setDeleting('bulk');
     try {

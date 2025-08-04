@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient } from 'mongodb';
+import { UploadService } from '@/lib/upload-service';
 
 const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const DB_NAME = 'trueastrotalkDB';
@@ -103,13 +104,47 @@ export async function POST(request: NextRequest) {
     };
 
     const result = await productsCollection.insertOne(productData);
+    const productId = result.insertedId.toString();
+    
+    // If image_url is provided and it's not already in our media library, register it
+    if (image_url && image_url.trim() !== '') {
+      // Check if this is an external image (not from our uploads folder)
+      const isExternalImage = !image_url.startsWith('/uploads/');
+      
+      if (isExternalImage) {
+        // Register external image in media library
+        await UploadService.registerExternalImage({
+          imageUrl: image_url,
+          originalName: `Product image for ${name}`,
+          fileType: 'product_image',
+          uploadedBy: null, // Could be extended to track admin user
+          associatedRecord: productId
+        });
+      } else {
+        // For internal images, we should update the existing media record
+        // to associate it with this product
+        const db = client.db(DB_NAME);
+        const mediaCollection = db.collection('media_files');
+        
+        await mediaCollection.updateOne(
+          { file_path: image_url },
+          { 
+            $set: { 
+              file_type: 'product_image',
+              associated_record: productId,
+              updated_at: new Date()
+            }
+          }
+        );
+      }
+    }
     
     await client.close();
 
     return NextResponse.json({
       success: true,
       message: 'Product created successfully',
-      product_id: result.insertedId
+      product_id: productId
     }, { status: 201 });
 
   } catch(error) {

@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { validateForm, getUserFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/validation';
+import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
 
 interface FormData {
   profile_image: string;
@@ -75,6 +77,7 @@ export default function AddUserPage() {
   const [skillInput, setSkillInput] = useState('');
   const [imageUploading, setImageUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
 
   useEffect(() => {
     document.body.className = '';
@@ -198,11 +201,112 @@ export default function AddUserPage() {
     setImagePreview('');
   };
 
+  const validateUserForm = () => {
+    // Clear previous validation errors
+    clearValidationErrors();
+    
+    // Prepare form data for validation
+    const formDataForValidation = {
+      full_name: formData.full_name,
+      email_address: formData.email_address,
+      phone_number: formData.phone_number,
+      password: formData.password,
+      city: formData.city,
+      state: formData.state,
+      user_type: formData.user_type,
+      account_status: formData.account_status
+    };
+
+    // Get validation rules (includes password for new users)
+    const rules = getUserFormRules();
+    
+    // Validate form
+    const validation = validateForm(formDataForValidation, rules);
+    
+    // Additional custom validations for add user
+    const customErrors: {[key: string]: string} = {};
+
+    // Date of birth validation
+    if (!formData.date_of_birth) {
+      customErrors.date_of_birth = 'Date of birth is required';
+    } else {
+      const birthDate = new Date(formData.date_of_birth);
+      const today = new Date();
+      const minAge = new Date(today.getFullYear() - 100, today.getMonth(), today.getDate());
+      const maxAge = new Date(today.getFullYear() - 13, today.getMonth(), today.getDate());
+      
+      if (birthDate > maxAge) {
+        customErrors.date_of_birth = 'User must be at least 13 years old';
+      } else if (birthDate < minAge) {
+        customErrors.date_of_birth = 'Please enter a valid birth date';
+      }
+    }
+
+    // Gender validation
+    if (!formData.gender) {
+      customErrors.gender = 'Gender is required';
+    }
+
+    // Country validation
+    if (!formData.country.trim()) {
+      customErrors.country = 'Country is required';
+    }
+
+    // Astrologer-specific validation
+    if (formData.user_type === 'astrologer') {
+      if (!formData.skills || formData.skills.length === 0) {
+        customErrors.skills = 'At least one skill is required for astrologers';
+      }
+
+      if (!formData.qualifications || formData.qualifications.length === 0) {
+        customErrors.qualifications = 'At least one qualification is required for astrologers';
+      }
+
+      // Commission rates validation (for astrologers, rates should be set)
+      const { call_rate, chat_rate, video_rate } = formData.commission_rates;
+      if (call_rate <= 0 || call_rate > 100) {
+        customErrors.call_rate = 'Call rate must be between 1% and 100%';
+      }
+      if (chat_rate <= 0 || chat_rate > 100) {
+        customErrors.chat_rate = 'Chat rate must be between 1% and 100%';
+      }
+      if (video_rate <= 0 || video_rate > 100) {
+        customErrors.video_rate = 'Video rate must be between 1% and 100%';
+      }
+    }
+
+    // Combine all errors
+    const allErrors = { ...validation.errors, ...customErrors };
+    
+    // Display errors on form fields
+    if (Object.keys(allErrors).length > 0) {
+      displayFieldErrors(allErrors);
+      setFieldErrors(allErrors);
+      
+      // Show first error in SweetAlert
+      const firstError = Object.values(allErrors)[0];
+      errorMessages.createFailed(`Validation Error: ${firstError}`);
+      
+      return false;
+    }
+
+    setFieldErrors({});
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
     setSuccess('');
+
+    // Validate form first
+    if (!validateUserForm()) {
+      return;
+    }
+
+    // Show loading alert
+    showLoadingAlert('Creating user...');
+    setLoading(true);
 
     try {
       const response = await fetch('/api/users/create', {
@@ -216,14 +320,30 @@ export default function AddUserPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setSuccess('User created successfully!');
-        setTimeout(() => {
-          router.push(`/admin/accounts/${formData.user_type === 'administrator' ? 'admins' : formData.user_type === 'manager' ? 'managers' : formData.user_type}s`);
-        }, 2000);
+        closeSweetAlert();
+        await successMessages.created('User');
+        
+        // Redirect to appropriate page
+        let redirectPath = '/admin/accounts/customers';
+        if (formData.user_type === 'administrator') {
+          redirectPath = '/admin/accounts/admins';
+        } else if (formData.user_type === 'manager') {
+          redirectPath = '/admin/accounts/managers';
+        } else if (formData.user_type === 'astrologer') {
+          redirectPath = '/admin/accounts/astrologers';
+        } else if (formData.user_type === 'customer') {
+          redirectPath = '/admin/accounts/customers';
+        }
+        
+        router.push(redirectPath);
       } else {
+        closeSweetAlert();
+        errorMessages.createFailed(`user: ${data.error || 'Unknown error occurred'}`);
         setError(data.error || 'Failed to create user');
       }
     } catch (error) {
+      closeSweetAlert();
+      errorMessages.networkError();
       setError('An error occurred. Please try again.');
       console.error('Create user error:', error);
     } finally {

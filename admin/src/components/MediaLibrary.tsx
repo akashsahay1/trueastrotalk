@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert';
 
 interface MediaFile {
   _id: string;
@@ -120,7 +121,8 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
   };
 
   const handleDeleteFile = async (fileId: string) => {
-    if (!confirm('Are you sure you want to delete this file?')) return;
+    const confirmed = await confirmDialogs.deleteItem('file');
+    if (!confirmed) return;
 
     try {
       const response = await fetch(`/api/admin/media/${fileId}`, {
@@ -134,12 +136,13 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
         if (deletedFile && selectedFile === deletedFile.file_path) {
           setSelectedFile(null);
         }
+        successMessages.deleted('File');
       } else {
-        alert('Failed to delete file');
+        errorMessages.deleteFailed('file');
       }
     } catch (error) {
       console.error('Error deleting file:', error);
-      alert('Failed to delete file');
+      errorMessages.deleteFailed('file');
     }
   };
 

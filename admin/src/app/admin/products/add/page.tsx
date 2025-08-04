@@ -6,6 +6,8 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import MediaLibrary from '@/components/MediaLibrary';
 import Image from 'next/image';
+import { validateForm, getProductFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/validation';
+import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
 
 interface Category {
   _id: string;
@@ -17,6 +19,7 @@ export default function AddProductPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [showMediaLibrary, setShowMediaLibrary] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -44,8 +47,50 @@ export default function AddProductPage() {
     }
   };
 
+  const validateProductForm = () => {
+    clearValidationErrors();
+    
+    const formDataForValidation = {
+      name: formData.name,
+      description: formData.description,
+      price: formData.price,
+      category: formData.category,
+      stock_quantity: formData.stock_quantity
+    };
+
+    const rules = getProductFormRules();
+    const validation = validateForm(formDataForValidation, rules);
+    
+    const customErrors: {[key: string]: string} = {};
+
+    if (!formData.category.trim()) {
+      customErrors.category = 'Please select a category';
+    }
+
+    const allErrors = { ...validation.errors, ...customErrors };
+    
+    if (Object.keys(allErrors).length > 0) {
+      displayFieldErrors(allErrors);
+      setFieldErrors(allErrors);
+      
+      const firstError = Object.values(allErrors)[0];
+      errorMessages.createFailed(`Validation Error: ${firstError}`);
+      
+      return false;
+    }
+
+    setFieldErrors({});
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateProductForm()) {
+      return;
+    }
+
+    showLoadingAlert('Creating product...');
     setLoading(true);
     
     const productData = {
@@ -64,15 +109,18 @@ export default function AddProductPage() {
       });
 
       if (response.ok) {
-        alert('Product added successfully!');
+        closeSweetAlert();
+        await successMessages.created('Product');
         router.push('/admin/products');
       } else {
         const error = await response.json();
-        alert(error.message || 'Error saving product');
+        closeSweetAlert();
+        errorMessages.createFailed(`product: ${error.message || 'Unknown error occurred'}`);
       }
     } catch (error) {
+      closeSweetAlert();
+      errorMessages.networkError();
       console.error('Error saving product:', error);
-      alert('Error saving product');
     } finally {
       setLoading(false);
     }

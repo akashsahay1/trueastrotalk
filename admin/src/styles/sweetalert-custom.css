@@ -1,0 +1,136 @@
+/* Custom SweetAlert2 styles for TrueAstroTalk Admin Panel */
+
+/* Custom popup styling to match admin theme */
+.swal-popup-custom {
+  border-radius: 10px !important;
+  box-shadow: 0 10px 40px rgba(24, 119, 242, 0.1) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
+}
+
+/* Custom title styling */
+.swal-title-custom {
+  color: #2c3e50 !important;
+  font-weight: 600 !important;
+  font-size: 1.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+/* Custom content styling */
+.swal-content-custom {
+  color: #6c757d !important;
+  font-size: 1rem !important;
+  line-height: 1.5 !important;
+}
+
+/* Custom confirm button styling */
+.swal2-confirm {
+  background-color: #dc3545 !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 0.5rem 1.5rem !important;
+  font-weight: 500 !important;
+  font-size: 0.9rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.swal2-confirm:hover {
+  background-color: #c82333 !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Custom cancel button styling */
+.swal2-cancel {
+  background-color: #1877F2 !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 0.5rem 1.5rem !important;
+  font-weight: 500 !important;
+  font-size: 0.9rem !important;
+  transition: all 0.2s ease !important;
+  margin-right: 0.5rem !important;
+}
+
+.swal2-cancel:hover {
+  background-color: #166fe5 !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Success button styling */
+.swal2-popup .swal2-styled.swal2-confirm[style*="background-color: rgb(40, 167, 69)"] {
+  background-color: #28a745 !important;
+}
+
+.swal2-popup .swal2-styled.swal2-confirm[style*="background-color: rgb(40, 167, 69)"]:hover {
+  background-color: #218838 !important;
+}
+
+/* Info button styling */
+.swal2-popup .swal2-styled.swal2-confirm[style*="background-color: rgb(23, 162, 184)"] {
+  background-color: #17a2b8 !important;
+}
+
+.swal2-popup .swal2-styled.swal2-confirm[style*="background-color: rgb(23, 162, 184)"]:hover {
+  background-color: #138496 !important;
+}
+
+/* Custom icon styling */
+.swal2-icon.swal2-warning {
+  border-color: #ffc107 !important;
+  color: #ffc107 !important;
+}
+
+.swal2-icon.swal2-success {
+  border-color: #28a745 !important;
+}
+
+.swal2-icon.swal2-error {
+  border-color: #dc3545 !important;
+}
+
+.swal2-icon.swal2-info {
+  border-color: #17a2b8 !important;
+}
+
+/* Loading spinner customization */
+.swal2-loader {
+  border-color: #1877F2 transparent #1877F2 transparent !important;
+}
+
+/* Animation improvements */
+.swal2-popup {
+  animation-duration: 0.3s !important;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .swal-popup-custom {
+    margin: 1rem !important;
+    width: calc(100% - 2rem) !important;
+  }
+  
+  .swal-title-custom {
+    font-size: 1.25rem !important;
+  }
+  
+  .swal2-confirm,
+  .swal2-cancel {
+    padding: 0.75rem 1rem !important;
+    font-size: 0.85rem !important;
+  }
+}
+
+/* Dark mode support (if needed later) */
+@media (prefers-color-scheme: dark) {
+  .swal-popup-custom {
+    background-color: #2d3748 !important;
+    color: #e2e8f0 !important;
+  }
+  
+  .swal-title-custom {
+    color: #f7fafc !important;
+  }
+  
+  .swal-content-custom {
+    color: #cbd5e0 !important;
+  }
+}

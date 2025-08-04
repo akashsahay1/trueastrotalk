@@ -3,32 +3,20 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
 	images: {
+    // Allow images from all domains - like WordPress media library
+    unoptimized: false,
     remotePatterns: [
-			{
+      // Allow all HTTPS domains
+      {
         protocol: 'https',
-        hostname: 'www.trueastrotalk.com',
-        port: '',
-        pathname: '/uploads/**',
+        hostname: '**',
       },
-			{
-        protocol: 'https',
-        hostname: 'api.dicebear.com',
-        port: '',
-        pathname: '/7.x/avataaars/**',
+      // Allow all HTTP domains for development
+      {
+        protocol: 'http', 
+        hostname: '**',
       },
-			{
-        protocol: 'https',
-        hostname: 'lh3.googleusercontent.com',
-        port: '',
-        pathname: '/a/**',
-      },
-			{
-        protocol: 'https',
-        hostname: 'lh3.googleusercontent.com',
-        port: '',
-        pathname: '/a-/**',
-      },
-		],
+    ],
   },
 	
 };

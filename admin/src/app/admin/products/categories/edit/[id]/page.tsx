@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
+import { validateForm, getCategoryFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/validation';
+import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
 
 interface Category {
   _id: string;
@@ -23,6 +25,7 @@ export default function EditCategoryPage() {
   const [category, setCategory] = useState<Category | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -42,12 +45,12 @@ export default function EditCategoryPage() {
           is_active: categoryData.is_active
         });
       } else {
-        alert('Category not found');
+        errorMessages.notFound('Category');
         router.push('/admin/products/categories');
       }
     } catch (error) {
       console.error('Error fetching category:', error);
-      alert('Error loading category');
+      errorMessages.networkError();
       router.push('/admin/products/categories');
     } finally {
       setLoading(false);
@@ -61,8 +64,39 @@ export default function EditCategoryPage() {
     }
   }, [categoryId, fetchCategory]);
 
+  const validateCategoryForm = () => {
+    clearValidationErrors();
+    
+    const formDataForValidation = {
+      name: formData.name,
+      description: formData.description
+    };
+
+    const rules = getCategoryFormRules();
+    const validation = validateForm(formDataForValidation, rules);
+    
+    if (Object.keys(validation.errors).length > 0) {
+      displayFieldErrors(validation.errors);
+      setFieldErrors(validation.errors);
+      
+      const firstError = Object.values(validation.errors)[0];
+      errorMessages.updateFailed(`Validation Error: ${firstError}`);
+      
+      return false;
+    }
+
+    setFieldErrors({});
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateCategoryForm()) {
+      return;
+    }
+
+    showLoadingAlert('Updating category...');
     setSaving(true);
     
     try {
@@ -75,15 +109,18 @@ export default function EditCategoryPage() {
       });
 
       if (response.ok) {
-        alert('Category updated successfully!');
+        closeSweetAlert();
+        await successMessages.updated('Category');
         router.push('/admin/products/categories');
       } else {
         const error = await response.json();
-        alert(error.message || 'Error updating category');
+        closeSweetAlert();
+        errorMessages.updateFailed(`category: ${error.message || 'Unknown error occurred'}`);
       }
     } catch (error) {
+      closeSweetAlert();
+      errorMessages.networkError();
       console.error('Error updating category:', error);
-      alert('Error updating category');
     } finally {
       setSaving(false);
     }

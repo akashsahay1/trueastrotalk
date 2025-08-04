@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
+import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert';
 
 interface Category {
   _id: string;
@@ -40,7 +41,8 @@ export default function CategoriesPage() {
 
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this category? This action cannot be undone.')) return;
+    const confirmed = await confirmDialogs.deleteItem('category');
+    if (!confirmed) return;
 
     try {
       const response = await fetch(`/api/admin/products/categories/${id}`, {
@@ -55,7 +57,7 @@ export default function CategoriesPage() {
       }
     } catch (error) {
       console.error('Error deleting category:', error);
-      alert('Error deleting category');
+      errorMessages.deleteFailed('category');
     }
   };
 

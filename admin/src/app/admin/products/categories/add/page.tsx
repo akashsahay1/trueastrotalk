@@ -4,18 +4,52 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
+import { validateForm, getCategoryFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/validation';
+import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
 
 export default function AddCategoryPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     is_active: true
   });
 
+  const validateCategoryForm = () => {
+    clearValidationErrors();
+    
+    const formDataForValidation = {
+      name: formData.name,
+      description: formData.description
+    };
+
+    const rules = getCategoryFormRules();
+    const validation = validateForm(formDataForValidation, rules);
+    
+    if (Object.keys(validation.errors).length > 0) {
+      displayFieldErrors(validation.errors);
+      setFieldErrors(validation.errors);
+      
+      const firstError = Object.values(validation.errors)[0];
+      errorMessages.createFailed(`Validation Error: ${firstError}`);
+      
+      return false;
+    }
+
+    setFieldErrors({});
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateCategoryForm()) {
+      return;
+    }
+
+    showLoadingAlert('Creating category...');
     setLoading(true);
     
     try {
@@ -28,15 +62,18 @@ export default function AddCategoryPage() {
       });
 
       if (response.ok) {
-        alert('Category added successfully!');
+        closeSweetAlert();
+        await successMessages.created('Category');
         router.push('/admin/products/categories');
       } else {
         const error = await response.json();
-        alert(error.message || 'Error saving category');
+        closeSweetAlert();
+        errorMessages.createFailed(`category: ${error.message || 'Unknown error occurred'}`);
       }
     } catch (error) {
+      closeSweetAlert();
+      errorMessages.networkError();
       console.error('Error saving category:', error);
-      alert('Error saving category');
     } finally {
       setLoading(false);
     }

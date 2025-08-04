@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import Image from 'next/image';
+import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert';
 
 interface Product {
   _id: string;
@@ -64,7 +65,8 @@ export default function ProductsPage() {
 
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
+    const confirmed = await confirmDialogs.deleteItem('product');
+    if (!confirmed) return;
 
     try {
       const response = await fetch(`/api/admin/products/${id}`, {
@@ -74,11 +76,11 @@ export default function ProductsPage() {
       if (response.ok) {
         fetchProducts();
       } else {
-        alert('Error deleting product');
+        errorMessages.deleteFailed('product');
       }
     } catch (error) {
       console.error('Error deleting product:', error);
-      alert('Error deleting product');
+      errorMessages.deleteFailed('product');
     }
   };
 
