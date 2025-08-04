@@ -1,0 +1,162 @@
+[{
+  "_id": {
+    "$oid": "6881010aa29440899c937aef"
+  },
+  "name": "Natural Ruby Gemstone",
+  "description": "Authentic AAA grade natural ruby gemstone for Sun (Surya) in Vedic astrology. Enhances confidence, leadership, vitality, and courage. Carefully selected and energized. Weight: 3-5 carats. Comes with authenticity certificate.",
+  "price": 3500,
+  "category": "Gemstones",
+  "stock_quantity": 25,
+  "is_active": true,
+  "image_url": "/uploads/2025/08/ta-1754217789412blaewq.jpg",
+  "created_at": {
+    "$date": "2025-07-23T15:34:34.679Z"
+  },
+  "updated_at": {
+    "$date": "2025-08-03T10:43:13.885Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6881010aa29440899c937af0"
+  },
+  "name": "Blue Sapphire (Neelam)",
+  "description": "Genuine premium blue sapphire for Saturn (Shani). Brings discipline, focus, removes obstacles, and promotes spiritual growth. Ideal for Saturn remedies. Weight: 4-6 carats. Lab certified for authenticity.",
+  "price": 8500,
+  "category": "Gemstones",
+  "stock_quantity": 15,
+  "is_active": true,
+  "image_url": "/uploads/2025/08/ta-1754217473367hxl1gs.png",
+  "created_at": {
+    "$date": "2025-07-23T15:34:34.679Z"
+  },
+  "updated_at": {
+    "$date": "2025-08-03T10:38:00.693Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6881010aa29440899c937af1"
+  },
+  "name": "Pearl (Moti)",
+  "description": "Natural South Sea pearl for Moon (Chandra). Promotes emotional balance, mental peace, and intuitive abilities. Perfect for Moon-related astrological remedies. Size: 6-8mm. Lustrous quality guaranteed.",
+  "price": 2200,
+  "category": "Gemstones",
+  "stock_quantity": 30,
+  "is_active": true,
+  "image_url": "/uploads/2025/08/ta-17542180609698f8auv.webp",
+  "created_at": {
+    "$date": "2025-07-23T15:34:34.679Z"
+  },
+  "updated_at": {
+    "$date": "2025-08-03T10:47:46.498Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6881010aa29440899c937af2"
+  },
+  "name": "Rose Quartz Crystal",
+  "description": "Genuine rose quartz healing crystal for love and emotional healing. Promotes self-love, compassion, and harmony in relationships. Ideal for heart chakra activation. Size: 2-3 inches. Naturally formed.",
+  "price": 450,
+  "category": "Crystals",
+  "stock_quantity": 50,
+  "is_active": true,
+  "image_url": "/uploads/2025/08/ta-1754218106351c0dsoa.jpg",
+  "created_at": {
+    "$date": "2025-07-23T15:34:34.679Z"
+  },
+  "updated_at": {
+    "$date": "2025-08-03T10:48:30.082Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6881010aa29440899c937af3"
+  },
+  "name": "Clear Quartz Crystal",
+  "description": "Master healer clear quartz crystal for energy amplification and mental clarity. Enhances meditation, spiritual growth, and positive energy flow. Perfect for all chakras. Premium quality, naturally formed.",
+  "price": 350,
+  "category": "Crystals",
+  "stock_quantity": 40,
+  "is_active": true,
+  "image_url": "/uploads/2025/08/ta-1754218151052m0se13.jpg",
+  "created_at": {
+    "$date": "2025-07-23T15:34:34.679Z"
+  },
+  "updated_at": {
+    "$date": "2025-08-03T10:49:14.893Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6881010aa29440899c937af4"
+  },
+  "name": "5 Mukhi Rudraksha",
+  "description": "Sacred 5-faced Rudraksha bead representing Lord Shiva. Brings peace, protection, and spiritual growth. Ideal for health, wealth, and overall well-being. Lab tested for authenticity. Size: 18-20mm.",
+  "price": 350,
+  "category": "Rudraksha",
+  "stock_quantity": 100,
+  "is_active": true,
+  "image_url": "/uploads/2025/08/ta-1754217155260kphbtp.png",
+  "created_at": {
+    "$date": "2025-07-23T15:34:34.679Z"
+  },
+  "updated_at": {
+    "$date": "2025-08-03T10:37:01.696Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6881010aa29440899c937af5"
+  },
+  "name": "7 Mukhi Rudraksha",
+  "description": "Powerful 7-faced Rudraksha representing Goddess Lakshmi. Brings wealth, prosperity, and removes financial obstacles. Ideal for business success and abundance. Authentic and energized. Size: 16-18mm.",
+  "price": 750,
+  "category": "Rudraksha",
+  "stock_quantity": 60,
+  "is_active": true,
+  "image_url": "/uploads/2025/08/ta-1754218202873v1c1nm.webp",
+  "created_at": {
+    "$date": "2025-07-23T15:34:34.679Z"
+  },
+  "updated_at": {
+    "$date": "2025-08-03T10:50:07.058Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6881010aa29440899c937af6"
+  },
+  "name": "Shree Yantra",
+  "description": "Sacred Shree Yantra in pure copper for wealth and prosperity. Hand-engraved with precise geometric patterns. Attracts abundance, success, and positive energy. Size: 3x3 inches. Includes worship instructions.",
+  "price": 1200,
+  "category": "Yantras",
+  "stock_quantity": 20,
+  "is_active": true,
+  "image_url": "/uploads/2025/08/ta-1754218255552sx630l.webp",
+  "created_at": {
+    "$date": "2025-07-23T15:34:34.679Z"
+  },
+  "updated_at": {
+    "$date": "2025-08-03T10:50:58.696Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6881010aa29440899c937af7"
+  },
+  "name": "Ganesha Yantra",
+  "description": "Powerful Ganesha Yantra for removing obstacles and bringing success. Made in pure copper with authentic mantras. Ideal for new beginnings and career growth. Size: 3x3 inches. Energized and blessed.",
+  "price": 850,
+  "category": "Yantras",
+  "stock_quantity": 35,
+  "is_active": true,
+  "image_url": "/uploads/2025/08/ta-175421829785788grzi.jpg",
+  "created_at": {
+    "$date": "2025-07-23T15:34:34.679Z"
+  },
+  "updated_at": {
+    "$date": "2025-08-03T10:55:15.296Z"
+  }
+}]

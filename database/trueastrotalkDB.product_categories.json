@@ -1,0 +1,84 @@
+[{
+  "_id": {
+    "$oid": "6881010aa29440899c937ae9"
+  },
+  "name": "Gemstones",
+  "description": "Precious and semi-precious gemstones for astrological benefits",
+  "is_active": true,
+  "created_at": {
+    "$date": "2025-07-23T15:34:34.622Z"
+  },
+  "updated_at": {
+    "$date": "2025-07-23T15:34:34.622Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6881010aa29440899c937aea"
+  },
+  "name": "Crystals",
+  "description": "Healing crystals and stones for spiritual wellness",
+  "is_active": true,
+  "created_at": {
+    "$date": "2025-07-23T15:34:34.622Z"
+  },
+  "updated_at": {
+    "$date": "2025-07-23T15:34:34.622Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6881010aa29440899c937aeb"
+  },
+  "name": "Rudraksha",
+  "description": "Sacred Rudraksha beads for meditation and spiritual practices",
+  "is_active": true,
+  "created_at": {
+    "$date": "2025-07-23T15:34:34.622Z"
+  },
+  "updated_at": {
+    "$date": "2025-07-23T15:34:34.622Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6881010aa29440899c937aec"
+  },
+  "name": "Yantras",
+  "description": "Sacred geometric designs for positive energy and prosperity",
+  "is_active": true,
+  "created_at": {
+    "$date": "2025-07-23T15:34:34.622Z"
+  },
+  "updated_at": {
+    "$date": "2025-07-23T15:34:34.622Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6881010aa29440899c937aed"
+  },
+  "name": "Books",
+  "description": "Astrology and spiritual books for knowledge and guidance",
+  "is_active": true,
+  "created_at": {
+    "$date": "2025-07-23T15:34:34.622Z"
+  },
+  "updated_at": {
+    "$date": "2025-07-23T15:34:34.622Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6881010aa29440899c937aee"
+  },
+  "name": "Jewelry",
+  "description": "Astrological jewelry with gemstones and sacred symbols",
+  "is_active": true,
+  "created_at": {
+    "$date": "2025-07-23T15:34:34.622Z"
+  },
+  "updated_at": {
+    "$date": "2025-07-23T15:34:34.622Z"
+  }
+}]

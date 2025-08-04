@@ -55,6 +55,7 @@ export default function AstrologersPage() {
   }, []);
 
   const fetchUsers = async (page: number, searchTerm: string) => {
+    console.log(searchTerm);
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -68,7 +69,10 @@ export default function AstrologersPage() {
       }
 
       const response = await fetch(`/api/users?${params}`);
+
       const data = await response.json();
+
+      console.log(data);
 
       if (response.ok) {
         setUsers(data.data.users);
@@ -194,7 +198,7 @@ export default function AstrologersPage() {
             <div className="row">
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                 <div className="page-header">
-                  <h2 className="pageheader-title">Astrologers Management</h2>
+                  <h2 className="pageheader-title">Astrologers</h2>
                   <p className="pageheader-text">Manage all astrologer accounts and their services</p>
                   <div className="page-breadcrumb">
                     <nav aria-label="breadcrumb">

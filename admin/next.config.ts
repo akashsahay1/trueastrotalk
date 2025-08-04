@@ -6,6 +6,12 @@ const nextConfig: NextConfig = {
     remotePatterns: [
 			{
         protocol: 'https',
+        hostname: 'www.trueastrotalk.com',
+        port: '',
+        pathname: '/uploads/**',
+      },
+			{
+        protocol: 'https',
         hostname: 'api.dicebear.com',
         port: '',
         pathname: '/7.x/avataaars/**',
@@ -15,6 +21,12 @@ const nextConfig: NextConfig = {
         hostname: 'lh3.googleusercontent.com',
         port: '',
         pathname: '/a/**',
+      },
+			{
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        port: '',
+        pathname: '/a-/**',
       },
 		],
   },

@@ -421,7 +421,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // Profile Header Section
             Container(
               color: AppColors.primary,
-              padding: const EdgeInsets.only(bottom: 40),
+              padding: const EdgeInsets.only(top:40, bottom: 40),
               child: Center(
                 child: Column(
                   children: [
@@ -640,7 +640,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileImage() {
-    debugPrint('🖼️ Building profile image: selectedImage=${_selectedProfileImage?.path}, profileImageUrl=$_profileImageUrl');
     
     // Show selected image first
     if (_selectedProfileImage != null) {
@@ -656,22 +655,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Show existing profile image
     if (_profileImageUrl?.isNotEmpty == true) {
       final fullUrl = _getFullImageUrl(_profileImageUrl!);
-      debugPrint('🌐 Showing network image: $fullUrl');
       return Image.network(
         fullUrl,
         width: 120,
         height: 120,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
-          debugPrint('❌ Image load error: $error');
           return _buildFallbackAvatar();
         },
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) {
-            debugPrint('✅ Image loaded successfully');
             return child;
           }
-          debugPrint('⏳ Loading image...');
           return Container(
             width: 120,
             height: 120,
@@ -685,7 +680,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     
     // Show fallback avatar
-    debugPrint('👤 Showing fallback avatar');
     return _buildFallbackAvatar();
   }
 

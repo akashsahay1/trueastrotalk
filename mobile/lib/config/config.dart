@@ -1,6 +1,6 @@
 class Config {
   // 🔧 CHANGE THIS TO SWITCH MODES
-  static const String mode = 'prod'; // Change to 'local' or 'prod'
+  static const String mode = 'local'; // Change to 'local' or 'prod'
 
   // Environment Detection
   static bool get isLocal => mode == 'local';
