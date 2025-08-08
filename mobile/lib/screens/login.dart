@@ -195,6 +195,24 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, Dimensions.buttonHeightMd)),
                       child: Text(AppStrings.register, style: AppTextStyles.buttonMedium),
                     ),
+
+                    const SizedBox(height: Dimensions.spacingMd),
+
+                    // Join as Astrologer Link
+                    Center(
+                      child: TextButton(
+                        onPressed: _onJoinAsAstrologer,
+                        child: Text(
+                          'Join as Astrologer',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.underline,
+                            decorationColor: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -270,6 +288,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _onRegister() {
     Navigator.pushNamed(context, '/register');
+  }
+
+  void _onJoinAsAstrologer() {
+    Navigator.pushNamed(context, '/astrologer-signup');
   }
 
   void _onForgotPassword() {

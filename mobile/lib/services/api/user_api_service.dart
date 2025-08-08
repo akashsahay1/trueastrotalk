@@ -12,7 +12,7 @@ class UserApiService {
   UserApiService(this._dio);
 
   // Register user with email/password
-  Future<User> registerUser({required String name, required String email, required String password, required String phone, required UserRole role, DateTime? dateOfBirth, String? timeOfBirth, String? placeOfBirth, String? authType = 'email', String? googleIdToken, String? googleAccessToken}) async {
+  Future<User> registerUser({required String name, required String email, required String password, required String phone, required UserRole role, DateTime? dateOfBirth, String? timeOfBirth, String? placeOfBirth, String? authType = 'email', String? googleIdToken, String? googleAccessToken, String? experience, String? bio, String? languages, String? specializations}) async {
     try {
       final response = await _dio.post(
         ApiEndpoints.register,
@@ -28,6 +28,10 @@ class UserApiService {
           'place_of_birth': placeOfBirth,
           'google_id_token': googleIdToken,
           'google_access_token': googleAccessToken,
+          if (experience != null && experience.isNotEmpty) 'experience_years': experience,
+          if (bio != null && bio.isNotEmpty) 'bio': bio,
+          if (languages != null && languages.isNotEmpty) 'languages': languages,
+          if (specializations != null && specializations.isNotEmpty) 'specializations': specializations,
         },
       );
 

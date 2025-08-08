@@ -78,4 +78,10 @@ class AppColors {
   static const Color paymentSuccess = Color(0xFF4CAF50);
   static const Color paymentPending = Color(0xFFFF9800);
   static const Color paymentFailed = Color(0xFFF44336);
+
+  // Alias colors for backward compatibility
+  static const Color background = backgroundLight;
+  static const Color lightGray = grey300;
+  static const Color textPrimary = textPrimaryLight;
+  static const Color textSecondary = textSecondaryLight;
 }

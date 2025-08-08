@@ -1,10 +1,27 @@
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'dart:convert';
 import '../../models/user.dart' as app_user;
 import '../../models/enums.dart';
 import '../api/user_api_service.dart';
+
+class AuthResult {
+  final bool success;
+  final String? message;
+  final app_user.User? user;
+  final String? token;
+
+  AuthResult({required this.success, this.message, this.user, this.token});
+
+  factory AuthResult.success({String? message, app_user.User? user, String? token}) {
+    return AuthResult(success: true, message: message, user: user, token: token);
+  }
+
+  factory AuthResult.failure({required String message}) {
+    return AuthResult(success: false, message: message);
+  }
+}
 
 class GoogleSignUpRequiredException implements Exception {
   final String name;
@@ -87,14 +104,87 @@ class AuthService {
     }
   }
 
-  Future<app_user.User> registerWithEmailPassword({required String name, required String email, required String password, required String phone, required String role, DateTime? dateOfBirth, String? timeOfBirth, String? placeOfBirth, String? authType, String? googleAccessToken}) async {
+  // Simple register method for the new onboarding signup flow
+  Future<AuthResult> register({
+    required String name,
+    required String email,
+    required String phone,
+    required String password,
+    required UserType userType,
+    DateTime? dateOfBirth,
+    TimeOfDay? timeOfBirth,
+    String? placeOfBirth,
+    String? experience,
+    String? bio,
+    String? languages,
+    String? specializations,
+  }) async {
+    try {
+      // Convert TimeOfDay to string if provided
+      String? timeOfBirthStr;
+      if (timeOfBirth != null) {
+        timeOfBirthStr = '${timeOfBirth.hour.toString().padLeft(2, '0')}:${timeOfBirth.minute.toString().padLeft(2, '0')}';
+      }
+
+      // Convert UserType to role string
+      final role = userType == UserType.customer ? 'customer' : 'astrologer';
+
+      final user = await registerWithEmailPassword(
+        name: name,
+        email: email,
+        password: password,
+        phone: phone,
+        role: role,
+        dateOfBirth: dateOfBirth,
+        timeOfBirth: timeOfBirthStr,
+        placeOfBirth: placeOfBirth,
+        experience: experience,
+        bio: bio,
+        languages: languages,
+        specializations: specializations,
+      );
+
+      return AuthResult.success(message: 'Registration successful', user: user);
+    } on AstrologerRegistrationSuccessException catch (e) {
+      // For astrologer, this is actually success - they need admin approval
+      return AuthResult.success(
+        message: 'Astrologer registration submitted successfully. Please wait for admin approval.',
+        user: e.newUser,
+      );
+    } catch (e) {
+      return AuthResult.failure(message: e.toString());
+    }
+  }
+
+  Future<app_user.User> registerWithEmailPassword({required String name, required String email, required String password, required String phone, required String role, DateTime? dateOfBirth, String? timeOfBirth, String? placeOfBirth, String? authType, String? googleAccessToken, String? experience, String? bio, String? languages, String? specializations}) async {
     try {
       // Try to register the user
-      final user = await _userApiService.registerUser(name: name, email: email, password: password, phone: phone, role: UserRoleExtension.fromString(role), dateOfBirth: dateOfBirth, timeOfBirth: timeOfBirth, placeOfBirth: placeOfBirth, authType: authType, googleAccessToken: googleAccessToken);
+      final user = await _userApiService.registerUser(name: name, email: email, password: password, phone: phone, role: UserRoleExtension.fromString(role), dateOfBirth: dateOfBirth, timeOfBirth: timeOfBirth, placeOfBirth: placeOfBirth, authType: authType, googleAccessToken: googleAccessToken, experience: experience, bio: bio, languages: languages, specializations: specializations);
 
       // If astrologer registration is successful, throw special exception
       if (user.role == UserRole.astrologer) {
         throw AstrologerRegistrationSuccessException(newUser: user);
+      }
+
+      // For successful customer registration, automatically log them in
+      if (user.role == UserRole.customer) {
+        // Since we just registered successfully, we need to get a token
+        // Let's login the user to get the token
+        try {
+          final loginResult = await _userApiService.loginUser(
+            email: email,
+            password: password,
+          );
+          
+          final loggedInUser = loginResult['user'] as app_user.User;
+          final token = loginResult['token'] as String;
+          
+          await _saveAuthData(loggedInUser, token);
+          return loggedInUser;
+        } catch (loginError) {
+          // If login fails, just return the user without setting auth data
+          return user;
+        }
       }
 
       return user;

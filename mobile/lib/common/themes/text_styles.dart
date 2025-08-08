@@ -174,4 +174,9 @@ class AppTextStyles {
     fontWeight: FontWeight.normal,
     color: AppColors.grey500,
   );
+
+  // Alias styles for backward compatibility
+  static const TextStyle body1 = bodyLarge;
+  static const TextStyle body2 = bodyMedium;
+  static const TextStyle button = buttonLarge;
 }

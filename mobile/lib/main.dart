@@ -8,7 +8,7 @@ import 'config/config.dart';
 import 'config/environment_config.dart';
 import 'screens/onboarding.dart';
 import 'screens/login.dart';
-import 'screens/register.dart';
+import 'screens/signup.dart';
 import 'screens/home.dart';
 import 'services/service_locator.dart';
 import 'services/auth/auth_service.dart';
@@ -19,12 +19,16 @@ void main() async {
 
   // Load environment variables
   await dotenv.load(fileName: ".env");
-  
+
   // Print environment configuration (debug only)
   EnvironmentConfig.printConfig();
 
   // Initialize Firebase
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  } catch (e) {
+    // Firebase already initialized
+  }
 
   // Setup service locator for dependency injection
   setupServiceLocator();
@@ -59,7 +63,8 @@ class TrueAstrotalkApp extends StatelessWidget {
       routes: {
         '/onboarding': (context) => const OnboardingScreen(),
         '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegistrationScreen(),
+        '/register': (context) => const SignupScreen(),
+        '/astrologer-signup': (context) => const SignupScreen(isAdvanced: true),
         '/customer/home': (context) => const CustomerHomeScreen(),
         '/astrologer/dashboard': (context) => const Scaffold(body: Center(child: Text('Dashboard - Coming Soon'))),
         '/forgot-password': (context) => const Scaffold(body: Center(child: Text('Forgot Password - Coming Soon'))),

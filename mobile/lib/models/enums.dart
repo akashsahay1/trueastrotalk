@@ -1,3 +1,9 @@
+// User type enumeration (for signup flow)
+enum UserType {
+  customer,
+  astrologer,
+}
+
 // User role enumeration 
 enum UserRole {
   customer,
