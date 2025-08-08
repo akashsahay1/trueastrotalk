@@ -394,7 +394,7 @@ users:
 - verified_at, verified_by (Date, ObjectId)
 - rejection_reason (string)
 
-Note: This is a denormalized schema where astrologer-specific fields are stored 
+Note: This is a denormalized schema where astrologer-specific fields are stored
 directly in the users collection rather than a separate astrologer_profiles table.
 ```
 
@@ -956,7 +956,7 @@ This comprehensive development context provides all specifications needed to bui
 - **Problem**: 17 astrologers had broken Unsplash profile image URLs returning 404 errors
 - **Root Cause**: Unsplash URLs (`https://images.unsplash.com/photo-*`) were no longer valid
 - **Solution**: Updated all broken URLs to reliable DiceBear avatar service
-- **Implementation**: 
+- **Implementation**:
   - Used `https://api.dicebear.com/7.x/avataaars/png?seed={name}&size=150` format
   - Generated unique avatars based on astrologer names
   - Updated 72 total astrologers (17 with broken URLs + 55 without any profile images)
@@ -966,7 +966,7 @@ This comprehensive development context provides all specifications needed to bui
 **Astrologer Profile Image Migration**
 - **Database**: `trueastrotalkDB` collection `users`
 - **Records Updated**: 72 astrologer profiles
-- **Fields Modified**: `profile_image` and `profile_picture` 
+- **Fields Modified**: `profile_image` and `profile_picture`
 - **New Image Source**: DiceBear avatars (reliable, consistent, unique per astrologer)
 - **Verification**: Confirmed 0 remaining Unsplash URLs in database
 
@@ -997,3 +997,10 @@ https://api.dicebear.com/7.x/avataaars/png?seed=meera&size=150
 - Mobile app feature completion continues
 - Real-time consultation system implementation
 - Payment gateway integration testing
+
+Alright now push all changes, but exclude the google-service.json and ios firebase plist file, also in windows android studio I was not able to run app with locahost
+api url in android simulator. Also my this machine is mac but my office machine is windows and i am facing issues of maintaing the app consitency with sensitive files
+like .env, google-services.json and googleservice-info.plist files because we cant push them in git because git blocks it due to sensitive api keys data in it, so how
+to make the app perfectly in sync while working on the same codebase in 2 different os environment as setting this correctly will also help me in setting things for
+other apps as well. Also while pushing i want this to be taken, because i already pushed in git but not pulled before making changes.
+````
