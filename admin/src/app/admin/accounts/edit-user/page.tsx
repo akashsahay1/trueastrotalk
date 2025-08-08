@@ -249,22 +249,23 @@ function EditUserContent() {
     setError('');
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      const formDataForUpload = new FormData();
+      formDataForUpload.append('profile_image', file);
 
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'PUT',
+        body: formDataForUpload,
       });
 
       const data = await response.json();
 
       if (response.ok) {
+        // Update form data with the returned profile image URL
         setFormData(prev => ({
           ...prev,
-          profile_image: data.url
+          profile_image: data.user.profile_image
         }));
-        setImagePreview(data.url);
+        setImagePreview(data.user.profile_image);
       } else {
         setError(data.error || 'Failed to upload image');
       }

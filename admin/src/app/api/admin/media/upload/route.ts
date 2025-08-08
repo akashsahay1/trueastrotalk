@@ -42,11 +42,10 @@ export async function POST(request: NextRequest) {
     const year = now.getFullYear().toString();
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
 
-    // Generate unique filename with ta- prefix like the upload route
+    // Generate simple filename: ta-timestamp.extension
     const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(2, 8);
     const extension = path.extname(file.name);
-    const filename = `ta-${timestamp}${randomString}${extension}`;
+    const filename = `ta-${timestamp}${extension}`;
     
     // Create uploads directory with year/month structure like WordPress
     const uploadsDir = path.join(process.cwd(), 'public', 'uploads', year, month);

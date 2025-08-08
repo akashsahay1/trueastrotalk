@@ -77,7 +77,8 @@ export default function AddUserPage() {
   const [skillInput, setSkillInput] = useState('');
   const [imageUploading, setImageUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
 
   useEffect(() => {
     document.body.className = '';

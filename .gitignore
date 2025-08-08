@@ -155,6 +155,10 @@ firebase-config.json
 config.production.dart
 api-keys.json
 
+# Keep template files but ignore actual .env
+!.env.example
+!mobile/.env.example
+
 # Database credentials
 database.env
 db-config.json

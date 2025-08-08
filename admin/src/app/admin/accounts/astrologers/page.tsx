@@ -123,7 +123,7 @@ export default function AstrologersPage() {
         successMessages.deleted('User');
         fetchUsers(pagination.currentPage, search);
       } else {
-        const error = await response.json();
+        await response.json();
         errorMessages.deleteFailed('user');
       }
     } catch (error) {

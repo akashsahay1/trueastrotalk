@@ -148,7 +148,6 @@ export const envHelpers = {
 
 // Export individual values for convenience (backward compatibility)
 export const {
-  APP_ENVIRONMENT,
   MONGODB_URL,
   DB_NAME,
   JWT_SECRET,
@@ -157,6 +156,8 @@ export const {
   API_BASE_URL,
   PORT
 } = envConfig;
+
+export { APP_ENVIRONMENT };
 
 // Log configuration summary in local environment
 if (isLocal) {

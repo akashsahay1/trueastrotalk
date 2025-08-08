@@ -182,15 +182,13 @@ mobile/lib/
 - **Styling:** Bootstrap 4 (Influence template) + Custom CSS
 - **UI Components:** Influence template components
 - **Authentication:** NextAuth.js
-- **Database:** PostgreSQL with Prisma ORM
+- **Database:** MongoDB
 - **API Integration:** Built-in API routes
 - **Accent Color:** #1877F2 for buttons, highlights, and branding
 
 #### External Services
 - **Payment Gateway:** RazorPay (Payments + Payouts)
-- **Cloud Storage:** AWS S3 or Cloudinary
 - **Real-time Communication:** Socket.IO
-- **Video Calling:** Agora
 - **Push Notifications:** Firebase
 - **Email Service:** SendGrid
 - **SMS Service:** Twilio
@@ -369,25 +367,54 @@ Monthly Payout Process:
 
 #### Core Tables
 
-##### Users Table
+##### Users Table (Standardized Schema)
 ```sql
 users:
-- id (UUID, primary key)
-- phone (varchar, unique)
-- email (varchar, unique, nullable)
-- name (varchar)
-- role (enum: customer, astrologer, admin, manager)
-- account_status (enum: pending, profile_incomplete, submitted, verified, active, suspended, rejected)
-- verification_status (enum: unverified, verified, rejected)
-- is_online (boolean, for astrologers)
-- wallet_balance (decimal, for customers)
-- date_of_birth, time_of_birth, place_of_birth (for kundli)
-- created_at, updated_at
-- verified_at, verified_by
-- rejection_reason (text)
-````
+- _id (ObjectId, primary key)
+- phone_number (string, unique)
+- email_address (string, unique, nullable)
+- full_name (string, required)
+- user_type (enum: 'customer', 'astrologer', 'administrator', 'manager')
+- account_status (enum: 'pending', 'profile_incomplete', 'submitted', 'verified', 'active', 'suspended', 'rejected')
+- verification_status (enum: 'unverified', 'verified', 'rejected')
+- is_online (boolean, for astrologers only)
+- profile_image (string, URL path - DEPRECATED, use profile_image_id)
+- profile_image_id (ObjectId, reference to media_files collection)
+- profile_picture (string, URL path - DEPRECATED, use profile_image_id)
+- bio (string, optional)
+- specializations (array of strings, for astrologers)
+- languages (array of strings, for astrologers)
+- experience_years (number, for astrologers)
+- chat_rate, call_rate, video_rate (numbers, for astrologers)
+- rating (number, calculated average)
+- total_reviews (number, count)
+- wallet_balance (number, for customers)
+- date_of_birth, time_of_birth, place_of_birth (strings, for kundli generation)
+- created_at, updated_at (Date)
+- verified_at, verified_by (Date, ObjectId)
+- rejection_reason (string)
 
-##### Astrologer Profiles Table
+Note: This is a denormalized schema where astrologer-specific fields are stored 
+directly in the users collection rather than a separate astrologer_profiles table.
+```
+
+##### Media Files Table (New)
+```sql
+media_files:
+- _id (ObjectId, primary key)
+- filename (string, unique filename with timestamp)
+- original_name (string, original uploaded filename)
+- file_path (string, relative path from public directory)
+- file_size (number, size in bytes)
+- mime_type (string, e.g., 'image/png')
+- file_type (enum: 'astrologer_profile', 'admin_upload', 'general')
+- uploaded_by (string, user identifier or 'migration_script')
+- associated_record (string, ObjectId of related record)
+- is_external (boolean, false for local uploads)
+- uploaded_at, created_at, updated_at (Date)
+```
+
+##### Astrologer Profiles Table (DEPRECATED)
 
 ```sql
 astrologer_profiles:
@@ -581,12 +608,10 @@ POST /api/upload/sample-video
 
 #### Video/Audio Calling
 
-- Agora SDK integration
+- Native WebRTC implementation
 - HD video quality optimization
 - Audio-only call option
-- Call recording (with consent)
 - Network quality indicators
-- Screen sharing capability
 
 #### Push Notifications
 
@@ -776,13 +801,12 @@ POST /api/upload/sample-video
 - Twilio (SMS notifications)
 - SendGrid (email communications)
 - Socket.IO (real-time chat)
-- Agora (video/audio calling)
+- WebRTC (video/audio calling)
 
 #### Infrastructure Services
 
-- AWS S3 or Cloudinary (file storage)
 - Redis (caching and session management)
-- PostgreSQL (primary database)
+- MongoDB (primary database)
 - Elasticsearch (search and analytics)
 
 ## Quality Assurance Requirements
@@ -885,9 +909,8 @@ POST /api/upload/sample-video
 
 ### Database & Storage
 
-- PostgreSQL database with replication
+- MongoDB database with replication
 - Automated backup and recovery
-- File storage with CDN distribution
 - Redis caching layer
 - Database migration management
 

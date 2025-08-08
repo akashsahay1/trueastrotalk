@@ -1,39 +1,15 @@
+import 'environment_config.dart';
+
 class Config {
-  // 🔧 CHANGE THIS TO SWITCH MODES
-  static const String mode = 'local'; // Change to 'local' or 'prod'
-
-  // Environment Detection
-  static bool get isLocal => mode == 'local';
-  static bool get isProduction => mode == 'prod';
-
   // App Information
   static const String appName = 'True Astrotalk';
   static const String packageName = 'com.trueastrotalk.user';
   static const String version = '1.0.0';
   static const int buildNumber = 1;
 
-  // API Configuration
-  static String get baseUrl {
-    switch (mode) {
-      case 'local':
-        return 'http://localhost:3000/api';
-      case 'prod':
-        return 'https://www.trueastrotalk.com/api';
-      default:
-        return 'http://localhost:3000/api';
-    }
-  }
-
-  static String get socketUrl {
-    switch (mode) {
-      case 'local':
-        return 'http://localhost:3000'; // Next.js server with Socket.IO for local development
-      case 'prod':
-        return 'https://www.trueastrotalk.com'; // Production server with Socket.IO
-      default:
-        return 'http://localhost:3000';
-    }
-  }
+  // API Configuration - Using environment-based configuration
+  static String get baseUrl => EnvironmentConfig.baseUrl;
+  static String get socketUrl => EnvironmentConfig.socketUrl;
 
   // Request timeouts
   static const Duration connectTimeout = Duration(seconds: 30);
@@ -91,8 +67,8 @@ class Config {
   static const String appStoreUrl = 'https://apps.apple.com/app/true-astrotalk/id123456789';
 
   // Debug settings
-  static bool get enableLogger => isLocal;
-  static bool get enableNetworkLogs => isLocal;
+  static const bool enableLogger = false; // Set to true for debugging
+  static const bool enableNetworkLogs = false; // Set to true for debugging
   static const bool enablePerformanceMonitoring = true;
 
   // Retry configuration

@@ -10,7 +10,8 @@ import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } fro
 export default function AddCategoryPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
   const [formData, setFormData] = useState({
     name: '',
     description: '',

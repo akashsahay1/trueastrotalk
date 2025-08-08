@@ -1,7 +1,7 @@
 import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 
 const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const DB_NAME = 'trueastrotalkDB';
@@ -262,7 +262,7 @@ export class UploadService {
       const mediaCollection = db.collection('media_files');
 
       // Get file info before deletion
-      const file = await mediaCollection.findOne({ _id: fileId });
+      const file = await mediaCollection.findOne({ _id: new ObjectId(fileId) });
       if (!file) {
         await client.close();
         return {
@@ -272,13 +272,14 @@ export class UploadService {
       }
 
       // Delete from database
-      await mediaCollection.deleteOne({ _id: fileId });
+      await mediaCollection.deleteOne({ _id: new ObjectId(fileId) });
       
       // If it's an internal file, also delete from filesystem
       if (!file.is_external && file.file_path.startsWith('/uploads/')) {
         const filePath = path.join(process.cwd(), 'public', file.file_path);
         try {
-          await require('fs/promises').unlink(filePath);
+          const { unlink } = await import('fs/promises');
+          await unlink(filePath);
         } catch (error) {
           console.warn('Could not delete physical file:', error);
         }

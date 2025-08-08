@@ -9,7 +9,6 @@ import '../../models/user.dart' as app_user;
 import '../../models/enums.dart';
 import '../../models/astrologer.dart';
 import '../../models/product.dart';
-import '../../config/config.dart';
 import 'profile.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
@@ -425,12 +424,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                         children: [
                             Stack(
                               children: [
-                                CircleAvatar(
-                                  radius: 30,
-                                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                                  backgroundImage: astrologer.profileImage?.isNotEmpty == true ? NetworkImage(_getFullImageUrl(astrologer.profileImage!)) : null,
-                                  child: astrologer.profileImage?.isEmpty != false ? const Icon(Icons.person, size: 32, color: AppColors.primary) : null,
-                                ),
+                                _buildAstrologerProfileImage(astrologer),
                                 Positioned(
                                   top: 2,
                                   right: 2,
@@ -656,7 +650,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               height: 140,
               width: double.infinity,
               color: AppColors.grey100,
-              child: product.imageUrl?.isNotEmpty == true ? Image.network(_getFullImageUrl(product.imageUrl!), fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => _buildPlaceholderImage()) : _buildPlaceholderImage(),
+              child: product.imageUrl?.isNotEmpty == true ? Image.network(product.imageUrl!, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => _buildPlaceholderImage()) : _buildPlaceholderImage(),
             ),
           ),
           // Product Details - Fixed height to prevent overflow
@@ -1146,10 +1140,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Widget _buildProfileImage() {
     // Check if user has profile picture in database (works for Google and other users)
     if (_currentUser?.profilePicture != null && _currentUser!.profilePicture!.isNotEmpty) {
-      final imageUrl = _getFullImageUrl(_currentUser!.profilePicture!);
-      
       return Image.network(
-        imageUrl,
+        _currentUser!.profilePicture!,
         width: 70,
         height: 70,
         fit: BoxFit.cover,
@@ -1223,19 +1215,49 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  String _getFullImageUrl(String imageUrl) {
-    // If the URL is already a full URL (starts with http), return as is
-    if (imageUrl.startsWith('http')) {
-      return imageUrl;
+  Widget _buildAstrologerProfileImage(Astrologer astrologer) {
+    // Check if we have a valid profile image URL
+    if (astrologer.profileImage != null && astrologer.profileImage!.isNotEmpty) {
+      return CircleAvatar(
+        radius: 30,
+        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+        child: ClipOval(
+          child: Image.network(
+            astrologer.profileImage!,
+            width: 60,
+            height: 60,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Icon(
+                Icons.person,
+                size: 30,
+                color: AppColors.primary.withValues(alpha: 0.5),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              // If network image fails, show default avatar
+              return Icon(
+                Icons.person,
+                size: 30,
+                color: AppColors.primary,
+              );
+            },
+          ),
+        ),
+      );
     }
-
-    // If it's a relative path, prepend the server base URL
-    // Remove leading slash if present to avoid double slashes
-    final cleanPath = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
-
-    // Use the current config mode to determine base URL
-    final baseUrl = Config.mode == 'local' ? 'http://localhost:3000' : 'https://www.trueastrotalk.com';
-    return '$baseUrl/$cleanPath';
+    
+    // Fallback to icon if no profile image
+    return CircleAvatar(
+      radius: 30,
+      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+      child: Icon(
+        Icons.person,
+        size: 30,
+        color: AppColors.primary,
+      ),
+    );
   }
 
 }

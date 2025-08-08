@@ -150,7 +150,7 @@ export default function ChatSessionsPage() {
         successMessages.deleted('Session');
         fetchSessions(pagination.currentPage, search, statusFilter);
       } else {
-        const error = await response.json();
+        await response.json();
         errorMessages.deleteFailed('session');
       }
     } catch (error) {
@@ -186,8 +186,8 @@ export default function ChatSessionsPage() {
         setSelectedSessions([]);
         fetchSessions(pagination.currentPage, search, statusFilter);
       } else {
-        const error = await response.json();
-        alert('Error deleting sessions: ' + error.error);
+        await response.json();
+        alert('Error deleting sessions. Please try again.');
       }
     } catch (error) {
       console.error('Error in bulk delete:', error);

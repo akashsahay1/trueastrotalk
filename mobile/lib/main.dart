@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'common/themes/app_theme.dart';
 import 'config/config.dart';
+import 'config/environment_config.dart';
 import 'screens/onboarding.dart';
 import 'screens/login.dart';
 import 'screens/register.dart';
@@ -14,6 +16,12 @@ import 'models/enums.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables
+  await dotenv.load(fileName: ".env");
+  
+  // Print environment configuration (debug only)
+  EnvironmentConfig.printConfig();
 
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);

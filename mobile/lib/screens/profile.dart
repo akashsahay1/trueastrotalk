@@ -8,7 +8,6 @@ import '../services/auth/auth_service.dart';
 import '../services/api/user_api_service.dart';
 import '../services/service_locator.dart';
 import '../models/user.dart' as app_user;
-import '../config/config.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -654,9 +653,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     
     // Show existing profile image
     if (_profileImageUrl?.isNotEmpty == true) {
-      final fullUrl = _getFullImageUrl(_profileImageUrl!);
       return Image.network(
-        fullUrl,
+        _profileImageUrl!,
         width: 120,
         height: 120,
         fit: BoxFit.cover,
@@ -796,15 +794,4 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  String _getFullImageUrl(String imageUrl) {
-    // If the URL is already a full URL (starts with http), return as is
-    if (imageUrl.startsWith('http')) {
-      return imageUrl;
-    }
-
-    // If it's a relative path, prepend the server base URL
-    final cleanPath = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
-    final baseUrl = Config.mode == 'local' ? 'http://localhost:3000' : 'https://www.trueastrotalk.com';
-    return '$baseUrl/$cleanPath';
-  }
 }

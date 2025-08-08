@@ -37,7 +37,7 @@ export async function showConfirmDialog(
     customClass: {
       popup: 'swal-popup-custom',
       title: 'swal-title-custom',
-      content: 'swal-content-custom'
+      htmlContainer: 'swal-content-custom'
     }
   });
 
@@ -51,7 +51,7 @@ export function showSuccessAlert(
   title: string,
   text?: string,
   timer: number = 2000
-): Promise<any> {
+): Promise<unknown> {
   return Swal.fire({
     title,
     text,
@@ -71,7 +71,7 @@ export function showSuccessAlert(
 export function showErrorAlert(
   title: string,
   text?: string
-): Promise<any> {
+): Promise<unknown> {
   return Swal.fire({
     title,
     text,
@@ -89,7 +89,7 @@ export function showErrorAlert(
 export function showInfoAlert(
   title: string,
   text?: string
-): Promise<any> {
+): Promise<unknown> {
   return Swal.fire({
     title,
     text,
@@ -221,5 +221,8 @@ export const errorMessages = {
     showErrorAlert('Network Error', 'Unable to connect to server. Please check your connection.'),
   
   unauthorized: () =>
-    showErrorAlert('Unauthorized', 'You are not authorized to perform this action.')
+    showErrorAlert('Unauthorized', 'You are not authorized to perform this action.'),
+  
+  notFound: (itemType: string = 'item') =>
+    showErrorAlert('Not Found', `${itemType} not found. It may have been deleted.`)
 };

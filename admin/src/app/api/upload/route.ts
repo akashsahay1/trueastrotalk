@@ -67,11 +67,10 @@ export async function POST(request: NextRequest) {
       await mkdir(uploadDir, { recursive: true });
     }
 
-    // Generate unique filename with timestamp and random string (consistent with other uploads)
+    // Generate simple filename: ta-timestamp.extension
     const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(2, 8);
     const extension = path.extname(file.name);
-    const fileName = `ta-${timestamp}${randomString}${extension}`;
+    const fileName = `ta-${timestamp}${extension}`;
     
     // Full file path
     const filePath = path.join(uploadDir, fileName);

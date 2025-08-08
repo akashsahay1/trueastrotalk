@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
-import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert';
+import { confirmDialogs, errorMessages } from '@/lib/sweetalert';
 
 interface Category {
   _id: string;

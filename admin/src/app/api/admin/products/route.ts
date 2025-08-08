@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
           imageUrl: image_url,
           originalName: `Product image for ${name}`,
           fileType: 'product_image',
-          uploadedBy: null, // Could be extended to track admin user
+          uploadedBy: undefined, // Could be extended to track admin user
           associatedRecord: productId
         });
       } else {

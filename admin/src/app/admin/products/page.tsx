@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import Image from 'next/image';
-import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert';
+import { confirmDialogs, errorMessages } from '@/lib/sweetalert';
 
 interface Product {
   _id: string;
