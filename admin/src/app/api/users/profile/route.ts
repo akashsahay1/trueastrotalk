@@ -4,6 +4,7 @@ import { jwtVerify } from 'jose';
 import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
+import { deleteFile } from '@/lib/file-cleanup';
 
 // Helper function to get base URL for images
 function getBaseUrl(request: NextRequest): string {
@@ -11,6 +12,7 @@ function getBaseUrl(request: NextRequest): string {
   const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
   return `${protocol}://${host}`;
 }
+
 
 // Helper function to resolve profile image to full URL
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -282,6 +284,26 @@ export async function PUT(request: NextRequest) {
     const db = client.db(DB_NAME);
     const usersCollection = db.collection('users');
     const mediaCollection = db.collection('media_files');
+
+    // Get existing user data to check for old profile image
+    const existingUser = await usersCollection.findOne({ _id: new ObjectId(payload.userId as string) });
+    
+    if (!existingUser) {
+      await client.close();
+      return NextResponse.json({ 
+        success: false,
+        error: 'User not found',
+        message: 'User account no longer exists' 
+      }, { status: 404 });
+    }
+
+    // If uploading a new profile image, clean up the old one
+    if (imageUrl && existingUser.profile_image && existingUser.profile_image !== imageUrl) {
+      await deleteFile(existingUser.profile_image as string, { 
+        deleteFromFilesystem: true, 
+        logActivity: true 
+      });
+    }
 
     const result = await usersCollection.updateOne(
       { _id: new ObjectId(payload.userId as string) },

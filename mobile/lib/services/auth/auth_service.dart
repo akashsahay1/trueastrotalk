@@ -383,13 +383,17 @@ class AuthService {
     }
   }
 
-  Future<app_user.User> updateUserProfile(Map<String, dynamic> userData) async {
+  Future<app_user.User> updateUserProfile(Map<String, dynamic> userData, {String? profileImagePath}) async {
     if (_authToken == null) {
       throw Exception('User not authenticated');
     }
 
     try {
-      final updatedUser = await _userApiService.updateUserProfile(token: _authToken!, userData: userData);
+      final updatedUser = await _userApiService.updateUserProfile(
+        token: _authToken!, 
+        userData: userData,
+        profileImagePath: profileImagePath,
+      );
 
       _currentUser = updatedUser;
       await _saveUserData(updatedUser);

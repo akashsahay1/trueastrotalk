@@ -42,7 +42,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Future<void> _loadData() async {
-    await Future.wait([_loadUserData(), _loadWalletBalance(), _loadFeaturedAstrologers(), _loadFeaturedProducts()]);
+    await Future.wait([
+      _loadUserData(),
+      _loadWalletBalance(),
+      _loadFeaturedAstrologers(),
+      _loadFeaturedProducts(),
+    ]);
   }
 
   Future<void> _loadUserData() async {
@@ -53,7 +58,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       });
     } catch (e) {
       setState(() {
-        _isLoading = false; 
+        _isLoading = false;
       });
     }
   }
@@ -69,7 +74,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       if (token != null) {
         final walletData = await _userApiService.getWalletBalance(token);
         setState(() {
-          _walletBalance = (walletData['wallet_balance'] as num?)?.toDouble() ?? 0.0;
+          _walletBalance =
+              (walletData['wallet_balance'] as num?)?.toDouble() ?? 0.0;
           _isLoadingWallet = false;
         });
       }
@@ -82,10 +88,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   Future<void> _loadFeaturedAstrologers() async {
     try {
-      final astrologersData = await _userApiService.getAvailableAstrologers(limit: 20, onlineOnly: false);
+      final astrologersData = await _userApiService.getAvailableAstrologers(
+        limit: 20,
+        onlineOnly: false,
+      );
       final astrologersList = astrologersData['astrologers'] as List<dynamic>;
       setState(() {
-        _featuredAstrologers = astrologersList.map((json) => Astrologer.fromJson(json)).toList();
+        _featuredAstrologers = astrologersList
+            .map((json) => Astrologer.fromJson(json))
+            .toList();
         _isLoadingAstrologers = false;
       });
     } catch (e) {
@@ -170,25 +181,42 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           onPressed: () => Scaffold.of(context).openDrawer(),
         ),
       ),
-      title: Text('True Astrotalk', style: AppTextStyles.heading4.copyWith(color: AppColors.white)),
+      title: Text(
+        'True Astrotalk',
+        style: AppTextStyles.heading4.copyWith(color: AppColors.white),
+      ),
       centerTitle: true,
       actions: [
         IconButton(
-          icon: const Icon(Icons.notifications_outlined, color: AppColors.white),
+          icon: const Icon(
+            Icons.notifications_outlined,
+            color: AppColors.white,
+          ),
           onPressed: _openNotifications,
         ),
         Container(
           margin: const EdgeInsets.only(right: 8),
           child: TextButton.icon(
             onPressed: _openWalletRecharge,
-            icon: const Icon(Icons.account_balance_wallet, color: AppColors.white, size: 18),
+            icon: const Icon(
+              Icons.account_balance_wallet,
+              color: AppColors.white,
+              size: 18,
+            ),
             label: Text(
-              _isLoadingWallet ? '...' : '₹${_walletBalance.toStringAsFixed(0)}',
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.white, fontWeight: FontWeight.w600),
+              _isLoadingWallet
+                  ? '...'
+                  : '₹${_walletBalance.toStringAsFixed(0)}',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.white,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             style: TextButton.styleFrom(
               backgroundColor: AppColors.white.withValues(alpha: 0.2),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             ),
           ),
@@ -205,7 +233,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             alignment: Alignment.center,
             width: double.infinity,
             height: 200,
-            decoration: const BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.zero),
+            decoration: const BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.zero,
+            ),
             child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
@@ -219,7 +250,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(color: AppColors.white, width: 2),
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 2))],
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: ClipOval(child: _buildProfileImage()),
                     ),
@@ -229,7 +266,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     // User Name
                     Text(
                       _currentUser?.name ?? 'User',
-                      style: AppTextStyles.heading5.copyWith(color: AppColors.white, fontWeight: FontWeight.w600),
+                      style: AppTextStyles.heading5.copyWith(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -239,7 +279,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     // User Email
                     Text(
                       _currentUser?.email ?? '',
-                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.white.withValues(alpha: 0.9)),
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.white.withValues(alpha: 0.9),
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -248,7 +290,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               ),
             ),
           ),
-          ListTile(leading: const Icon(Icons.home), title: const Text('Home'), onTap: () => Navigator.pop(context)),
+          ListTile(
+            leading: const Icon(Icons.home),
+            title: const Text('Home'),
+            onTap: () => Navigator.pop(context),
+          ),
           ListTile(
             leading: const Icon(Icons.person),
             title: const Text('Profile'),
@@ -295,9 +341,19 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       margin: const EdgeInsets.all(Dimensions.paddingLg),
       padding: const EdgeInsets.all(Dimensions.paddingLg),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        gradient: LinearGradient(
+          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(Dimensions.radiusLg),
-        boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 5))],
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -308,18 +364,35 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Wallet Balance', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.white.withValues(alpha: 0.8))),
+                  Text(
+                    'Wallet Balance',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.white.withValues(alpha: 0.8),
+                    ),
+                  ),
                   const SizedBox(height: Dimensions.spacingSm),
                   Text(
-                    _isLoadingWallet ? 'Loading...' : '₹${_walletBalance.toStringAsFixed(2)}',
-                    style: AppTextStyles.heading3.copyWith(color: AppColors.white, fontWeight: FontWeight.bold),
+                    _isLoadingWallet
+                        ? 'Loading...'
+                        : '₹${_walletBalance.toStringAsFixed(2)}',
+                    style: AppTextStyles.heading3.copyWith(
+                      color: AppColors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
               Container(
                 padding: const EdgeInsets.all(Dimensions.paddingMd),
-                decoration: BoxDecoration(color: AppColors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
-                child: const Icon(Icons.account_balance_wallet, color: AppColors.white, size: 28),
+                decoration: BoxDecoration(
+                  color: AppColors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.account_balance_wallet,
+                  color: AppColors.white,
+                  size: 28,
+                ),
               ),
             ],
           ),
@@ -334,7 +407,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 backgroundColor: AppColors.white,
                 foregroundColor: AppColors.primary,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Dimensions.radiusMd)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.radiusMd),
+                ),
               ),
             ),
           ),
@@ -352,10 +427,20 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Featured Astrologers', style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimaryLight)),
+              Text(
+                'Featured Astrologers',
+                style: AppTextStyles.heading5.copyWith(
+                  color: AppColors.textPrimaryLight,
+                ),
+              ),
               TextButton(
                 onPressed: _viewAllAstrologers,
-                child: Text('View All', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary)),
+                child: Text(
+                  'View All',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.primary,
+                  ),
+                ),
               ),
             ],
           ),
@@ -370,23 +455,29 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             ? const Padding(
                 padding: EdgeInsets.all(Dimensions.paddingLg),
                 child: Center(
-                  child: Text('No astrologers available at the moment', style: TextStyle(color: AppColors.textSecondaryLight)),
+                  child: Text(
+                    'No astrologers available at the moment',
+                    style: TextStyle(color: AppColors.textSecondaryLight),
+                  ),
                 ),
               )
             : ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingLg),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Dimensions.paddingLg,
+                ),
                 itemCount: _featuredAstrologers.length,
-                separatorBuilder: (context, index) => const SizedBox(height: Dimensions.spacingMd),
-                itemBuilder: (context, index) => _buildNewAstrologerCard(_featuredAstrologers[index]),
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: Dimensions.spacingMd),
+                itemBuilder: (context, index) =>
+                    _buildNewAstrologerCard(_featuredAstrologers[index]),
               ),
       ],
     );
   }
 
   Widget _buildNewAstrologerCard(Astrologer astrologer) {
-
     String truncateTextWithComma(String text) {
       // Split the string by comma and trim whitespace from each part.
       List<String> parts = text.split(',').map((e) => e.trim()).toList();
@@ -394,11 +485,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       // If there are at least two parts, return the first two joined by a comma.
       if (parts.length >= 2) {
         return '${parts[0]}, ${parts[1]}';
-      } 
+      }
       // If there's only one part, return that part.
       else if (parts.length == 1) {
         return parts[0];
-      } 
+      }
       // If the string is empty or contains no valid parts after splitting, return an empty string.
       else {
         return '';
@@ -406,185 +497,182 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     }
 
     return Card(
-          margin: EdgeInsets.only(bottom: 16),
-          elevation: 2,          
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Padding(
-            padding: EdgeInsets.all(12),
-            child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
+      margin: EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: EdgeInsets.all(12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Astrologer image with online indicator
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Stack(
+                  children: [
+                    _buildAstrologerProfileImage(astrologer),
+                    Positioned(
+                      top: 2,
+                      right: 2,
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: astrologer.isOnline
+                              ? AppColors.success
+                              : AppColors.error,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.white, width: 2),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      astrologer.ratingText,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 18,
+                      ),
+                    ),
+                    SizedBox(width: 2),
+                    Icon(Icons.star, color: Colors.amber, size: 22),
+                  ],
+                ),
+              ],
+            ),
+            SizedBox(width: 20.0),
+            // Astrologer details
+            Expanded(
+              flex: 1,
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                    // Astrologer image with online indicator
-                    Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                            Stack(
-                              children: [
-                                _buildAstrologerProfileImage(astrologer),
-                                Positioned(
-                                  top: 2,
-                                  right: 2,
-                                  child: Container(
-                                    width: 12,
-                                    height: 12,
-                                    decoration: BoxDecoration(
-                                      color: astrologer.isOnline ? AppColors.success : AppColors.error,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: AppColors.white, width: 2),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 10,),
-                            Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                    Text(
-                                        astrologer.ratingText,
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 18,
-                                        ),
-                                    ),
-                                    SizedBox(width: 2),
-                                    Icon(
-                                        Icons.star,
-                                        color: Colors.amber,
-                                        size: 22,
-                                    ),
-                                ],
-                            ),
-                        ],
-                    ),
-                    SizedBox(width: 20.0,),
-                    // Astrologer details
-                    Expanded(
-                        flex: 1,
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                                Row(
-                                    children: [
-                                        Text(
-                                            astrologer.fullName,
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                            ),
-                                        ),
-                                    ],
-                                ),
-                                SizedBox(height: 4),                                
-                                Row(
-                                    children: [
-                                        Icon(
-                                            Icons.auto_graph,
-                                            size: 18,
-                                            color: Colors.grey[700],
-                                        ),
-                                        SizedBox(width: 8),
-                                        Text(
-                                            truncateTextWithComma(astrologer.specializationsText),
-                                            style: TextStyle(
-                                                color: Colors.grey.shade600,
-                                                fontSize: 13,
-                                            ),
-                                        ),
-                                    ],
-                                ),                                
-                                SizedBox(height: 4),                                
-                                Row(
-                                    children: [
-                                        Icon(
-                                            Icons.language,
-                                            size: 18,
-                                            color: Colors.grey[700],
-                                        ),
-                                        SizedBox(width: 8),
-                                        Text(
-                                            truncateTextWithComma(astrologer.languagesText),
-                                            style: TextStyle(
-                                                color: Colors.grey.shade600,
-                                                fontSize: 13,
-                                            ),
-                                        ),
-                                    ],
-                                ),
-                                SizedBox(height: 4),
-                                Row(
-                                    children: [
-                                        Icon(
-                                            Icons.work_outline,
-                                            size: 18,
-                                            color: Colors.grey[700],
-                                        ),
-                                        SizedBox(width: 8),
-                                        Text(
-                                            'Experience ${astrologer.experienceYears} years',
-                                            style: TextStyle(
-                                                color: Colors.grey.shade600,
-                                                fontSize: 13,
-                                            ),
-                                        )
-                                    ],
-                                )                                
-                            ],
+                  Row(
+                    children: [
+                      Text(
+                        astrologer.fullName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
-                    ),                    
-                    Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [                                
-                            ElevatedButton(
-                                onPressed: (){
-                                  _startChatWithAstrologer(astrologer);
-                                },
-                                style: ButtonStyle(
-                                    backgroundColor: WidgetStatePropertyAll(Color(0xFF00C16e)),
-                                    padding: WidgetStatePropertyAll(EdgeInsets.only(left: 10, right: 10, top: 2, bottom: 2)),
-                                    minimumSize: WidgetStatePropertyAll(Size(90, 30)),
-                                    shape: WidgetStatePropertyAll(
-                                        RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(5),
-                                        ),
-                                    ),
-                                ),
-                                child: Text(
-                                    astrologer.chatRate.toInt() == 0 ? "FREE" : "₹${astrologer.chatRate.toInt()}/min",
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15,                                            
-                                    ),
-                                ),
-                            ),                                
-                            ElevatedButton(
-                                onPressed: (){
-                                  _startCallWithAstrologer(astrologer);
-                                },
-                                style: ButtonStyle(                                        
-                                    padding: WidgetStatePropertyAll(EdgeInsets.only(left: 10, right: 10, top: 2, bottom: 2)),
-                                    minimumSize: WidgetStatePropertyAll(Size(90, 30)),
-                                    shape: WidgetStatePropertyAll(
-                                        RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(5),
-                                            side: BorderSide(color: Color(0xFF1877F2), width: 1),
-                                        ),
-                                    ),
-                                ),
-                                child: Text("Chat", style: TextStyle(color: Color(0xFFFFFFFF)),),
-                            ),                                
-                        ],
-                    ),
-                ]
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.auto_graph, size: 18, color: Colors.grey[700]),
+                      SizedBox(width: 8),
+                      Text(
+                        truncateTextWithComma(astrologer.specializationsText),
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.language, size: 18, color: Colors.grey[700]),
+                      SizedBox(width: 8),
+                      Text(
+                        truncateTextWithComma(astrologer.languagesText),
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.work_outline,
+                        size: 18,
+                        color: Colors.grey[700],
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Experience ${astrologer.experienceYears} years',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        );    
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    _startChatWithAstrologer(astrologer);
+                  },
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStatePropertyAll(Color(0xFF00C16e)),
+                    padding: WidgetStatePropertyAll(
+                      EdgeInsets.only(left: 10, right: 10, top: 2, bottom: 2),
+                    ),
+                    minimumSize: WidgetStatePropertyAll(Size(90, 30)),
+                    shape: WidgetStatePropertyAll(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                    ),
+                  ),
+                  child: Text(
+                    astrologer.chatRate.toInt() == 0
+                        ? "FREE"
+                        : "₹${astrologer.chatRate.toInt()}/min",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    _startCallWithAstrologer(astrologer);
+                  },
+                  style: ButtonStyle(
+                    padding: WidgetStatePropertyAll(
+                      EdgeInsets.only(left: 10, right: 10, top: 2, bottom: 2),
+                    ),
+                    minimumSize: WidgetStatePropertyAll(Size(90, 30)),
+                    shape: WidgetStatePropertyAll(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(5),
+                        side: BorderSide(color: Color(0xFF1877F2), width: 1),
+                      ),
+                    ),
+                  ),
+                  child: Text(
+                    "Chat",
+                    style: TextStyle(color: Color(0xFFFFFFFF)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildFeaturedProducts() {
@@ -596,10 +684,20 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Featured Products', style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimaryLight)),
+              Text(
+                'Featured Products',
+                style: AppTextStyles.heading5.copyWith(
+                  color: AppColors.textPrimaryLight,
+                ),
+              ),
               TextButton(
                 onPressed: _viewAllProducts,
-                child: Text('View All', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary)),
+                child: Text(
+                  'View All',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.primary,
+                  ),
+                ),
               ),
             ],
           ),
@@ -614,17 +712,24 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             ? const Padding(
                 padding: EdgeInsets.all(Dimensions.paddingLg),
                 child: Center(
-                  child: Text('No products available at the moment', style: TextStyle(color: AppColors.textSecondaryLight)),
+                  child: Text(
+                    'No products available at the moment',
+                    style: TextStyle(color: AppColors.textSecondaryLight),
+                  ),
                 ),
               )
             : SizedBox(
                 height: 310,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingLg),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Dimensions.paddingLg,
+                  ),
                   itemCount: _featuredProducts.length,
-                  separatorBuilder: (context, index) => const SizedBox(width: Dimensions.spacingMd),
-                  itemBuilder: (context, index) => _buildProductCard(_featuredProducts[index]),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(width: Dimensions.spacingMd),
+                  itemBuilder: (context, index) =>
+                      _buildProductCard(_featuredProducts[index]),
                 ),
               ),
       ],
@@ -638,19 +743,35 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(Dimensions.radiusMd),
-        boxShadow: [BoxShadow(color: AppColors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Product Image
           ClipRRect(
-            borderRadius: const BorderRadius.only(topLeft: Radius.circular(Dimensions.radiusMd), topRight: Radius.circular(Dimensions.radiusMd)),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(Dimensions.radiusMd),
+              topRight: Radius.circular(Dimensions.radiusMd),
+            ),
             child: Container(
               height: 140,
               width: double.infinity,
               color: AppColors.grey100,
-              child: product.imageUrl?.isNotEmpty == true ? Image.network(product.imageUrl!, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => _buildPlaceholderImage()) : _buildPlaceholderImage(),
+              child: product.imageUrl?.isNotEmpty == true
+                  ? Image.network(
+                      product.imageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          _buildPlaceholderImage(),
+                    )
+                  : _buildPlaceholderImage(),
             ),
           ),
           // Product Details - Fixed height to prevent overflow
@@ -666,13 +787,21 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     height: 40, // Fixed height for name
                     child: Text(
                       product.name,
-                      style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppColors.textPrimaryLight),
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimaryLight,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(product.category, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryLight)),
+                  Text(
+                    product.category,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondaryLight,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -680,18 +809,32 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       Expanded(
                         child: Text(
                           product.formattedPrice,
-                          style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary),
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                        decoration: BoxDecoration(color: product.isInStock ? AppColors.success : AppColors.error, borderRadius: BorderRadius.circular(3)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: product.isInStock
+                              ? AppColors.success
+                              : AppColors.error,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
                         child: Text(
                           product.stockText,
-                          style: AppTextStyles.overline.copyWith(color: AppColors.white, fontSize: 8),
+                          style: AppTextStyles.overline.copyWith(
+                            color: AppColors.white,
+                            fontSize: 8,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -707,16 +850,27 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                         width: double.infinity,
                         height: 30, // Fixed button height
                         child: ElevatedButton(
-                          onPressed: product.isInStock ? () => _viewProduct(product) : null,
+                          onPressed: product.isInStock
+                              ? () => _viewProduct(product)
+                              : null,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: product.isInStock ? AppColors.primary : AppColors.grey300,
-                            foregroundColor: product.isInStock ? AppColors.white : AppColors.grey600,
+                            backgroundColor: product.isInStock
+                                ? AppColors.primary
+                                : AppColors.grey300,
+                            foregroundColor: product.isInStock
+                                ? AppColors.white
+                                : AppColors.grey600,
                             padding: const EdgeInsets.symmetric(vertical: 4),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5),
+                            ),
                           ),
                           child: Text(
                             product.isInStock ? 'View Details' : 'Out of Stock',
-                            style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600, fontSize: 11),
+                            style: AppTextStyles.bodySmall.copyWith(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 11,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -751,10 +905,20 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Daily Horoscope', style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimaryLight)),
+              Text(
+                'Daily Horoscope',
+                style: AppTextStyles.heading5.copyWith(
+                  color: AppColors.textPrimaryLight,
+                ),
+              ),
               TextButton(
                 onPressed: _viewFullHoroscope,
-                child: Text('View All', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary)),
+                child: Text(
+                  'View All',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.primary,
+                  ),
+                ),
               ),
             ],
           ),
@@ -762,7 +926,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           Container(
             padding: const EdgeInsets.all(Dimensions.paddingLg),
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [AppColors.warning.withValues(alpha: 0.1), AppColors.primary.withValues(alpha: 0.1)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.warning.withValues(alpha: 0.1),
+                  AppColors.primary.withValues(alpha: 0.1),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.circular(Dimensions.radiusMd),
               border: Border.all(color: AppColors.borderLight),
             ),
@@ -773,8 +944,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(Dimensions.paddingSm),
-                      decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.2), shape: BoxShape.circle),
-                      child: const Icon(Icons.star_outline, color: AppColors.primary, size: 20),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.star_outline,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: Dimensions.spacingMd),
                     Column(
@@ -782,15 +960,29 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       children: [
                         Text(
                           'Today\'s Fortune',
-                          style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600, color: AppColors.textPrimaryLight),
+                          style: AppTextStyles.bodyLarge.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimaryLight,
+                          ),
                         ),
-                        Text('Aries - ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryLight)),
+                        Text(
+                          'Aries - ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondaryLight,
+                          ),
+                        ),
                       ],
                     ),
                   ],
                 ),
                 const SizedBox(height: Dimensions.spacingMd),
-                Text('Today brings opportunities for growth and positive changes. Trust your intuition and take calculated risks.', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimaryLight, height: 1.5)),
+                Text(
+                  'Today brings opportunities for growth and positive changes. Trust your intuition and take calculated risks.',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textPrimaryLight,
+                    height: 1.5,
+                  ),
+                ),
               ],
             ),
           ),
@@ -827,9 +1019,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             onPressed: () async {
               await Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const ProfileScreen(),
-                ),
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
               );
               // Always refresh user data when returning from profile screen
               await refreshUserData();
@@ -867,9 +1057,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                         shape: BoxShape.circle,
                         border: Border.all(color: AppColors.primary, width: 3),
                       ),
-                      child: ClipOval(
-                        child: _buildProfileImage(),
-                      ),
+                      child: ClipOval(child: _buildProfileImage()),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -887,12 +1075,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildProfileStat('Wallet Balance', '₹${_walletBalance.toStringAsFixed(0)}'),
+                    _buildProfileStat(
+                      'Wallet Balance',
+                      '₹${_walletBalance.toStringAsFixed(0)}',
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               // Quick Actions
               _buildQuickActionsList(),
             ],
@@ -932,9 +1123,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         'onTap': () async {
           await Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => const ProfileScreen(),
-            ),
+            MaterialPageRoute(builder: (context) => const ProfileScreen()),
           );
           // Always refresh user data when returning from profile screen
           await refreshUserData();
@@ -955,12 +1144,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         'title': 'History',
         'subtitle': 'View your past consultations',
         'onTap': _viewConsultationHistory,
-      },
-      {
-        'icon': Icons.help,
-        'title': 'Help',
-        'subtitle': 'Get help and contact support',
-        'onTap': _openHelp,
       },
       {
         'icon': Icons.logout,
@@ -989,7 +1172,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   Widget _buildQuickActionItem(Map<String, dynamic> action) {
     final isDestructive = action['isDestructive'] == true;
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Material(
@@ -1008,7 +1191,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: isDestructive 
+                    color: isDestructive
                         ? AppColors.error.withValues(alpha: 0.1)
                         : AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -1028,8 +1211,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                         action['title'],
                         style: AppTextStyles.bodyMedium.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: isDestructive 
-                              ? AppColors.error 
+                          color: isDestructive
+                              ? AppColors.error
                               : AppColors.textPrimaryLight,
                         ),
                       ),
@@ -1070,11 +1253,31 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       backgroundColor: AppColors.white,
       elevation: 10,
       items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.people_outline), activeIcon: Icon(Icons.people), label: 'Astrologers'),
-        BottomNavigationBarItem(icon: Icon(Icons.auto_awesome_outlined), activeIcon: Icon(Icons.auto_awesome), label: 'Kundli'),
-        BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), activeIcon: Icon(Icons.account_balance_wallet), label: 'Wallet'),
-        BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home_outlined),
+          activeIcon: Icon(Icons.home),
+          label: 'Home',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.people_outline),
+          activeIcon: Icon(Icons.people),
+          label: 'Astrologers',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.auto_awesome_outlined),
+          activeIcon: Icon(Icons.auto_awesome),
+          label: 'Kundli',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.account_balance_wallet_outlined),
+          activeIcon: Icon(Icons.account_balance_wallet),
+          label: 'Wallet',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline),
+          activeIcon: Icon(Icons.person),
+          label: 'Profile',
+        ),
       ],
     );
   }
@@ -1110,7 +1313,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     try {
       await _authService.signOut();
       if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/onboarding', (route) => false);
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/onboarding', (route) => false);
       }
     } catch (e) {
       // Handle logout error silently
@@ -1139,7 +1344,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   Widget _buildProfileImage() {
     // Check if user has profile picture in database (works for Google and other users)
-    if (_currentUser?.profilePicture != null && _currentUser!.profilePicture!.isNotEmpty) {
+    if (_currentUser?.profilePicture != null &&
+        _currentUser!.profilePicture!.isNotEmpty) {
       return Image.network(
         _currentUser!.profilePicture!,
         width: 70,
@@ -1176,7 +1382,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       height: 70,
       color: AppColors.white.withValues(alpha: 0.2),
       child: Center(
-        child: Text(_currentUser?.name != null && _currentUser!.name.isNotEmpty ? _currentUser!.name.substring(0, 1).toUpperCase() : 'U', style: AppTextStyles.heading3.copyWith(color: AppColors.white)),
+        child: Text(
+          _currentUser?.name != null && _currentUser!.name.isNotEmpty
+              ? _currentUser!.name.substring(0, 1).toUpperCase()
+              : 'U',
+          style: AppTextStyles.heading3.copyWith(color: AppColors.white),
+        ),
       ),
     );
   }
@@ -1186,21 +1397,36 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       width: 70,
       height: 70,
       color: AppColors.white.withValues(alpha: 0.2),
-      child: const Center(child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.white))),
+      child: const Center(
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+        ),
+      ),
     );
   }
 
   Widget _buildGoogleFallbackAvatar() {
     // Create a nice gradient avatar for Google users
     final name = _currentUser?.name ?? '';
-    final initials = name.isNotEmpty ? name.split(' ').map((n) => n.isNotEmpty ? n[0] : '').take(2).join().toUpperCase() : 'G';
+    final initials = name.isNotEmpty
+        ? name
+              .split(' ')
+              .map((n) => n.isNotEmpty ? n[0] : '')
+              .take(2)
+              .join()
+              .toUpperCase()
+        : 'G';
 
     return Container(
       width: 70,
       height: 70,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF4285F4), Color(0xFF34A853)], // Google blue to green
+          colors: [
+            Color(0xFF4285F4),
+            Color(0xFF34A853),
+          ], // Google blue to green
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -1209,7 +1435,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       child: Center(
         child: Text(
           initials,
-          style: AppTextStyles.heading4.copyWith(color: AppColors.white, fontWeight: FontWeight.bold),
+          style: AppTextStyles.heading4.copyWith(
+            color: AppColors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
@@ -1217,7 +1446,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   Widget _buildAstrologerProfileImage(Astrologer astrologer) {
     // Check if we have a valid profile image URL
-    if (astrologer.profileImage != null && astrologer.profileImage!.isNotEmpty) {
+    if (astrologer.profileImage != null &&
+        astrologer.profileImage!.isNotEmpty) {
       return CircleAvatar(
         radius: 30,
         backgroundColor: AppColors.primary.withValues(alpha: 0.1),
@@ -1237,27 +1467,18 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             },
             errorBuilder: (context, error, stackTrace) {
               // If network image fails, show default avatar
-              return Icon(
-                Icons.person,
-                size: 30,
-                color: AppColors.primary,
-              );
+              return Icon(Icons.person, size: 30, color: AppColors.primary);
             },
           ),
         ),
       );
     }
-    
+
     // Fallback to icon if no profile image
     return CircleAvatar(
       radius: 30,
       backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-      child: Icon(
-        Icons.person,
-        size: 30,
-        color: AppColors.primary,
-      ),
+      child: Icon(Icons.person, size: 30, color: AppColors.primary),
     );
   }
-
 }

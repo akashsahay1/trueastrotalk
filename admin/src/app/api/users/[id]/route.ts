@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient, ObjectId } from 'mongodb';
 import crypto from 'crypto';
 import { omit } from '@/utils/omit';
+import { cleanupUserFiles } from '@/lib/file-cleanup';
 
 const url = 'mongodb://localhost:27017';
 const dbName = 'trueastrotalkDB';
@@ -9,6 +10,7 @@ const dbName = 'trueastrotalkDB';
 function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
+
 
 export async function GET(
   request: NextRequest,
@@ -255,6 +257,24 @@ export async function DELETE(
     const db = client.db(dbName);
     const usersCollection = db.collection('users');
 
+    // Check if user exists
+    const user = await usersCollection.findOne({ _id: new ObjectId(id) });
+    
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    // Clean up associated files before deleting user (using utility function)
+    await cleanupUserFiles(id, { 
+      deleteFromFilesystem: true, 
+      deleteFromDatabase: true, 
+      logActivity: true 
+    });
+
+    // Delete user from database
     const result = await usersCollection.deleteOne({ _id: new ObjectId(id) });
 
     if (result.deletedCount === 0) {
@@ -264,12 +284,14 @@ export async function DELETE(
       );
     }
 
+    console.log(`✅ Successfully deleted user ${id} and associated files`);
+
     return NextResponse.json({
-      message: 'User deleted successfully'
+      message: 'User and associated files deleted successfully'
     });
 
   } catch (error) {
-    console.error(error);
+    console.error('Error deleting user:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

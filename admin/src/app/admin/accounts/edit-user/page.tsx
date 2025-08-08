@@ -728,7 +728,7 @@ function EditUserContent() {
                             name="full_name"
                             value={formData.full_name}
                             onChange={handleInputChange}
-                            placeholder="Enter full name"
+                            placeholder=""
                             required
                           />
                           {fieldErrors.full_name && (
@@ -745,7 +745,7 @@ function EditUserContent() {
                             name="password"
                             value={formData.password}
                             onChange={handleInputChange}
-                            placeholder="Leave empty to keep current password"
+                            placeholder=""
                           />
                           <small className="form-text text-muted">Leave empty if you don&apos;t want to change the password</small>
                         </div>
@@ -760,7 +760,7 @@ function EditUserContent() {
                             name="email_address"
                             value={formData.email_address}
                             onChange={handleInputChange}
-                            placeholder="Enter email address"
+                            placeholder=""
                             required
                           />
                           {fieldErrors.email_address && (
@@ -838,7 +838,7 @@ function EditUserContent() {
                             name="birth_place"
                             value={formData.birth_place}
                             onChange={handleInputChange}
-                            placeholder="Birth place"
+                            placeholder=""
                             required={isAstrologer}
                           />
                         </div>
@@ -853,7 +853,7 @@ function EditUserContent() {
                             name="address"
                             value={formData.address}
                             onChange={handleInputChange}
-                            placeholder="Enter full address"
+                            placeholder=""
                             rows={3}
                             required={isAstrologer}
                           />
@@ -869,7 +869,7 @@ function EditUserContent() {
                             name="city"
                             value={formData.city}
                             onChange={handleInputChange}
-                            placeholder="City"
+                            placeholder=""
                             required={isAstrologer}
                           />
                         </div>
@@ -881,7 +881,7 @@ function EditUserContent() {
                             name="state"
                             value={formData.state}
                             onChange={handleInputChange}
-                            placeholder="State"
+                            placeholder=""
                             required={isAstrologer}
                           />
                         </div>
@@ -893,7 +893,7 @@ function EditUserContent() {
                             name="country"
                             value={formData.country}
                             onChange={handleInputChange}
-                            placeholder="Country"
+                            placeholder=""
                             required={isAstrologer}
                           />
                         </div>
@@ -905,7 +905,7 @@ function EditUserContent() {
                             name="zip"
                             value={formData.zip}
                             onChange={handleInputChange}
-                            placeholder="ZIP Code"
+                            placeholder=""
                             required={isAstrologer}
                           />
                         </div>
@@ -1005,7 +1005,7 @@ function EditUserContent() {
                                 name="commission_rates.call_rate"
                                 value={formData.commission_rates.call_rate}
                                 onChange={handleInputChange}
-                                placeholder="Call rate per minute"
+                                placeholder=""
                                 min="0"
                                 max="100"
                                 required={isAstrologer}
@@ -1024,7 +1024,7 @@ function EditUserContent() {
                                 name="commission_rates.chat_rate"
                                 value={formData.commission_rates.chat_rate}
                                 onChange={handleInputChange}
-                                placeholder="Chat rate per minute"
+                                placeholder=""
                                 min="0"
                                 max="100"
                                 required={isAstrologer}
@@ -1043,7 +1043,7 @@ function EditUserContent() {
                                 name="commission_rates.video_rate"
                                 value={formData.commission_rates.video_rate}
                                 onChange={handleInputChange}
-                                placeholder="Video rate per minute"
+                                placeholder=""
                                 min="0"
                                 max="100"
                                 required={isAstrologer}
@@ -1115,13 +1115,11 @@ function EditUserContent() {
                             >
                               {loading ? (
                                 <>
-                                  <i className="fas fa-spinner fa-spin mr-2"></i>
-                                  Updating...
+                                  <i className="fas fa-spinner fa-spin mr-2"></i> Updating...
                                 </>
                               ) : (
                                 <>
-                                  <i className="fas fa-save mr-2"></i>
-                                  Update User
+                                  Update
                                 </>
                               )}
                             </button>

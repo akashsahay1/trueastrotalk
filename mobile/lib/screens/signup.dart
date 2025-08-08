@@ -9,35 +9,36 @@ import '../models/enums.dart';
 
 class SignupScreen extends StatefulWidget {
   final bool isAdvanced;
-  
+
   const SignupScreen({super.key, this.isAdvanced = false});
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMixin {
+class _SignupScreenState extends State<SignupScreen>
+    with TickerProviderStateMixin {
   final PageController _pageController = PageController();
   late final AuthService _authService;
-  
+
   // Form controllers - organized by sections
   final _personalFormKey = GlobalKey<FormState>();
   final _contactFormKey = GlobalKey<FormState>();
   final _birthFormKey = GlobalKey<FormState>();
   final _professionalFormKey = GlobalKey<FormState>();
-  
+
   // Personal Information
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  
+
   // Birth Details
   final _dateOfBirthController = TextEditingController();
   final _timeOfBirthController = TextEditingController();
   final _placeOfBirthController = TextEditingController();
-  
+
   // Professional Information (for advanced users)
   final _bioController = TextEditingController();
   final _experienceController = TextEditingController();
@@ -45,7 +46,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
   final _languagesController = TextEditingController();
   final _specializationsController = TextEditingController();
   final _skillsController = TextEditingController();
-  
+
   // Form state
   int _currentSection = 0;
   bool _obscurePassword = true;
@@ -65,19 +66,31 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
   void dispose() {
     _pageController.dispose();
     // Dispose all controllers
-    for (final controller in [_nameController, _emailController, _phoneController, _passwordController, 
-     _confirmPasswordController, _dateOfBirthController, _timeOfBirthController, 
-     _placeOfBirthController, _bioController, _experienceController, 
-     _educationController, _languagesController, _specializationsController, 
-     _skillsController]) {
+    for (final controller in [
+      _nameController,
+      _emailController,
+      _phoneController,
+      _passwordController,
+      _confirmPasswordController,
+      _dateOfBirthController,
+      _timeOfBirthController,
+      _placeOfBirthController,
+      _bioController,
+      _experienceController,
+      _educationController,
+      _languagesController,
+      _specializationsController,
+      _skillsController,
+    ]) {
       controller.dispose();
     }
     super.dispose();
   }
 
   int get _totalSections => widget.isAdvanced ? 4 : 3;
-  
-  UserType get _userType => widget.isAdvanced ? UserType.astrologer : UserType.customer;
+
+  UserType get _userType =>
+      widget.isAdvanced ? UserType.astrologer : UserType.customer;
 
   void _nextSection() {
     final currentKey = _getCurrentFormKey();
@@ -106,18 +119,25 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
 
   GlobalKey<FormState>? _getCurrentFormKey() {
     switch (_currentSection) {
-      case 0: return _personalFormKey;
-      case 1: return _contactFormKey;
-      case 2: return _birthFormKey;
-      case 3: return _professionalFormKey;
-      default: return null;
+      case 0:
+        return _personalFormKey;
+      case 1:
+        return _contactFormKey;
+      case 2:
+        return _birthFormKey;
+      case 3:
+        return _professionalFormKey;
+      default:
+        return null;
     }
   }
 
   Future<void> _submitForm() async {
     final currentKey = _getCurrentFormKey();
-    if (currentKey != null && !(currentKey.currentState?.validate() ?? false)) return;
-    
+    if (currentKey != null && !(currentKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
     if (!_acceptTerms) {
       _showMessage('Please accept the terms and conditions', isError: true);
       return;
@@ -134,11 +154,21 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
         userType: _userType,
         dateOfBirth: _selectedDate,
         timeOfBirth: _selectedTime,
-        placeOfBirth: _placeOfBirthController.text.trim().isEmpty ? null : _placeOfBirthController.text.trim(),
-        bio: _bioController.text.trim().isEmpty ? null : _bioController.text.trim(),
-        experience: _experienceController.text.trim().isEmpty ? null : _experienceController.text.trim(),
-        languages: _languagesController.text.trim().isEmpty ? null : _languagesController.text.trim(),
-        specializations: _specializationsController.text.trim().isEmpty ? null : _specializationsController.text.trim(),
+        placeOfBirth: _placeOfBirthController.text.trim().isEmpty
+            ? null
+            : _placeOfBirthController.text.trim(),
+        bio: _bioController.text.trim().isEmpty
+            ? null
+            : _bioController.text.trim(),
+        experience: _experienceController.text.trim().isEmpty
+            ? null
+            : _experienceController.text.trim(),
+        languages: _languagesController.text.trim().isEmpty
+            ? null
+            : _languagesController.text.trim(),
+        specializations: _specializationsController.text.trim().isEmpty
+            ? null
+            : _specializationsController.text.trim(),
       );
 
       if (result.success && mounted) {
@@ -163,7 +193,11 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
     }
   }
 
-  void _showMessage(String message, {bool isError = false, Duration? duration}) {
+  void _showMessage(
+    String message, {
+    bool isError = false,
+    Duration? duration,
+  }) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -207,7 +241,9 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
       elevation: 0,
       scrolledUnderElevation: 0,
       leading: IconButton(
-        onPressed: _currentSection > 0 ? _previousSection : () => Navigator.pop(context),
+        onPressed: _currentSection > 0
+            ? _previousSection
+            : () => Navigator.pop(context),
         icon: Icon(
           _currentSection > 0 ? Icons.arrow_back_ios : Icons.close,
           color: AppColors.textPrimary,
@@ -233,10 +269,12 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
           Row(
             children: List.generate(_totalSections, (index) {
               final isActive = index <= _currentSection;
-              
+
               return Expanded(
                 child: Container(
-                  margin: EdgeInsets.only(right: index == _totalSections - 1 ? 0 : 8),
+                  margin: EdgeInsets.only(
+                    right: index == _totalSections - 1 ? 0 : 8,
+                  ),
                   height: 3,
                   decoration: BoxDecoration(
                     color: isActive ? AppColors.primary : AppColors.grey300,
@@ -257,7 +295,9 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
           const SizedBox(height: 4),
           Text(
             _getSectionSubtitle(_currentSection),
-            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),
@@ -266,21 +306,31 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
 
   String _getSectionTitle(int section) {
     switch (section) {
-      case 0: return 'Personal Information';
-      case 1: return 'Contact & Security';
-      case 2: return 'Birth Details';
-      case 3: return 'Professional Profile';
-      default: return '';
+      case 0:
+        return 'Personal Information';
+      case 1:
+        return 'Contact & Security';
+      case 2:
+        return 'Birth Details';
+      case 3:
+        return 'Professional Profile';
+      default:
+        return '';
     }
   }
 
   String _getSectionSubtitle(int section) {
     switch (section) {
-      case 0: return 'Tell us who you are';
-      case 1: return 'Secure your account';
-      case 2: return 'For personalized guidance';
-      case 3: return 'Share your expertise';
-      default: return '';
+      case 0:
+        return 'Tell us who you are';
+      case 1:
+        return 'Secure your account';
+      case 2:
+        return 'For personalized guidance';
+      case 3:
+        return 'Share your expertise';
+      default:
+        return '';
     }
   }
 
@@ -297,8 +347,12 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
               label: 'Full Name',
               icon: Icons.person_outline_rounded,
               validator: (value) {
-                if (value?.trim().isEmpty ?? true) return 'Full name is required';
-                if (value!.trim().length < 2) return 'Name must be at least 2 characters';
+                if (value?.trim().isEmpty ?? true) {
+                  return 'Full name is required';
+                }
+                if (value!.trim().length < 2) {
+                  return 'Name must be at least 2 characters';
+                }
                 return null;
               },
             ),
@@ -310,7 +364,9 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
               keyboardType: TextInputType.emailAddress,
               validator: (value) {
                 if (value?.trim().isEmpty ?? true) return 'Email is required';
-                if (!EmailValidator.validate(value!)) return 'Please enter a valid email';
+                if (!EmailValidator.validate(value!)) {
+                  return 'Please enter a valid email';
+                }
                 return null;
               },
             ),
@@ -335,8 +391,12 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
               keyboardType: TextInputType.phone,
               prefix: '+91 ',
               validator: (value) {
-                if (value?.trim().isEmpty ?? true) return 'Phone number is required';
-                if (value!.length != 10) return 'Please enter a valid 10-digit phone number';
+                if (value?.trim().isEmpty ?? true) {
+                  return 'Phone number is required';
+                }
+                if (value!.length != 10) {
+                  return 'Please enter a valid 10-digit phone number';
+                }
                 return null;
               },
             ),
@@ -347,16 +407,21 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
               icon: Icons.lock_outline_rounded,
               obscureText: _obscurePassword,
               suffixIcon: IconButton(
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
                 icon: Icon(
-                  _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                  _obscurePassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
                   color: AppColors.textSecondary,
                   size: 20,
                 ),
               ),
               validator: (value) {
                 if (value?.isEmpty ?? true) return 'Password is required';
-                if (value!.length < 8) return 'Password must be at least 8 characters';
+                if (value!.length < 8) {
+                  return 'Password must be at least 8 characters';
+                }
                 return null;
               },
             ),
@@ -367,16 +432,24 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
               icon: Icons.lock_outline_rounded,
               obscureText: _obscureConfirmPassword,
               suffixIcon: IconButton(
-                onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                onPressed: () => setState(
+                  () => _obscureConfirmPassword = !_obscureConfirmPassword,
+                ),
                 icon: Icon(
-                  _obscureConfirmPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                  _obscureConfirmPassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
                   color: AppColors.textSecondary,
                   size: 20,
                 ),
               ),
               validator: (value) {
-                if (value?.isEmpty ?? true) return 'Please confirm your password';
-                if (value != _passwordController.text) return 'Passwords do not match';
+                if (value?.isEmpty ?? true) {
+                  return 'Please confirm your password';
+                }
+                if (value != _passwordController.text) {
+                  return 'Passwords do not match';
+                }
                 return null;
               },
             ),
@@ -400,7 +473,9 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
               icon: Icons.cake_outlined,
               onTap: _selectDate,
               validator: (value) {
-                if (value?.trim().isEmpty ?? true) return 'Date of birth is required';
+                if (value?.trim().isEmpty ?? true) {
+                  return 'Date of birth is required';
+                }
                 return null;
               },
             ),
@@ -441,9 +516,13 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
               icon: Icons.work_outline_rounded,
               keyboardType: TextInputType.number,
               validator: (value) {
-                if (value?.trim().isEmpty ?? true) return 'Experience is required';
+                if (value?.trim().isEmpty ?? true) {
+                  return 'Experience is required';
+                }
                 final years = int.tryParse(value!);
-                if (years == null || years < 1) return 'Please enter valid years of experience';
+                if (years == null || years < 1) {
+                  return 'Please enter valid years of experience';
+                }
                 return null;
               },
             ),
@@ -455,7 +534,9 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
               maxLines: 4,
               validator: (value) {
                 if (value?.trim().isEmpty ?? true) return 'Bio is required';
-                if (value!.trim().length < 50) return 'Bio must be at least 50 characters';
+                if (value!.trim().length < 50) {
+                  return 'Bio must be at least 50 characters';
+                }
                 return null;
               },
             ),
@@ -474,7 +555,9 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
               icon: Icons.language_outlined,
               hint: 'e.g. English, Hindi, Tamil',
               validator: (value) {
-                if (value?.trim().isEmpty ?? true) return 'Languages are required';
+                if (value?.trim().isEmpty ?? true) {
+                  return 'Languages are required';
+                }
                 return null;
               },
             ),
@@ -485,7 +568,9 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
               icon: Icons.auto_awesome_outlined,
               hint: 'e.g. Vedic Astrology, Numerology, Tarot',
               validator: (value) {
-                if (value?.trim().isEmpty ?? true) return 'Specializations are required';
+                if (value?.trim().isEmpty ?? true) {
+                  return 'Specializations are required';
+                }
                 return null;
               },
             ),
@@ -563,7 +648,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
               fontWeight: FontWeight.w500,
             ),
             decoration: InputDecoration(
-              hintText: hint ?? 'Enter your $label',
+              hintText: hint ?? '',
               hintStyle: AppTextStyles.bodyLarge.copyWith(
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.normal,
@@ -584,7 +669,10 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
               errorBorder: InputBorder.none,
               focusedErrorBorder: InputBorder.none,
               filled: false,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 18,
+              ),
               errorStyle: AppTextStyles.bodySmall.copyWith(
                 color: AppColors.error,
                 height: 1.4,
@@ -673,7 +761,10 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
               errorBorder: InputBorder.none,
               focusedErrorBorder: InputBorder.none,
               filled: false,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 18,
+              ),
               errorStyle: AppTextStyles.bodySmall.copyWith(
                 color: AppColors.error,
                 height: 1.4,
@@ -706,7 +797,9 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
             onChanged: (value) => setState(() => _acceptTerms = value ?? false),
             activeColor: AppColors.primary,
             checkColor: AppColors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4),
+            ),
             side: BorderSide(
               color: _acceptTerms ? AppColors.primary : AppColors.grey400,
               width: 2,
@@ -778,7 +871,9 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
               foregroundColor: AppColors.white,
               elevation: 0,
               shadowColor: Colors.transparent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: _isLoading
                 ? const SizedBox(
@@ -786,14 +881,20 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.white,
+                      ),
                     ),
                   )
                 : Text(
-                    _currentSection == _totalSections - 1 
-                        ? (widget.isAdvanced ? 'Submit Application' : 'Create Account')
+                    _currentSection == _totalSections - 1
+                        ? (widget.isAdvanced
+                              ? 'Submit Application'
+                              : 'Create Account')
                         : 'Continue',
-                    style: AppTextStyles.buttonLarge.copyWith(fontWeight: FontWeight.w600),
+                    style: AppTextStyles.buttonLarge.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
           ),
         ),
@@ -804,7 +905,8 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate ?? DateTime.now().subtract(const Duration(days: 6570)),
+      initialDate:
+          _selectedDate ?? DateTime.now().subtract(const Duration(days: 6570)),
       firstDate: DateTime(1950),
       lastDate: DateTime.now().subtract(const Duration(days: 4380)),
       builder: (context, child) {

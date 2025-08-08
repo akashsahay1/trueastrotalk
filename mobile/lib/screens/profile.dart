@@ -5,7 +5,6 @@ import 'dart:io';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 import '../services/auth/auth_service.dart';
-import '../services/api/user_api_service.dart';
 import '../services/service_locator.dart';
 import '../models/user.dart' as app_user;
 
@@ -18,7 +17,6 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   late final AuthService _authService;
-  late final UserApiService _userApiService;
   
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
@@ -38,7 +36,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _authService = getIt<AuthService>();
-    _userApiService = getIt<UserApiService>();
     _loadUserProfile();
   }
 
@@ -285,59 +282,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'place_of_birth': _birthPlaceController.text.trim(),
       };
 
-      // Handle profile image upload if selected
-      if (_selectedProfileImage != null) {
-        try {
-          // Show upload progress
-          setState(() {
-            _isUpdating = true;
-          });
-          
-          final uploadedImageUrl = await _userApiService.uploadProfileImage(
-            token: token,
-            imagePath: _selectedProfileImage!.path,
-          );
-          updateData['profile_image'] = uploadedImageUrl;
-          
-          debugPrint('✅ Image uploaded successfully, URL: $uploadedImageUrl');
-          
-          // Update the profile image URL immediately for UI feedback
-          setState(() {
-            _profileImageUrl = uploadedImageUrl;
-          });
-          
-        } catch (uploadError) {
-          setState(() {
-            _isUpdating = false;
-          });
-          
-          String errorMessage = 'Failed to upload image';
-          final errorString = uploadError.toString();
-          
-          if (errorString.contains('File too large')) {
-            errorMessage = 'Image file is too large. Please choose a smaller image (max 5MB).';
-          } else if (errorString.contains('Invalid file type') || errorString.contains('file format')) {
-            errorMessage = 'Invalid file format. Please choose a JPEG, PNG, WebP, or HEIC image.';
-          } else if (errorString.contains('Authentication failed') || errorString.contains('401')) {
-            errorMessage = 'Session expired. Please log in again.';
-          } else if (errorString.contains('network') || errorString.contains('connection')) {
-            errorMessage = 'Network error. Please check your internet connection and try again.';
-          } else {
-            // Extract server error message if available
-            final match = RegExp(r'Exception: (.+)').firstMatch(errorString);
-            if (match != null) {
-              errorMessage = match.group(1) ?? errorMessage;
-            }
-          }
-          
-          debugPrint('Image upload error: $errorString'); // Debug log
-          _showErrorSnackBar(errorMessage);
-          return; // Don't proceed with profile update if image upload fails
-        }
-      }
-
-      // Update profile via API using AuthService
-      final updatedUser = await _authService.updateUserProfile(updateData);
+      // Update profile via API, including image if selected
+      final updatedUser = await _authService.updateUserProfile(
+        updateData,
+        profileImagePath: _selectedProfileImage?.path,
+      );
 
       setState(() {
         _currentUser = updatedUser;
@@ -348,7 +297,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _showSuccessSnackBar('Profile updated successfully!');
       
     } catch (e) {
-      _showErrorSnackBar('Failed to update profile: ${e.toString()}');
+      String errorMessage = 'Failed to update profile';
+      final errorString = e.toString();
+      
+      if (errorString.contains('File too large')) {
+        errorMessage = 'Image file is too large. Please choose a smaller image (max 5MB).';
+      } else if (errorString.contains('Invalid file type') || errorString.contains('file format')) {
+        errorMessage = 'Invalid file format. Please choose a JPEG, PNG, WebP, or HEIC image.';
+      } else if (errorString.contains('Authentication failed') || errorString.contains('401')) {
+        errorMessage = 'Session expired. Please log in again.';
+      } else if (errorString.contains('network') || errorString.contains('connection')) {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else {
+        // Extract server error message if available
+        final match = RegExp(r'Exception: (.+)').firstMatch(errorString);
+        if (match != null) {
+          errorMessage = match.group(1) ?? errorMessage;
+        }
+      }
+      
+      debugPrint('Profile update error: $errorString');
+      _showErrorSnackBar(errorMessage);
     } finally {
       setState(() {
         _isUpdating = false;
@@ -375,6 +344,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {

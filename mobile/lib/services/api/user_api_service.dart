@@ -121,14 +121,73 @@ class UserApiService {
     }
   }
 
-  // Update user profile
-  Future<User> updateUserProfile({required String token, required Map<String, dynamic> userData}) async {
+  // Update user profile (supports both JSON and multipart data)
+  Future<User> updateUserProfile({
+    required String token, 
+    required Map<String, dynamic> userData,
+    String? profileImagePath,
+  }) async {
     try {
+      dynamic requestData;
+      Options requestOptions;
+
+      if (profileImagePath != null) {
+        // Create FormData when profile image is included
+        final fileName = profileImagePath.split('/').last;
+        final extension = fileName.toLowerCase().split('.').last;
+        
+        String? contentType;
+        switch (extension) {
+          case 'jpg':
+          case 'jpeg':
+            contentType = 'image/jpeg';
+            break;
+          case 'png':
+            contentType = 'image/png';
+            break;
+          case 'webp':
+            contentType = 'image/webp';
+            break;
+          case 'heic':
+            contentType = 'image/heic';
+            break;
+          case 'heif':
+            contentType = 'image/heif';
+            break;
+        }
+
+        debugPrint('🖼️ Updating profile with image: $fileName (type: $contentType)');
+
+        final formData = FormData.fromMap({
+          'profile_image': await MultipartFile.fromFile(
+            profileImagePath,
+            filename: fileName,
+            contentType: contentType != null ? MediaType.parse(contentType) : null,
+          ),
+          // Add all other profile fields
+          ...userData,
+        });
+
+        requestData = formData;
+        requestOptions = Options(
+          headers: {'Authorization': 'Bearer $token'},
+          contentType: 'multipart/form-data',
+        );
+      } else {
+        // Use JSON when no image
+        requestData = userData;
+        requestOptions = Options(
+          headers: {'Authorization': 'Bearer $token'},
+        );
+      }
+
       final response = await _dio.put(
         '/users/profile',
-        data: userData,
-        options: Options(headers: {'Authorization': 'Bearer $token'}),
+        data: requestData,
+        options: requestOptions,
       );
+
+      debugPrint('✅ Profile update response: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         // Handle different response formats
@@ -138,6 +197,7 @@ class UserApiService {
         throw Exception('Failed to update profile: ${response.data['message']}');
       }
     } on DioException catch (e) {
+      debugPrint('❌ Profile update error: ${e.response?.statusCode} - ${e.response?.data}');
       throw _handleDioException(e);
     }
   }
@@ -231,71 +291,6 @@ class UserApiService {
     }
   }
 
-  // Upload profile image
-  Future<String> uploadProfileImage({required String token, required String imagePath}) async {
-    try {
-      // Get file extension and determine content type
-      final fileName = imagePath.split('/').last;
-      final extension = fileName.toLowerCase().split('.').last;
-      
-      String? contentType;
-      switch (extension) {
-        case 'jpg':
-        case 'jpeg':
-          contentType = 'image/jpeg';
-          break;
-        case 'png':
-          contentType = 'image/png';
-          break;
-        case 'webp':
-          contentType = 'image/webp';
-          break;
-        case 'heic':
-          contentType = 'image/heic';
-          break;
-        case 'heif':
-          contentType = 'image/heif';
-          break;
-      }
-
-      debugPrint('🖼️ Uploading image: $fileName (type: $contentType, path: $imagePath)');
-
-      final formData = FormData.fromMap({
-        'profile_image': await MultipartFile.fromFile(
-          imagePath,
-          filename: fileName,
-          contentType: contentType != null ? MediaType.parse(contentType) : null,
-        ),
-      });
-
-      final response = await _dio.post(
-        '/upload/profile-image',
-        data: formData,
-        options: Options(
-          headers: {'Authorization': 'Bearer $token'},
-          contentType: 'multipart/form-data',
-        ),
-      );
-
-      debugPrint('✅ Upload response: ${response.statusCode} - ${response.data}');
-
-      if (response.statusCode == 200) {
-        return response.data['image_url'] as String;
-      } else {
-        throw Exception('Failed to upload image: ${response.data['message'] ?? 'Unknown error'}');
-      }
-    } on DioException catch (e) {
-      debugPrint('❌ Upload error: ${e.response?.statusCode} - ${e.response?.data}');
-      
-      // Handle specific upload errors
-      if (e.response?.statusCode == 400) {
-        final errorMessage = e.response?.data['error'] ?? 'Invalid file format';
-        throw Exception(errorMessage);
-      }
-      
-      throw _handleDioException(e);
-    }
-  }
 
   // Get featured products
   Future<List<Product>> getFeaturedProducts({int limit = 6}) async {
