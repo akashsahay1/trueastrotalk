@@ -204,12 +204,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: _onJoinAsAstrologer,
                         child: Text(
                           'Join as Astrologer',
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600,
-                            decoration: TextDecoration.underline,
-                            decorationColor: AppColors.primary,
-                          ),
+                          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600, decoration: TextDecoration.none, decorationColor: AppColors.primary),
                         ),
                       ),
                     ),
@@ -321,16 +316,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } on GoogleSignUpRequiredException catch (googleException) {
       if (mounted) {
         // Silently navigate to registration screen with prefilled Google data
-        Navigator.pushNamed(
-          context, 
-          '/register',
-          arguments: {
-            'name': googleException.name,
-            'email': googleException.email,
-            'google_access_token': googleException.accessToken,
-            'auth_type': 'google',
-          },
-        );
+        Navigator.pushNamed(context, '/register', arguments: {'name': googleException.name, 'email': googleException.email, 'google_access_token': googleException.accessToken, 'auth_type': 'google'});
       }
     } catch (e) {
       // Check if this is actually a GoogleSignUpRequiredException that wasn't caught
@@ -341,8 +327,16 @@ class _LoginScreenState extends State<LoginScreen> {
         }
         return;
       }
-      
-      // Handle silently - no snackbars for any Google Sign-In issues
+
+      // Check if this is an account migration error
+      if (e.toString().contains('Unable to login with Google')) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Unable to connect with Google. Please try again or use email login.'), backgroundColor: AppColors.error, duration: const Duration(seconds: 3)));
+        }
+        return;
+      }
+
+      // Handle silently - no snackbars for any other Google Sign-In issues
       if (mounted && e.toString().contains('cancelled')) {
         // User cancelled - do nothing, stay on login screen
         return;

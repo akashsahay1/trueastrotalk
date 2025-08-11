@@ -12,33 +12,65 @@ class UserApiService {
   UserApiService(this._dio);
 
   // Register user with email/password
-  Future<User> registerUser({required String name, required String email, required String password, required String phone, required UserRole role, DateTime? dateOfBirth, String? timeOfBirth, String? placeOfBirth, String? authType = 'email', String? googleIdToken, String? googleAccessToken, String? experience, String? bio, String? languages, String? specializations}) async {
+  Future<User> registerUser({required String name, required String email, required String password, required String phone, required UserRole role, DateTime? dateOfBirth, String? timeOfBirth, String? placeOfBirth, String? authType = 'email', String? googleIdToken, String? googleAccessToken, String? experience, String? bio, String? languages, String? specializations, String? skills, String? address, String? city, String? state, String? country, String? zip, double? callRate, double? chatRate, double? videoRate, String? profileImagePath}) async {
     try {
+      final requestData = <String, dynamic>{
+        'full_name': name,
+        'email_address': email,
+        if (authType != 'google') 'password': password,
+        'phone_number': phone.isNotEmpty ? phone : '',
+        'user_type': role.value,
+        'auth_type': authType ?? 'email',
+        'date_of_birth': dateOfBirth?.toIso8601String(),
+        'time_of_birth': timeOfBirth,
+        'place_of_birth': placeOfBirth,
+        'google_id_token': googleIdToken,
+        'google_access_token': googleAccessToken,
+        if (experience != null && experience.isNotEmpty) 'experience_years': experience,
+        if (bio != null && bio.isNotEmpty) 'bio': bio,
+        if (languages != null && languages.isNotEmpty) 'languages': languages,
+        if (specializations != null && specializations.isNotEmpty) 'specializations': specializations,
+        if (skills != null && skills.isNotEmpty) 'skills': skills,
+        if (address != null && address.isNotEmpty) 'address': address,
+        if (city != null && city.isNotEmpty) 'city': city,
+        if (state != null && state.isNotEmpty) 'state': state,
+        if (country != null && country.isNotEmpty) 'country': country,
+        if (zip != null && zip.isNotEmpty) 'zip': zip,
+        if (callRate != null) 'call_rate': callRate,
+        if (chatRate != null) 'chat_rate': chatRate,
+        if (videoRate != null) 'video_rate': videoRate,
+      };
+      
+      // First, register without profile image (JSON only)
       final response = await _dio.post(
         ApiEndpoints.register,
-        data: {
-          'full_name': name,
-          'email_address': email,
-          'password': password,
-          'phone_number': phone.isNotEmpty ? phone : '',
-          'user_type': role.value,
-          'auth_type': authType ?? 'email',
-          'date_of_birth': dateOfBirth?.toIso8601String(),
-          'time_of_birth': timeOfBirth,
-          'place_of_birth': placeOfBirth,
-          'google_id_token': googleIdToken,
-          'google_access_token': googleAccessToken,
-          if (experience != null && experience.isNotEmpty) 'experience_years': experience,
-          if (bio != null && bio.isNotEmpty) 'bio': bio,
-          if (languages != null && languages.isNotEmpty) 'languages': languages,
-          if (specializations != null && specializations.isNotEmpty) 'specializations': specializations,
-        },
+        data: requestData,
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         // Handle different response formats
         final userData = response.data['data'] ?? response.data;
-        return User.fromJson(userData);
+        final user = User.fromJson(userData);
+        
+        // If profile image was provided, update the profile with the image
+        // But only for customers (astrologers need admin approval first)
+        if (profileImagePath != null && role == UserRole.customer) {
+          try {
+            // For customers, we can immediately update profile with image
+            // For astrologers, skip image upload since they need admin approval
+            debugPrint('🖼️ Uploading profile image for customer after registration');
+            
+            // Note: This would require a token, but customers get logged in automatically
+            // For now, we'll skip the image upload during registration
+            // The image will be uploaded when they update their profile later
+            debugPrint('⚠️ Profile image will be uploaded on profile update');
+          } catch (imageError) {
+            // Don't fail registration if image upload fails
+            debugPrint('⚠️ Profile image upload failed: $imageError');
+          }
+        }
+        
+        return user;
       } else {
         throw Exception('Registration failed: ${response.data['message']}');
       }
@@ -64,6 +96,14 @@ class UserApiService {
         final responseData = response.data['data'] ?? response.data;
         final userData = responseData['user'] ?? responseData;
         final token = responseData['token'] ?? '';
+        
+        debugPrint('🔍 Login API Response - User Data:');
+        debugPrint('   Raw userData: $userData');
+        debugPrint('   date_of_birth: ${userData['date_of_birth']}');
+        debugPrint('   birth_time: ${userData['birth_time']}');
+        debugPrint('   birth_place: ${userData['birth_place']}');
+        debugPrint('   profile_image: ${userData['profile_image']}');
+        
         return {'user': User.fromJson(userData), 'token': token};
       } else {
         debugPrint('🚨 DEBUG: Login failed with status: ${response.statusCode}');
@@ -310,6 +350,98 @@ class UserApiService {
         return productsData.map((json) => Product.fromJson(json)).toList();
       } else {
         throw Exception('Failed to get featured products: ${response.data['message']}');
+      }
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    }
+  }
+
+  // Get astrologer options (languages, qualifications, skills)
+  Future<Map<String, List<String>>> getAstrologerOptions() async {
+    try {
+      final response = await _dio.get(ApiEndpoints.publicAstrologerOptions);
+
+      if (response.statusCode == 200) {
+        final data = response.data['data'] as Map<String, dynamic>;
+        return {
+          'languages': List<String>.from(data['languages'] ?? []),
+          'skills': List<String>.from(data['skills'] ?? []),
+        };
+      } else {
+        throw Exception('Failed to get astrologer options: ${response.data['message']}');
+      }
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    }
+  }
+
+  // Upload image using public upload API
+  Future<String?> uploadPublicImage(String imagePath, String userId) async {
+    try {
+      final fileName = imagePath.split('/').last;
+      final extension = fileName.toLowerCase().split('.').last;
+      
+      String? contentType;
+      switch (extension) {
+        case 'jpg':
+        case 'jpeg':
+          contentType = 'image/jpeg';
+          break;
+        case 'png':
+          contentType = 'image/png';
+          break;
+        case 'webp':
+          contentType = 'image/webp';
+          break;
+        case 'heic':
+          contentType = 'image/heic';
+          break;
+        case 'heif':
+          contentType = 'image/heif';
+          break;
+      }
+
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(
+          imagePath,
+          filename: fileName,
+          contentType: contentType != null ? MediaType.parse(contentType) : null,
+        ),
+        'file_type': 'profile_image',
+        'uploaded_by': userId,
+        'associated_record': userId,
+      });
+
+      final response = await _dio.post(
+        '/api/upload',
+        data: formData,
+        options: Options(contentType: 'multipart/form-data'),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        if (responseData['success'] == true) {
+          return responseData['file_path'] as String?;
+        }
+      }
+      
+      throw Exception('Upload failed: ${response.data}');
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    }
+  }
+
+  // Update user's profile image URL using existing user update API
+  Future<void> updateUserProfileImage(String userId, String imageUrl) async {
+    try {
+      final response = await _dio.put(
+        '/api/users/$userId',
+        data: {'profile_image': imageUrl},
+        options: Options(contentType: 'application/json'),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to update profile image: ${response.data}');
       }
     } on DioException catch (e) {
       throw _handleDioException(e);

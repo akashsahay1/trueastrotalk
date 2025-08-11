@@ -188,13 +188,13 @@ export async function PUT(
       account_status: body.account_status || 'active',
       is_online: body.is_online !== undefined ? body.is_online : existingUser.is_online,
       is_verified: body.is_verified !== undefined ? body.is_verified : existingUser.is_verified,
-      qualifications: body.qualifications || [],
+      bio: body.bio || '',
+      specializations: body.qualifications || [], // Map qualifications to specializations in DB
       skills: body.skills || [],
-      commission_rates: body.commission_rates || {
-        call_rate: 0,
-        chat_rate: 0,
-        video_rate: 0
-      },
+      // Save rates as direct fields to match mobile registration
+      call_rate: body.commission_rates?.call_rate || 0,
+      chat_rate: body.commission_rates?.chat_rate || 0,
+      video_rate: body.commission_rates?.video_rate || 0,
       updated_at: new Date()
     };
 

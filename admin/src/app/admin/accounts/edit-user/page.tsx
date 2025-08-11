@@ -38,6 +38,7 @@ interface FormData {
   };
   experience_years: number;
   specialization: string;
+  bio: string;
 }
 
 function EditUserContent() {
@@ -79,7 +80,8 @@ function EditUserContent() {
       video_rate: 0
     },
     experience_years: 0,
-    specialization: ''
+    specialization: '',
+    bio: ''
   });
 
   const [qualificationInput, setQualificationInput] = useState('');
@@ -128,15 +130,16 @@ function EditUserContent() {
           account_status: user.account_status || 'active',
           is_online: user.is_online || false,
           is_verified: user.is_verified !== undefined ? user.is_verified : true,
-          qualifications: user.qualifications || [],
-          skills: user.skills || [],
-          commission_rates: user.commission_rates || {
-            call_rate: 0,
-            chat_rate: 0,
-            video_rate: 0
+          qualifications: user.specializations ? (Array.isArray(user.specializations) ? user.specializations : user.specializations.split(',').map((s: string) => s.trim()).filter((s: string) => s)) : [],
+          skills: user.skills ? (Array.isArray(user.skills) ? user.skills : user.skills.split(',').map((s: string) => s.trim()).filter((s: string) => s)) : [],
+          commission_rates: {
+            call_rate: user.call_rate || 0,
+            chat_rate: user.chat_rate || 0,
+            video_rate: user.video_rate || 0
           },
           experience_years: user.experience_years || 0,
-          specialization: user.specialization || ''
+          specialization: user.specialization || '',
+          bio: user.bio || ''
         });
         
         // Set image preview if profile image exists
@@ -383,6 +386,10 @@ function EditUserContent() {
       if (formData.qualifications.length === 0) {
         customErrors.qualifications = 'At least one qualification is required for astrologers';
       }
+
+      if (!formData.bio || formData.bio.trim().length === 0) {
+        customErrors.bio = 'Professional bio is required for astrologers';
+      }
     }
 
     // Combine all errors
@@ -425,7 +432,16 @@ function EditUserContent() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          qualifications: formData.qualifications.join(','), // Keep as qualifications for backend
+          skills: formData.skills.join(','),
+          commission_rates: {
+            call_rate: formData.commission_rates.call_rate,
+            chat_rate: formData.commission_rates.chat_rate,
+            video_rate: formData.commission_rates.video_rate,
+          },
+        }),
       });
 
       const data = await response.json();
@@ -564,10 +580,11 @@ function EditUserContent() {
             )}
 
             <form onSubmit={handleSubmit}>
-              {/* Basic Information Card */}
-              <div className="row mb-4">
-                <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
-                  <div className="card">
+              
+              <div className="row">
+                <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12 col-12">
+									{/* Basic Information Card */}
+                  <div className="card mb-4">
                     <h5 className="card-header">Basic Information</h5>
                     <div className="card-body">
 
@@ -790,13 +807,8 @@ function EditUserContent() {
 
                     </div>
                   </div>
-                </div>
-              </div>
-
-              {/* Personal Information Card */}
-              <div className="row mb-4">
-                <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
-                  <div className="card">
+									{/* Personal Information Card */}
+									<div className="card mb-4">
                     <h5 className="card-header">Personal Information</h5>
                     <div className="card-body">
 
@@ -914,6 +926,27 @@ function EditUserContent() {
                       {/* Astrologer Professional Information */}
                       {isAstrologer && (
                         <>
+                          {/* Professional Bio */}
+                          <div className="form-group row">
+                            <div className="col-lg-12">
+                              <label className="col-form-label">Professional Bio <span className="text-danger">*</span></label>
+                              <textarea 
+                                className={`form-control ${fieldErrors.bio ? 'is-invalid' : ''}`}
+                                name="bio"
+                                value={formData.bio}
+                                onChange={handleInputChange}
+                                placeholder="Tell us about your professional background and expertise..."
+                                rows={4}
+                                required={isAstrologer}
+                              />
+                              {fieldErrors.bio && (
+                                <div className="invalid-feedback">
+                                  {fieldErrors.bio}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
                           <div className="form-group row">
                             <div className="col-lg-6">
                               <label className="col-form-label">Qualifications <span className="text-danger">*</span></label>
@@ -1059,13 +1092,8 @@ function EditUserContent() {
                       )}
                     </div>
                   </div>
-                </div>
-              </div>
-
-              {/* Account Settings Card */}
-              <div className="row mb-4">
-                <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
-                  <div className="card">
+									{/* Account Settings Card */}
+									<div className="card mb-4">
                     <h5 className="card-header">Account Settings</h5>
                     <div className="card-body">
 
@@ -1101,33 +1129,27 @@ function EditUserContent() {
                           </div>
                         </div>
                       </div>
-
-                      <div className="form-group row">
-                        <div className="col-lg-12">
-                          <div className="text-right">
-                            <Link href={`/admin/accounts/${formData.user_type === 'administrator' ? 'admins' : formData.user_type === 'manager' ? 'managers' : formData.user_type === 'astrologer' ? 'astrologers' : 'customers'}`} className="btn btn-light mr-2">
-                              Cancel
-                            </Link>
-                            <button 
-                              type="submit" 
-                              className="btn btn-primary"
-                              disabled={loading}
-                            >
-                              {loading ? (
-                                <>
-                                  <i className="fas fa-spinner fa-spin mr-2"></i> Updating...
-                                </>
-                              ) : (
-                                <>
-                                  Update
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   </div>
+									 <div className="row">
+										<div className="col-lg-12">
+											<button 
+												type="submit" 
+												className="btn btn-primary"
+												disabled={loading}
+											>
+												{loading ? (
+													<>
+														<i className="fas fa-spinner fa-spin mr-2"></i> Updating...
+													</>
+												) : (
+													<>
+														Update Account
+													</>
+												)}
+											</button>
+										</div>
+									</div>
                 </div>
               </div>
             </form>

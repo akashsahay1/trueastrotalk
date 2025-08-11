@@ -23,16 +23,41 @@ export async function POST(request: NextRequest) {
       google_access_token,
       date_of_birth,
       time_of_birth,
-      place_of_birth
+      place_of_birth,
+      experience_years,
+      bio,
+      languages,
+      specializations,
+      skills,
+      address,
+      city,
+      state,
+      country,
+      zip,
+      call_rate,
+      chat_rate,
+      video_rate
     } = body;
 
     // Validate required fields
-    if (!full_name || !email_address || !password || !user_type) {
+    if (!full_name || !email_address || !user_type) {
       return NextResponse.json(
         { 
           success: false,
           error: 'Missing required fields',
-          message: 'Full name, email, password, and user type are required' 
+          message: 'Full name, email, and user type are required' 
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate password only for non-Google auth
+    if (auth_type !== 'google' && !password) {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Missing password',
+          message: 'Password is required for email authentication' 
         },
         { status: 400 }
       );
@@ -80,25 +105,35 @@ export async function POST(request: NextRequest) {
       profile_image: '',
       full_name,
       email_address,
-      password: hashPassword(password),
+      password: auth_type === 'google' ? '' : hashPassword(password), // No password for Google users
       user_type,
       auth_type,
       phone_number: phone_number || '',
       date_of_birth: date_of_birth || '',
       birth_time: time_of_birth || '',
       birth_place: place_of_birth || '',
-      address: '',
-      city: '',
-      state: '',
-      country: 'India',
-      zip: '',
+      address: address || '',
+      city: city || '',
+      state: state || '',
+      country: country || 'India',
+      zip: zip || '',
       account_status: user_type === 'customer' ? 'active' : 'profile_incomplete',
-      verification_status: user_type === 'customer' ? 'verified' : 'pending',
+      verification_status: user_type === 'customer' ? 'verified' : 'unverified',
       is_online: false,
       is_verified: auth_type === 'google' ? true : false,
       wallet_balance: 0,
       google_id_token: auth_type === 'google' ? google_id_token : undefined,
       google_access_token: auth_type === 'google' ? google_access_token : undefined,
+      // Professional fields for astrologers
+      experience_years: experience_years || '',
+      bio: bio || '',
+      languages: languages || '',
+      specializations: specializations || '',
+      skills: skills || '',
+      // Rate information for astrologers
+      call_rate: call_rate || 0,
+      chat_rate: chat_rate || 0,
+      video_rate: video_rate || 0,
       created_at: new Date(),
       updated_at: new Date()
     };

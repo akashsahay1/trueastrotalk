@@ -29,6 +29,9 @@ interface FormData {
   account_status: string;
   is_online: boolean;
   is_verified: boolean;
+  experience_years: number;
+  bio: string;
+  languages: string[];
   qualifications: string[];
   skills: string[];
   commission_rates: {
@@ -36,6 +39,11 @@ interface FormData {
     chat_rate: number;
     video_rate: number;
   };
+}
+
+interface AstrologerOptions {
+  languages: string[];
+  skills: string[];
 }
 
 export default function AddUserPage() {
@@ -64,6 +72,9 @@ export default function AddUserPage() {
     account_status: 'active',
     is_online: false,
     is_verified: false,
+    experience_years: 0,
+    bio: '',
+    languages: [],
     qualifications: [],
     skills: [],
     commission_rates: {
@@ -73,16 +84,49 @@ export default function AddUserPage() {
     }
   });
 
-  const [qualificationInput, setQualificationInput] = useState('');
-  const [skillInput, setSkillInput] = useState('');
   const [imageUploading, setImageUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState('');
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+  
+  // Dropdown states
+  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
+  const [showSkillDropdown, setShowSkillDropdown] = useState(false);
+
+  // Astrologer options from API
+  const [astrologerOptions, setAstrologerOptions] = useState<AstrologerOptions>({
+    languages: [],
+    skills: []
+  });
+
+  // Qualifications repeater field state
+  const [qualificationInput, setQualificationInput] = useState('');
+  const [optionsLoading, setOptionsLoading] = useState(true);
 
   useEffect(() => {
     document.body.className = '';
+    loadAstrologerOptions();
   }, []);
+
+  const loadAstrologerOptions = async () => {
+    try {
+      setOptionsLoading(true);
+      const response = await fetch('/api/astrologer-options/active');
+      const data = await response.json();
+      
+      if (response.ok) {
+        setAstrologerOptions(data.data);
+      } else {
+        console.error('Failed to load astrologer options:', data.error);
+        errorMessages.fetchError('Failed to load astrologer options');
+      }
+    } catch (error) {
+      console.error('Error loading astrologer options:', error);
+      errorMessages.networkError();
+    } finally {
+      setOptionsLoading(false);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -111,6 +155,25 @@ export default function AddUserPage() {
     }
   };
 
+  const toggleLanguage = (language: string) => {
+    setFormData(prev => ({
+      ...prev,
+      languages: prev.languages.includes(language)
+        ? prev.languages.filter(l => l !== language)
+        : [...prev.languages, language]
+    }));
+  };
+
+
+  const toggleSkill = (skill: string) => {
+    setFormData(prev => ({
+      ...prev,
+      skills: prev.skills.includes(skill)
+        ? prev.skills.filter(s => s !== skill)
+        : [...prev.skills, skill]
+    }));
+  };
+
   const addQualification = () => {
     if (qualificationInput.trim()) {
       setFormData(prev => ({
@@ -125,23 +188,6 @@ export default function AddUserPage() {
     setFormData(prev => ({
       ...prev,
       qualifications: prev.qualifications.filter((_, i) => i !== index)
-    }));
-  };
-
-  const addSkill = () => {
-    if (skillInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        skills: [...prev.skills, skillInput.trim()]
-      }));
-      setSkillInput('');
-    }
-  };
-
-  const removeSkill = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      skills: prev.skills.filter((_, i) => i !== index)
     }));
   };
 
@@ -273,6 +319,23 @@ export default function AddUserPage() {
       // ZIP code validation for astrologers
       if (!formData.zip.trim()) {
         customErrors.zip = 'ZIP code is required for astrologers';
+      }
+
+      // Experience years validation for astrologers
+      if (!formData.experience_years || formData.experience_years < 1) {
+        customErrors.experience_years = 'Experience years is required for astrologers';
+      }
+
+      // Bio validation for astrologers
+      if (!formData.bio.trim()) {
+        customErrors.bio = 'Bio is required for astrologers';
+      } else if (formData.bio.trim().length < 50) {
+        customErrors.bio = 'Bio must be at least 50 characters';
+      }
+
+      // Languages validation for astrologers
+      if (!formData.languages || formData.languages.length === 0) {
+        customErrors.languages = 'At least one language is required for astrologers';
       }
 
       if (!formData.skills || formData.skills.length === 0) {
@@ -728,67 +791,221 @@ export default function AddUserPage() {
 									<>
 										<div className="form-group row">
 											<div className="col-lg-6">
-												<label className="col-form-label">Qualifications <span className="text-danger">*</span></label>
-												<div className="input-group mb-2">
+												<label className="col-form-label">Experience Years <span className="text-danger">*</span></label>
 												<input 
-													type="text" 
+													type="number" 
 													className="form-control"
-													value={qualificationInput}
-													onChange={(e) => setQualificationInput(e.target.value)}
+													name="experience_years"
+													value={formData.experience_years}
+													onChange={handleInputChange}
 													placeholder=""
-													onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addQualification())}
+													min="1"
+													required
 												/>
-												<div className="input-group-append">
-													<button 
-														type="button" 
-														className="btn btn-outline-primary"
-														onClick={addQualification}
-														>
-														<i className="fas fa-plus"></i>
-													</button>
-												</div>
-											</div>
-											<div className="d-flex flex-wrap">
-												{formData.qualifications.map((qual, index) => (
-													<span key={index} className="badge badge-primary mr-2 mb-2">
-														{qual}
-														<button 
-															type="button" 
-															className="btn btn-sm ml-1 p-0"
-															style={{ background: 'none', border: 'none', color: 'white' }}
-															onClick={() => removeQualification(index)}
-															>
-															×
-														</button>
-													</span>
-												))}
-											</div>
 											</div>
 											<div className="col-lg-6">
-												<label className="col-form-label">Skills <span className="text-danger">*</span></label>
+												<label className="col-form-label">Languages <span className="text-danger">*</span></label>
+												<div className="dropdown">
+													<input
+														type="text"
+														className="form-control dropdown-toggle"
+														value={formData.languages.join(', ') || 'Select languages...'}
+														onFocus={() => setShowLanguageDropdown(true)}
+														readOnly
+														style={{ cursor: 'pointer' }}
+														data-toggle="dropdown"
+													/>
+													{showLanguageDropdown && (
+														<div className="dropdown-menu show w-100" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+															<div className="px-3 py-2">
+																<div className="d-flex justify-content-between align-items-center mb-2">
+																	<small className="text-muted">Select Languages</small>
+																	<button
+																		type="button"
+																		className="btn btn-sm btn-outline-secondary"
+																		onClick={() => setShowLanguageDropdown(false)}
+																	>
+																		<i className="fas fa-times"></i>
+																	</button>
+																</div>
+																{optionsLoading ? (
+																	<div className="text-center py-2">
+																		<i className="fas fa-spinner fa-spin"></i>
+																		<small className="d-block text-muted">Loading...</small>
+																	</div>
+																) : (
+																	<div style={{ maxHeight: '150px', overflowY: 'auto' }}>
+																		{astrologerOptions.languages.map((language) => (
+																			<div key={language} className="form-check">
+																				<input
+																					type="checkbox"
+																					className="form-check-input"
+																					id={`lang-${language}`}
+																					checked={formData.languages.includes(language)}
+																					onChange={() => toggleLanguage(language)}
+																				/>
+																				<label className="form-check-label" htmlFor={`lang-${language}`}>
+																					{language}
+																				</label>
+																			</div>
+																		))}
+																	</div>
+																)}
+															</div>
+														</div>
+													)}
+												</div>
+												{formData.languages.length > 0 && (
+													<div className="mt-2">
+														<small className="text-muted">Selected: </small>
+														<div className="d-flex flex-wrap">
+															{formData.languages.map((lang, index) => (
+																<span key={index} className="badge badge-success mr-1 mb-1">
+																	{lang}
+																	<button 
+																		type="button" 
+																		className="btn btn-sm ml-1 p-0" 
+																		style={{ background: 'none', border: 'none', color: 'white' }} 
+																		onClick={() => toggleLanguage(lang)}
+																	>
+																		×
+																	</button>
+																</span>
+															))}
+														</div>
+													</div>
+												)}
+											</div>
+										</div>
+
+										<div className="form-group row">
+											<div className="col-lg-12">
+												<label className="col-form-label">Professional Bio <span className="text-danger">*</span></label>
+												<textarea 
+													className="form-control"
+													name="bio"
+													value={formData.bio}
+													onChange={handleInputChange}
+													placeholder="Tell us about your experience and approach to astrology..."
+													rows={4}
+													required
+												/>
+												<small className="form-text text-muted">Minimum 50 characters</small>
+											</div>
+										</div>
+
+										<div className="form-group row">
+											<div className="col-lg-6">
+												<label className="col-form-label">Qualifications <span className="text-danger">*</span></label>
 												<div className="input-group mb-2">
 													<input 
 														type="text" 
 														className="form-control"
-														value={skillInput}
-														onChange={(e) => setSkillInput(e.target.value)}
-														placeholder=""
-														onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+														value={qualificationInput}
+														onChange={(e) => setQualificationInput(e.target.value)}
+														placeholder="Enter qualification"
+														onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addQualification())}
 													/>
 													<div className="input-group-append">
-														<button type="button" className="btn btn-outline-primary" onClick={addSkill}>
+														<button 
+															type="button" 
+															className="btn btn-outline-primary"
+															onClick={addQualification}
+														>
 															<i className="fas fa-plus"></i>
 														</button>
 													</div>
 												</div>
-												<div className="d-flex flex-wrap">
-													{formData.skills.map((skill, index) => (
-														<span key={index} className="badge badge-info mr-2 mb-2">
-															{skill}
-															<button type="button" className="btn btn-sm ml-1 p-0" style={{ background: 'none', border: 'none', color: 'white' }} onClick={() => removeSkill(index)}>×</button>
-														</span>
-													))}
+												{formData.qualifications.length > 0 && (
+													<div className="d-flex flex-wrap">
+														{formData.qualifications.map((qual, index) => (
+															<span key={index} className="badge badge-primary mr-2 mb-2">
+																{qual}
+																<button 
+																	type="button" 
+																	className="btn btn-sm ml-1 p-0"
+																	style={{ background: 'none', border: 'none', color: 'white' }}
+																	onClick={() => removeQualification(index)}
+																>
+																	×
+																</button>
+															</span>
+														))}
+													</div>
+												)}
+											</div>
+											<div className="col-lg-6">
+												<label className="col-form-label">Skills <span className="text-danger">*</span></label>
+												<div className="dropdown">
+													<input
+														type="text"
+														className="form-control dropdown-toggle"
+														value={formData.skills.join(', ') || 'Select skills...'}
+														onFocus={() => setShowSkillDropdown(true)}
+														readOnly
+														style={{ cursor: 'pointer' }}
+														data-toggle="dropdown"
+													/>
+													{showSkillDropdown && (
+														<div className="dropdown-menu show w-100" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+															<div className="px-3 py-2">
+																<div className="d-flex justify-content-between align-items-center mb-2">
+																	<small className="text-muted">Select Skills</small>
+																	<button
+																		type="button"
+																		className="btn btn-sm btn-outline-secondary"
+																		onClick={() => setShowSkillDropdown(false)}
+																	>
+																		<i className="fas fa-times"></i>
+																	</button>
+																</div>
+																{optionsLoading ? (
+																	<div className="text-center py-2">
+																		<i className="fas fa-spinner fa-spin"></i>
+																		<small className="d-block text-muted">Loading...</small>
+																	</div>
+																) : (
+																	<div style={{ maxHeight: '150px', overflowY: 'auto' }}>
+																		{astrologerOptions.skills.map((skill) => (
+																			<div key={skill} className="form-check">
+																				<input
+																					type="checkbox"
+																					className="form-check-input"
+																					id={`skill-${skill}`}
+																					checked={formData.skills.includes(skill)}
+																					onChange={() => toggleSkill(skill)}
+																				/>
+																				<label className="form-check-label" htmlFor={`skill-${skill}`}>
+																					{skill}
+																				</label>
+																			</div>
+																		))}
+																	</div>
+																)}
+															</div>
+														</div>
+													)}
 												</div>
+												{formData.skills.length > 0 && (
+													<div className="mt-2">
+														<small className="text-muted">Selected: </small>
+														<div className="d-flex flex-wrap">
+															{formData.skills.map((skill, index) => (
+																<span key={index} className="badge badge-info mr-1 mb-1">
+																	{skill}
+																	<button 
+																		type="button" 
+																		className="btn btn-sm ml-1 p-0" 
+																		style={{ background: 'none', border: 'none', color: 'white' }} 
+																		onClick={() => toggleSkill(skill)}
+																	>
+																		×
+																	</button>
+																</span>
+															))}
+														</div>
+													</div>
+												)}
 											</div>
 										</div>
 

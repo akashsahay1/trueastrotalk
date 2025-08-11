@@ -7,7 +7,16 @@
       "Bash(flutter build:*)",
       "Bash(npm run build:*)",
       "Bash(timeout 10 npm run dev)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(pkill:*)",
+      "Bash(true)",
+      "Bash(rm:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npx tsc:*)",
+      "Bash(timeout 15 npm run dev)",
+      "Bash(curl:*)",
+      "Bash(lsof:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

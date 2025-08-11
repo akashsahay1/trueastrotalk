@@ -118,6 +118,16 @@ class AuthService {
     String? bio,
     String? languages,
     String? specializations,
+    String? skills,
+    String? address,
+    String? city,
+    String? state,
+    String? country,
+    String? zip,
+    double? callRate,
+    double? chatRate,
+    double? videoRate,
+    String? profileImagePath,
   }) async {
     try {
       // Convert TimeOfDay to string if provided
@@ -142,27 +152,98 @@ class AuthService {
         bio: bio,
         languages: languages,
         specializations: specializations,
+        skills: skills,
+        address: address,
+        city: city,
+        state: state,
+        country: country,
+        zip: zip,
+        callRate: callRate,
+        chatRate: chatRate,
+        videoRate: videoRate,
+        profileImagePath: profileImagePath,
       );
 
       return AuthResult.success(message: 'Registration successful', user: user);
     } on AstrologerRegistrationSuccessException catch (e) {
       // For astrologer, this is actually success - they need admin approval
-      return AuthResult.success(
-        message: 'Astrologer registration submitted successfully. Please wait for admin approval.',
-        user: e.newUser,
-      );
+      return AuthResult.success(message: 'Astrologer registration submitted successfully. Please wait for admin approval.', user: e.newUser);
     } catch (e) {
       return AuthResult.failure(message: e.toString());
     }
   }
 
-  Future<app_user.User> registerWithEmailPassword({required String name, required String email, required String password, required String phone, required String role, DateTime? dateOfBirth, String? timeOfBirth, String? placeOfBirth, String? authType, String? googleAccessToken, String? experience, String? bio, String? languages, String? specializations}) async {
+  Future<app_user.User> registerWithEmailPassword({
+    required String name,
+    required String email,
+    required String password,
+    required String phone,
+    required String role,
+    DateTime? dateOfBirth,
+    String? timeOfBirth,
+    String? placeOfBirth,
+    String? authType,
+    String? googleAccessToken,
+    String? experience,
+    String? bio,
+    String? languages,
+    String? specializations,
+    String? skills,
+    String? address,
+    String? city,
+    String? state,
+    String? country,
+    String? zip,
+    double? callRate,
+    double? chatRate,
+    double? videoRate,
+    String? profileImagePath,
+  }) async {
     try {
       // Try to register the user
-      final user = await _userApiService.registerUser(name: name, email: email, password: password, phone: phone, role: UserRoleExtension.fromString(role), dateOfBirth: dateOfBirth, timeOfBirth: timeOfBirth, placeOfBirth: placeOfBirth, authType: authType, googleAccessToken: googleAccessToken, experience: experience, bio: bio, languages: languages, specializations: specializations);
+      final user = await _userApiService.registerUser(
+        name: name,
+        email: email,
+        password: password,
+        phone: phone,
+        role: UserRoleExtension.fromString(role),
+        dateOfBirth: dateOfBirth,
+        timeOfBirth: timeOfBirth,
+        placeOfBirth: placeOfBirth,
+        authType: authType,
+        googleAccessToken: googleAccessToken,
+        experience: experience,
+        bio: bio,
+        languages: languages,
+        specializations: specializations,
+        skills: skills,
+        address: address,
+        city: city,
+        state: state,
+        country: country,
+        zip: zip,
+        callRate: callRate,
+        chatRate: chatRate,
+        videoRate: videoRate,
+        profileImagePath: profileImagePath,
+      );
 
-      // If astrologer registration is successful, throw special exception
+      // If astrologer registration is successful, upload profile image if provided
       if (user.role == UserRole.astrologer) {
+        if (profileImagePath != null) {
+          try {
+            // Upload profile image using public upload API
+            final imageUrl = await _uploadProfileImage(profileImagePath, user.id);
+            if (imageUrl != null) {
+              // Update the user's profile_image field in database
+              await _updateUserProfileImage(user.id, imageUrl);
+              // Update the local user object
+              // Note: We can't easily update the User object here without modifying the model
+            }
+          } catch (imageError) {
+            // Don't fail registration if image upload fails
+          }
+        }
         throw AstrologerRegistrationSuccessException(newUser: user);
       }
 
@@ -171,15 +252,29 @@ class AuthService {
         // Since we just registered successfully, we need to get a token
         // Let's login the user to get the token
         try {
-          final loginResult = await _userApiService.loginUser(
-            email: email,
-            password: password,
-          );
-          
+          final loginResult = await _userApiService.loginUser(email: email, password: authType == 'google' ? null : password, authType: authType, googleAccessToken: googleAccessToken);
+
           final loggedInUser = loginResult['user'] as app_user.User;
           final token = loginResult['token'] as String;
-          
+
           await _saveAuthData(loggedInUser, token);
+
+          // Upload profile image if provided
+          if (profileImagePath != null) {
+            try {
+              final updatedUser = await _userApiService.updateUserProfile(
+                token: token,
+                userData: {}, // No additional data to update
+                profileImagePath: profileImagePath,
+              );
+              // Update stored user data with the new profile image
+              await _saveAuthData(updatedUser, token);
+              return updatedUser;
+            } catch (imageError) {
+              // Don't fail login if image upload fails, just log the error
+            }
+          }
+
           return loggedInUser;
         } catch (loginError) {
           // If login fails, just return the user without setting auth data
@@ -193,13 +288,8 @@ class AuthService {
       if (e.toString().contains('Email already exists') || e.toString().contains('already exists')) {
         // Try to login with the existing user to get their details
         try {
-          final loginResult = await _userApiService.loginUser(
-            email: email,
-            password: authType == 'google' ? null : password,
-            authType: authType,
-            googleAccessToken: googleAccessToken,
-          );
-          
+          final loginResult = await _userApiService.loginUser(email: email, password: authType == 'google' ? null : password, authType: authType, googleAccessToken: googleAccessToken);
+
           final existingUser = loginResult['user'] as app_user.User;
           final token = loginResult['token'] as String;
 
@@ -213,9 +303,9 @@ class AuthService {
             if (timeOfBirth != null) updatedProfileData['time_of_birth'] = timeOfBirth;
             if (placeOfBirth != null) updatedProfileData['place_of_birth'] = placeOfBirth;
 
-            if (updatedProfileData.isNotEmpty) {
+            if (updatedProfileData.isNotEmpty || profileImagePath != null) {
               try {
-                await _userApiService.updateUserProfile(token: token, userData: updatedProfileData);
+                await _userApiService.updateUserProfile(token: token, userData: updatedProfileData, profileImagePath: profileImagePath);
               } catch (updateError) {
                 // Continue even if update fails
               }
@@ -332,16 +422,10 @@ class AuthService {
         profileImageUrl = '$profileImageUrl=s400';
       }
     }
-    
-    // Try to login with Google OAuth and sync profile image
+
+    // Try to login with Google OAuth first
     try {
-      final loginResult = await _userApiService.loginUser(
-        email: googleUser.email, 
-        authType: 'google', 
-        googleAccessToken: accessToken,
-        googlePhotoUrl: profileImageUrl,
-        googleDisplayName: googleUser.displayName
-      );
+      final loginResult = await _userApiService.loginUser(email: googleUser.email, authType: 'google', googleAccessToken: accessToken, googlePhotoUrl: profileImageUrl, googleDisplayName: googleUser.displayName);
 
       final user = loginResult['user'] as app_user.User;
       final token = loginResult['token'] as String;
@@ -351,11 +435,7 @@ class AuthService {
     } catch (loginError) {
       // User doesn't exist - throw specific exception with Google data
       // This will be caught by the UI to navigate to signup screen
-      throw GoogleSignUpRequiredException(
-        name: googleUser.displayName ?? googleUser.email.split('@')[0], 
-        email: googleUser.email, 
-        accessToken: accessToken
-      );
+      throw GoogleSignUpRequiredException(name: googleUser.displayName ?? googleUser.email.split('@')[0], email: googleUser.email, accessToken: accessToken);
     }
   }
 
@@ -389,11 +469,7 @@ class AuthService {
     }
 
     try {
-      final updatedUser = await _userApiService.updateUserProfile(
-        token: _authToken!, 
-        userData: userData,
-        profileImagePath: profileImagePath,
-      );
+      final updatedUser = await _userApiService.updateUserProfile(token: _authToken!, userData: userData, profileImagePath: profileImagePath);
 
       _currentUser = updatedUser;
       await _saveUserData(updatedUser);
@@ -461,5 +537,20 @@ class AuthService {
   // Method to set current user (used when logging in existing users during registration)
   Future<void> setCurrentUser(app_user.User user, String token) async {
     await _saveAuthData(user, token);
+  }
+
+  // Get astrologer options (languages, qualifications, skills)
+  Future<Map<String, List<String>>> getAstrologerOptions() async {
+    return await _userApiService.getAstrologerOptions();
+  }
+
+  // Upload profile image using public upload API
+  Future<String?> _uploadProfileImage(String imagePath, String userId) async {
+    return await _userApiService.uploadPublicImage(imagePath, userId);
+  }
+
+  // Update user's profile image URL in database
+  Future<void> _updateUserProfileImage(String userId, String imageUrl) async {
+    return await _userApiService.updateUserProfileImage(userId, imageUrl);
   }
 }

@@ -103,6 +103,29 @@ export async function POST(request: NextRequest) {
         );
       }
       // Skip password verification for Google users
+      console.log(`✅ Google user ${user.email_address} authenticated successfully`);
+    } else if (auth_type === 'google' && google_access_token) {
+      // User is trying to login with Google but their account is email-based
+      // Automatically update their auth_type to Google and login
+      console.log(`🔄 Migrating user ${user.email_address} from email to Google auth`);
+      
+      // Update user to support Google authentication
+      await usersCollection.updateOne(
+        { _id: user._id },
+        { 
+          $set: { 
+            auth_type: 'google',
+            google_access_token: google_access_token,
+            updated_at: new Date()
+          }
+        }
+      );
+      
+      // Update the user object for response
+      user.auth_type = 'google';
+      user.google_access_token = google_access_token;
+      
+      // Skip password verification since we're now using Google auth
     } else {
       // For email users, verify password
       if (!password) {
@@ -210,9 +233,18 @@ export async function POST(request: NextRequest) {
             phone_number: user.phone_number,
             user_type: user.user_type,
             account_status: user.account_status,
+            verification_status: user.verification_status,
+            auth_type: user.auth_type,
             profile_image: user.profile_image || '',
             wallet_balance: user.wallet_balance || 0,
-            is_verified: user.is_verified || false
+            is_verified: user.is_verified || false,
+            // Birth information
+            date_of_birth: user.date_of_birth || '',
+            birth_time: user.birth_time || '',
+            birth_place: user.birth_place || '',
+            // Additional fields for completeness
+            created_at: user.created_at,
+            updated_at: user.updated_at
           },
           token
         }

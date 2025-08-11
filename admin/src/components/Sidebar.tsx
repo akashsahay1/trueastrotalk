@@ -106,8 +106,18 @@ export default function Sidebar() {
     {
       title: 'Settings',
       icon: 'fa-cogs',
-      href: '/admin/settings',
-      active: pathname.startsWith('/admin/settings')
+      submenu: [
+				{
+          title: 'General',
+          href: '/admin/settings/general',
+          active: pathname.startsWith('/admin/settings/general')
+        },
+        {
+          title: 'Astrologers',
+          href: '/admin/settings/astrologers',
+          active: pathname.startsWith('/admin/settings/astrologers')
+        }
+      ]
     }
   ];
 

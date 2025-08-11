@@ -130,6 +130,19 @@ export function closeSweetAlert() {
  * Specific confirmation dialogs for common actions
  */
 
+export const confirmMessages = {
+  /**
+   * Generic delete confirmation
+   */
+  delete: (itemDescription: string = 'this item') =>
+    showConfirmDialog(
+      'Delete Confirmation',
+      `Are you sure you want to delete ${itemDescription}? This action cannot be undone.`,
+      'Yes, delete it!',
+      'Cancel'
+    ),
+};
+
 export const confirmDialogs = {
   /**
    * Delete confirmation for single item
@@ -196,6 +209,9 @@ export const successMessages = {
   
   created: (itemType: string = 'item') =>
     showSuccessAlert('Created!', `${itemType} has been created successfully.`),
+
+	added: (itemType: string = 'item') =>
+    showSuccessAlert('Added!', `${itemType} has been added successfully.`),
   
   updated: (itemType: string = 'item') =>
     showSuccessAlert('Updated!', `${itemType} has been updated successfully.`),
@@ -216,6 +232,12 @@ export const errorMessages = {
   
   updateFailed: (itemType: string = 'item') =>
     showErrorAlert('Update Failed', `Failed to update ${itemType}. Please try again.`),
+  
+  fetchError: (description: string = 'data') =>
+    showErrorAlert('Fetch Error', `Failed to load ${description}. Please try again.`),
+  
+  validationError: (message: string) =>
+    showErrorAlert('Validation Error', message),
   
   networkError: () =>
     showErrorAlert('Network Error', 'Unable to connect to server. Please check your connection.'),

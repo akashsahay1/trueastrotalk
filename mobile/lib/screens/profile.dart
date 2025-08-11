@@ -7,6 +7,7 @@ import '../common/themes/text_styles.dart';
 import '../services/auth/auth_service.dart';
 import '../services/service_locator.dart';
 import '../models/user.dart' as app_user;
+import '../config/config.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -57,6 +58,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final user = _authService.currentUser;
       if (user != null) {
+        debugPrint('📱 Loading user profile:');
+        debugPrint('   Name: ${user.name}');
+        debugPrint('   Email: ${user.email}');
+        debugPrint('   Phone: ${user.phone}');
+        debugPrint('   Date of Birth: ${user.dateOfBirth}');
+        debugPrint('   Time of Birth: ${user.timeOfBirth}');
+        debugPrint('   Place of Birth: ${user.placeOfBirth}');
+        debugPrint('   Profile Picture: ${user.profilePicture}');
+        
         setState(() {
           _currentUser = user;
           _nameController.text = user.name;
@@ -67,8 +77,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _selectedBirthDate = user.dateOfBirth;
           _profileImageUrl = user.profilePicture;
         });
+      } else {
+        debugPrint('❌ No current user found');
       }
     } catch (e) {
+      debugPrint('❌ Failed to load profile: $e');
       _showErrorSnackBar('Failed to load profile: ${e.toString()}');
     } finally {
       setState(() {
@@ -533,8 +546,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: _buildTextField(
                         controller: TextEditingController(
                           text: _selectedBirthDate != null
-                              ? '${_selectedBirthDate!.day}/${_selectedBirthDate!.month}/${_selectedBirthDate!.year}'
-                              : '',
+                              ? '${_selectedBirthDate!.day.toString().padLeft(2, '0')}/${_selectedBirthDate!.month.toString().padLeft(2, '0')}/${_selectedBirthDate!.year}'
+                              : 'Select Date of Birth',
                         ),
                         label: 'Date of Birth',
                         icon: Icons.calendar_today,
@@ -547,7 +560,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     GestureDetector(
                       onTap: _selectBirthTime,
                       child: _buildTextField(
-                        controller: _birthTimeController,
+                        controller: TextEditingController(
+                          text: _birthTimeController.text.isNotEmpty 
+                              ? _birthTimeController.text
+                              : 'Select Time of Birth (Optional)',
+                        ),
                         label: 'Time of Birth (Optional)',
                         icon: Icons.access_time,
                         enabled: false,
@@ -623,12 +640,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
     
     // Show existing profile image
     if (_profileImageUrl?.isNotEmpty == true) {
+      debugPrint('🖼️ Loading profile image: $_profileImageUrl');
+      // Handle both full URLs and relative paths
+      String imageUrl = _profileImageUrl!;
+      if (!imageUrl.startsWith('http')) {
+        // If it's a relative path, prepend the server URL
+        final baseUrl = Config.baseUrl.replaceAll('/api', '');
+        // Ensure proper URL construction
+        imageUrl = baseUrl + imageUrl;
+        debugPrint('🔗 Constructed image URL: $imageUrl');
+        debugPrint('   Base URL: $baseUrl');
+        debugPrint('   Image path: $_profileImageUrl');
+      } else {
+        debugPrint('🌐 Using full URL: $imageUrl');
+      }
+      
+      debugPrint('🌐 Final image URL being loaded: $imageUrl');
+      
       return Image.network(
-        _profileImageUrl!,
+        imageUrl,
         width: 120,
         height: 120,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
+          debugPrint('❌ Failed to load profile image: $error');
           return _buildFallbackAvatar();
         },
         loadingBuilder: (context, child, loadingProgress) {
@@ -648,6 +683,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     
     // Show fallback avatar
+    debugPrint('👤 No profile image, showing fallback avatar');
     return _buildFallbackAvatar();
   }
 
@@ -728,6 +764,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         labelText: label,
         labelStyle: AppTextStyles.bodyMedium.copyWith(
           color: AppColors.textSecondaryLight,
+        ),
+        hintText: !enabled && controller.text.isEmpty ? 'Not specified' : null,
+        hintStyle: AppTextStyles.bodyMedium.copyWith(
+          color: AppColors.textSecondaryLight,
+          fontStyle: FontStyle.italic,
         ),
         prefixIcon: Icon(
           icon,
