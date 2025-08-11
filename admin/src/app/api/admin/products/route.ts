@@ -1,9 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient } from 'mongodb';
 import { UploadService } from '@/lib/upload-service';
+import { envConfig } from '@/lib/env-config';
 
 const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const DB_NAME = 'trueastrotalkDB';
+
+// Helper function to convert relative image URLs to full URLs
+function getFullImageUrl(imageUrl: string | null | undefined): string | null {
+  if (!imageUrl || imageUrl.trim() === '') {
+    return null;
+  }
+  
+  // If it's already a full URL (starts with http/https), return as is
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+  
+  // If it's a relative path, construct full URL
+  if (imageUrl.startsWith('/')) {
+    // Remove /api from the base URL if present, since we want the root domain
+    const baseUrl = envConfig.NEXTAUTH_URL || 'http://localhost:3000';
+    return `${baseUrl}${imageUrl}`;
+  }
+  
+  // If it doesn't start with /, add / prefix and then construct full URL  
+  const baseUrl = envConfig.NEXTAUTH_URL || 'http://localhost:3000';
+  return `${baseUrl}/${imageUrl}`;
+}
 
 // GET - Fetch all products
 export async function GET(request: NextRequest) {
@@ -37,9 +61,15 @@ export async function GET(request: NextRequest) {
 
     await client.close();
 
+    // Transform products to include full image URLs
+    const productsWithFullUrls = products.map(product => ({
+      ...product,
+      image_url: getFullImageUrl(product.image_url)
+    }));
+
     return NextResponse.json({
       success: true,
-      products,
+      products: productsWithFullUrls,
       pagination: {
         total: totalProducts,
         page,
