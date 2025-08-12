@@ -3,19 +3,9 @@
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { useEffect, useState } from 'react';
-import { successMessages, errorMessages, confirmMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
-
-interface GeneralOption {
-  _id: string;
-  category: 'languages' | 'skills';
-  name: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
 
 export default function AstrologerOptionsPage() {
-	const [loading, setLoading] = useState(false);
+	const [loading] = useState(false);
 
   useEffect(() => {
     document.body.className = '';

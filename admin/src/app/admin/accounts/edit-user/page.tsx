@@ -4,7 +4,6 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { useEffect, useState, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import Image from 'next/image';
 import { validateForm, getUserFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/validation';
 import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';

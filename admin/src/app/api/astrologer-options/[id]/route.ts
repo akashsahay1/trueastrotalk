@@ -5,11 +5,11 @@ import { ObjectId } from 'mongodb';
 // PUT - Update astrologer option
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { name, isActive } = await request.json();
-    const { id } = params;
+    const { id } = await params;
 
     // Validation
     if (!ObjectId.isValid(id)) {
@@ -94,10 +94,10 @@ export async function PUT(
 // DELETE - Delete astrologer option
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Validation
     if (!ObjectId.isValid(id)) {
