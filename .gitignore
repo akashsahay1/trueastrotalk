@@ -211,9 +211,10 @@ out/
 
 # === THIRD-PARTY TEMPLATES ===
 
-# Influence template (keeping original files but ignoring if modified)
+# Influence template (keeping ZIP archive but ignoring extracted files)
 influence/influence-html/
 influence/influence-scss/node_modules/
+!influence/themeforest-mJXJ9Bfc-influence-bootstrap-admin-panel-template-for-web-apps.zip
 favicon_io.zip
 favicon_io/
 
