@@ -260,8 +260,9 @@ create-placeholder-images.html
 
 # === PROJECT SPECIFIC ===
 
-# Server files
+# Server files (excluding admin/server.js which is our Next.js entry point)
 server.js
+!admin/server.js
 
 # Test files (if not needed in production)
 **/*.test.js
