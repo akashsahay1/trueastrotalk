@@ -261,7 +261,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (user.isCustomer) {
           Navigator.pushReplacementNamed(context, '/customer/home');
         } else if (user.isAstrologer) {
-          Navigator.pushReplacementNamed(context, '/astrologer/dashboard');
+          Navigator.pushReplacementNamed(context, '/customer/home');
         } else {
           // Admin or manager - for now navigate to customer home
           Navigator.pushReplacementNamed(context, '/customer/home');
@@ -307,7 +307,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (user.isCustomer) {
           Navigator.pushReplacementNamed(context, '/customer/home');
         } else if (user.isAstrologer) {
-          Navigator.pushReplacementNamed(context, '/astrologer/dashboard');
+          Navigator.pushReplacementNamed(context, '/customer/home');
         } else {
           // Admin or manager - for now navigate to customer home
           Navigator.pushReplacementNamed(context, '/customer/home');

@@ -32,6 +32,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   bool _isLoadingAstrologers = true;
   bool _isLoadingProducts = true;
   int _selectedBottomNavIndex = 0;
+  
+  // Astrologer-specific data
+  bool _isLoadingDashboard = true;
+  bool _isOnlineToggleLoading = false;
+  Map<String, dynamic> _astrologerDashboardData = {};
+  int _todaysConsultations = 0;
+  int _totalConsultations = 0;
+  double _todaysEarnings = 0.0;
+  double _totalEarnings = 0.0;
 
   @override
   void initState() {
@@ -42,7 +51,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Future<void> _loadData() async {
-    await Future.wait([_loadUserData(), _loadWalletBalance(), _loadFeaturedAstrologers(), _loadFeaturedProducts()]);
+    if (_currentUser?.isAstrologer == true) {
+      await Future.wait([_loadUserData(), _loadAstrologerDashboard()]);
+    } else {
+      await Future.wait([_loadUserData(), _loadWalletBalance(), _loadFeaturedAstrologers(), _loadFeaturedProducts()]);
+    }
   }
 
   Future<void> _loadUserData() async {
@@ -61,6 +74,34 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   // Method to refresh user data - can be called when returning from profile screen
   Future<void> refreshUserData() async {
     await _loadUserData();
+  }
+  
+  // Method to refresh astrologer dashboard data
+  Future<void> _loadAstrologerDashboard() async {
+    try {
+      final token = _authService.authToken;
+      if (token != null) {
+        final dashboardData = await _userApiService.getAstrologerDashboard(token);
+        
+        setState(() {
+          _astrologerDashboardData = dashboardData;
+          _todaysConsultations = dashboardData['todays_consultations'] ?? 0;
+          _totalConsultations = _currentUser?.totalConsultations ?? 0;
+          _todaysEarnings = (dashboardData['todays_earnings'] as num?)?.toDouble() ?? 0.0;
+          _totalEarnings = _currentUser?.totalEarnings ?? 0.0;
+          _isLoadingDashboard = false;
+        });
+      } else {
+        setState(() {
+          _isLoadingDashboard = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to load astrologer dashboard: $e');
+      setState(() {
+        _isLoadingDashboard = false;
+      });
+    }
   }
 
   Future<void> _loadWalletBalance() async {
@@ -125,17 +166,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Widget _buildSelectedScreen() {
     switch (_selectedBottomNavIndex) {
       case 0:
-        return _buildHomeContent();
+        return _currentUser?.isAstrologer == true ? _buildAstrologerHomeContent() : _buildHomeContent();
       case 1:
-        return _buildAstrologersScreen();
+        return _currentUser?.isAstrologer == true ? _buildConsultationsScreen() : _buildAstrologersScreen();
       case 2:
-        return _buildKundliScreen();
+        return _currentUser?.isAstrologer == true ? _buildEarningsScreen() : _buildTransactionsScreen();
       case 3:
-        return _buildWalletScreen();
-      case 4:
         return _buildProfileScreen();
       default:
-        return _buildHomeContent();
+        return _currentUser?.isAstrologer == true ? _buildAstrologerHomeContent() : _buildHomeContent();
     }
   }
 
@@ -918,6 +957,21 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildBottomNavigationBar() {
+    // Different navigation items for astrologers vs customers (4 items each)
+    final List<BottomNavigationBarItem> items = _currentUser?.isAstrologer == true
+        ? const [
+            BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.chat_outlined), activeIcon: Icon(Icons.chat), label: 'Consultations'),
+            BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), activeIcon: Icon(Icons.account_balance_wallet), label: 'Earnings'),
+            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+          ]
+        : const [
+            BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.people_outline), activeIcon: Icon(Icons.people), label: 'Astrologers'),
+            BottomNavigationBarItem(icon: Icon(Icons.receipt_long_outlined), activeIcon: Icon(Icons.receipt_long), label: 'Transactions'),
+            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+          ];
+
     return BottomNavigationBar(
       currentIndex: _selectedBottomNavIndex,
       onTap: (index) {
@@ -930,13 +984,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       unselectedItemColor: AppColors.textSecondaryLight,
       backgroundColor: AppColors.white,
       elevation: 10,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.people_outline), activeIcon: Icon(Icons.people), label: 'Astrologers'),
-        BottomNavigationBarItem(icon: Icon(Icons.auto_awesome_outlined), activeIcon: Icon(Icons.auto_awesome), label: 'Kundli'),
-        BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), activeIcon: Icon(Icons.account_balance_wallet), label: 'Wallet'),
-        BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
-      ],
+      items: items,
     );
   }
 
@@ -1108,4 +1156,744 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       child: Icon(Icons.person, size: 30, color: AppColors.primary),
     );
   }
+
+  // Astrologer-specific screens
+  Widget _buildAstrologerHomeContent() {
+    return Scaffold(
+      appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: AppColors.white),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
+        title: Text('Home', style: TextStyle(color: AppColors.white)),
+        centerTitle: false,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined, color: AppColors.white),
+            onPressed: _openNotifications,
+            tooltip: 'Notifications',
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout, color: AppColors.white),
+            onPressed: _handleLogout,
+            tooltip: 'Logout',
+          ),
+        ],
+      ),
+      drawer: _buildAstrologerDrawer(),
+      body: _isLoadingDashboard
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          : RefreshIndicator(
+              onRefresh: _loadAstrologerDashboard,
+              color: AppColors.primary,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Welcome Section
+                    _buildWelcomeSection(),
+                    const SizedBox(height: 20),
+                    
+                    // Online Status Toggle
+                    _buildOnlineStatusSection(),
+                    const SizedBox(height: 20),
+                    
+                    // Stats Cards
+                    _buildStatsSection(),
+                    const SizedBox(height: 20),
+                    
+                    // Quick Actions
+                    _buildQuickActionsSection(),
+                    const SizedBox(height: 20),
+                    
+                    // Recent Activity
+                    _buildRecentActivitySection(),
+                  ],
+                ),
+              ),
+            ),
+    );
+  }
+
+  Widget _buildConsultationsScreen() {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Consultations', style: TextStyle(color: AppColors.white)),
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: AppColors.white),
+            onPressed: _handleLogout,
+            tooltip: 'Logout',
+          ),
+        ],
+      ),
+      body: const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.chat, size: 64, color: AppColors.info),
+              SizedBox(height: 16),
+              Text(
+                'Consultations',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.info),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Coming Soon',
+                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Manage your consultations, chat with clients, and track your consultation history.',
+                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEarningsScreen() {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Earnings', style: TextStyle(color: AppColors.white)),
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: AppColors.white),
+            onPressed: _handleLogout,
+            tooltip: 'Logout',
+          ),
+        ],
+      ),
+      body: const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.account_balance_wallet, size: 64, color: AppColors.success),
+              SizedBox(height: 16),
+              Text(
+                'Earnings',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.success),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Coming Soon',
+                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Track your earnings, view payment history, and manage your financial information.',
+                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTransactionsScreen() {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Transactions', style: TextStyle(color: AppColors.white)),
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: AppColors.white),
+            onPressed: _handleLogout,
+            tooltip: 'Logout',
+          ),
+        ],
+      ),
+      body: const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.receipt_long, size: 64, color: AppColors.info),
+              SizedBox(height: 16),
+              Text(
+                'Transactions',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.info),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Coming Soon',
+                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'View your transaction history, payments, and financial records.',
+                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAstrologerDrawer() {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          UserAccountsDrawerHeader(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
+              ),
+            ),
+            currentAccountPicture: CircleAvatar(
+              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+              child: Icon(Icons.person, size: 30, color: AppColors.primary),
+            ),
+            accountName: Text(
+              _currentUser?.name ?? 'Astrologer',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            accountEmail: Text(
+              _currentUser?.email ?? '',
+              style: const TextStyle(fontSize: 14),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.home),
+            title: const Text('Home'),
+            onTap: () => Navigator.pop(context),
+          ),
+          ListTile(
+            leading: const Icon(Icons.chat),
+            title: const Text('Consultations'),
+            onTap: () {
+              Navigator.pop(context);
+              setState(() {
+                _selectedBottomNavIndex = 1;
+              });
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.account_balance_wallet),
+            title: const Text('Earnings'),
+            onTap: () {
+              Navigator.pop(context);
+              setState(() {
+                _selectedBottomNavIndex = 2;
+              });
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.help),
+            title: const Text('Help'),
+            onTap: () {
+              Navigator.pop(context);
+              // Navigate to help screen
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.logout),
+            title: const Text('Logout'),
+            onTap: () {
+              Navigator.pop(context);
+              _handleLogout();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Astrologer Dashboard Components
+  Widget _buildWelcomeSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 25,
+                backgroundColor: Colors.white.withValues(alpha: 0.2),
+                child: Icon(
+                  Icons.person,
+                  color: Colors.white,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Welcome back,',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      _currentUser?.name ?? 'Astrologer',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 15),
+          Row(
+            children: [
+              Icon(Icons.star, color: Colors.amber, size: 16),
+              const SizedBox(width: 5),
+              Text(
+                '${_currentUser?.rating?.toStringAsFixed(1) ?? 'N/A'} Rating',
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+              ),
+              const SizedBox(width: 20),
+              Icon(Icons.chat, color: Colors.white, size: 16),
+              const SizedBox(width: 5),
+              Text(
+                '$_totalConsultations Consultations',
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOnlineStatusSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(
+            _currentUser?.isOnline == true ? Icons.circle : Icons.circle_outlined,
+            color: _currentUser?.isOnline == true ? AppColors.success : AppColors.grey400,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _currentUser?.isOnline == true ? 'You are Online' : 'You are Offline',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  _currentUser?.isOnline == true
+                      ? 'Available for consultations'
+                      : 'Turn online to receive consultations',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _isOnlineToggleLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Switch(
+                  value: _currentUser?.isOnline ?? false,
+                  onChanged: (value) => _toggleOnlineStatus(),
+                  activeColor: AppColors.success,
+                ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Today\'s Performance',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                icon: Icons.chat_bubble_outline,
+                title: 'Consultations',
+                value: '$_todaysConsultations',
+                subtitle: 'Today',
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                icon: Icons.account_balance_wallet,
+                title: 'Earnings',
+                value: '₹${_todaysEarnings.toStringAsFixed(0)}',
+                subtitle: 'Today',
+                color: AppColors.success,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                icon: Icons.timeline,
+                title: 'Total Earnings',
+                value: '₹${_totalEarnings.toStringAsFixed(0)}',
+                subtitle: 'All time',
+                color: AppColors.info,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                icon: Icons.star_outline,
+                title: 'Rating',
+                value: _currentUser?.rating?.toStringAsFixed(1) ?? 'N/A',
+                subtitle: '${_currentUser?.totalReviews ?? 0} reviews',
+                color: AppColors.warning,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required String subtitle,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const Spacer(),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActionsSection() {
+    final actions = [
+      {
+        'icon': Icons.chat,
+        'title': 'View Consultations',
+        'subtitle': 'Manage your consultations',
+        'onTap': () => setState(() => _selectedBottomNavIndex = 1),
+        'color': AppColors.primary,
+      },
+      {
+        'icon': Icons.account_balance_wallet,
+        'title': 'View Earnings',
+        'subtitle': 'Check your earnings',
+        'onTap': () => setState(() => _selectedBottomNavIndex = 2),
+        'color': AppColors.success,
+      },
+      {
+        'icon': Icons.person,
+        'title': 'Edit Profile',
+        'subtitle': 'Update your profile',
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => ProfileScreen()),
+        ).then((_) => refreshUserData()),
+        'color': AppColors.info,
+      },
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Quick Actions',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ...actions.map((action) => Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          child: Material(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              onTap: action['onTap'] as VoidCallback,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.grey200),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: (action['color'] as Color).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        action['icon'] as IconData,
+                        color: action['color'] as Color,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            action['title'] as String,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            action['subtitle'] as String,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: AppColors.textSecondary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        )),
+      ],
+    );
+  }
+
+  Widget _buildRecentActivitySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Recent Activity',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.grey200),
+          ),
+          child: Center(
+            child: Column(
+              children: [
+                Icon(
+                  Icons.history,
+                  size: 48,
+                  color: AppColors.textSecondary,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'No Recent Activity',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Your recent consultations will appear here',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _toggleOnlineStatus() async {
+    final token = _authService.authToken;
+    if (token == null) return;
+
+    setState(() {
+      _isOnlineToggleLoading = true;
+    });
+
+    try {
+      // API call to toggle online status
+      final currentStatus = _currentUser?.isOnline ?? false;
+      // await _userApiService.updateOnlineStatus(token, !currentStatus);
+      
+      // Update local state
+      _currentUser = _currentUser?.copyWith(isOnline: !currentStatus);
+      
+      setState(() {
+        _isOnlineToggleLoading = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_currentUser?.isOnline == true ? 'You are now online' : 'You are now offline'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isOnlineToggleLoading = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update status: $e')),
+        );
+      }
+    }
+  }
+
 }

@@ -12,7 +12,6 @@ import 'screens/signup.dart';
 import 'screens/home.dart';
 import 'services/service_locator.dart';
 import 'services/auth/auth_service.dart';
-import 'models/enums.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -66,7 +65,6 @@ class TrueAstrotalkApp extends StatelessWidget {
         '/register': (context) => const SignupScreen(),
         '/astrologer-signup': (context) => const SignupScreen(isAdvanced: true),
         '/customer/home': (context) => const CustomerHomeScreen(),
-        '/astrologer/dashboard': (context) => const Scaffold(body: Center(child: Text('Dashboard - Coming Soon'))),
         '/forgot-password': (context) => const Scaffold(body: Center(child: Text('Forgot Password - Coming Soon'))),
       },
 
@@ -121,13 +119,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
     }
 
     if (_authService.isLoggedIn) {
-      // User is logged in, check their role
-      if (_authService.currentUser?.role == UserRole.customer) {
-        return const CustomerHomeScreen();
-      } else if (_authService.currentUser?.role == UserRole.astrologer) {
-        // For astrologers, we might want to check verification status
-        return const Scaffold(body: Center(child: Text('Astrologer Dashboard - Coming Soon')));
-      }
+      // User is logged in, show the home screen (it handles role-based UI internally)
+      return const CustomerHomeScreen();
     }
 
     // User is not logged in, show onboarding
