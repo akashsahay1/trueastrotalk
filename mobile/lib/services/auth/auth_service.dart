@@ -344,8 +344,16 @@ class AuthService {
       final token = result['token'] as String;
 
       if (user.role == UserRole.astrologer) {
-        if (user.accountStatus != AccountStatus.active || user.verificationStatus != VerificationStatus.verified) {
-          throw Exception('Your astrologer account is pending verification. Please wait for admin approval.');
+        debugPrint('🔍 Astrologer login check - Account Status: ${user.accountStatus}, Verification Status: ${user.verificationStatus}');
+
+        // Allow login if account is active AND (verified OR verification status is not explicitly rejected)
+        if (user.accountStatus != AccountStatus.active) {
+          throw Exception('Your astrologer account is ${user.displayStatus.toLowerCase()}. Please wait for admin approval.');
+        }
+        
+        // Only block if explicitly rejected, allow unverified for now
+        if (user.verificationStatus == VerificationStatus.rejected) {
+          throw Exception('Your astrologer account verification was rejected. Please contact support.');
         }
       }
 
@@ -537,6 +545,21 @@ class AuthService {
   // Method to set current user (used when logging in existing users during registration)
   Future<void> setCurrentUser(app_user.User user, String token) async {
     await _saveAuthData(user, token);
+  }
+
+  // Method to refresh current user data from API
+  Future<app_user.User?> refreshCurrentUser() async {
+    if (_authToken == null) return null;
+    
+    try {
+      final freshUser = await _userApiService.getCurrentUser(_authToken!);
+      _currentUser = freshUser;
+      await _saveUserData(freshUser);
+      return freshUser;
+    } catch (e) {
+      debugPrint('Failed to refresh user data: $e');
+      return _currentUser; // Return cached user if refresh fails
+    }
   }
 
   // Get astrologer options (languages, qualifications, skills)

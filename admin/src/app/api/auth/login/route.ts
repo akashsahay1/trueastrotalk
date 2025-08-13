@@ -156,6 +156,10 @@ export async function POST(request: NextRequest) {
 
     // Create JWT token with appropriate expiry
     const tokenExpiry = isAdminLogin ? '24h' : '30d'; // Admin: 24h, Mobile: 30d
+    
+    // Get current time for consistent timestamps
+    const now = Math.floor(Date.now() / 1000); // Current time in seconds
+    
     const token = await new SignJWT({
       userId: user._id.toString(),
       email: user.email_address,
@@ -164,8 +168,9 @@ export async function POST(request: NextRequest) {
       account_status: user.account_status
     })
       .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime(tokenExpiry)
+      .setIssuedAt(now) // Set explicit issued at time
+      .setNotBefore(now) // Token is valid from now
+      .setExpirationTime(now + (isAdminLogin ? 24 * 60 * 60 : 30 * 24 * 60 * 60)) // Explicit expiry
       .sign(JWT_SECRET);
 
     // Update user's online status and Google profile data if applicable
@@ -230,18 +235,35 @@ export async function POST(request: NextRequest) {
             id: user._id.toString(),
             full_name: user.full_name,
             email_address: user.email_address,
-            phone_number: user.phone_number,
+            phone_number: user.phone_number || '',
             user_type: user.user_type,
             account_status: user.account_status,
-            verification_status: user.verification_status,
-            auth_type: user.auth_type,
+            verification_status: user.verification_status || 'unverified',
+            auth_type: user.auth_type || 'email',
             profile_image: user.profile_image || '',
             wallet_balance: user.wallet_balance || 0,
             is_verified: user.is_verified || false,
+            is_online: user.is_online || false,
+            gender: user.gender || '',
             // Birth information
             date_of_birth: user.date_of_birth || '',
             birth_time: user.birth_time || '',
             birth_place: user.birth_place || '',
+            address: user.address || '',
+            city: user.city || '',
+            state: user.state || '',
+            country: user.country || 'India',
+            zip: user.zip || '',
+            // Astrologer-specific fields (only include if they exist in DB)
+            bio: user.bio || '',
+            experience_years: user.experience_years || '',
+            languages: user.languages || '',
+            qualifications: user.qualifications || [],
+            skills: user.skills || '',
+            // Consultation rates
+            call_rate: user.call_rate || 0,
+            chat_rate: user.chat_rate || 0,
+            video_rate: user.video_rate || 0,
             // Additional fields for completeness
             created_at: user.created_at,
             updated_at: user.updated_at

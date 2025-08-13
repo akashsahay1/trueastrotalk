@@ -139,7 +139,26 @@ export async function GET(request: NextRequest) {
         country: user.country || '',
         zip: user.zip || '',
         created_at: user.created_at,
-        updated_at: user.updated_at
+        updated_at: user.updated_at,
+        
+        // Astrologer-specific fields
+        bio: user.bio || '',
+        experience_years: user.experience_years || null,
+        languages: user.languages || [],
+        skills: user.skills || [],
+        qualifications: user.qualifications || [],
+        certifications: user.certifications || [],
+        chat_rate: user.chat_rate || null,
+        call_rate: user.call_rate || null,
+        video_rate: user.video_rate || null,
+        is_online: user.is_online || false,
+        total_consultations: user.total_consultations || 0,
+        total_earnings: user.total_earnings || 0,
+        rating: user.rating || 0,
+        total_reviews: user.total_reviews || 0,
+        education: user.education || '',
+        experience: user.experience || '',
+        upi_id: user.upi_id || ''
       }
     });
 
@@ -384,7 +403,26 @@ export async function PUT(request: NextRequest) {
         country: updatedUser!.country || '',
         zip: updatedUser!.zip || '',
         created_at: updatedUser!.created_at,
-        updated_at: updatedUser!.updated_at
+        updated_at: updatedUser!.updated_at,
+        
+        // Astrologer-specific fields
+        bio: updatedUser!.bio || '',
+        experience_years: updatedUser!.experience_years || null,
+        languages: updatedUser!.languages || [],
+        skills: updatedUser!.skills || [],
+        qualifications: updatedUser!.qualifications || [],
+        certifications: updatedUser!.certifications || [],
+        chat_rate: updatedUser!.chat_rate || null,
+        call_rate: updatedUser!.call_rate || null,
+        video_rate: updatedUser!.video_rate || null,
+        is_online: updatedUser!.is_online || false,
+        total_consultations: updatedUser!.total_consultations || 0,
+        total_earnings: updatedUser!.total_earnings || 0,
+        rating: updatedUser!.rating || 0,
+        total_reviews: updatedUser!.total_reviews || 0,
+        education: updatedUser!.education || '',
+        experience: updatedUser!.experience || '',
+        upi_id: updatedUser!.upi_id || ''
       }
     });
 

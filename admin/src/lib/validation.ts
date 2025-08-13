@@ -40,7 +40,7 @@ export const validationRules = {
   phone: {
     required: true,
     pattern: /^[6-9]\d{9}$/,
-    message: 'Please enter a valid 10-digit Indian mobile number'
+    message: 'Please enter a valid 10-digit mobile number'
   },
   
   password: {

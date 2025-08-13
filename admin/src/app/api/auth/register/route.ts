@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       experience_years,
       bio,
       languages,
-      specializations,
+      qualifications,
       skills,
       address,
       city,
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
       experience_years: experience_years || '',
       bio: bio || '',
       languages: languages || '',
-      specializations: specializations || '',
+      qualifications: qualifications || '',
       skills: skills || '',
       // Rate information for astrologers
       call_rate: call_rate || 0,

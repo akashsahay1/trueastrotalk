@@ -1,0 +1,27 @@
+/* Sidebar */ 
+
+.sidebar-nav-fixed {
+	position: sticky;
+	top: 5rem;
+	ul {
+		li {
+			a {
+				font-size: 14px;
+				color: $gray-900;
+				display: block;
+				padding: 5px 15px;
+				background: transparent;
+				border-radius: 4px;
+				line-height: 1.8;
+				&:hover {
+					color: $primary;
+				}
+			}
+			a.active {
+				display: block;
+				color: $primary;
+				background: #e0e0fd;
+			}
+		}
+	}
+}

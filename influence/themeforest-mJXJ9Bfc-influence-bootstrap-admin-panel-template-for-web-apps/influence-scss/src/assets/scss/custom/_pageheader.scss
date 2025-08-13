@@ -1,0 +1,47 @@
+/*  Pageheader  */
+
+.page-header {
+  margin-bottom: 30px;
+}
+.page-breadcrumb {
+  .breadcrumb-link {
+    color: $gray-600;
+    &:hover {
+      color: $primary;
+    }
+  }
+  .breadcrumb {
+    display: flex;
+    -ms-flex-wrap: wrap;
+    flex-wrap: wrap;
+    padding: 0px;
+    margin-bottom: 0px;
+    list-style: none;
+    background-color: transparent;
+    border-radius: 0px;
+    border-top: 1px solid #e0e4ef;
+    padding-top: 10px;
+    font-size: 12px;
+    .breadcrumb-item + .breadcrumb-item {
+      &::before {
+        display: inline-block;
+        padding-right: 0.5rem;
+        color: $gray-500;
+        content: "\f105";
+        font-family: $font-fontawesome;
+        font-weight: 600;
+      }
+    }
+  }
+  .breadcrumb-item.active {
+    color: $gray-900;
+  }
+}
+.pageheader-title {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+.pageheader-text {
+  margin-bottom: 14px;
+  display: none;
+}

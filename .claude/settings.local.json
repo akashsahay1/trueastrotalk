@@ -16,7 +16,12 @@
       "Bash(timeout 15 npm run dev)",
       "Bash(curl:*)",
       "Bash(lsof:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(mongosh:*)",
+      "Bash(git restore:*)"
     ],
     "deny": []
   }

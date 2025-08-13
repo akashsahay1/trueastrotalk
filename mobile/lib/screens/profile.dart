@@ -18,14 +18,31 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   late final AuthService _authService;
-  
+
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _birthPlaceController = TextEditingController();
   final _birthTimeController = TextEditingController();
-  
+
+  // Astrologer-specific controllers
+  final _bioController = TextEditingController();
+  final _experienceController = TextEditingController();
+  final _languagesController = TextEditingController();
+  final _qualificationsController = TextEditingController();
+  final _skillsController = TextEditingController();
+  final _callRateController = TextEditingController();
+  final _chatRateController = TextEditingController();
+  final _videoRateController = TextEditingController();
+
+  // Additional controllers for astrologer settings (matching signup flow)
+  final _addressController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _stateController = TextEditingController();
+  final _countryController = TextEditingController();
+  final _zipController = TextEditingController();
+
   app_user.User? _currentUser;
   DateTime? _selectedBirthDate;
   File? _selectedProfileImage;
@@ -33,10 +50,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isUpdating = false;
   String? _profileImageUrl;
 
+  // Dynamic options loaded from API (matching signup flow)
+  List<String> _availableLanguages = [];
+  List<String> _availableSkills = [];
+
+  // Professional selections (matching signup flow)
+  final Set<String> _selectedLanguages = <String>{};
+  final Set<String> _selectedSkills = <String>{};
+
+  // Qualifications repeater field (matching signup flow)
+  final List<String> _qualificationsList = [];
+  final TextEditingController _qualificationController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     _authService = getIt<AuthService>();
+    _loadAstrologerOptions();
     _loadUserProfile();
   }
 
@@ -47,7 +77,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _phoneController.dispose();
     _birthPlaceController.dispose();
     _birthTimeController.dispose();
+
+    // Dispose astrologer controllers
+    _bioController.dispose();
+    _experienceController.dispose();
+    _languagesController.dispose();
+    _qualificationsController.dispose();
+    _skillsController.dispose();
+    _callRateController.dispose();
+    _chatRateController.dispose();
+    _videoRateController.dispose();
+
+    // Dispose additional controllers
+    _addressController.dispose();
+    _cityController.dispose();
+    _stateController.dispose();
+    _countryController.dispose();
+    _zipController.dispose();
+    _qualificationController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadAstrologerOptions() async {
+    try {
+      final options = await _authService.getAstrologerOptions();
+
+      if (mounted) {
+        setState(() {
+          _availableLanguages = options['languages'] ?? [];
+          _availableSkills = options['skills'] ?? [];
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to load astrologer options: $e');
+      // Continue without options
+    }
   }
 
   Future<void> _loadUserProfile() async {
@@ -56,6 +120,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
+      // Refresh user data from API to get latest astrologer fields
+      await _authService.refreshCurrentUser();
       final user = _authService.currentUser;
       if (user != null) {
         debugPrint('📱 Loading user profile:');
@@ -66,7 +132,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         debugPrint('   Time of Birth: ${user.timeOfBirth}');
         debugPrint('   Place of Birth: ${user.placeOfBirth}');
         debugPrint('   Profile Picture: ${user.profilePicture}');
-        
+
         setState(() {
           _currentUser = user;
           _nameController.text = user.name;
@@ -76,6 +142,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _birthTimeController.text = user.timeOfBirth ?? '';
           _selectedBirthDate = user.dateOfBirth;
           _profileImageUrl = user.profilePicture;
+
+          // Populate astrologer fields if user is astrologer
+          if (user.isAstrologer) {
+            _bioController.text = user.bio ?? '';
+            _experienceController.text = user.experienceYears?.toString() ?? '';
+            _callRateController.text = user.callRate?.toString() ?? '';
+            _chatRateController.text = user.chatRate?.toString() ?? '';
+            _videoRateController.text = user.videoRate?.toString() ?? '';
+
+            // Populate address fields
+            _addressController.text = user.address ?? '';
+            _cityController.text = user.city ?? '';
+            _stateController.text = user.state ?? '';
+            _countryController.text = user.country ?? '';
+            _zipController.text = user.zip ?? '';
+
+            // Populate multi-select fields
+            _selectedLanguages.clear();
+            if (user.languages != null) {
+              _selectedLanguages.addAll(user.languages!);
+            }
+
+            _selectedSkills.clear();
+            if (user.skills != null) {
+              _selectedSkills.addAll(user.skills!);
+            }
+
+            // Populate qualifications list
+            _qualificationsList.clear();
+            if (user.qualifications != null) {
+              _qualificationsList.addAll(user.qualifications!);
+            }
+
+            debugPrint('📱 Populated astrologer data:');
+            debugPrint('   Bio: ${user.bio}');
+            debugPrint('   Experience: ${user.experienceYears}');
+            debugPrint('   Languages: ${user.languages}');
+            debugPrint('   Skills: ${user.skills}');
+            debugPrint('   Qualifications: ${user.qualifications}');
+            debugPrint('   Address: ${user.address}');
+          }
         });
       } else {
         debugPrint('❌ No current user found');
@@ -93,14 +200,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _pickImage() async {
     try {
       final ImagePicker picker = ImagePicker();
-      
+
       // Show dialog to choose between camera and gallery
       final ImageSource? source = await showModalBottomSheet<ImageSource>(
         context: context,
         backgroundColor: AppColors.white,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
         builder: (context) => Container(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -109,33 +214,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Container(
                 width: 40,
                 height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.grey300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+                decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)),
               ),
               const SizedBox(height: 20),
-              Text(
-                'Select Profile Photo',
-                style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimaryLight),
-              ),
+              Text('Select Profile Photo', style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimaryLight)),
               const SizedBox(height: 20),
               Row(
                 children: [
                   Expanded(
-                    child: _buildImageSourceOption(
-                      icon: Icons.camera_alt,
-                      label: 'Camera',
-                      source: ImageSource.camera,
-                    ),
+                    child: _buildImageSourceOption(icon: Icons.camera_alt, label: 'Camera', source: ImageSource.camera),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: _buildImageSourceOption(
-                      icon: Icons.photo_library,
-                      label: 'Gallery',
-                      source: ImageSource.gallery,
-                    ),
+                    child: _buildImageSourceOption(icon: Icons.photo_library, label: 'Gallery', source: ImageSource.gallery),
                   ),
                 ],
               ),
@@ -146,12 +237,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
 
       if (source != null) {
-        final XFile? image = await picker.pickImage(
-          source: source,
-          maxWidth: 512,
-          maxHeight: 512,
-          imageQuality: 80,
-        );
+        final XFile? image = await picker.pickImage(source: source, maxWidth: 512, maxHeight: 512, imageQuality: 80);
 
         if (image != null) {
           setState(() {
@@ -164,11 +250,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Widget _buildImageSourceOption({
-    required IconData icon,
-    required String label,
-    required ImageSource source,
-  }) {
+  Widget _buildImageSourceOption({required IconData icon, required String label, required ImageSource source}) {
     return InkWell(
       onTap: () => Navigator.pop(context, source),
       borderRadius: BorderRadius.circular(12),
@@ -182,10 +264,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Icon(icon, size: 32, color: AppColors.primary),
             const SizedBox(height: 8),
-            Text(
-              label,
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimaryLight),
-            ),
+            Text(label, style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimaryLight)),
           ],
         ),
       ),
@@ -201,12 +280,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: AppColors.primary,
-              onPrimary: AppColors.white,
-              surface: AppColors.white,
-              onSurface: AppColors.textPrimaryLight,
-            ),
+            colorScheme: Theme.of(context).colorScheme.copyWith(primary: AppColors.primary, onPrimary: AppColors.white, surface: AppColors.white, onSurface: AppColors.textPrimaryLight),
           ),
           child: child!,
         );
@@ -227,12 +301,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: AppColors.primary,
-              onPrimary: AppColors.white,
-              surface: AppColors.white,
-              onSurface: AppColors.textPrimaryLight,
-            ),
+            colorScheme: Theme.of(context).colorScheme.copyWith(primary: AppColors.primary, onPrimary: AppColors.white, surface: AppColors.white, onSurface: AppColors.textPrimaryLight),
           ),
           child: child!,
         );
@@ -253,14 +322,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (parts.length >= 2) {
           int hour = int.parse(parts[0]);
           int minute = int.parse(parts[1].split(' ')[0]);
-          
+
           // Handle AM/PM
           if (_birthTimeController.text.toLowerCase().contains('pm') && hour != 12) {
             hour += 12;
           } else if (_birthTimeController.text.toLowerCase().contains('am') && hour == 12) {
             hour = 0;
           }
-          
+
           return TimeOfDay(hour: hour, minute: minute);
         }
       } catch (e) {
@@ -295,11 +364,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'place_of_birth': _birthPlaceController.text.trim(),
       };
 
+      // Add astrologer-specific data if user is astrologer
+      if (_currentUser?.isAstrologer == true) {
+        updateData.addAll({
+          'bio': _bioController.text.trim(),
+          'experience_years': int.tryParse(_experienceController.text.trim()) ?? 0,
+          'languages': _selectedLanguages.isEmpty ? null : _selectedLanguages.join(', '),
+          'qualifications': _qualificationsList.isEmpty ? null : _qualificationsList.join(', '),
+          'skills': _selectedSkills.isEmpty ? null : _selectedSkills.join(', '),
+          'call_rate': double.tryParse(_callRateController.text.trim()) ?? 0.0,
+          'chat_rate': double.tryParse(_chatRateController.text.trim()) ?? 0.0,
+          'video_rate': double.tryParse(_videoRateController.text.trim()) ?? 0.0,
+
+          // Additional astrologer fields (address section from signup)
+          'address': _addressController.text.trim(),
+          'city': _cityController.text.trim(),
+          'state': _stateController.text.trim(),
+          'country': _countryController.text.trim(),
+          'zip': _zipController.text.trim(),
+        });
+      }
+
       // Update profile via API, including image if selected
-      final updatedUser = await _authService.updateUserProfile(
-        updateData,
-        profileImagePath: _selectedProfileImage?.path,
-      );
+      final updatedUser = await _authService.updateUserProfile(updateData, profileImagePath: _selectedProfileImage?.path);
 
       setState(() {
         _currentUser = updatedUser;
@@ -308,11 +395,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
 
       _showSuccessSnackBar('Profile updated successfully!');
-      
     } catch (e) {
       String errorMessage = 'Failed to update profile';
       final errorString = e.toString();
-      
+
       if (errorString.contains('File too large')) {
         errorMessage = 'Image file is too large. Please choose a smaller image (max 5MB).';
       } else if (errorString.contains('Invalid file type') || errorString.contains('file format')) {
@@ -328,7 +414,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           errorMessage = match.group(1) ?? errorMessage;
         }
       }
-      
+
       debugPrint('Profile update error: $errorString');
       _showErrorSnackBar(errorMessage);
     } finally {
@@ -339,41 +425,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.error,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating));
   }
 
   void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.success,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: AppColors.success, behavior: SnackBarBehavior.floating));
   }
-
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
+      backgroundColor: const Color.fromARGB(255, 247, 246, 246),
       appBar: AppBar(
-        title: Text(
-          'Edit Profile',
-          style: AppTextStyles.heading4.copyWith(color: AppColors.white),
-        ),
+        title: Text('Edit Profile', style: AppTextStyles.heading4.copyWith(color: AppColors.white)),
         backgroundColor: AppColors.primary,
         elevation: 0,
         leading: IconButton(
@@ -385,14 +453,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const Padding(
               padding: EdgeInsets.only(right: 16),
               child: Center(
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
-                  ),
-                ),
+                child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.white))),
               ),
             ),
         ],
@@ -403,7 +464,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // Profile Header Section
             Container(
               color: AppColors.primary,
-              padding: const EdgeInsets.only(top:40, bottom: 40),
+              padding: const EdgeInsets.only(top: 40, bottom: 40),
               child: Center(
                 child: Column(
                   children: [
@@ -416,17 +477,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(color: AppColors.white, width: 4),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.2),
-                                blurRadius: 15,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
+                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 15, offset: const Offset(0, 5))],
                           ),
-                          child: ClipOval(
-                            child: _buildProfileImage(),
-                          ),
+                          child: ClipOval(child: _buildProfileImage()),
                         ),
                         Positioned(
                           bottom: 0,
@@ -441,11 +494,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 shape: BoxShape.circle,
                                 border: Border.all(color: AppColors.primary, width: 2),
                               ),
-                              child: const Icon(
-                                Icons.camera_alt,
-                                color: AppColors.primary,
-                                size: 20,
-                              ),
+                              child: const Icon(Icons.camera_alt, color: AppColors.primary, size: 20),
                             ),
                           ),
                         ),
@@ -454,25 +503,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 16),
                     Text(
                       _currentUser?.name ?? 'User',
-                      style: AppTextStyles.heading4.copyWith(
-                        color: AppColors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: AppTextStyles.heading4.copyWith(color: AppColors.white, fontWeight: FontWeight.bold),
                     ),
-                    if (_currentUser?.email?.isNotEmpty == true) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        _currentUser!.email!,
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.white.withValues(alpha: 0.9),
-                        ),
-                      ),
-                    ],
+                    if (_currentUser?.email?.isNotEmpty == true) ...[const SizedBox(height: 4), Text(_currentUser!.email!, style: AppTextStyles.bodyMedium.copyWith(color: AppColors.white.withValues(alpha: 0.9)))],
                   ],
                 ),
               ),
             ),
-            
+
             // Form Section
             Padding(
               padding: const EdgeInsets.all(20),
@@ -481,106 +519,281 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Personal Information Section
-                    _buildSectionHeader('Personal Information'),
-                    const SizedBox(height: 16),
-                    
-                    _buildTextField(
-                      controller: _nameController,
-                      label: 'Full Name',
+                    // Personal Information Card
+                    _buildSectionCard(
+                      title: 'Personal Information',
                       icon: Icons.person,
-                      validator: (value) {
-                        if (value?.trim().isEmpty ?? true) {
-                          return 'Name is required';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    _buildTextField(
-                      controller: _emailController,
-                      label: 'Email Address',
-                      icon: Icons.email,
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) {
-                        if (value?.trim().isEmpty ?? true) {
-                          return 'Email is required';
-                        }
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value!)) {
-                          return 'Please enter a valid email';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    _buildTextField(
-                      controller: _phoneController,
-                      label: 'Phone Number',
-                      icon: Icons.phone,
-                      keyboardType: TextInputType.phone,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(10),
+                      children: [
+                        _buildTextField(
+                          controller: _nameController,
+                          label: 'Full Name',
+                          icon: Icons.person_outline,
+                          validator: (value) {
+                            if (value?.trim().isEmpty ?? true) {
+                              return 'Name is required';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        _buildTextField(
+                          controller: _emailController,
+                          label: 'Email Address',
+                          icon: Icons.email_outlined,
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (value) {
+                            if (value?.trim().isEmpty ?? true) {
+                              return 'Email is required';
+                            }
+                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value!)) {
+                              return 'Please enter a valid email';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        _buildTextField(
+                          controller: _phoneController,
+                          label: 'Phone Number',
+                          icon: Icons.phone_outlined,
+                          keyboardType: TextInputType.phone,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)],
+                          validator: (value) {
+                            if (value?.trim().isEmpty ?? true) {
+                              return 'Phone number is required';
+                            }
+                            if (value!.length < 10) {
+                              return 'Please enter a valid 10-digit phone number';
+                            }
+                            return null;
+                          },
+                        ),
                       ],
-                      validator: (value) {
-                        if (value?.trim().isEmpty ?? true) {
-                          return 'Phone number is required';
-                        }
-                        if (value!.length < 10) {
-                          return 'Please enter a valid 10-digit phone number';
-                        }
-                        return null;
-                      },
                     ),
-                    
-                    const SizedBox(height: 32),
-                    
-                    // Birth Information Section
-                    _buildSectionHeader('Birth Information'),
-                    const SizedBox(height: 16),
-                    
-                    GestureDetector(
-                      onTap: _selectBirthDate,
-                      child: _buildTextField(
-                        controller: TextEditingController(
-                          text: _selectedBirthDate != null
-                              ? '${_selectedBirthDate!.day.toString().padLeft(2, '0')}/${_selectedBirthDate!.month.toString().padLeft(2, '0')}/${_selectedBirthDate!.year}'
-                              : 'Select Date of Birth',
+
+                    const SizedBox(height: 20),
+
+                    // Birth Information Card
+                    _buildSectionCard(
+                      title: 'Birth Information',
+                      icon: Icons.cake,
+                      children: [
+                        GestureDetector(
+                          onTap: _selectBirthDate,
+                          child: _buildTextField(
+                            controller: TextEditingController(text: _selectedBirthDate != null ? '${_selectedBirthDate!.day.toString().padLeft(2, '0')}/${_selectedBirthDate!.month.toString().padLeft(2, '0')}/${_selectedBirthDate!.year}' : 'Select Date of Birth'),
+                            label: 'Date of Birth',
+                            icon: Icons.calendar_today,
+                            enabled: false,
+                            suffixIcon: Icons.arrow_drop_down,
+                          ),
                         ),
-                        label: 'Date of Birth',
-                        icon: Icons.calendar_today,
-                        enabled: false,
-                        suffixIcon: Icons.arrow_drop_down,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    GestureDetector(
-                      onTap: _selectBirthTime,
-                      child: _buildTextField(
-                        controller: TextEditingController(
-                          text: _birthTimeController.text.isNotEmpty 
-                              ? _birthTimeController.text
-                              : 'Select Time of Birth (Optional)',
+                        const SizedBox(height: 16),
+
+                        GestureDetector(
+                          onTap: _selectBirthTime,
+                          child: _buildTextField(
+                            controller: TextEditingController(text: _birthTimeController.text.isNotEmpty ? _birthTimeController.text : 'Select Time of Birth (Optional)'),
+                            label: 'Time of Birth (Optional)',
+                            icon: Icons.access_time,
+                            enabled: false,
+                            suffixIcon: Icons.arrow_drop_down,
+                          ),
                         ),
-                        label: 'Time of Birth (Optional)',
-                        icon: Icons.access_time,
-                        enabled: false,
-                        suffixIcon: Icons.arrow_drop_down,
-                      ),
+                        const SizedBox(height: 16),
+
+                        _buildTextField(controller: _birthPlaceController, label: 'Place of Birth (Optional)', icon: Icons.location_on_outlined),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    
-                    _buildTextField(
-                      controller: _birthPlaceController,
-                      label: 'Place of Birth (Optional)',
+
+                    // Astrologer-specific sections
+                    if (_currentUser?.isAstrologer == true) ...[
+                      const SizedBox(height: 20),
+
+                      // Professional Information Card
+                      _buildSectionCard(
+                        title: 'Professional Information',
+                        icon: Icons.work,
+                        children: [
+                          _buildTextField(
+                            controller: _bioController,
+                            label: 'Bio',
+                            icon: Icons.info_outline,
+                            maxLines: 3,
+                            validator: (value) {
+                              if (value?.trim().isEmpty ?? true) {
+                                return 'Bio is required for astrologers';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
+                          _buildTextField(
+                            controller: _experienceController,
+                            label: 'Years of Experience',
+                            icon: Icons.timeline,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            validator: (value) {
+                              if (value?.trim().isEmpty ?? true) {
+                                return 'Experience is required';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
+                          _buildQualificationsRepeaterField(),
+                          const SizedBox(height: 16),
+
+                          _buildMultiSelectField(label: 'Languages (min. 1 required)', selectedItems: _selectedLanguages, availableItems: _availableLanguages, onTap: () => _showLanguagesDropdown()),
+                          const SizedBox(height: 16),
+
+                          _buildMultiSelectField(label: 'Skills (min. 2 required)', selectedItems: _selectedSkills, availableItems: _availableSkills, onTap: () => _showSkillsDropdown()),
+                        ],
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Consultation Rates Card
+                      _buildSectionCard(
+                        title: 'Consultation Rates (₹ per minute)',
+                        icon: Icons.currency_rupee,
+                        children: [
+                          _buildTextField(
+                            controller: _chatRateController,
+                            label: 'Chat Rate',
+                            icon: Icons.chat,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+                            validator: (value) {
+                              if (value?.trim().isEmpty ?? true) {
+                                return 'Chat rate is required';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
+                          _buildTextField(
+                            controller: _callRateController,
+                            label: 'Call Rate',
+                            icon: Icons.call,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+                            validator: (value) {
+                              if (value?.trim().isEmpty ?? true) {
+                                return 'Call rate is required';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
+                          _buildTextField(
+                            controller: _videoRateController,
+                            label: 'Video Call Rate',
+                            icon: Icons.videocam,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+                            validator: (value) {
+                              if (value?.trim().isEmpty ?? true) {
+                                return 'Video call rate is required';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+
+                    const SizedBox(height: 20),
+
+                    // Address Information Card (matching signup flow)
+                    _buildSectionCard(
+                      title: 'Address Information',
                       icon: Icons.location_on,
+                      children: [
+                        _buildTextField(
+                          controller: _addressController,
+                          label: 'Address',
+                          icon: Icons.home_outlined,
+                          maxLines: 3,
+                          validator: (value) {
+                            if (_currentUser?.isAstrologer == true && (value?.trim().isEmpty ?? true)) {
+                              return 'Address is required for astrologers';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        _buildTextField(
+                          controller: _cityController,
+                          label: 'City',
+                          icon: Icons.location_city_outlined,
+                          validator: (value) {
+                            if (_currentUser?.isAstrologer == true && (value?.trim().isEmpty ?? true)) {
+                              return 'City is required for astrologers';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        _buildTextField(
+                          controller: _stateController,
+                          label: 'State',
+                          icon: Icons.map_outlined,
+                          validator: (value) {
+                            if (_currentUser?.isAstrologer == true && (value?.trim().isEmpty ?? true)) {
+                              return 'State is required for astrologers';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildTextField(
+                                controller: _countryController,
+                                label: 'Country',
+                                icon: Icons.public_outlined,
+                                validator: (value) {
+                                  if (_currentUser?.isAstrologer == true && (value?.trim().isEmpty ?? true)) {
+                                    return 'Country is required for astrologers';
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildTextField(
+                                controller: _zipController,
+                                label: 'ZIP/Postal Code',
+                                icon: Icons.local_post_office_outlined,
+                                keyboardType: TextInputType.text,
+                                validator: (value) {
+                                  if (_currentUser?.isAstrologer == true && (value?.trim().isEmpty ?? true)) {
+                                    return 'ZIP/Postal code is required for astrologers';
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    
-                    const SizedBox(height: 40),
-                    
+
+                    const SizedBox(height: 30),
+
                     // Update Button
                     SizedBox(
                       width: double.infinity,
@@ -591,29 +804,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           backgroundColor: AppColors.primary,
                           foregroundColor: AppColors.white,
                           elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         child: _isUpdating
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
-                                ),
-                              )
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.white)))
                             : Text(
                                 'Update Profile',
-                                style: AppTextStyles.bodyLarge.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.white,
-                                ),
+                                style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600, color: AppColors.white),
                               ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -626,18 +827,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileImage() {
-    
     // Show selected image first
     if (_selectedProfileImage != null) {
       debugPrint('📱 Showing selected local image');
-      return Image.file(
-        _selectedProfileImage!,
-        width: 120,
-        height: 120,
-        fit: BoxFit.cover,
-      );
+      return Image.file(_selectedProfileImage!, width: 120, height: 120, fit: BoxFit.cover);
     }
-    
+
     // Show existing profile image
     if (_profileImageUrl?.isNotEmpty == true) {
       debugPrint('🖼️ Loading profile image: $_profileImageUrl');
@@ -654,9 +849,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       } else {
         debugPrint('🌐 Using full URL: $imageUrl');
       }
-      
+
       debugPrint('🌐 Final image URL being loaded: $imageUrl');
-      
+
       return Image.network(
         imageUrl,
         width: 120,
@@ -674,14 +869,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             width: 120,
             height: 120,
             color: AppColors.grey100,
-            child: const Center(
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
+            child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
           );
         },
       );
     }
-    
+
     // Show fallback avatar
     debugPrint('👤 No profile image, showing fallback avatar');
     return _buildFallbackAvatar();
@@ -689,99 +882,79 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildFallbackAvatar() {
     final name = _currentUser?.name ?? 'User';
-    final initials = name.isNotEmpty 
-        ? name.split(' ').map((n) => n.isNotEmpty ? n[0] : '').take(2).join().toUpperCase()
-        : 'U';
+    final initials = name.isNotEmpty ? name.split(' ').map((n) => n.isNotEmpty ? n[0] : '').take(2).join().toUpperCase() : 'U';
 
     return Container(
       width: 120,
       height: 120,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primary,
-            AppColors.primary.withValues(alpha: 0.7),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: LinearGradient(colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.7)], begin: Alignment.topLeft, end: Alignment.bottomRight),
       ),
       child: Center(
         child: Text(
           initials,
-          style: AppTextStyles.heading2.copyWith(
-            color: AppColors.white,
-            fontWeight: FontWeight.bold,
+          style: AppTextStyles.heading2.copyWith(color: AppColors.white, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionCard({required String title, required IconData icon, required List<Widget> children}) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(colors: [AppColors.white, AppColors.grey50.withValues(alpha: 0.3)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                    child: Icon(icon, color: AppColors.primary, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: AppTextStyles.heading6.copyWith(color: AppColors.textPrimaryLight, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              ...children,
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Row(
-      children: [
-        Container(
-          width: 4,
-          height: 20,
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Text(
-          title,
-          style: AppTextStyles.heading6.copyWith(
-            color: AppColors.textPrimaryLight,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    TextInputType? keyboardType,
-    bool enabled = true,
-    IconData? suffixIcon,
-    String? Function(String?)? validator,
-    List<TextInputFormatter>? inputFormatters,
-  }) {
+  Widget _buildTextField({required TextEditingController controller, required String label, required IconData icon, TextInputType? keyboardType, bool enabled = true, IconData? suffixIcon, String? Function(String?)? validator, List<TextInputFormatter>? inputFormatters, int? maxLines, String? hint}) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       enabled: enabled,
       validator: validator,
       inputFormatters: inputFormatters,
-      style: AppTextStyles.bodyMedium.copyWith(
-        color: enabled ? AppColors.textPrimaryLight : AppColors.textSecondaryLight,
-      ),
+      maxLines: maxLines ?? 1,
+      style: AppTextStyles.bodyMedium.copyWith(color: enabled ? AppColors.textPrimaryLight : AppColors.textSecondaryLight),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: AppTextStyles.bodyMedium.copyWith(
-          color: AppColors.textSecondaryLight,
-        ),
-        hintText: !enabled && controller.text.isEmpty ? 'Not specified' : null,
-        hintStyle: AppTextStyles.bodyMedium.copyWith(
-          color: AppColors.textSecondaryLight,
-          fontStyle: FontStyle.italic,
-        ),
-        prefixIcon: Icon(
-          icon,
-          color: AppColors.primary,
-          size: 20,
-        ),
-        suffixIcon: suffixIcon != null
-            ? Icon(
-                suffixIcon,
-                color: AppColors.textSecondaryLight,
-                size: 20,
-              )
-            : null,
+        labelStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight),
+        hintText: hint ?? (!enabled && controller.text.isEmpty ? 'Not specified' : null),
+        hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight, fontStyle: FontStyle.italic),
+        prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
+        suffixIcon: suffixIcon != null ? Icon(suffixIcon, color: AppColors.textSecondaryLight, size: 20) : null,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.borderLight),
@@ -805,4 +978,296 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // Multi-select field methods (copied from signup flow)
+  Widget _buildMultiSelectField({required String label, required Set<String> selectedItems, required List<String> availableItems, required VoidCallback onTap}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: AppTextStyles.labelLarge.copyWith(color: AppColors.textPrimaryLight, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.borderLight),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (selectedItems.isNotEmpty) ...[
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: selectedItems.map((item) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                                child: Text(
+                                  item,
+                                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.primary, fontWeight: FontWeight.w500),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ] else ...[
+                          Text(
+                            'Tap to select',
+                            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight, fontWeight: FontWeight.normal),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Icon(Icons.arrow_drop_down, color: AppColors.textSecondaryLight, size: 24),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showLanguagesDropdown() {
+    _showMultiSelectDropdown(
+      title: 'Select Languages',
+      items: _availableLanguages,
+      selectedItems: _selectedLanguages,
+      onSelectionChanged: (updatedSelection) {
+        setState(() {
+          _selectedLanguages.clear();
+          _selectedLanguages.addAll(updatedSelection);
+        });
+      },
+      minSelections: 1,
+    );
+  }
+
+  void _showSkillsDropdown() {
+    _showMultiSelectDropdown(
+      title: 'Select Skills',
+      items: _availableSkills,
+      selectedItems: _selectedSkills,
+      onSelectionChanged: (updatedSelection) {
+        setState(() {
+          _selectedSkills.clear();
+          _selectedSkills.addAll(updatedSelection);
+        });
+      },
+      minSelections: 2,
+    );
+  }
+
+  void _showMultiSelectDropdown({required String title, required List<String> items, required Set<String> selectedItems, required Function(Set<String>) onSelectionChanged, required int minSelections}) {
+    Set<String> tempSelection = Set.from(selectedItems);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppTextStyles.heading6.copyWith(color: AppColors.textPrimaryLight, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text('Select minimum $minSelections ${minSelections == 1 ? 'item' : 'items'}', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryLight)),
+                ],
+              ),
+              content: SizedBox(
+                width: double.maxFinite,
+                height: 400,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    final isSelected = tempSelection.contains(item);
+
+                    return CheckboxListTile(
+                      title: Text(item, style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimaryLight)),
+                      value: isSelected,
+                      activeColor: AppColors.primary,
+                      onChanged: (bool? value) {
+                        setModalState(() {
+                          if (value == true) {
+                            tempSelection.add(item);
+                          } else {
+                            tempSelection.remove(item);
+                          }
+                        });
+                      },
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                    );
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('Cancel', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight)),
+                ),
+                ElevatedButton(
+                  onPressed: tempSelection.length >= minSelections
+                      ? () {
+                          onSelectionChanged(tempSelection);
+                          Navigator.of(context).pop();
+                        }
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: Text('Done (${tempSelection.length})', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildQualificationsRepeaterField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Qualifications',
+          style: AppTextStyles.labelLarge.copyWith(color: AppColors.textPrimaryLight, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.borderLight),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Input field for new qualification
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _qualificationController,
+                        decoration: InputDecoration(
+                          hintText: 'Add a qualification (e.g., M.A. in Astrology)',
+                          hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: AppColors.borderLight),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: AppColors.borderLight),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: AppColors.primary, width: 2),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        ),
+                        style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimaryLight),
+                        onFieldSubmitted: (_) => _addQualification(),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Material(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(8),
+                      child: InkWell(
+                        onTap: _addQualification,
+                        borderRadius: BorderRadius.circular(8),
+                        child: const SizedBox(width: 40, height: 40, child: Icon(Icons.add, color: AppColors.white, size: 20)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Display added qualifications
+                if (_qualificationsList.isNotEmpty) ...[
+                  Text(
+                    'Added Qualifications:',
+                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryLight, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  ...List.generate(_qualificationsList.length, (index) {
+                    final qualification = _qualificationsList[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Container(
+                        decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  qualification,
+                                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textPrimaryLight, fontWeight: FontWeight.w500),
+                                ),
+                              ),
+                              InkWell(
+                                onTap: () => _removeQualification(index),
+                                borderRadius: BorderRadius.circular(12),
+                                child: const SizedBox(width: 24, height: 24, child: Icon(Icons.close, color: AppColors.error, size: 16)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ] else ...[
+                  Text(
+                    'No qualifications added yet',
+                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryLight, fontStyle: FontStyle.italic),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Add qualification to list
+  void _addQualification() {
+    if (_qualificationController.text.trim().isNotEmpty) {
+      setState(() {
+        _qualificationsList.add(_qualificationController.text.trim());
+        _qualificationController.clear();
+      });
+    }
+  }
+
+  // Remove qualification from list
+  void _removeQualification(int index) {
+    setState(() {
+      _qualificationsList.removeAt(index);
+    });
+  }
 }

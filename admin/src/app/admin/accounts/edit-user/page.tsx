@@ -2,6 +2,7 @@
 
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
+import MediaLibrary from '@/components/MediaLibrary';
 import { useEffect, useState, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
@@ -36,7 +37,6 @@ interface FormData {
     video_rate: number;
   };
   experience_years: number;
-  specialization: string;
   bio: string;
 }
 
@@ -79,14 +79,13 @@ function EditUserContent() {
       video_rate: 0
     },
     experience_years: 0,
-    specialization: '',
     bio: ''
   });
 
   const [qualificationInput, setQualificationInput] = useState('');
   const [skillInput, setSkillInput] = useState('');
-  const [imageUploading, setImageUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState('');
+  const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
 
   const fetchUser = useCallback(async () => {
     if (!userId) return;
@@ -129,7 +128,7 @@ function EditUserContent() {
           account_status: user.account_status || 'active',
           is_online: user.is_online || false,
           is_verified: user.is_verified !== undefined ? user.is_verified : true,
-          qualifications: user.specializations ? (Array.isArray(user.specializations) ? user.specializations : user.specializations.split(',').map((s: string) => s.trim()).filter((s: string) => s)) : [],
+          qualifications: user.qualifications ? (Array.isArray(user.qualifications) ? user.qualifications : user.qualifications.split(',').map((s: string) => s.trim()).filter((s: string) => s)) : [],
           skills: user.skills ? (Array.isArray(user.skills) ? user.skills : user.skills.split(',').map((s: string) => s.trim()).filter((s: string) => s)) : [],
           commission_rates: {
             call_rate: user.call_rate || 0,
@@ -137,7 +136,6 @@ function EditUserContent() {
             video_rate: user.video_rate || 0
           },
           experience_years: user.experience_years || 0,
-          specialization: user.specialization || '',
           bio: user.bio || ''
         });
         
@@ -229,54 +227,17 @@ function EditUserContent() {
     }));
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleImageSelect = (imageUrl: string) => {
+    setFormData(prev => ({
+      ...prev,
+      profile_image: imageUrl
+    }));
+    setImagePreview(imageUrl);
+    setError(''); // Clear any previous errors
+  };
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      setError('Invalid file type. Only JPEG, PNG, and WebP are allowed.');
-      return;
-    }
-
-    // Validate file size (5MB max)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      setError('File size too large. Maximum size is 5MB.');
-      return;
-    }
-
-    setImageUploading(true);
-    setError('');
-
-    try {
-      const formDataForUpload = new FormData();
-      formDataForUpload.append('profile_image', file);
-
-      const response = await fetch(`/api/users/${userId}`, {
-        method: 'PUT',
-        body: formDataForUpload,
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Update form data with the returned profile image URL
-        setFormData(prev => ({
-          ...prev,
-          profile_image: data.user.profile_image
-        }));
-        setImagePreview(data.user.profile_image);
-      } else {
-        setError(data.error || 'Failed to upload image');
-      }
-    } catch (error) {
-      setError('Failed to upload image. Please try again.');
-      console.error('Image upload error:', error);
-    } finally {
-      setImageUploading(false);
-    }
+  const openMediaLibrary = () => {
+    setIsMediaLibraryOpen(true);
   };
 
   const removeImage = () => {
@@ -361,10 +322,6 @@ function EditUserContent() {
 
       if (formData.experience_years < 0 || formData.experience_years > 50) {
         customErrors.experience_years = 'Experience must be between 0 and 50 years';
-      }
-
-      if (!formData.specialization.trim()) {
-        customErrors.specialization = 'Specialization is required for astrologers';
       }
 
       // Commission rates validation
@@ -601,7 +558,7 @@ function EditUserContent() {
                                       alt="Profile Preview" 
                                       className="rounded-circle"
                                       style={{ objectFit: 'cover', cursor: 'pointer', border: '2px solid #dee2e6' }}
-                                      onClick={() => document.getElementById('profile_image')?.click()}
+                                      onClick={openMediaLibrary}
                                       title="Click to change image"
                                       width={80}
                                       height={80}
@@ -626,7 +583,7 @@ function EditUserContent() {
                                       border: '2px dashed #dee2e6',
                                       transition: 'all 0.3s ease'
                                     }}
-                                    onClick={() => document.getElementById('profile_image')?.click()}
+                                    onClick={openMediaLibrary}
                                     onMouseEnter={(e) => {
                                       e.currentTarget.style.borderColor = '#1877F2';
                                       e.currentTarget.style.backgroundColor = '#f8f9fa';
@@ -635,40 +592,16 @@ function EditUserContent() {
                                       e.currentTarget.style.borderColor = '#dee2e6';
                                       e.currentTarget.style.backgroundColor = '#f8f9fa';
                                     }}
-                                    title="Click to upload image"
+                                    title="Click to select image from media library"
                                   >
-                                    {imageUploading ? (
-                                      <i className="fas fa-spinner fa-spin fa-lg"></i>
-                                    ) : (
-                                      <i className="fas fa-plus fa-lg text-primary"></i>
-                                    )}
+                                    <i className="fas fa-plus fa-lg text-primary"></i>
                                   </div>
                                 )}
-                              </div>
-                              <small className="form-text text-muted mt-2 d-block">
-                                Max file size: 5MB
-                              </small>
+                              </div>                              
                               {formData.profile_image && (
                                 <div className="mt-2 text-success text-center">
                                   <i className="fas fa-check-circle mr-1"></i>
-                                  <small>Image uploaded successfully</small>
-                                </div>
-                              )}
-                              {/* Hidden file input */}
-                              <input
-                                type="file"
-                                id="profile_image"
-                                accept="image/jpeg,image/png,image/webp"
-                                onChange={handleImageUpload}
-                                disabled={imageUploading}
-                                style={{ display: 'none' }}
-                              />
-                            </div>
-                            <div className="flex-grow-1">
-                              {imageUploading && (
-                                <div className="mt-2 text-primary">
-                                  <i className="fas fa-spinner fa-spin mr-2"></i>
-                                  Uploading image...
+                                  <small>Image Added!</small>
                                 </div>
                               )}
                             </div>
@@ -956,7 +889,7 @@ function EditUserContent() {
                                   value={qualificationInput}
                                   onChange={(e) => setQualificationInput(e.target.value)}
                                   placeholder="Add qualification"
-                                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addQualification())}
+                                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addQualification())}
                                 />
                                 <div className="input-group-append">
                                   <button 
@@ -993,7 +926,7 @@ function EditUserContent() {
                                   value={skillInput}
                                   onChange={(e) => setSkillInput(e.target.value)}
                                   placeholder="Add skill"
-                                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
                                 />
                                 <div className="input-group-append">
                                   <button 
@@ -1152,6 +1085,14 @@ function EditUserContent() {
                 </div>
               </div>
             </form>
+
+            {/* Media Library Modal */}
+            <MediaLibrary
+              isOpen={isMediaLibraryOpen}
+              onClose={() => setIsMediaLibraryOpen(false)}
+              onSelect={handleImageSelect}
+              selectedImage={formData.profile_image}
+            />
           </div>
         </div>
       </div>

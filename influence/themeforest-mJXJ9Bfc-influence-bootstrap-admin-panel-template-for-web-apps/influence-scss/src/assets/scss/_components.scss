@@ -1,0 +1,99 @@
+// Bootstrap mixins
+@import "./bootstrap/_mixins.scss";
+// Reset and dependencies
+@import "./bootstrap/_print.scss";
+// Core CSS
+@import "./bootstrap/_root.scss";
+@import "./bootstrap/_reboot.scss";
+@import "./bootstrap/_type.scss";
+@import "./bootstrap/_images.scss";
+@import "./bootstrap/_code.scss";
+@import "./bootstrap/_grid.scss";
+@import "./bootstrap/_tables.scss";
+@import "./bootstrap/_forms.scss";
+@import "./bootstrap/_buttons.scss";
+// Components
+@import "./bootstrap/_transitions.scss";
+@import "./bootstrap/_dropdown.scss";
+@import "./bootstrap/_button-group.scss";
+@import "./bootstrap/_input-group.scss";
+@import "./bootstrap/_custom-forms.scss";
+@import "./bootstrap/_nav.scss";
+@import "./bootstrap/_navbar.scss";
+@import "./bootstrap/_card.scss";
+@import "./bootstrap/_breadcrumb.scss";
+@import "./bootstrap/_pagination.scss";
+@import "./bootstrap/_badge.scss";
+@import "./bootstrap/_jumbotron.scss";
+@import "./bootstrap/_alert.scss";
+@import "./bootstrap/_progress.scss";
+@import "./bootstrap/_media.scss";
+@import "./bootstrap/_list-group.scss";
+@import "./bootstrap/_close.scss";
+@import "./bootstrap/_spinners.scss";
+@import "./bootstrap/_toasts.scss";
+// Components w/ JavaScript
+@import "./bootstrap/_modal.scss";
+@import "./bootstrap/_tooltip.scss";
+@import "./bootstrap/_popover.scss";
+@import "./bootstrap/_carousel.scss";
+// Utility classes
+@import "./bootstrap/_utilities.scss";
+// Custom classes
+@import "./custom/_top-header.scss";
+@import "./custom/_navbar.scss";
+@import "./custom/_pageheader.scss";
+@import "./custom/_footer.scss";
+@import "./custom/_uploadfile.scss";
+@import "./custom/_product.scss";
+@import "./custom/_tabs.scss";
+@import "./custom/_sidebar-nav.scss";
+@import "./custom/_email.scss";
+@import "./custom/_maps.scss";
+@import "./custom/_media.scss";
+@import "./custom/_timeline.scss";
+@import "./custom/_docs.scss";
+@import "./custom/_switch.scss";
+@import "./custom/_table.scss";
+@import "./custom/_offcanvas.scss";
+
+// Componenets classes
+@import "./components/_avatar.scss";
+@import "./components/_progressbar.scss";
+// Vendor classes
+@import "./vendor/_c3.scss";
+@import "./vendor/_morris.scss";
+@import "./vendor/_chartist.scss";
+@import "./vendor/_daterangepicker.scss";
+@import "./vendor/_buttons.bootstrap4.scss";
+@import "./vendor/_dataTables.bootstrap4.scss";
+@import "./vendor/_fixedHeader.bootstrap4.scss";
+@import "./vendor/_select.bootstrap4";
+@import "./vendor/_print.scss";
+@import "./vendor/_jvectormap.scss";
+@import "./vendor/_bootstrap-select.scss";
+@import "./vendor/_bootstrap-touchspin.scss";
+@import "./vendor/_fullcalendar.scss";
+@import "./vendor/_gauge.scss";
+@import "./vendor/_colorpicker.scss";
+@import "./vendor/_cropper.scss";
+@import "./vendor/_tempusdominus-bootstrap-4.scss";
+@import "./vendor/_summernote.scss";
+@import "./vendor/_select2.scss";
+@import "./vendor/_inputmask.scss";
+@import "./vendor/_parsley.scss";
+@import "./vendor/_multiselect.scss";
+@import "./vendor/_sortable.scss";
+@import "./vendor/_bootstrap-tagsinput.scss";
+@import "./vendor/_prism.scss";
+
+
+
+// Utilities classes
+@import "./utilities/_container.scss";
+@import "./utilities/_card.scss";
+@import "./utilities/_border.scss";
+@import "./utilities/_icon-shape.scss";
+@import "./utilities/_responsive.scss";
+@import "./utilities/_text-size.scss";
+@import "./utilities/_badge-dot.scss";

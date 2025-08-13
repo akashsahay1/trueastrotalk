@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
           phone_number: astrologer.phone_number,
           profile_image: resolvedProfileImage,
           bio: astrologer.bio || '',
-          specializations: astrologer.specializations || ['Vedic', 'Numerology'],
+          qualifications: astrologer.qualifications || astrologer.specializations || ['Vedic', 'Numerology'],
           languages: astrologer.languages || ['Hindi', 'English'],
           experience_years: astrologer.experience_years || 5,
           is_online: astrologer.is_online || false,

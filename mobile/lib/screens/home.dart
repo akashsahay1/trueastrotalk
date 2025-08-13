@@ -32,11 +32,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   bool _isLoadingAstrologers = true;
   bool _isLoadingProducts = true;
   int _selectedBottomNavIndex = 0;
-  
+
   // Astrologer-specific data
   bool _isLoadingDashboard = true;
   bool _isOnlineToggleLoading = false;
-  Map<String, dynamic> _astrologerDashboardData = {};
   int _todaysConsultations = 0;
   int _totalConsultations = 0;
   double _todaysEarnings = 0.0;
@@ -54,9 +53,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     try {
       // First load user data to determine user type
       await _loadUserData();
-      
+
       debugPrint('📱 User loaded: ${_currentUser?.name}, isAstrologer: ${_currentUser?.isAstrologer}');
-      
+
       // Then load type-specific data
       if (_currentUser?.isAstrologer == true) {
         await _loadAstrologerDashboard();
@@ -93,52 +92,21 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Future<void> refreshUserData() async {
     await _loadUserData();
   }
-  
+
   // Method to refresh astrologer dashboard data
   Future<void> _loadAstrologerDashboard() async {
     debugPrint('📱 Loading astrologer dashboard...');
-    
-    // Set basic data from current user immediately
+
+    // Set data from current user (no API call needed since /astrologers/profile doesn't exist yet)
     setState(() {
       _totalConsultations = _currentUser?.totalConsultations ?? 0;
       _totalEarnings = _currentUser?.totalEarnings ?? 0.0;
-      _todaysConsultations = 0; // Default values
+      _todaysConsultations = 0; // Default values until API is implemented
       _todaysEarnings = 0.0;
+      _isLoadingDashboard = false;
     });
-    
-    try {
-      final token = _authService.authToken;
-      debugPrint('📱 Auth token exists: ${token != null}');
-      
-      if (token != null) {
-        debugPrint('📱 Calling getAstrologerDashboard API...');
-        final dashboardData = await _userApiService.getAstrologerDashboard(token);
-        debugPrint('📱 Dashboard data received: $dashboardData');
-        
-        setState(() {
-          _astrologerDashboardData = dashboardData;
-          _todaysConsultations = dashboardData['todays_consultations'] ?? 0;
-          _todaysEarnings = (dashboardData['todays_earnings'] as num?)?.toDouble() ?? 0.0;
-          // Keep total values from user data or update if API provides them
-          if (dashboardData['total_consultations'] != null) {
-            _totalConsultations = dashboardData['total_consultations'] ?? _totalConsultations;
-          }
-          if (dashboardData['total_earnings'] != null) {
-            _totalEarnings = (dashboardData['total_earnings'] as num?)?.toDouble() ?? _totalEarnings;
-          }
-        });
-        debugPrint('📱 Dashboard state updated successfully');
-      } else {
-        debugPrint('❌ No auth token found, using user data only');
-      }
-    } catch (e) {
-      debugPrint('❌ Failed to load astrologer dashboard API: $e');
-      debugPrint('📱 Using user data as fallback');
-    } finally {
-      setState(() {
-        _isLoadingDashboard = false;
-      });
-    }
+
+    debugPrint('📱 Dashboard loaded with user data (API endpoint not yet implemented)');
   }
 
   Future<void> _loadWalletBalance() async {
@@ -324,14 +292,23 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               ),
             ),
           ),
-          ListTile(leading: const Icon(Icons.home), title: const Text('Home'), onTap: () => Navigator.pop(context)),
+          ListTile(
+            leading: const Icon(Icons.home),
+            title: const Text('Home'),
+            onTap: () {
+              Navigator.pop(context);
+              setState(() {
+                _selectedBottomNavIndex = 0;
+              });
+            },
+          ),
           ListTile(
             leading: const Icon(Icons.person),
             title: const Text('Profile'),
             onTap: () {
               Navigator.pop(context);
               setState(() {
-                _selectedBottomNavIndex = 4;
+                _selectedBottomNavIndex = 3;
               });
             },
           ),
@@ -341,7 +318,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             onTap: () {
               Navigator.pop(context);
               setState(() {
-                _selectedBottomNavIndex = 3;
+                _selectedBottomNavIndex = 2;
               });
             },
           ),
@@ -820,14 +797,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     return const Center(child: Text('Astrologers Screen - Coming Soon'));
   }
 
-  Widget _buildKundliScreen() {
-    return const Center(child: Text('Kundli Screen - Coming Soon'));
-  }
-
-  Widget _buildWalletScreen() {
-    return const Center(child: Text('Wallet Screen - Coming Soon'));
-  }
-
   Widget _buildProfileScreen() {
     return Scaffold(
       appBar: AppBar(
@@ -926,7 +895,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         'subtitle': 'Manage your wallet and transactions',
         'onTap': () {
           setState(() {
-            _selectedBottomNavIndex = 3;
+            _selectedBottomNavIndex = 2;
           });
         },
       },
@@ -1005,7 +974,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         : const [
             BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
             BottomNavigationBarItem(icon: Icon(Icons.people_outline), activeIcon: Icon(Icons.people), label: 'Astrologers'),
-            BottomNavigationBarItem(icon: Icon(Icons.receipt_long_outlined), activeIcon: Icon(Icons.receipt_long), label: 'Transactions'),
+            BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), activeIcon: Icon(Icons.account_balance_wallet), label: 'Wallet'),
             BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
           ];
 
@@ -1215,9 +1184,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             tooltip: 'Notifications',
           ),
           IconButton(
-            icon: const Icon(Icons.logout, color: AppColors.white),
-            onPressed: _handleLogout,
-            tooltip: 'Logout',
+            icon: const Icon(Icons.help_outline, color: AppColors.white),
+            onPressed: _openHelp,
+            tooltip: 'Help',
           ),
         ],
       ),
@@ -1236,19 +1205,19 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     // Welcome Section
                     _buildWelcomeSection(),
                     const SizedBox(height: 20),
-                    
+
                     // Online Status Toggle
                     _buildOnlineStatusSection(),
                     const SizedBox(height: 20),
-                    
+
                     // Stats Cards
                     _buildStatsSection(),
                     const SizedBox(height: 20),
-                    
+
                     // Quick Actions
                     _buildQuickActionsSection(),
                     const SizedBox(height: 20),
-                    
+
                     // Recent Activity
                     _buildRecentActivitySection(),
                   ],
@@ -1266,9 +1235,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         foregroundColor: AppColors.white,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: AppColors.white),
-            onPressed: _handleLogout,
-            tooltip: 'Logout',
+            icon: const Icon(Icons.help_outline, color: AppColors.white),
+            onPressed: _openHelp,
+            tooltip: 'Help',
           ),
         ],
       ),
@@ -1285,10 +1254,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.info),
               ),
               SizedBox(height: 8),
-              Text(
-                'Coming Soon',
-                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
-              ),
+              Text('Coming Soon', style: TextStyle(fontSize: 16, color: AppColors.textSecondary)),
               SizedBox(height: 16),
               Text(
                 'Manage your consultations, chat with clients, and track your consultation history.',
@@ -1310,9 +1276,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         foregroundColor: AppColors.white,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: AppColors.white),
-            onPressed: _handleLogout,
-            tooltip: 'Logout',
+            icon: const Icon(Icons.help_outline, color: AppColors.white),
+            onPressed: _openHelp,
+            tooltip: 'Help',
           ),
         ],
       ),
@@ -1329,10 +1295,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.success),
               ),
               SizedBox(height: 8),
-              Text(
-                'Coming Soon',
-                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
-              ),
+              Text('Coming Soon', style: TextStyle(fontSize: 16, color: AppColors.textSecondary)),
               SizedBox(height: 16),
               Text(
                 'Track your earnings, view payment history, and manage your financial information.',
@@ -1349,14 +1312,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Widget _buildTransactionsScreen() {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Transactions', style: TextStyle(color: AppColors.white)),
+        title: Text('Wallet', style: TextStyle(color: AppColors.white)),
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.white,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: AppColors.white),
-            onPressed: _handleLogout,
-            tooltip: 'Logout',
+            icon: const Icon(Icons.help_outline, color: AppColors.white),
+            onPressed: _openHelp,
+            tooltip: 'Help',
           ),
         ],
       ),
@@ -1366,17 +1329,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.receipt_long, size: 64, color: AppColors.info),
+              Icon(Icons.account_balance_wallet, size: 64, color: AppColors.primary),
               SizedBox(height: 16),
               Text(
-                'Transactions',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.info),
+                'Wallet',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primary),
               ),
               SizedBox(height: 8),
-              Text(
-                'Coming Soon',
-                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
-              ),
+              Text('Coming Soon', style: TextStyle(fontSize: 16, color: AppColors.textSecondary)),
               SizedBox(height: 16),
               Text(
                 'View your transaction history, payments, and financial records.',
@@ -1392,35 +1352,56 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   Widget _buildAstrologerDrawer() {
     return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
+      child: Column(
         children: [
-          UserAccountsDrawerHeader(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
+          Container(
+            alignment: Alignment.center,
+            width: double.infinity,
+            height: 200,
+            decoration: const BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.zero),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Profile Picture with Google Image
+                    Container(
+                      width: 70,
+                      height: 70,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.white, width: 2),
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 2))],
+                      ),
+                      child: ClipOval(child: _buildProfileImage()),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // User Name
+                    Text(
+                      _currentUser?.name ?? 'Astrologer',
+                      style: AppTextStyles.heading5.copyWith(color: AppColors.white, fontWeight: FontWeight.w600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                    const SizedBox(height: 4),
+
+                    // User Email
+                    Text(
+                      _currentUser?.email ?? '',
+                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.white.withValues(alpha: 0.9)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
             ),
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-              child: Icon(Icons.person, size: 30, color: AppColors.primary),
-            ),
-            accountName: Text(
-              _currentUser?.name ?? 'Astrologer',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            accountEmail: Text(
-              _currentUser?.email ?? '',
-              style: const TextStyle(fontSize: 14),
-            ),
           ),
-          ListTile(
-            leading: const Icon(Icons.home),
-            title: const Text('Home'),
-            onTap: () => Navigator.pop(context),
-          ),
+          ListTile(leading: const Icon(Icons.home), title: const Text('Home'), onTap: () => Navigator.pop(context)),
           ListTile(
             leading: const Icon(Icons.chat),
             title: const Text('Consultations'),
@@ -1441,21 +1422,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               });
             },
           ),
-          const Divider(),
           ListTile(
             leading: const Icon(Icons.help),
             title: const Text('Help'),
             onTap: () {
               Navigator.pop(context);
-              // Navigate to help screen
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.logout),
-            title: const Text('Logout'),
-            onTap: () {
-              Navigator.pop(context);
-              _handleLogout();
+              _openHelp();
             },
           ),
         ],
@@ -1468,19 +1440,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: LinearGradient(colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)], begin: Alignment.topLeft, end: Alignment.bottomRight),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1490,31 +1452,17 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               CircleAvatar(
                 radius: 25,
                 backgroundColor: Colors.white.withValues(alpha: 0.2),
-                child: Icon(
-                  Icons.person,
-                  color: Colors.white,
-                  size: 30,
-                ),
+                child: Icon(Icons.person, color: Colors.white, size: 30),
               ),
               const SizedBox(width: 15),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Welcome back,',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontSize: 14,
-                      ),
-                    ),
+                    Text('Welcome back,', style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 14)),
                     Text(
                       _currentUser?.name ?? 'Astrologer',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -1526,17 +1474,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             children: [
               Icon(Icons.star, color: Colors.amber, size: 16),
               const SizedBox(width: 5),
-              Text(
-                '${_currentUser?.rating?.toStringAsFixed(1) ?? 'N/A'} Rating',
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-              ),
+              Text('${_currentUser?.rating?.toStringAsFixed(1) ?? 'N/A'} Rating', style: const TextStyle(color: Colors.white, fontSize: 14)),
               const SizedBox(width: 20),
               Icon(Icons.chat, color: Colors.white, size: 16),
               const SizedBox(width: 5),
-              Text(
-                '$_totalConsultations Consultations',
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-              ),
+              Text('$_totalConsultations Consultations', style: const TextStyle(color: Colors.white, fontSize: 14)),
             ],
           ),
         ],
@@ -1550,56 +1492,22 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
       ),
       child: Row(
         children: [
-          Icon(
-            _currentUser?.isOnline == true ? Icons.circle : Icons.circle_outlined,
-            color: _currentUser?.isOnline == true ? AppColors.success : AppColors.grey400,
-            size: 20,
-          ),
+          Icon(_currentUser?.isOnline == true ? Icons.circle : Icons.circle_outlined, color: _currentUser?.isOnline == true ? AppColors.success : AppColors.grey400, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  _currentUser?.isOnline == true ? 'You are Online' : 'You are Offline',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  _currentUser?.isOnline == true
-                      ? 'Available for consultations'
-                      : 'Turn online to receive consultations',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
+                Text(_currentUser?.isOnline == true ? 'You are Online' : 'You are Offline', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                Text(_currentUser?.isOnline == true ? 'Available for consultations' : 'Turn online to receive consultations', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               ],
             ),
           ),
-          _isOnlineToggleLoading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Switch(
-                  value: _currentUser?.isOnline ?? false,
-                  onChanged: (value) => _toggleOnlineStatus(),
-                  activeColor: AppColors.success,
-                ),
+          _isOnlineToggleLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Switch(value: _currentUser?.isOnline ?? false, onChanged: (value) => _toggleOnlineStatus(), activeColor: AppColors.success),
         ],
       ),
     );
@@ -1609,34 +1517,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Today\'s Performance',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        const Text('Today\'s Performance', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
-              child: _buildStatCard(
-                icon: Icons.chat_bubble_outline,
-                title: 'Consultations',
-                value: '$_todaysConsultations',
-                subtitle: 'Today',
-                color: AppColors.primary,
-              ),
+              child: _buildStatCard(icon: Icons.chat_bubble_outline, title: 'Consultations', value: '$_todaysConsultations', subtitle: 'Today', color: AppColors.primary),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _buildStatCard(
-                icon: Icons.account_balance_wallet,
-                title: 'Earnings',
-                value: '₹${_todaysEarnings.toStringAsFixed(0)}',
-                subtitle: 'Today',
-                color: AppColors.success,
-              ),
+              child: _buildStatCard(icon: Icons.account_balance_wallet, title: 'Earnings', value: '₹${_todaysEarnings.toStringAsFixed(0)}', subtitle: 'Today', color: AppColors.success),
             ),
           ],
         ),
@@ -1644,23 +1534,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         Row(
           children: [
             Expanded(
-              child: _buildStatCard(
-                icon: Icons.timeline,
-                title: 'Total Earnings',
-                value: '₹${_totalEarnings.toStringAsFixed(0)}',
-                subtitle: 'All time',
-                color: AppColors.info,
-              ),
+              child: _buildStatCard(icon: Icons.timeline, title: 'Total Earnings', value: '₹${_totalEarnings.toStringAsFixed(0)}', subtitle: 'All time', color: AppColors.info),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _buildStatCard(
-                icon: Icons.star_outline,
-                title: 'Rating',
-                value: _currentUser?.rating?.toStringAsFixed(1) ?? 'N/A',
-                subtitle: '${_currentUser?.totalReviews ?? 0} reviews',
-                color: AppColors.warning,
-              ),
+              child: _buildStatCard(icon: Icons.star_outline, title: 'Rating', value: _currentUser?.rating?.toStringAsFixed(1) ?? 'N/A', subtitle: '${_currentUser?.totalReviews ?? 0} reviews', color: AppColors.warning),
             ),
           ],
         ),
@@ -1668,26 +1546,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  Widget _buildStatCard({
-    required IconData icon,
-    required String title,
-    required String value,
-    required String subtitle,
-    required Color color,
-  }) {
+  Widget _buildStatCard({required IconData icon, required String title, required String value, required String subtitle, required Color color}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1696,10 +1562,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                 child: Icon(icon, color: color, size: 20),
               ),
               const Spacer(),
@@ -1708,27 +1571,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           const SizedBox(height: 12),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color),
           ),
           const SizedBox(height: 4),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 12,
-              color: AppColors.textSecondary,
-            ),
-          ),
+          Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          Text(subtitle, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
         ],
       ),
     );
@@ -1736,105 +1583,57 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   Widget _buildQuickActionsSection() {
     final actions = [
-      {
-        'icon': Icons.chat,
-        'title': 'View Consultations',
-        'subtitle': 'Manage your consultations',
-        'onTap': () => setState(() => _selectedBottomNavIndex = 1),
-        'color': AppColors.primary,
-      },
-      {
-        'icon': Icons.account_balance_wallet,
-        'title': 'View Earnings',
-        'subtitle': 'Check your earnings',
-        'onTap': () => setState(() => _selectedBottomNavIndex = 2),
-        'color': AppColors.success,
-      },
-      {
-        'icon': Icons.person,
-        'title': 'Edit Profile',
-        'subtitle': 'Update your profile',
-        'onTap': () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => ProfileScreen()),
-        ).then((_) => refreshUserData()),
-        'color': AppColors.info,
-      },
+      {'icon': Icons.chat, 'title': 'View Consultations', 'subtitle': 'Manage your consultations', 'onTap': () => setState(() => _selectedBottomNavIndex = 1), 'color': AppColors.primary},
+      {'icon': Icons.account_balance_wallet, 'title': 'View Earnings', 'subtitle': 'Check your earnings', 'onTap': () => setState(() => _selectedBottomNavIndex = 2), 'color': AppColors.success},
+      {'icon': Icons.person, 'title': 'Edit Profile', 'subtitle': 'Update your profile', 'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen())).then((_) => refreshUserData()), 'color': AppColors.info},
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Quick Actions',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        const Text('Quick Actions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
-        ...actions.map((action) => Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: Material(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              onTap: action['onTap'] as VoidCallback,
+        ...actions.map(
+          (action) => Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: Material(
+              color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.grey200),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: (action['color'] as Color).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
+              child: InkWell(
+                onTap: action['onTap'] as VoidCallback,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.grey200),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(color: (action['color'] as Color).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                        child: Icon(action['icon'] as IconData, color: action['color'] as Color, size: 24),
                       ),
-                      child: Icon(
-                        action['icon'] as IconData,
-                        color: action['color'] as Color,
-                        size: 24,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(action['title'] as String, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 2),
+                            Text(action['subtitle'] as String, style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            action['title'] as String,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            action['subtitle'] as String,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: AppColors.textSecondary,
-                    ),
-                  ],
+                      Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textSecondary),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        )),
+        ),
       ],
     );
   }
@@ -1843,13 +1642,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Recent Activity',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        const Text('Recent Activity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(20),
@@ -1861,27 +1654,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           child: Center(
             child: Column(
               children: [
-                Icon(
-                  Icons.history,
-                  size: 48,
-                  color: AppColors.textSecondary,
-                ),
+                Icon(Icons.history, size: 48, color: AppColors.textSecondary),
                 const SizedBox(height: 12),
                 Text(
                   'No Recent Activity',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Your recent consultations will appear here',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                  ),
+                  style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -1904,33 +1686,25 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       // API call to toggle online status
       final currentStatus = _currentUser?.isOnline ?? false;
       // await _userApiService.updateOnlineStatus(token, !currentStatus);
-      
+
       // Update local state
       _currentUser = _currentUser?.copyWith(isOnline: !currentStatus);
-      
+
       setState(() {
         _isOnlineToggleLoading = false;
       });
-      
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_currentUser?.isOnline == true ? 'You are now online' : 'You are now offline'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_currentUser?.isOnline == true ? 'You are now online' : 'You are now offline'), backgroundColor: AppColors.success));
       }
     } catch (e) {
       setState(() {
         _isOnlineToggleLoading = false;
       });
-      
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update status: $e')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update status: $e')));
       }
     }
   }
-
 }

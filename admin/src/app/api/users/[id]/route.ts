@@ -188,13 +188,19 @@ export async function PUT(
       account_status: body.account_status || 'active',
       is_online: body.is_online !== undefined ? body.is_online : existingUser.is_online,
       is_verified: body.is_verified !== undefined ? body.is_verified : existingUser.is_verified,
+      // Also set verification_status based on is_verified for mobile compatibility
+      verification_status: body.is_verified !== undefined 
+        ? (body.is_verified ? 'verified' : 'unverified')
+        : (existingUser.is_verified ? 'verified' : 'unverified'),
       bio: body.bio || '',
-      specializations: body.qualifications || [], // Map qualifications to specializations in DB
+      // Standardize on qualifications (not specializations) to match mobile
+      qualifications: body.qualifications || [],
       skills: body.skills || [],
       // Save rates as direct fields to match mobile registration
       call_rate: body.commission_rates?.call_rate || 0,
       chat_rate: body.commission_rates?.chat_rate || 0,
       video_rate: body.commission_rates?.video_rate || 0,
+      experience_years: body.experience_years || 0,
       updated_at: new Date()
     };
 

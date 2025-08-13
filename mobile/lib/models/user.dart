@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'enums.dart';
 
 class User {
@@ -22,13 +23,20 @@ class User {
   final String? timeOfBirth;
   final String? placeOfBirth;
   
+  // Additional user fields
+  final String? gender;
+  final String? address;
+  final String? city;
+  final String? state;
+  final String? country;
+  final String? zip;
+  
   // Astrologer-specific fields
   final bool? isOnline;
   final String? bio;
   final String? profilePicture;
   final int? experienceYears;
   final List<String>? languages;
-  final List<String>? specializations;
   final List<String>? skills;
   final List<String>? qualifications;
   final List<String>? certifications;
@@ -78,13 +86,20 @@ class User {
     this.timeOfBirth,
     this.placeOfBirth,
     
+    // Additional user fields
+    this.gender,
+    this.address,
+    this.city,
+    this.state,
+    this.country,
+    this.zip,
+    
     // Astrologer-specific fields
     this.isOnline,
     this.bio,
     this.profilePicture,
     this.experienceYears,
     this.languages,
-    this.specializations,
     this.skills,
     this.qualifications,
     this.certifications,
@@ -114,7 +129,10 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
-    return User(
+    try {
+      debugPrint('🔍 User.fromJson parsing data: ${json.keys.join(', ')}');
+      
+      return User(
       // Basic user fields
       id: json['id']?.toString() ?? '',
       phone: json['phone_number']?.toString(),
@@ -122,7 +140,7 @@ class User {
       name: json['full_name']?.toString() ?? json['name']?.toString() ?? '',
       role: UserRoleExtension.fromString(json['user_type']?.toString() ?? json['role']?.toString() ?? 'customer'),
       accountStatus: AccountStatusExtension.fromString(json['account_status']?.toString() ?? 'active'),
-      verificationStatus: VerificationStatusExtension.fromString(json['verification_status']?.toString() ?? 'unverified'),
+      verificationStatus: _parseVerificationStatus(json),
       authType: AuthTypeExtension.fromString(json['auth_type']?.toString() ?? 'email'),
       createdAt: json['created_at'] != null ? DateTime.parse(json['created_at'].toString()) : DateTime.now(),
       updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at'].toString()) : DateTime.now(),
@@ -136,15 +154,22 @@ class User {
       timeOfBirth: json['time_of_birth']?.toString() ?? json['birth_time']?.toString(),
       placeOfBirth: json['place_of_birth']?.toString() ?? json['birth_place']?.toString(),
       
+      // Additional user fields
+      gender: json['gender']?.toString(),
+      address: json['address']?.toString(),
+      city: json['city']?.toString(),
+      state: json['state']?.toString(),
+      country: json['country']?.toString(),
+      zip: json['zip']?.toString(),
+      
       // Astrologer-specific fields
       isOnline: _parseBool(json['is_online']),
       bio: json['bio']?.toString(),
       profilePicture: json['profile_picture']?.toString() ?? json['profile_image']?.toString(),
       experienceYears: _parseInt(json['experience_years']),
-      languages: _parseStringList(json['languages']),
-      specializations: _parseStringList(json['specializations']),
-      skills: _parseStringList(json['skills']),
-      qualifications: _parseStringList(json['qualifications']),
+      languages: _parseStringListOrString(json['languages']),
+      skills: _parseStringListOrString(json['skills']),
+      qualifications: _parseStringList(json['qualifications']) ?? _parseStringList(json['specializations']),
       certifications: _parseStringList(json['certifications']),
       
       // Consultation rates
@@ -169,7 +194,13 @@ class User {
       rating: _parseDouble(json['rating']),
       totalReviews: _parseInt(json['total_reviews']),
       totalConsultations: _parseInt(json['total_consultations']),
-    );
+      );
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error parsing User.fromJson: $e');
+      debugPrint('📋 JSON data: $json');
+      debugPrint('🔍 Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -195,13 +226,20 @@ class User {
       'time_of_birth': timeOfBirth,
       'place_of_birth': placeOfBirth,
       
+      // Additional user fields
+      'gender': gender,
+      'address': address,
+      'city': city,
+      'state': state,
+      'country': country,
+      'zip': zip,
+      
       // Astrologer-specific fields
       'is_online': isOnline,
       'bio': bio,
       'profile_picture': profilePicture,
       'experience_years': experienceYears,
       'languages': languages,
-      'specializations': specializations,
       'skills': skills,
       'qualifications': qualifications,
       'certifications': certifications,
@@ -252,13 +290,20 @@ class User {
     String? timeOfBirth,
     String? placeOfBirth,
     
+    // Additional user fields
+    String? gender,
+    String? address,
+    String? city,
+    String? state,
+    String? country,
+    String? zip,
+    
     // Astrologer-specific fields
     bool? isOnline,
     String? bio,
     String? profilePicture,
     int? experienceYears,
     List<String>? languages,
-    List<String>? specializations,
     List<String>? skills,
     List<String>? qualifications,
     List<String>? certifications,
@@ -308,13 +353,20 @@ class User {
       timeOfBirth: timeOfBirth ?? this.timeOfBirth,
       placeOfBirth: placeOfBirth ?? this.placeOfBirth,
       
+      // Additional user fields
+      gender: gender ?? this.gender,
+      address: address ?? this.address,
+      city: city ?? this.city,
+      state: state ?? this.state,
+      country: country ?? this.country,
+      zip: zip ?? this.zip,
+      
       // Astrologer-specific fields
       isOnline: isOnline ?? this.isOnline,
       bio: bio ?? this.bio,
       profilePicture: profilePicture ?? this.profilePicture,
       experienceYears: experienceYears ?? this.experienceYears,
       languages: languages ?? this.languages,
-      specializations: specializations ?? this.specializations,
       skills: skills ?? this.skills,
       qualifications: qualifications ?? this.qualifications,
       certifications: certifications ?? this.certifications,
@@ -429,7 +481,10 @@ class User {
     if (value == null) return null;
     if (value is double) return value;
     if (value is int) return value.toDouble();
-    if (value is String) return double.tryParse(value);
+    if (value is String) {
+      if (value.isEmpty) return null;
+      return double.tryParse(value);
+    }
     return null;
   }
 
@@ -437,7 +492,14 @@ class User {
     if (value == null) return null;
     if (value is int) return value;
     if (value is double) return value.toInt();
-    if (value is String) return int.tryParse(value);
+    if (value is String) {
+      if (value.isEmpty) return null;
+      // Try parsing as int first, then as double and convert to int
+      final intResult = int.tryParse(value);
+      if (intResult != null) return intResult;
+      final doubleResult = double.tryParse(value);
+      return doubleResult?.toInt();
+    }
     return null;
   }
 
@@ -457,5 +519,37 @@ class User {
       return value.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).toList();
     }
     return null;
+  }
+
+  static List<String>? _parseStringListOrString(dynamic value) {
+    if (value == null) return null;
+    if (value is List) {
+      return value.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+    }
+    if (value is String) {
+      if (value.isEmpty) return null;
+      // Split string by comma and trim whitespace
+      return value.split(',').map((e) => e.trim()).where((s) => s.isNotEmpty).toList();
+    }
+    return null;
+  }
+
+  static VerificationStatus _parseVerificationStatus(Map<String, dynamic> json) {
+    // First check for explicit verification_status
+    final explicitStatus = json['verification_status']?.toString();
+    if (explicitStatus != null && explicitStatus.isNotEmpty) {
+      return VerificationStatusExtension.fromString(explicitStatus);
+    }
+    
+    // Fall back to is_verified boolean
+    final isVerified = _parseBool(json['is_verified']);
+    if (isVerified == true) {
+      return VerificationStatus.verified;
+    } else if (isVerified == false) {
+      return VerificationStatus.unverified;
+    }
+    
+    // Default fallback
+    return VerificationStatus.unverified;
   }
 }

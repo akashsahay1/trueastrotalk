@@ -341,7 +341,20 @@ class _LoginScreenState extends State<LoginScreen> {
         // User cancelled - do nothing, stay on login screen
         return;
       }
-      // For any other errors, silently handle them
+      
+      // Debug: Log any other errors to help diagnose issues
+      debugPrint('🚨 Google Sign-In Error: $e');
+      
+      // Show error to user for debugging
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Google Sign-In failed: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {

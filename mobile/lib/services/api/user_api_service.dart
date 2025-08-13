@@ -29,7 +29,7 @@ class UserApiService {
         if (experience != null && experience.isNotEmpty) 'experience_years': experience,
         if (bio != null && bio.isNotEmpty) 'bio': bio,
         if (languages != null && languages.isNotEmpty) 'languages': languages,
-        if (specializations != null && specializations.isNotEmpty) 'specializations': specializations,
+        if (specializations != null && specializations.isNotEmpty) 'qualifications': specializations,
         if (skills != null && skills.isNotEmpty) 'skills': skills,
         if (address != null && address.isNotEmpty) 'address': address,
         if (city != null && city.isNotEmpty) 'city': city,
@@ -445,6 +445,128 @@ class UserApiService {
       }
     } on DioException catch (e) {
       throw _handleDioException(e);
+    }
+  }
+
+  // Get astrologer dashboard data
+  Future<Map<String, dynamic>> getAstrologerDashboard(String token) async {
+    try {
+      final response = await _dio.get(
+        ApiEndpoints.astrologerProfile,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data['data'] ?? response.data;
+      } else {
+        throw Exception('Failed to get astrologer dashboard: ${response.data['message']}');
+      }
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    }
+  }
+
+  // Get astrologer wallet/earnings data
+  Future<Map<String, dynamic>> getAstrologerEarnings(String token) async {
+    try {
+      final response = await _dio.get(
+        ApiEndpoints.astrologerWalletBalance,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data['data'] ?? response.data;
+      } else {
+        throw Exception('Failed to get astrologer earnings: ${response.data['message']}');
+      }
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    }
+  }
+
+  // Get astrologer earnings history
+  Future<Map<String, dynamic>> getAstrologerEarningsHistory(String token, {int limit = 10, int offset = 0}) async {
+    try {
+      final queryParams = {
+        'limit': limit.toString(),
+        'offset': offset.toString(),
+      };
+
+      final response = await _dio.get(
+        ApiEndpoints.astrologerWalletEarningsHistory,
+        queryParameters: queryParams,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data['data'] ?? response.data;
+      } else {
+        throw Exception('Failed to get earnings history: ${response.data['message']}');
+      }
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    }
+  }
+
+  // Get pending consultation requests for astrologer
+  Future<Map<String, dynamic>> getPendingConsultations(String token) async {
+    try {
+      final response = await _dio.get(
+        ApiEndpoints.astrologerConsultationsPending,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data['data'] ?? response.data;
+      } else {
+        throw Exception('Failed to get pending consultations: ${response.data['message']}');
+      }
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    }
+  }
+
+  // Toggle astrologer online status
+  Future<Map<String, dynamic>> toggleOnlineStatus(String token, bool isOnline) async {
+    try {
+      final response = await _dio.put(
+        ApiEndpoints.astrologerOnlineStatus,
+        data: {'is_online': isOnline},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data['data'] ?? response.data;
+      } else {
+        throw Exception('Failed to update online status: ${response.data['message']}');
+      }
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    }
+  }
+
+  // Get astrologer statistics (consultations, ratings, etc.)
+  Future<Map<String, dynamic>> getAstrologerStatistics(String token) async {
+    try {
+      // This might be part of the profile endpoint or a separate statistics endpoint
+      final response = await _dio.get(
+        '${ApiEndpoints.astrologerProfile}/statistics',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data['data'] ?? response.data;
+      } else {
+        throw Exception('Failed to get astrologer statistics: ${response.data['message']}');
+      }
+    } on DioException {
+      // If statistics endpoint doesn't exist, return default values
+      return {
+        'today_consultations': 0,
+        'total_consultations': 0,
+        'average_rating': 0.0,
+        'total_reviews': 0,
+      };
     }
   }
 
