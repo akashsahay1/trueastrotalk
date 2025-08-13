@@ -1,7 +1,7 @@
 import { MongoClient, Db } from 'mongodb';
 
 const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = process.env.DB_NAME || 'trueastrotalk';
+const DB_NAME = process.env.DB_NAME || 'trueastrotalkDB';
 
 if (!MONGODB_URL) {
   throw new Error('Please add your MONGODB_URL to .env.local');

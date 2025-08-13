@@ -131,11 +131,7 @@ export default function Sidebar() {
             <span className="navbar-toggler-icon"></span>
           </button>
           <div className="collapse navbar-collapse" id="navbarNav">
-            <ul className="navbar-nav flex-column">
-              <li className="nav-divider">
-                Menu
-              </li>
-              
+            <ul className="navbar-nav flex-column">              
               {menuItems.map((item, index) => (
                 <li key={index} className="nav-item">
                   {item.submenu ? (

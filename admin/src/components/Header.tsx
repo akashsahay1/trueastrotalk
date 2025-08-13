@@ -27,6 +27,7 @@ export default function Header() {
       <nav className="navbar navbar-expand-lg navbar-light bg-white fixed-top">
         <a className="navbar-brand" href="/admin/dashboard">
           <Image src="/logo.png" alt="True Astrotalk" width={40} height={40} />
+					<span className="ml-3"><strong>True Astrotalk</strong></span>
         </a>
         <div className="ml-auto" id="navbarSupportedContent">
           <ul className="navbar-nav ml-auto navbar-right-top flex-row">

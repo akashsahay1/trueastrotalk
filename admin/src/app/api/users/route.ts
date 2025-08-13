@@ -30,7 +30,7 @@ async function resolveProfileImage(user: Record<string, unknown>, mediaCollectio
   // Priority 2: Direct profile_image URL
   if (user.profile_image && typeof user.profile_image === 'string') {
     if (user.profile_image.startsWith('/')) {
-      return `${baseUrl}${user.profile_image}`;
+      return `${user.profile_image}`;
     }
     return user.profile_image;
   }
