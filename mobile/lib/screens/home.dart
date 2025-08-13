@@ -51,10 +51,28 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Future<void> _loadData() async {
-    if (_currentUser?.isAstrologer == true) {
-      await Future.wait([_loadUserData(), _loadAstrologerDashboard()]);
-    } else {
-      await Future.wait([_loadUserData(), _loadWalletBalance(), _loadFeaturedAstrologers(), _loadFeaturedProducts()]);
+    try {
+      // First load user data to determine user type
+      await _loadUserData();
+      
+      debugPrint('📱 User loaded: ${_currentUser?.name}, isAstrologer: ${_currentUser?.isAstrologer}');
+      
+      // Then load type-specific data
+      if (_currentUser?.isAstrologer == true) {
+        await _loadAstrologerDashboard();
+      } else {
+        await Future.wait([_loadWalletBalance(), _loadFeaturedAstrologers(), _loadFeaturedProducts()]);
+      }
+    } catch (e) {
+      debugPrint('❌ Error in _loadData: $e');
+      // Ensure loading states are turned off even if there's an error
+      setState(() {
+        _isLoading = false;
+        _isLoadingDashboard = false;
+        _isLoadingWallet = false;
+        _isLoadingAstrologers = false;
+        _isLoadingProducts = false;
+      });
     }
   }
 
@@ -78,26 +96,45 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   
   // Method to refresh astrologer dashboard data
   Future<void> _loadAstrologerDashboard() async {
+    debugPrint('📱 Loading astrologer dashboard...');
+    
+    // Set basic data from current user immediately
+    setState(() {
+      _totalConsultations = _currentUser?.totalConsultations ?? 0;
+      _totalEarnings = _currentUser?.totalEarnings ?? 0.0;
+      _todaysConsultations = 0; // Default values
+      _todaysEarnings = 0.0;
+    });
+    
     try {
       final token = _authService.authToken;
+      debugPrint('📱 Auth token exists: ${token != null}');
+      
       if (token != null) {
+        debugPrint('📱 Calling getAstrologerDashboard API...');
         final dashboardData = await _userApiService.getAstrologerDashboard(token);
+        debugPrint('📱 Dashboard data received: $dashboardData');
         
         setState(() {
           _astrologerDashboardData = dashboardData;
           _todaysConsultations = dashboardData['todays_consultations'] ?? 0;
-          _totalConsultations = _currentUser?.totalConsultations ?? 0;
           _todaysEarnings = (dashboardData['todays_earnings'] as num?)?.toDouble() ?? 0.0;
-          _totalEarnings = _currentUser?.totalEarnings ?? 0.0;
-          _isLoadingDashboard = false;
+          // Keep total values from user data or update if API provides them
+          if (dashboardData['total_consultations'] != null) {
+            _totalConsultations = dashboardData['total_consultations'] ?? _totalConsultations;
+          }
+          if (dashboardData['total_earnings'] != null) {
+            _totalEarnings = (dashboardData['total_earnings'] as num?)?.toDouble() ?? _totalEarnings;
+          }
         });
+        debugPrint('📱 Dashboard state updated successfully');
       } else {
-        setState(() {
-          _isLoadingDashboard = false;
-        });
+        debugPrint('❌ No auth token found, using user data only');
       }
     } catch (e) {
-      debugPrint('❌ Failed to load astrologer dashboard: $e');
+      debugPrint('❌ Failed to load astrologer dashboard API: $e');
+      debugPrint('📱 Using user data as fallback');
+    } finally {
       setState(() {
         _isLoadingDashboard = false;
       });
