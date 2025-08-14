@@ -46,7 +46,11 @@
       "Bash(for file in Pods/Target Support Files/Pods-Runner/Pods-Runner-resources-*-output-files.xcfilelist)",
       "Bash(do echo \"Final cleaning $file\")",
       "Bash(for file in \"Pods/Target Support Files/Pods-Runner/Pods-Runner-resources-Profile-output-files.xcfilelist\" \"Pods/Target Support Files/Pods-Runner/Pods-Runner-resources-Release-output-files.xcfilelist\")",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(for file in \"./Pods/Target Support Files/Pods-Runner/Pods-Runner-resources-\"*\".xcfilelist\")",
+      "Bash(./fix_privacy_bundles.sh:*)",
+      "Bash(for file in \"Pods/Target Support Files/Pods-Runner/Pods-Runner-resources-\"*\".xcfilelist\")",
+      "Bash(do echo \"Completely removing privacy bundle references from $file\")"
     ],
     "deny": []
   }

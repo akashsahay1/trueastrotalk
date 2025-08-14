@@ -305,12 +305,12 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         // Navigate based on user role (no success snackbar as per user requirement)
         if (user.isCustomer) {
-          Navigator.pushReplacementNamed(context, '/customer/home');
+          Navigator.pushReplacementNamed(context, '/home');
         } else if (user.isAstrologer) {
-          Navigator.pushReplacementNamed(context, '/customer/home');
+          Navigator.pushReplacementNamed(context, '/home');
         } else {
           // Admin or manager - for now navigate to customer home
-          Navigator.pushReplacementNamed(context, '/customer/home');
+          Navigator.pushReplacementNamed(context, '/home');
         }
       }
     } on GoogleSignUpRequiredException catch (googleException) {
@@ -341,19 +341,13 @@ class _LoginScreenState extends State<LoginScreen> {
         // User cancelled - do nothing, stay on login screen
         return;
       }
-      
+
       // Debug: Log any other errors to help diagnose issues
       debugPrint('🚨 Google Sign-In Error: $e');
-      
+
       // Show error to user for debugging
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Google Sign-In failed: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-            duration: const Duration(seconds: 5),
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Google Sign-In failed: ${e.toString()}'), backgroundColor: AppColors.error, duration: const Duration(seconds: 5)));
       }
     } finally {
       if (mounted) {
