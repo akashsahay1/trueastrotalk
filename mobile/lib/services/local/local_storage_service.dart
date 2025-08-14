@@ -3,11 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class LocalStorageService {
   late SharedPreferences _prefs;
-  static const _secureStorage = FlutterSecureStorage(
-    aOptions: AndroidOptions(
-      encryptedSharedPreferences: true,
-    ),
-  );
+  static const _secureStorage = FlutterSecureStorage(aOptions: AndroidOptions());
 
   // Keys for storage
   static const String _authTokenKey = 'auth_token';

@@ -64,7 +64,7 @@ class TrueAstrotalkApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const SignupScreen(),
         '/astrologer-signup': (context) => const SignupScreen(isAdvanced: true),
-        '/customer/home': (context) => const CustomerHomeScreen(),
+        '/home': (context) => const HomeScreen(),
         '/forgot-password': (context) => const Scaffold(body: Center(child: Text('Forgot Password - Coming Soon'))),
       },
 
@@ -120,7 +120,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
     if (_authService.isLoggedIn) {
       // User is logged in, show the home screen (it handles role-based UI internally)
-      return const CustomerHomeScreen();
+      return const HomeScreen();
     }
 
     // User is not logged in, show onboarding

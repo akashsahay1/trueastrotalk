@@ -11,14 +11,14 @@ import '../../models/astrologer.dart';
 import '../../models/product.dart';
 import 'profile.dart';
 
-class CustomerHomeScreen extends StatefulWidget {
-  const CustomerHomeScreen({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
   @override
-  State<CustomerHomeScreen> createState() => _CustomerHomeScreenState();
+  State<HomeScreen> createState() => _CustomerHomeScreenState();
 }
 
-class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
+class _CustomerHomeScreenState extends State<HomeScreen> {
   late final AuthService _authService;
   late final UserApiService _userApiService;
 

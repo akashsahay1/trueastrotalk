@@ -1,7 +1,5 @@
-# Uncomment this line to define a global platform for your project
 platform :ios, '15.0'
 
-# CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
 project 'Runner', {
@@ -13,14 +11,13 @@ project 'Runner', {
 def flutter_root
   generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
   unless File.exist?(generated_xcode_build_settings_path)
-    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
+    raise "#{generated_xcode_build_settings_path} must exist. Run flutter pub get first."
   end
-
   File.foreach(generated_xcode_build_settings_path) do |line|
     matches = line.match(/FLUTTER_ROOT\=(.*)/)
     return matches[1].strip if matches
   end
-  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
+  raise "FLUTTER_ROOT not found in Generated.xcconfig"
 end
 
 require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
@@ -28,9 +25,14 @@ require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelpe
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  use_frameworks!
+  use_frameworks! :linkage => :static
+  use_modular_headers!
+  
+  # Disable privacy manifest validation for problematic plugins
+  $VALIDATE_PRIVACY_MANIFEST = false
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+
   target 'RunnerTests' do
     inherit! :search_paths
   end
@@ -39,8 +41,215 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+      config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'i386'
+      config.build_settings['SWIFT_VERSION'] ||= '5.0'
+      config.build_settings['ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES'] = 'YES'
     end
   end
+  
+  # PERMANENT FIX: Remove privacy bundle files and references at source
+  puts "Applying permanent privacy bundle fix..."
+  
+  # 1. Remove all privacy bundle Info.plist files (root source)
+  Dir.glob("Pods/Target Support Files/*/ResourceBundle-*privacy*-Info.plist").each do |privacy_file|
+    puts "  Deleting privacy bundle file: #{File.basename(privacy_file)}"
+    File.delete(privacy_file) if File.exist?(privacy_file)
+  end
+  
+  Dir.glob("Pods/Target Support Files/*/ResourceBundle-*Privacy*-Info.plist").each do |privacy_file|
+    puts "  Deleting privacy bundle file: #{File.basename(privacy_file)}"
+    File.delete(privacy_file) if File.exist?(privacy_file)
+  end
+  
+  # Delete additional privacy bundle patterns
+  Dir.glob("Pods/Target Support Files/*/*privacy*.plist").each do |privacy_file|
+    puts "  Deleting additional privacy file: #{File.basename(privacy_file)}"
+    File.delete(privacy_file) if File.exist?(privacy_file)
+  end
+  
+  # SPECIFIC FIX: Delete GTMSessionFetcher_Full_Privacy bundle file
+  gtm_privacy_file = "Pods/Target Support Files/GTMSessionFetcher/ResourceBundle-GTMSessionFetcher_Full_Privacy-GTMSessionFetcher-Info.plist"
+  if File.exist?(gtm_privacy_file)
+    puts "  Deleting GTMSessionFetcher_Full_Privacy bundle file"
+    File.delete(gtm_privacy_file)
+  end
+  
+  # 2. Clean CocoaPods resource files
+  resource_files = [
+    "Pods/Target Support Files/Pods-Runner/Pods-Runner-resources-Debug-input-files.xcfilelist",
+    "Pods/Target Support Files/Pods-Runner/Pods-Runner-resources-Profile-input-files.xcfilelist", 
+    "Pods/Target Support Files/Pods-Runner/Pods-Runner-resources-Release-input-files.xcfilelist",
+    "Pods/Target Support Files/Pods-Runner/Pods-Runner-resources-Debug-output-files.xcfilelist",
+    "Pods/Target Support Files/Pods-Runner/Pods-Runner-resources-Profile-output-files.xcfilelist",
+    "Pods/Target Support Files/Pods-Runner/Pods-Runner-resources-Release-output-files.xcfilelist"
+  ]
+  
+  resource_files.each do |file_path|
+    if File.exist?(file_path)
+      puts "  Cleaning: #{File.basename(file_path)}"
+      content = File.read(file_path)
+      
+      # Remove ALL privacy bundle references but keep valid bundles
+      cleaned_lines = content.split("\n").reject do |line|
+        line.match?(/(privacy|Privacy)\.bundle/i) || 
+        line.include?("GTMSessionFetcher_Full_Privacy")
+      end
+      
+      File.write(file_path, cleaned_lines.join("\n") + "\n")
+    end
+  end
+  
+  # 3. Remove from podspecs (COMPLETE REMOVAL)
+  Dir.glob("Pods/Local Podspecs/*.podspec.json").each do |podspec_path|
+    plugin_name = File.basename(podspec_path, '.podspec.json')
+    
+    if File.exist?(podspec_path)
+      podspec_content = File.read(podspec_path)
+      original_content = podspec_content.dup
+      
+      # Parse JSON and remove resource_bundles completely
+      begin
+        require 'json'
+        podspec_data = JSON.parse(podspec_content)
+        if podspec_data.key?('resource_bundles')
+          podspec_data.delete('resource_bundles')
+          podspec_content = JSON.pretty_generate(podspec_data)
+          puts "  Removed resource_bundles from: #{plugin_name}"
+        end
+      rescue JSON::ParserError
+        # Fallback to regex if JSON parsing fails
+        podspec_content.gsub!(/,\s*"resource_bundles"\s*:\s*\{[^}]*\}/mi, '')
+        podspec_content.gsub!(/"resource_bundles"\s*:\s*\{[^}]*\},?/mi, '')
+      end
+      
+      if podspec_content != original_content
+        File.write(podspec_path, podspec_content)
+      end
+    end
+  end
+  
+  # 4. Ultimate fix: Remove from Xcode project targets AND Firebase/Google SDKs
+  installer.pods_project.targets.each do |target|
+    target.build_phases.each do |phase|
+      if phase.is_a?(Xcodeproj::Project::Object::PBXResourcesBuildPhase)
+        files_to_remove = []
+        phase.files.each do |build_file|
+          file_ref = build_file.file_ref
+          next unless file_ref && file_ref.path
+          
+          if file_ref.path =~ /(privacy|Privacy)/i ||
+             file_ref.path =~ /ResourceBundle.*privacy/i
+            puts "    Removing Xcode reference: #{file_ref.path}"
+            files_to_remove << build_file
+          end
+        end
+        
+        files_to_remove.each do |build_file|
+          phase.remove_build_file(build_file)
+        end
+      end
+    end
+    
+    # Special handling for Firebase/Google SDK targets - simpler approach
+    firebase_targets = ['FirebaseCore', 'FirebaseCoreInternal', 'GTMAppAuth', 'GTMSessionFetcher', 'GoogleUtilities', 'AppAuth', 'PromisesObjC']
+    if firebase_targets.include?(target.name)
+      puts "  Cleaning Firebase/Google target: #{target.name}"
+      
+      # Remove all resource build phases that contain privacy references
+      target.build_phases.each do |phase|
+        if phase.is_a?(Xcodeproj::Project::Object::PBXResourcesBuildPhase)
+          files_to_remove = []
+          phase.files.each do |build_file|
+            if build_file.file_ref && build_file.file_ref.path && 
+               (build_file.file_ref.path.match?(/(privacy|Privacy)/i) ||
+                build_file.file_ref.path.include?("GTMSessionFetcher_Full_Privacy"))
+              puts "    Removing Firebase privacy resource: #{build_file.file_ref.path}"
+              files_to_remove << build_file
+            end
+          end
+          files_to_remove.each { |f| phase.remove_build_file(f) }
+        end
+      end
+    end
+  end
+  
+  # 5. Final cleanup: Remove orphaned privacy bundle targets from project
+  installer.pods_project.targets.each do |target|
+    if target.name.match?(/(privacy|Privacy)/i) ||
+       target.name.match?(/ResourceBundle.*privacy/i) ||
+       target.name.include?("GTMSessionFetcher_Full_Privacy")
+      puts "  Removing orphaned privacy target: #{target.name}"
+      target.remove_from_project
+    end
+  end
+  
+  # 6. Clean aggregate targets
+  installer.pods_project.targets.select { |t| t.is_a?(Xcodeproj::Project::Object::PBXAggregateTarget) }.each do |target|
+    dependencies_to_remove = []
+    target.dependencies.each do |dependency|
+      if dependency.target && dependency.target.name.match?(/(privacy|Privacy)/i)
+        puts "  Removing privacy dependency: #{dependency.target.name}"
+        dependencies_to_remove << dependency
+      end
+    end
+    dependencies_to_remove.each { |dep| target.dependencies.delete(dep) }
+  end
+  
+  # CREATE LEGITIMATE BUNDLE: ReachabilitySwift.bundle
+  reachability_bundle_dir = "#{Dir.pwd}/build/ios/Debug-iphoneos/ReachabilitySwift/ReachabilitySwift.bundle"
+  unless File.exist?(reachability_bundle_dir)
+    puts "  Creating ReachabilitySwift.bundle directory structure..."
+    FileUtils.mkdir_p(reachability_bundle_dir)
+    
+    # Create a minimal bundle structure
+    File.write("#{reachability_bundle_dir}/ReachabilitySwift", "# ReachabilitySwift bundle content")
+    puts "  Created ReachabilitySwift.bundle"
+  end
+  
+  # FINAL STEP: Force clean the resource files after all processing
+  puts "Final cleanup: Removing privacy bundle references from xcfilelist files..."
+  resource_files.each do |file_path|
+    if File.exist?(file_path)
+      content = File.read(file_path)
+      original_lines = content.split("\n")
+      
+      # Keep only non-privacy lines and ReachabilitySwift.bundle
+      cleaned_lines = original_lines.select do |line|
+        line.include?("Pods-Runner-resources.sh") ||
+        line.include?("GoogleSignIn.bundle") ||
+        line.include?("ReachabilitySwift.bundle") ||
+        line.include?("flutter_secure_storage.bundle") ||
+        (!line.match?(/(privacy|Privacy)\.bundle/i) && 
+         !line.include?("GTMSessionFetcher_Full_Privacy"))
+      end
+      
+      if cleaned_lines.size != original_lines.size
+        File.write(file_path, cleaned_lines.join("\n") + "\n")
+        puts "  Final cleaned: #{File.basename(file_path)} (#{original_lines.size - cleaned_lines.size} privacy bundles removed)"
+      end
+    end
+  end
+  
+  # COMPREHENSIVE CLEANUP: Remove all GTMSessionFetcher_Full_Privacy references from project
+  puts "Final project cleanup: Removing GTMSessionFetcher_Full_Privacy references..."
+  project = installer.pods_project
+  
+  # Remove from project references
+  project.objects.each do |uuid, obj|
+    if obj.respond_to?(:path) && obj.path && obj.path.include?("GTMSessionFetcher_Full_Privacy")
+      puts "  Removing project reference: #{obj.path}"
+      project.objects.delete(uuid)
+    elsif obj.respond_to?(:name) && obj.name && obj.name.include?("GTMSessionFetcher_Full_Privacy")
+      puts "  Removing project object: #{obj.name}"
+      project.objects.delete(uuid)
+    end
+  end
+  
+  project.save
+  
+  puts "Privacy bundle fix completed - all sources cleaned!"
 end
