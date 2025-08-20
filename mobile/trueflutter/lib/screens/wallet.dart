@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 import '../models/transaction.dart';
-import '../models/user.dart';
 import '../services/auth/auth_service.dart';
 import '../services/api/user_api_service.dart';
 import '../services/service_locator.dart';
 import '../services/payment/razorpay_service.dart';
 import '../config/config.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});

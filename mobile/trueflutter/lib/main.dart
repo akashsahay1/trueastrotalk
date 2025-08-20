@@ -42,7 +42,7 @@ void main() async {
   try {
     await PaymentConfig.instance.initialize();
   } catch (e) {
-    print('Payment config initialization failed: $e');
+    debugPrint('Payment config initialization failed: $e');
   }
 
   // Set system UI overlay style

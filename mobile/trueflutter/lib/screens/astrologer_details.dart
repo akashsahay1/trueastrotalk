@@ -4,6 +4,8 @@ import '../common/themes/text_styles.dart';
 import '../common/constants/dimensions.dart';
 import '../models/astrologer.dart';
 import '../models/enums.dart';
+import '../services/api/user_api_service.dart';
+import '../services/service_locator.dart';
 
 class AstrologerDetailsScreen extends StatefulWidget {
   final Astrologer? astrologer;
@@ -52,37 +54,15 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> with 
     });
     
     try {
-      // In a real implementation, you would call an API to get astrologer details by ID
-      // For now, create a placeholder astrologer
-      // TODO: Implement actual API call to get astrologer by ID
-      _astrologer = Astrologer(
-        id: widget.astrologerId!,
-        fullName: 'Loading...',
-        emailAddress: '',
-        qualifications: [],
-        languages: [],
-        skills: [],
-        experienceYears: 0,
-        isOnline: false,
-        accountStatus: null,
-        verificationStatus: VerificationStatus.pending,
-        isAvailable: false,
-        rating: 0.0,
-        totalReviews: 0,
-        totalConsultations: 0,
-        chatRate: 0.0,
-        callRate: 0.0,
-        videoRate: 0.0,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        phoneNumber: null,
-        profileImage: null,
-        bio: null,
-      );
+      // Fetch astrologer details from API
+      final userApiService = getIt<UserApiService>();
+      _astrologer = await userApiService.getAstrologerById(widget.astrologerId!);
       
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;

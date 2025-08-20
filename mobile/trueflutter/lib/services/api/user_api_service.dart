@@ -4,6 +4,7 @@ import 'package:http_parser/http_parser.dart';
 import '../../models/user.dart';
 import '../../models/enums.dart';
 import '../../models/product.dart';
+import '../../models/astrologer.dart';
 import '../local/local_storage_service.dart';
 import 'endpoints.dart';
 
@@ -421,6 +422,21 @@ class UserApiService {
         return response.data['data'];
       } else {
         throw Exception('Failed to get astrologers: ${response.data['message']}');
+      }
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    }
+  }
+
+  // Get astrologer by ID
+  Future<Astrologer> getAstrologerById(String astrologerId) async {
+    try {
+      final response = await _dio.get(ApiEndpoints.astrologerProfileById(astrologerId));
+
+      if (response.statusCode == 200) {
+        return Astrologer.fromJson(response.data['data']);
+      } else {
+        throw Exception('Failed to get astrologer details: ${response.data['message']}');
       }
     } on DioException catch (e) {
       throw _handleDioException(e);
