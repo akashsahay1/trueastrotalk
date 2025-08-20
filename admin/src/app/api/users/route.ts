@@ -12,7 +12,12 @@ function getBaseUrl(request: NextRequest): string {
 // Helper function to resolve profile image to full URL
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function resolveProfileImage(user: Record<string, unknown>, mediaCollection: any, baseUrl: string): Promise<string> {
-  // Priority 1: If user has profile_image_id, resolve from media library
+  // Priority 1: If user has Google auth and social_auth_profile_image, use external URL
+  if (user.auth_type === 'google' && user.social_auth_profile_image && typeof user.social_auth_profile_image === 'string') {
+    return user.social_auth_profile_image;
+  }
+  
+  // Priority 2: If user has profile_image_id, resolve from media library
   if (user.profile_image_id && typeof user.profile_image_id === 'string' && ObjectId.isValid(user.profile_image_id)) {
     try {
       const mediaFile = await mediaCollection.findOne({ 
@@ -25,22 +30,6 @@ async function resolveProfileImage(user: Record<string, unknown>, mediaCollectio
     } catch (error) {
       console.error('Error resolving media file:', error);
     }
-  }
-  
-  // Priority 2: Direct profile_image URL
-  if (user.profile_image && typeof user.profile_image === 'string') {
-    if (user.profile_image.startsWith('/')) {
-      return `${user.profile_image}`;
-    }
-    return user.profile_image;
-  }
-  
-  // Priority 3: profile_picture URL (fallback)
-  if (user.profile_picture && typeof user.profile_picture === 'string') {
-    if (user.profile_picture.startsWith('/')) {
-      return `${baseUrl}${user.profile_picture}`;
-    }
-    return user.profile_picture;
   }
   
   // Default fallback image

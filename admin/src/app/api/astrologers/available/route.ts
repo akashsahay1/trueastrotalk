@@ -13,12 +13,17 @@ function getBaseUrl(request: NextRequest): string {
 
 // Helper function to resolve profile image - guaranteed to return a valid URL
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function resolveProfileImage(astrologer: Record<string, unknown>, mediaCollection: any, baseUrl: string): Promise<string> {
-  // Priority 1: If astrologer has profile_image_id, resolve from media library
-  if (astrologer.profile_image_id && typeof astrologer.profile_image_id === 'string' && ObjectId.isValid(astrologer.profile_image_id)) {
+async function resolveProfileImage(user: Record<string, unknown>, mediaCollection: any, baseUrl: string): Promise<string> {
+  // Priority 1: If user has Google auth and social_auth_profile_image, use external URL
+  if (user.auth_type === 'google' && user.social_auth_profile_image && typeof user.social_auth_profile_image === 'string') {
+    return user.social_auth_profile_image;
+  }
+  
+  // Priority 2: If user has profile_image_id, resolve from media library
+  if (user.profile_image_id && typeof user.profile_image_id === 'string' && ObjectId.isValid(user.profile_image_id)) {
     try {
       const mediaFile = await mediaCollection.findOne({ 
-        _id: new ObjectId(astrologer.profile_image_id) 
+        _id: new ObjectId(user.profile_image_id) 
       });
       
       if (mediaFile) {
@@ -27,22 +32,6 @@ async function resolveProfileImage(astrologer: Record<string, unknown>, mediaCol
     } catch (error) {
       console.error('Error resolving media file:', error);
     }
-  }
-  
-  // Priority 2: Direct profile_image URL (from migration)
-  if (astrologer.profile_image && typeof astrologer.profile_image === 'string') {
-    if (astrologer.profile_image.startsWith('/')) {
-      return `${baseUrl}${astrologer.profile_image}`;
-    }
-    return astrologer.profile_image;
-  }
-  
-  // Priority 3: profile_picture URL (deprecated field)
-  if (astrologer.profile_picture && typeof astrologer.profile_picture === 'string') {
-    if (astrologer.profile_picture.startsWith('/')) {
-      return `${baseUrl}${astrologer.profile_picture}`;
-    }
-    return astrologer.profile_picture;
   }
   
   // Fallback to a default profile image if nothing else works
@@ -64,17 +53,13 @@ export async function GET(request: NextRequest) {
     const usersCollection = db.collection('users');
     const mediaCollection = db.collection('media_files');
 
-    // Build query for available astrologers - only verified ones with complete profiles including images
+    // Build query for available astrologers - only verified ones with complete profiles
     const query: Record<string, unknown> = {
       user_type: 'astrologer', // Only use standardized user_type field
       account_status: 'active',
       is_verified: true,
-      // Ensure astrologer has a profile image (either direct URL or media library reference)
-      $or: [
-        { profile_image_id: { $exists: true, $ne: null } }, // Has media library reference
-        { profile_image: { $exists: true, $ne: null, $nin: [''] } }, // Has direct image URL
-        { profile_picture: { $exists: true, $ne: null, $nin: [''] } } // Has profile picture URL (deprecated)
-      ]
+      // All users now have profile_image_id, so no need for complex $or query
+      profile_image_id: { $exists: true, $ne: null }
     };
 
     if (onlineOnly) {
