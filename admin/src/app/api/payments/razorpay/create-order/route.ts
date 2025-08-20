@@ -5,12 +5,22 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 );
 
-// Use the test credentials for now - in production, these should be in environment variables
-const RAZORPAY_KEY_ID = 'rzp_test_R7IL3PyOUDwWSV';
-const RAZORPAY_KEY_SECRET = 'RnofksJTdP40tR43UI39q14X';
+// Get Razorpay credentials from environment variables
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
+const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 
 export async function POST(request: NextRequest) {
   try {
+    // Validate Razorpay credentials
+    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+      console.error('Missing Razorpay credentials in environment variables');
+      return NextResponse.json({
+        success: false,
+        error: 'Payment service configuration error',
+        message: 'Payment service is not properly configured'
+      }, { status: 500 });
+    }
+
     // Get token from header
     const authHeader = request.headers.get('Authorization');
     const token = authHeader?.replace('Bearer ', '');
