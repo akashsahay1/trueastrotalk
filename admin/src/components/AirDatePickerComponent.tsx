@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useId } from 'react';
+import 'air-datepicker/air-datepicker.css';
 
 interface AirDatePickerProps {
   className?: string;
@@ -40,8 +41,6 @@ const AirDatePickerComponent: React.FC<AirDatePickerProps> = ({
         const { default: AirDatepicker } = await import('air-datepicker');
         const localeEn = await import('air-datepicker/locale/en');
         
-        // Import CSS
-        await import('air-datepicker/air-datepicker.css');
 
         // Add custom CSS for z-index
         const style = document.createElement('style');

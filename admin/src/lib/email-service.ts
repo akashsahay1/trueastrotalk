@@ -49,7 +49,7 @@ class EmailService {
   }
 
   // Template: Admin notification for new user signup
-  getAdminSignupNotificationTemplate(user: { name: string; email: string; phone?: string; user_type: string }): EmailTemplate {
+  getAdminSignupNotificationTemplate(user: { name: string; email: string; phone?: string; user_type: string; createdAt?: string | Date; experience?: string; specialization?: string }): EmailTemplate {
     return {
       subject: `New User Registration - ${user.name}`,
       html: `
@@ -96,13 +96,13 @@ class EmailService {
                 </div>
                 <div class="info-row">
                   <span class="label">User Type:</span>
-                  <span class="value">${user.role}</span>
+                  <span class="value">${user.user_type}</span>
                 </div>
                 <div class="info-row">
                   <span class="label">Registration Date:</span>
                   <span class="value">${new Date(user.createdAt || Date.now()).toLocaleString()}</span>
                 </div>
-                ${user.role === 'astrologer' ? `
+                ${user.user_type === 'astrologer' ? `
                 <div class="info-row">
                   <span class="label">Experience:</span>
                   <span class="value">${user.experience || 'N/A'} years</span>
@@ -114,7 +114,7 @@ class EmailService {
                 ` : ''}
               </div>
 
-              ${user.role === 'astrologer' ? `
+              ${user.user_type === 'astrologer' ? `
               <div class="action-required">
                 <h4>⚠️ Action Required</h4>
                 <p>This astrologer registration requires your review and approval. Please log in to the admin panel to verify their credentials and approve or reject their application.</p>
@@ -139,10 +139,10 @@ class EmailService {
         Name: ${user.name}
         Email: ${user.email}
         Phone: ${user.phone}
-        User Type: ${user.role}
+        User Type: ${user.user_type}
         Registration Date: ${new Date(user.createdAt || Date.now()).toLocaleString()}
         
-        ${user.role === 'astrologer' ? 'This astrologer registration requires your review and approval.' : ''}
+        ${user.user_type === 'astrologer' ? 'This astrologer registration requires your review and approval.' : ''}
         
         Admin Panel: ${envConfig.NEXTAUTH_URL}/admin
       `
@@ -150,7 +150,7 @@ class EmailService {
   }
 
   // Template: Welcome email for new users
-  getWelcomeEmailTemplate(user: { name: string; email: string; user_type: string }): EmailTemplate {
+  getWelcomeEmailTemplate(user: { name: string; email: string; user_type: string; createdAt?: string | Date }): EmailTemplate {
     return {
       subject: `Welcome to True Astrotalk, ${user.name}!`,
       html: `
@@ -185,7 +185,7 @@ class EmailService {
                 <p>Thank you for joining True Astrotalk! We're excited to have you as part of our spiritual community.</p>
               </div>
 
-              ${user.role === 'astrologer' ? `
+              ${user.user_type === 'astrologer' ? `
               <div class="status-note">
                 <h4>📋 Application Under Review</h4>
                 <p>Your astrologer application is currently being reviewed by our admin team. You will receive an email notification once your account is verified and approved. This process typically takes 1-2 business days.</p>
@@ -194,7 +194,7 @@ class EmailService {
 
               <div class="features">
                 <h3>What's Next?</h3>
-                ${user.role === 'customer' ? `
+                ${user.user_type === 'customer' ? `
                 <div class="feature-item">
                   <strong>🔮 Explore Astrologers:</strong> Browse our verified astrologers and find the perfect match for your spiritual needs.
                 </div>
@@ -204,7 +204,7 @@ class EmailService {
                 <div class="feature-item">
                   <strong>📊 Track Your Journey:</strong> Keep track of your consultations and spiritual growth.
                 </div>
-                ` : user.role === 'astrologer' ? `
+                ` : user.user_type === 'astrologer' ? `
                 <div class="feature-item">
                   <strong>✅ Complete Verification:</strong> Once approved, complete your profile with your expertise and availability.
                 </div>
@@ -235,7 +235,7 @@ class EmailService {
         
         Thank you for joining True Astrotalk! We're excited to have you as part of our spiritual community.
         
-        ${user.role === 'astrologer' ? 'Your astrologer application is currently being reviewed by our admin team. You will receive an email notification once your account is verified and approved.' : ''}
+        ${user.user_type === 'astrologer' ? 'Your astrologer application is currently being reviewed by our admin team. You will receive an email notification once your account is verified and approved.' : ''}
         
         Visit our platform: ${envConfig.NEXTAUTH_URL}
         
@@ -358,7 +358,7 @@ class EmailService {
   }
 
   // Send admin notification for new user signup
-  async sendAdminSignupNotification(user: { name: string; email: string; phone?: string; user_type: string }): Promise<boolean> {
+  async sendAdminSignupNotification(user: { name: string; email: string; phone?: string; user_type: string; createdAt?: string | Date }): Promise<boolean> {
     const adminEmail = envConfig.SMTP.USER || 'admin@trueastrotalk.com'; // Admin email
     const template = this.getAdminSignupNotificationTemplate(user);
     
@@ -371,7 +371,7 @@ class EmailService {
   }
 
   // Send welcome email to new user
-  async sendWelcomeEmail(user: { name: string; email: string; user_type: string }): Promise<boolean> {
+  async sendWelcomeEmail(user: { name: string; email: string; user_type: string; createdAt?: string | Date }): Promise<boolean> {
     const template = this.getWelcomeEmailTemplate(user);
     
     return await this.sendEmail({

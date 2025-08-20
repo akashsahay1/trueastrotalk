@@ -2,7 +2,7 @@
 
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -48,7 +48,7 @@ interface AstrologerOptions {
   skills: string[];
 }
 
-export default function AddUserPage() {
+function AddUserPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -1037,5 +1037,28 @@ export default function AddUserPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AddUserPage() {
+  return (
+    <Suspense fallback={
+      <div className="dashboard-main-wrapper">
+        <Header />
+        <Sidebar />
+        <div className="dashboard-wrapper">
+          <div className="dashboard-ecommerce">
+            <div className="container-fluid dashboard-content">
+              <div className="text-center">
+                <i className="fas fa-spinner fa-spin fa-3x text-primary"></i>
+                <p className="mt-3">Loading...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <AddUserPageContent />
+    </Suspense>
   );
 }

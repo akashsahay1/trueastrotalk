@@ -84,12 +84,12 @@ export async function GET(request: NextRequest) {
 
       await client.close();
 
-      // Remove sensitive data for response
-      const responseConfig = { ...config };
-      delete responseConfig._id;
-      delete responseConfig.type;
-      delete responseConfig.created_at;
-      delete responseConfig.updated_at;
+      // Create response config with only the needed properties
+      const responseConfig = {
+        razorpay: config.razorpay,
+        app: config.app,
+        commission: config.commission
+      };
 
       return NextResponse.json({
         success: true,
