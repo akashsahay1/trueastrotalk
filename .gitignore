@@ -245,9 +245,15 @@ public/uploads/cache/
 # One-time setup scripts (keeping for reference but not tracking changes)
 setup-db.js
 seed_*.js
-add-*.js
+add_*.js
 update_*.js
-check-*.js
+check_*.js
+debug_*.js
+fix_*.js
+restore_*.js
+setup_*.js
+test_*.js
+verify_*.js
 create-placeholder-images.html
 
 # === DOCUMENTATION EXCEPTIONS ===
