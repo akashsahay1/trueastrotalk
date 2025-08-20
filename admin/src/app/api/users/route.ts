@@ -11,29 +11,34 @@ function getBaseUrl(request: NextRequest): string {
 
 // Helper function to resolve profile image to full URL
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function resolveProfileImage(user: Record<string, unknown>, mediaCollection: any, baseUrl: string): Promise<string> {
+async function resolveProfileImage(user: Record<string, unknown>, mediaCollection: any, baseUrl: string): Promise<string | null> {
   // Priority 1: If user has Google auth and social_auth_profile_image, use external URL
   if (user.auth_type === 'google' && user.social_auth_profile_image && typeof user.social_auth_profile_image === 'string') {
     return user.social_auth_profile_image;
   }
   
   // Priority 2: If user has profile_image_id, resolve from media library
-  if (user.profile_image_id && typeof user.profile_image_id === 'string' && ObjectId.isValid(user.profile_image_id)) {
+  if (user.profile_image_id) {
     try {
-      const mediaFile = await mediaCollection.findOne({ 
-        _id: new ObjectId(user.profile_image_id) 
-      });
-      
-      if (mediaFile) {
-        return `${baseUrl}${mediaFile.file_path}`;
+      // Handle both string and ObjectId formats
+      const mediaId = typeof user.profile_image_id === 'string' 
+        ? (ObjectId.isValid(user.profile_image_id) ? new ObjectId(user.profile_image_id) : null)
+        : user.profile_image_id;
+        
+      if (mediaId) {
+        const mediaFile = await mediaCollection.findOne({ _id: mediaId });
+        
+        if (mediaFile) {
+          return `${baseUrl}${mediaFile.file_path}`;
+        }
       }
     } catch (error) {
       console.error('Error resolving media file:', error);
     }
   }
   
-  // Default fallback image
-  return `${baseUrl}/assets/images/avatar-1.jpg`;
+  // No profile image - return null to indicate no image uploaded
+  return null;
 }
 
 const JWT_SECRET = new TextEncoder().encode(

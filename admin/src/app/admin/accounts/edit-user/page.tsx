@@ -12,7 +12,8 @@ import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } fro
 import AirDatePickerComponent from '@/components/AirDatePickerComponent';
 
 interface FormData {
-  profile_image: string;
+  profile_image_id: string;
+  social_auth_profile_image: string;
   full_name: string;
   email_address: string;
   password: string;
@@ -61,7 +62,8 @@ function EditUserContent() {
   const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
 
   const [formData, setFormData] = useState<FormData>({
-    profile_image: '',
+    profile_image_id: '',
+    social_auth_profile_image: '',
     full_name: '',
     email_address: '',
     password: '',
@@ -148,7 +150,8 @@ function EditUserContent() {
         };
 
         setFormData({
-          profile_image: user.profile_image || '',
+          profile_image_id: user.profile_image_id || '',
+          social_auth_profile_image: user.social_auth_profile_image || '',
           full_name: user.full_name || '',
           email_address: user.email_address || '',
           password: '', // Keep password empty for security
@@ -270,12 +273,14 @@ function EditUserContent() {
     }));
   };
 
-  const handleImageSelect = (imageUrl: string) => {
+  const handleImageSelect = (imageUrl: string, mediaId?: string) => {
     setFormData(prev => ({
       ...prev,
-      profile_image: imageUrl
+      profile_image_id: mediaId || '', // Store media ID instead of URL
+      // Clear social auth profile image if switching to media library
+      social_auth_profile_image: ''
     }));
-    setImagePreview(imageUrl);
+    setImagePreview(imageUrl); // Still use URL for preview
     setError(''); // Clear any previous errors
   };
 
@@ -286,7 +291,8 @@ function EditUserContent() {
   const removeImage = () => {
     setFormData(prev => ({
       ...prev,
-      profile_image: ''
+      profile_image_id: '',
+      social_auth_profile_image: ''
     }));
     setImagePreview('');
   };
@@ -599,9 +605,9 @@ function EditUserContent() {
                           <div className="d-flex align-items-start">
                             <div className="mr-3 text-center">
                               <div className="position-relative">
-                                {imagePreview || formData.profile_image ? (
+                                {imagePreview || formData.profile_image_id || formData.social_auth_profile_image ? (
                                   <>
-                                    <Image src={imagePreview || formData.profile_image} alt="Profile Preview" className="rounded-circle" style={{ objectFit: 'cover', cursor: 'pointer', border: '2px solid #dee2e6' }} onClick={openMediaLibrary} title="Click to change image" width={80} height={80} />
+                                    <Image src={imagePreview} alt="Profile Preview" className="rounded-circle" style={{ objectFit: 'cover', cursor: 'pointer', border: '2px solid #dee2e6' }} onClick={openMediaLibrary} title="Click to change image" width={80} height={80} />
                                     <button type="button" className="btn btn-danger btn-sm position-absolute" style={{ top: '-5px', right: '-5px', width: '25px', height: '25px', borderRadius: '50%', padding: '0', fontSize: '14px' }} onClick={removeImage} title="Remove Image">
                                       ×
                                     </button>
@@ -614,7 +620,7 @@ function EditUserContent() {
                                   </div>
                                 )}
                               </div>
-                              {formData.profile_image && (
+                              {(formData.profile_image_id || formData.social_auth_profile_image) && (
                                 <div className="mt-2 text-success text-center">
                                   <i className="fas fa-check-circle mr-1"></i>
                                   <small>Image Added!</small>
@@ -1017,7 +1023,7 @@ function EditUserContent() {
               isOpen={isMediaLibraryOpen}
               onClose={() => setIsMediaLibraryOpen(false)}
               onSelect={handleImageSelect}
-              selectedImage={formData.profile_image}
+              selectedImage={imagePreview}
             />
           </div>
         </div>

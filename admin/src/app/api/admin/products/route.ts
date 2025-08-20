@@ -6,6 +6,7 @@ const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const DB_NAME = 'trueastrotalkDB';
 
 // Helper function to resolve media ID to full URL
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function resolveMediaUrl(request: NextRequest, mediaId: string | ObjectId | null | undefined, db: any): Promise<string | null> {
   if (!mediaId) return null;
   

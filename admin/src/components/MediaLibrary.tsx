@@ -17,7 +17,7 @@ interface MediaFile {
 interface MediaLibraryProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (imageUrl: string) => void;
+  onSelect: (imageUrl: string, mediaId?: string) => void;
   selectedImage?: string;
 }
 
@@ -26,6 +26,7 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(selectedImage || null);
+  const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
@@ -90,6 +91,7 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
           if (response.success) {
             fetchMediaFiles(); // Refresh the media files
             setSelectedFile(response.file_path);
+            setSelectedMediaId(response.file_id?.toString() || response.file_id); // Set the uploaded file's media ID
           } else {
             alert(response.message || 'Upload failed');
           }
@@ -135,6 +137,7 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
         const deletedFile = mediaFiles.find(f => f._id === fileId);
         if (deletedFile && selectedFile === deletedFile.file_path) {
           setSelectedFile(null);
+          setSelectedMediaId(null);
         }
         successMessages.deleted('File');
       } else {
@@ -148,7 +151,7 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
 
   const handleSelect = () => {
     if (selectedFile) {
-      onSelect(selectedFile);
+      onSelect(selectedFile, selectedMediaId || undefined);
       onClose();
     }
   };
@@ -236,7 +239,10 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
                         <div 
                           className="card-img-top d-flex align-items-center justify-content-center"
                           style={{ height: '150px', overflow: 'hidden', backgroundColor: '#f8f9fa', position: 'relative' }}
-                          onClick={() => setSelectedFile(file.file_path)}
+                          onClick={() => {
+                            setSelectedFile(file.file_path);
+                            setSelectedMediaId(file._id);
+                          }}
                         >
                           <Image
                             src={file.file_path}
@@ -263,7 +269,10 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
                           <div className="d-flex justify-content-between">
                             <button
                               className={`btn btn-sm ${selectedFile === file.file_path ? 'btn-primary' : 'btn-outline-primary'}`}
-                              onClick={() => setSelectedFile(file.file_path)}
+                              onClick={() => {
+                            setSelectedFile(file.file_path);
+                            setSelectedMediaId(file._id);
+                          }}
                             >
                               {selectedFile === file.file_path ? 'Selected' : 'Select'}
                             </button>
