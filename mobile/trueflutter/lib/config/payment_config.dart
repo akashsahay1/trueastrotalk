@@ -1,5 +1,6 @@
-import 'dart:convert';
-import 'package:flutter/services.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'config.dart';
 
 class PaymentConfig {
   static PaymentConfig? _instance;
@@ -8,64 +9,58 @@ class PaymentConfig {
   PaymentConfig._();
 
   String? _razorpayKeyId;
-  String? _razorpayKeySecret;
-
+  String? _environment;
+  
   String? get razorpayKeyId => _razorpayKeyId;
-  String? get razorpayKeySecret => _razorpayKeySecret;
+  String? get environment => _environment;
 
-  /// Initialize payment configuration from secure storage
-  /// This should be called during app initialization
+  /// Initialize payment configuration from server
+  /// This securely fetches only the public key from the backend
   Future<void> initialize() async {
     try {
-      // Try to load from assets first (for development)
-      await _loadFromAssets();
+      await _loadFromServer();
     } catch (e) {
-      // If assets loading fails, try environment variables or secure storage
-      await _loadFromEnvironment();
+      debugPrint('Failed to load payment config from server: $e');
+      // For development fallback, you could add local config here
+      rethrow;
     }
   }
 
-  /// Load payment config from assets/payment_config.json
-  /// This file should NOT be committed to version control
-  /// Add it to .gitignore
-  Future<void> _loadFromAssets() async {
+  /// Load payment config from server API
+  /// This is the secure approach - credentials stay on server
+  Future<void> _loadFromServer() async {
     try {
-      final String response = await rootBundle.loadString('assets/config/payment_config.json');
-      final Map<String, dynamic> data = json.decode(response);
+      final dio = Dio();
+      final baseUrl = await Config.baseUrl;
       
-      _razorpayKeyId = data['razorpay_key_id'];
-      _razorpayKeySecret = data['razorpay_key_secret'];
+      // Remove /api from baseUrl to get the correct public endpoint
+      final serverUrl = baseUrl.replaceAll('/api', '');
+      final response = await dio.get('$serverUrl/api/public/app-config');
       
-      if (_razorpayKeyId?.isEmpty ?? true) {
-        throw Exception('Razorpay Key ID not found');
+      if (response.statusCode == 200) {
+        final data = response.data;
+        
+        if (data['success'] == true && data['config'] != null) {
+          final config = data['config'];
+          
+          _razorpayKeyId = config['razorpay']?['keyId'];
+          _environment = config['razorpay']?['environment'] ?? 'test';
+          
+          if (_razorpayKeyId?.isEmpty ?? true) {
+            throw Exception('Razorpay Key ID not found in server configuration');
+          }
+          
+          debugPrint('✅ Payment config loaded from server');
+          debugPrint('   Environment: $_environment');
+          debugPrint('   Key ID: ${_razorpayKeyId?.substring(0, 12)}...');
+        } else {
+          throw Exception('Invalid response format from server');
+        }
+      } else {
+        throw Exception('Failed to fetch config: HTTP ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Failed to load payment config from assets: $e');
-    }
-  }
-
-  /// Load payment config from environment variables or secure storage
-  /// This is the recommended approach for production
-  Future<void> _loadFromEnvironment() async {
-    // In a real production app, you would:
-    // 1. Use flutter_secure_storage to store encrypted credentials
-    // 2. Fetch credentials from a secure backend API during login
-    // 3. Use platform-specific secure storage (Keychain on iOS, Keystore on Android)
-    
-    // For now, using placeholder values
-    // These should be replaced with actual secure credential loading
-    _razorpayKeyId = const String.fromEnvironment(
-      'RAZORPAY_KEY_ID',
-      defaultValue: '', // Empty default - will be loaded securely
-    );
-    
-    _razorpayKeySecret = const String.fromEnvironment(
-      'RAZORPAY_KEY_SECRET',
-      defaultValue: '', // Empty default - will be loaded securely
-    );
-
-    if (_razorpayKeyId?.isEmpty ?? true) {
-      throw Exception('Razorpay credentials not configured');
+      throw Exception('Failed to load payment config from server: $e');
     }
   }
 
@@ -108,15 +103,6 @@ class PaymentConfig {
   /// Clear credentials from memory (call on logout)
   void clearCredentials() {
     _razorpayKeyId = null;
-    _razorpayKeySecret = null;
+    _environment = null;
   }
 }
-
-/// Example payment_config.json structure:
-/// {
-///   "razorpay_key_id": "rzp_test_your_key_id_here",
-///   "razorpay_key_secret": "your_secret_key_here"
-/// }
-/// 
-/// IMPORTANT: Add assets/config/payment_config.json to .gitignore
-/// Never commit payment credentials to version control
