@@ -1,0 +1,16 @@
+{
+  "razorpay_key_id": "rzp_test_your_key_id_here",
+  "razorpay_key_secret": "your_secret_key_here"
+}
+
+// INSTRUCTIONS:
+// 1. Copy this file to payment_config.json (same directory)
+// 2. Replace the placeholder values with your actual Razorpay credentials
+// 3. DO NOT commit payment_config.json to version control
+// 4. The actual payment_config.json is already added to .gitignore
+
+// For production:
+// - Use Razorpay LIVE credentials (rzp_live_...)
+// - Store credentials securely on your backend
+// - Never expose secret keys in mobile apps
+// - Implement proper server-side verification

@@ -3,8 +3,8 @@ const next = require('next');
 const { Server } = require('socket.io');
 
 const dev = process.env.NODE_ENV !== 'production';
-const hostname = 'localhost';
-const port = process.env.PORT || 3000;
+const hostname = '0.0.0.0'; // Accept connections from all network interfaces
+const port = process.env.PORT || 4000;
 
 // Create Next.js app
 const app = next({ dev, hostname, port });
@@ -17,7 +17,7 @@ app.prepare().then(() => {
   // Create Socket.IO server
   const io = new Server(httpServer, {
     cors: {
-      origin: ["http://localhost:3000", "https://www.trueastrotalk.com"],
+      origin: ["http://localhost:4000", "http://192.168.0.124:4000", "https://www.trueastrotalk.com"],
       methods: ["GET", "POST"],
       credentials: true
     }
