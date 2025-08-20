@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
 
 interface AppConfig {
   razorpay: {
@@ -58,9 +59,13 @@ export default function GeneralSettingsPage() {
         if (data.success && data.config) {
           setConfig(data.config);
         }
+      } else {
+        const error = await response.json();
+        errorMessages.fetchError(`configuration: ${error.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Failed to load configuration:', error);
+      errorMessages.networkError();
     } finally {
       setLoading(false);
     }
@@ -68,6 +73,8 @@ export default function GeneralSettingsPage() {
 
   const saveConfig = async () => {
     setSaving(true);
+    showLoadingAlert('Saving configuration...');
+    
     try {
       const response = await fetch('/api/admin/settings/general', {
         method: 'POST',
@@ -80,15 +87,18 @@ export default function GeneralSettingsPage() {
 
       if (response.ok) {
         const data = await response.json();
-        alert('Configuration saved successfully!');
+        closeSweetAlert();
+        successMessages.saved();
       } else {
         const error = await response.json();
         console.error('Save failed:', error);
-        alert(`Failed to save: ${error.message || 'Unknown error'}`);
+        closeSweetAlert();
+        errorMessages.updateFailed(`configuration: ${error.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Failed to save configuration:', error);
-      alert('Failed to save configuration: ' + error);
+      closeSweetAlert();
+      errorMessages.networkError();
     } finally {
       setSaving(false);
     }
@@ -313,30 +323,16 @@ export default function GeneralSettingsPage() {
             </div>
 
             {/* Save Button */}
-            <div className="row">
+            <div className="row mt-4">
               <div className="col-xl-12">
-                <div className="card">
-                  <div className="card-body">
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-lg"
-                      onClick={saveConfig}
-                      disabled={saving}
-                    >
-                      {saving ? (
-                        <>
-                          <i className="fas fa-spinner fa-spin mr-2"></i>
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <i className="fas fa-save mr-2"></i>
-                          Save Configuration
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={saveConfig}
+                  disabled={saving}
+                >
+                  {saving ? 'Saving...' : 'Save'}
+                </button>
               </div>
             </div>
           </div>

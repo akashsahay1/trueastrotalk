@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify user is admin
-    if (payload.user_type !== 'admin') {
+    if (payload.user_type !== 'administrator') {
       return NextResponse.json({ 
         success: false,
         error: 'Forbidden',
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify user is admin
-    if (payload.user_type !== 'admin') {
+    if (payload.user_type !== 'administrator') {
       return NextResponse.json({ 
         success: false,
         error: 'Forbidden',

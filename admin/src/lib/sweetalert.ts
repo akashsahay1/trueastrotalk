@@ -14,6 +14,26 @@ const customTheme = {
   infoColor: '#17a2b8'
 };
 
+// Inject custom styles for SweetAlert2
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = `
+    .swal2-title {
+      font-size: 1.375rem !important;
+    }
+    .swal2-html-container {
+      font-size: 0.875rem !important;
+    }
+    .swal2-popup {
+      font-size: 0.875rem !important;
+    }
+  `;
+  if (!document.querySelector('style[data-sweetalert-custom]')) {
+    style.setAttribute('data-sweetalert-custom', 'true');
+    document.head.appendChild(style);
+  }
+}
+
 /**
  * Show confirmation dialog
  */
