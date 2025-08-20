@@ -68,9 +68,9 @@ export default function AstrologersPage() {
     document.body.className = '';
     fetchUsers(1, '', filters);
     fetchSkills();
-  }, [fetchUsers, filters]);
+  }, [fetchUsers, fetchSkills, filters]);
 
-  const fetchSkills = async () => {
+  const fetchSkills = useCallback(async () => {
     try {
       const response = await fetch('/api/astrologer-options?type=skills');
       const data = await response.json();
@@ -80,7 +80,7 @@ export default function AstrologersPage() {
     } catch (error) {
       console.error('Error fetching skills:', error);
     }
-  };
+  }, []);
 
   const fetchUsers = useCallback(async (page: number, searchTerm: string, filterParams = filters) => {
     console.log(searchTerm, filterParams);
@@ -126,10 +126,6 @@ export default function AstrologersPage() {
     }
   }, [filters]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchUsers(1, search, filters);
-  };
 
   const handlePageChange = (newPage: number) => {
     fetchUsers(newPage, search, filters);
