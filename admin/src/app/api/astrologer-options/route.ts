@@ -28,17 +28,54 @@ export async function GET(request: NextRequest) {
         }, { status: 404 });
       }
     } else {
-      // Get all options (legacy support)
-      const options = await db
+      // Get all options and convert old format to new format for frontend compatibility
+      const oldFormatOptions = await db
         .collection('astrologer_options')
-        .find({})
-        .sort({ type: 1 })
+        .find({ type: { $exists: true }, values: { $exists: true } })
         .toArray();
+
+      // Convert old format to new format expected by frontend
+      const convertedOptions: Array<{
+        _id: string;
+        category: string;
+        name: string;
+        isActive: boolean;
+        createdAt: string;
+        updatedAt: string;
+      }> = [];
+      
+      for (const option of oldFormatOptions) {
+        if (option.values && Array.isArray(option.values)) {
+          for (const value of option.values) {
+            // Handle both string values and object values with isActive
+            const itemName = typeof value === 'string' ? value : value.name;
+            const isActive = typeof value === 'string' ? true : (value.isActive !== false);
+            
+            convertedOptions.push({
+              _id: `${option.type}_${itemName}`,
+              category: option.type === 'skills' ? 'skills' : 'languages',
+              name: itemName,
+              isActive: isActive,
+              createdAt: option.created_at || new Date().toISOString(),
+              updatedAt: option.updated_at || new Date().toISOString()
+            });
+          }
+        }
+      }
+
+      // Also get any new format options (individual documents)
+      const newFormatOptions = await db
+        .collection('astrologer_options')
+        .find({ category: { $exists: true }, name: { $exists: true } })
+        .toArray();
+
+      // Combine both formats
+      const allOptions = [...convertedOptions, ...newFormatOptions];
 
       return NextResponse.json({
         success: true,
-        data: options,
-        total: options.length
+        data: allOptions,
+        total: allOptions.length
       });
     }
   } catch (error) {

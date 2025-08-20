@@ -11,14 +11,6 @@ export async function PUT(
     const { name, isActive } = await request.json();
     const { id } = await params;
 
-    // Validation
-    if (!ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid option ID' },
-        { status: 400 }
-      );
-    }
-
     if (!name || typeof isActive !== 'boolean') {
       return NextResponse.json(
         { success: false, error: 'Name and isActive status are required' },
@@ -28,59 +20,93 @@ export async function PUT(
 
     const { db } = await connectToDatabase();
 
-    // Check if option exists
-    const existingOption = await db
-      .collection('astrologer_options')
-      .findOne({ _id: new ObjectId(id) });
+    // Handle both old format (type_value) and new format (ObjectId) IDs
+    if (ObjectId.isValid(id)) {
+      // New format: individual document with ObjectId
+      const existingOption = await db
+        .collection('astrologer_options')
+        .findOne({ _id: new ObjectId(id) });
 
-    if (!existingOption) {
-      return NextResponse.json(
-        { success: false, error: 'Astrologer option not found' },
-        { status: 404 }
-      );
-    }
+      if (!existingOption) {
+        return NextResponse.json(
+          { success: false, error: 'Astrologer option not found' },
+          { status: 404 }
+        );
+      }
 
-    // Check if name already exists in the same category (excluding current item)
-    const duplicateOption = await db
-      .collection('astrologer_options')
-      .findOne({
-        _id: { $ne: new ObjectId(id) },
-        category: existingOption.category,
-        name: { $regex: new RegExp(`^${name.trim()}$`, 'i') }
+      await db
+        .collection('astrologer_options')
+        .updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { name: name.trim(), isActive, updatedAt: new Date() } }
+        );
+
+      return NextResponse.json({
+        success: true,
+        message: 'Astrologer option updated successfully'
+      });
+    } else {
+      // Old format: type_value ID, need to update array in existing document
+      const [type, ...valueParts] = id.split('_');
+      const oldValue = valueParts.join('_'); // Handle names with underscores
+      
+      if (!type || !oldValue) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid option ID format' },
+          { status: 400 }
+        );
+      }
+
+      // Find the document with this type
+      const existingDoc = await db
+        .collection('astrologer_options')
+        .findOne({ type: type });
+
+      if (!existingDoc || !existingDoc.values) {
+        return NextResponse.json(
+          { success: false, error: 'Astrologer option not found' },
+          { status: 404 }
+        );
+      }
+
+      // Update the values array to convert strings to objects with isActive
+      const updatedValues = existingDoc.values.map((value: string | { name: string; isActive: boolean }) => {
+        const currentName = typeof value === 'string' ? value : value.name;
+        
+        if (currentName === oldValue) {
+          return { name: name.trim(), isActive };
+        } else if (typeof value === 'string') {
+          return { name: value, isActive: true };
+        } else {
+          return value;
+        }
       });
 
-    if (duplicateOption) {
-      return NextResponse.json(
-        { success: false, error: 'An option with this name already exists in this category' },
-        { status: 409 }
-      );
+      // Update the document
+      const result = await db
+        .collection('astrologer_options')
+        .updateOne(
+          { type: type },
+          { 
+            $set: { 
+              values: updatedValues,
+              updated_at: new Date()
+            }
+          }
+        );
+
+      if (result.matchedCount === 0) {
+        return NextResponse.json(
+          { success: false, error: 'Failed to update astrologer option' },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Astrologer option updated successfully'
+      });
     }
-
-    // Update option
-    const updateData = {
-      name: name.trim(),
-      isActive,
-      updatedAt: new Date()
-    };
-
-    const result = await db
-      .collection('astrologer_options')
-      .updateOne(
-        { _id: new ObjectId(id) },
-        { $set: updateData }
-      );
-
-    if (result.matchedCount === 0) {
-      return NextResponse.json(
-        { success: false, error: 'Astrologer option not found' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: 'Astrologer option updated successfully'
-    });
 
   } catch (error) {
     console.error('Error updating astrologer option:', error);

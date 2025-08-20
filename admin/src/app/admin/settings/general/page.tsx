@@ -86,7 +86,6 @@ export default function GeneralSettingsPage() {
       });
 
       if (response.ok) {
-        const data = await response.json();
         closeSweetAlert();
         successMessages.saved();
       } else {
