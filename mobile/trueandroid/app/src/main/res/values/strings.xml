@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">True Astrotalk</string>
+    <string name="app_label">True Astrotalk</string>
+    
+    <!-- Onboarding -->
+    <string name="skip">Skip</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+    <string name="get_started">Get Started</string>
+    
+    <!-- General Actions -->
+    <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="continue_text">Continue</string>
+</resources>

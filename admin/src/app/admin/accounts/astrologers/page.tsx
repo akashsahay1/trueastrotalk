@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert';
+import AirDatePickerComponent from '@/components/AirDatePickerComponent';
 
 interface User {
   _id: string;
@@ -14,7 +15,7 @@ interface User {
   phone_number: string;
   profile_image: string;
   account_status: string;
-  is_verified: boolean;
+  verification_status: string;
   is_online: boolean;
   city: string;
   state: string;
@@ -49,14 +50,41 @@ export default function AstrologersPage() {
   const [searchInput, setSearchInput] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [modalAnimating, setModalAnimating] = useState(false);
+  const [filters, setFilters] = useState({
+    search: '',
+    accountStatus: '',
+    verificationStatus: '',
+    skills: '',
+    city: '',
+    state: '',
+    country: '',
+    fromDate: '',
+    toDate: ''
+  });
+  const [availableSkills, setAvailableSkills] = useState<string[]>([]);
 
   useEffect(() => {
     document.body.className = '';
-    fetchUsers(1, '');
+    fetchUsers(1, '', filters);
+    fetchSkills();
   }, []);
 
-  const fetchUsers = async (page: number, searchTerm: string) => {
-    console.log(searchTerm);
+  const fetchSkills = async () => {
+    try {
+      const response = await fetch('/api/astrologer-options?type=skills');
+      const data = await response.json();
+      if (response.ok && data.skills) {
+        setAvailableSkills(data.skills);
+      }
+    } catch (error) {
+      console.error('Error fetching skills:', error);
+    }
+  };
+
+  const fetchUsers = async (page: number, searchTerm: string, filterParams = filters) => {
+    console.log(searchTerm, filterParams);
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -65,9 +93,21 @@ export default function AstrologersPage() {
         type: 'astrologer'
       });
       
-      if (searchTerm) {
-        params.append('search', searchTerm);
+      // Use either searchTerm (legacy) or filter search
+      const searchQuery = searchTerm || filterParams.search;
+      if (searchQuery) {
+        params.append('search', searchQuery);
       }
+
+      // Add filter parameters
+      if (filterParams.accountStatus) params.append('accountStatus', filterParams.accountStatus);
+      if (filterParams.verificationStatus) params.append('verificationStatus', filterParams.verificationStatus);
+      if (filterParams.skills) params.append('skills', filterParams.skills);
+      if (filterParams.city) params.append('city', filterParams.city);
+      if (filterParams.state) params.append('state', filterParams.state);
+      if (filterParams.country) params.append('country', filterParams.country);
+      if (filterParams.fromDate) params.append('fromDate', filterParams.fromDate);
+      if (filterParams.toDate) params.append('toDate', filterParams.toDate);
 
       const response = await fetch(`/api/users?${params}`);
 
@@ -89,12 +129,54 @@ export default function AstrologersPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchUsers(1, searchInput);
+    fetchUsers(1, searchInput, filters);
   };
 
   const handlePageChange = (newPage: number) => {
-    fetchUsers(newPage, search);
+    fetchUsers(newPage, search, filters);
   };
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+
+  const openModal = () => {
+    setShowFilterModal(true);
+    setTimeout(() => setModalAnimating(true), 10);
+  };
+
+  const closeModal = () => {
+    setModalAnimating(false);
+    setTimeout(() => setShowFilterModal(false), 150);
+  };
+
+  const clearFilters = () => {
+    const clearedFilters = {
+      search: '',
+      accountStatus: '',
+      verificationStatus: '',
+      skills: '',
+      city: '',
+      state: '',
+      country: '',
+      fromDate: '',
+      toDate: ''
+    };
+    setFilters(clearedFilters);
+    fetchUsers(1, search, clearedFilters);
+    closeModal();
+  };
+
+  const applyFilters = () => {
+    fetchUsers(1, search, filters);
+    closeModal();
+  };
+
+  const hasActiveFilters = Object.values(filters).some(value => value !== '');
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -106,6 +188,32 @@ export default function AstrologersPage() {
         return 'badge-danger';
       default:
         return 'badge-secondary';
+    }
+  };
+
+  const getVerificationBadge = (status: string) => {
+    switch (status) {
+      case 'verified':
+        return 'badge-success';
+      case 'pending':
+        return 'badge-warning';
+      case 'rejected':
+        return 'badge-danger';
+      default:
+        return 'badge-warning';
+    }
+  };
+
+  const getVerificationLabel = (status: string) => {
+    switch (status) {
+      case 'verified':
+        return 'Verified';
+      case 'pending':
+        return 'Pending';
+      case 'rejected':
+        return 'Rejected';
+      default:
+        return 'Pending';
     }
   };
 
@@ -203,10 +311,10 @@ export default function AstrologersPage() {
                     <nav aria-label="breadcrumb">
                       <ol className="breadcrumb">
                         <li className="breadcrumb-item">
-                          <a href="/admin/dashboard" className="breadcrumb-link">Dashboard</a>
+                          <Link href="/admin/dashboard" className="breadcrumb-link">Dashboard</Link>
                         </li>
                         <li className="breadcrumb-item">
-                          <a href="#" className="breadcrumb-link">Accounts</a>
+                          <span className="breadcrumb-link">Accounts</span>
                         </li>
                         <li className="breadcrumb-item active" aria-current="page">Astrologers</li>
                       </ol>
@@ -233,42 +341,19 @@ export default function AstrologersPage() {
                           Delete Selected ({selectedUsers.length})
                         </button>
                       )}
-                      <Link href="/admin/accounts/add-user" className="btn btn-primary">
+                      <button 
+                        className="btn btn-outline-secondary mr-2"
+                        onClick={openModal}
+                      >
+                        <i className="fas fa-filter mr-1"></i>
+                        Filter {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
+                      </button>
+                      <Link href="/admin/accounts/add-user?type=astrologer" className="btn btn-primary">
                         <i className="fas fa-plus mr-2"></i>Add Astrologer
                       </Link>
                     </div>
                   </div>
                   <div className="card-body">
-                    {/* Search Form */}
-                    <form onSubmit={handleSearch} className="row mb-3">
-                      <div className="col-md-8">
-                        <div className="form-group">
-                          <input 
-                            type="text" 
-                            className="form-control" 
-                            placeholder="Search by name, email, or phone..." 
-                            value={searchInput}
-                            onChange={(e) => setSearchInput(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div className="col-md-4">
-                        <button type="submit" className="btn btn-outline-primary mr-2" disabled={loading}>
-                          <i className="fas fa-search mr-1"></i>Search
-                        </button>
-                        <button 
-                          type="button" 
-                          className="btn btn-outline-secondary"
-                          onClick={() => {
-                            setSearchInput('');
-                            fetchUsers(1, '');
-                          }}
-                          disabled={loading}
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    </form>
 
                     {/* Users Table */}
                     <div className="table-responsive">
@@ -340,17 +425,17 @@ export default function AstrologersPage() {
                                   </span>
                                 </td>
                                 <td>
-                                  <span className={`badge ${user.is_verified ? 'badge-success' : 'badge-warning'}`}>
-                                    {user.is_verified ? 'Verified' : 'Unverified'}
+                                  <span className={`badge ${getVerificationBadge(user.verification_status)}`}>
+                                    {getVerificationLabel(user.verification_status)}
                                   </span>
                                 </td>
                                 <td>
                                   <span className={`badge ${
-                                    user.account_status === 'active' && user.is_verified && user.is_online 
+                                    user.account_status === 'active' && user.verification_status === 'verified' && user.is_online 
                                       ? 'badge-success' 
                                       : 'badge-secondary'
                                   }`}>
-                                    {user.account_status === 'active' && user.is_verified && user.is_online 
+                                    {user.account_status === 'active' && user.verification_status === 'verified' && user.is_online 
                                       ? 'Online' 
                                       : 'Offline'}
                                   </span>
@@ -449,6 +534,190 @@ export default function AstrologersPage() {
           </div>
         </div>
       </div>
+
+      {/* Filter Modal */}
+      {showFilterModal && (
+        <div className={`modal fade ${modalAnimating ? 'show' : ''}`} style={{display: 'block'}} tabIndex={-1} role="dialog">
+          <div className="modal-dialog modal-dialog-centered modal-md" role="document">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Filter Astrologers</h5>
+                <button 
+                  type="button" 
+                  className="close" 
+                  onClick={closeModal}
+                >
+                  <span>&times;</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                {/* Search Field */}
+                <div className="form-group">
+                  <label>Search</label>
+                  <input 
+                    type="text" 
+                    className="form-control form-control-sm" 
+                    placeholder="Search by name, email, or phone"
+                    value={filters.search}
+                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                  />
+                </div>
+
+                {/* Status Filters - 2 columns */}
+                <div className="row">
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Account Status</label>
+                      <select 
+                        className="form-control form-control-sm"
+                        value={filters.accountStatus}
+                        onChange={(e) => handleFilterChange('accountStatus', e.target.value)}
+                      >
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="banned">Banned</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Verification Status</label>
+                      <select 
+                        className="form-control form-control-sm"
+                        value={filters.verificationStatus}
+                        onChange={(e) => handleFilterChange('verificationStatus', e.target.value)}
+                      >
+                        <option value="">All Verification</option>
+                        <option value="verified">Verified</option>
+                        <option value="pending">Pending</option>
+                        <option value="rejected">Rejected</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Location Filters - 2 columns */}
+                <div className="row">
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>City</label>
+                      <input 
+                        type="text" 
+                        className="form-control form-control-sm" 
+                        placeholder="Filter by city"
+                        value={filters.city}
+                        onChange={(e) => handleFilterChange('city', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>State</label>
+                      <input 
+                        type="text" 
+                        className="form-control form-control-sm" 
+                        placeholder="Filter by state"
+                        value={filters.state}
+                        onChange={(e) => handleFilterChange('state', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Country and Skills - 2 columns */}
+                <div className="row">
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Country</label>
+                      <input 
+                        type="text" 
+                        className="form-control form-control-sm" 
+                        placeholder="Filter by country"
+                        value={filters.country}
+                        onChange={(e) => handleFilterChange('country', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Skills</label>
+                      <select 
+                        className="form-control form-control-sm"
+                        value={filters.skills}
+                        onChange={(e) => handleFilterChange('skills', e.target.value)}
+                      >
+                        <option value="">All Skills</option>
+                        {availableSkills.map((skill) => (
+                          <option key={skill} value={skill}>{skill}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Date Range - 2 columns */}
+                <div className="row">
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Joined From</label>
+                      <AirDatePickerComponent
+                        className="form-control form-control-sm"
+                        placeholder="Select date"
+                        value={filters.fromDate}
+                        onChange={(date: string) => {
+                          handleFilterChange('fromDate', date);
+                        }}
+                        maxDate={new Date()}
+                        minDate={new Date(new Date().getFullYear() - 80, 0, 1)}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Joined Upto</label>
+                      <AirDatePickerComponent
+                        className="form-control form-control-sm"
+                        placeholder="Select date"
+                        value={filters.toDate}
+                        onChange={(date: string) => {
+                          handleFilterChange('toDate', date);
+                        }}
+                        maxDate={new Date()}
+                        minDate={new Date(new Date().getFullYear() - 80, 0, 1)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary btn-sm" 
+                  onClick={clearFilters}
+                >
+                  Clear All
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-primary btn-sm" 
+                  onClick={applyFilters}
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Backdrop */}
+      {showFilterModal && (
+        <div 
+          className={`modal-backdrop fade ${modalAnimating ? 'show' : ''}`}
+          onClick={closeModal}
+        ></div>
+      )}
     </div>
   );
 }

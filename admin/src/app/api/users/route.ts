@@ -78,6 +78,16 @@ export async function GET(request: NextRequest) {
     const userType = searchParams.get('type');
     const search = searchParams.get('search') || '';
     
+    // Filter parameters
+    const accountStatus = searchParams.get('accountStatus') || '';
+    const verificationStatus = searchParams.get('verificationStatus') || '';
+    const skills = searchParams.get('skills') || '';
+    const city = searchParams.get('city') || '';
+    const state = searchParams.get('state') || '';
+    const country = searchParams.get('country') || '';
+    const fromDate = searchParams.get('fromDate') || '';
+    const toDate = searchParams.get('toDate') || '';
+    
     // Calculate skip
     const skip = (page - 1) * limit;
 
@@ -88,12 +98,53 @@ export async function GET(request: NextRequest) {
       query.user_type = userType;
     }
     
+    // Handle legacy search (for backward compatibility)
     if (search) {
       query.$or = [
         { full_name: { $regex: search, $options: 'i' } },
         { email_address: { $regex: search, $options: 'i' } },
         { phone_number: { $regex: search, $options: 'i' } }
       ];
+    }
+
+    // Apply individual filters
+    if (accountStatus) {
+      query.account_status = accountStatus;
+    }
+    
+    if (verificationStatus) {
+      query.verification_status = verificationStatus;
+    }
+    
+    if (skills) {
+      query.skills = { $elemMatch: { $regex: skills, $options: 'i' } };
+    }
+    
+    if (city) {
+      query.city = { $regex: city, $options: 'i' };
+    }
+    
+    if (state) {
+      query.state = { $regex: state, $options: 'i' };
+    }
+    
+    if (country) {
+      query.country = { $regex: country, $options: 'i' };
+    }
+    
+    // Date range filter
+    if (fromDate || toDate) {
+      const dateQuery: Record<string, Date> = {};
+      if (fromDate) {
+        dateQuery.$gte = new Date(fromDate);
+      }
+      if (toDate) {
+        // Add one day to include the entire toDate
+        const endDate = new Date(toDate);
+        endDate.setDate(endDate.getDate() + 1);
+        dateQuery.$lt = endDate;
+      }
+      query.created_at = dateQuery;
     }
 
     // Connect to MongoDB

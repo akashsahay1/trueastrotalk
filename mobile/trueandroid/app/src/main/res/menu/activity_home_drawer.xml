@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_home"
+            android:icon="@drawable/ic_home"
+            android:title="@string/menu_home" />
+        <item
+            android:id="@+id/nav_profile"
+            android:icon="@drawable/ic_person"
+            android:title="@string/menu_profile" />
+        <item
+            android:id="@+id/nav_wallet"
+            android:icon="@drawable/ic_wallet"
+            android:title="@string/menu_wallet" />
+        <item
+            android:id="@+id/nav_history"
+            android:icon="@drawable/ic_history"
+            android:title="@string/menu_history" />
+    </group>
+
+    <item android:title="@string/menu_communicate">
+        <menu>
+            <item
+                android:id="@+id/nav_chat"
+                android:icon="@drawable/ic_chat"
+                android:title="@string/menu_chat" />
+            <item
+                android:id="@+id/nav_call"
+                android:icon="@drawable/ic_call"
+                android:title="@string/menu_call" />
+            <item
+                android:id="@+id/nav_video"
+                android:icon="@drawable/ic_video"
+                android:title="@string/menu_video" />
+        </menu>
+    </item>
+
+    <item android:title="@string/menu_astrology">
+        <menu>
+            <item
+                android:id="@+id/nav_horoscope"
+                android:icon="@drawable/ic_star"
+                android:title="@string/menu_horoscope" />
+            <item
+                android:id="@+id/nav_kundli"
+                android:icon="@drawable/ic_chart"
+                android:title="@string/menu_kundli" />
+            <item
+                android:id="@+id/nav_matchmaking"
+                android:icon="@drawable/ic_favorite"
+                android:title="@string/menu_matchmaking" />
+            <item
+                android:id="@+id/nav_palmistry"
+                android:icon="@drawable/ic_palm"
+                android:title="@string/menu_palmistry" />
+        </menu>
+    </item>
+
+    <item android:title="@string/menu_shop">
+        <menu>
+            <item
+                android:id="@+id/nav_products"
+                android:icon="@drawable/ic_shopping"
+                android:title="@string/menu_products" />
+            <item
+                android:id="@+id/nav_gemstones"
+                android:icon="@drawable/ic_diamond"
+                android:title="@string/menu_gemstones" />
+            <item
+                android:id="@+id/nav_puja"
+                android:icon="@drawable/ic_temple"
+                android:title="@string/menu_puja" />
+        </menu>
+    </item>
+
+    <item android:title="@string/menu_support">
+        <menu>
+            <item
+                android:id="@+id/nav_help"
+                android:icon="@drawable/ic_help"
+                android:title="@string/menu_help" />
+            <item
+                android:id="@+id/nav_feedback"
+                android:icon="@drawable/ic_feedback"
+                android:title="@string/menu_feedback" />
+            <item
+                android:id="@+id/nav_share"
+                android:icon="@drawable/ic_share"
+                android:title="@string/menu_share" />
+        </menu>
+    </item>
+
+    <item android:title="">
+        <menu>
+            <item
+                android:id="@+id/nav_logout"
+                android:icon="@drawable/ic_logout"
+                android:title="@string/menu_logout" />
+        </menu>
+    </item>
+
+</menu>

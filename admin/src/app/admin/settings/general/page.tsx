@@ -51,7 +51,7 @@ export default function AstrologerOptionsPage() {
                   <div className="page-breadcrumb">
                     <nav aria-label="breadcrumb">
                       <ol className="breadcrumb">
-                        <li className="breadcrumb-item"><a href="/admin/dashboard" className="breadcrumb-link">Dashboard</a></li>
+                        <li className="breadcrumb-item"><Link href="/admin/dashboard" className="breadcrumb-link">Dashboard</Link></li>
                         <li className="breadcrumb-item">Settings</li>
                         <li className="breadcrumb-item active" aria-current="page">General Settings</li>
                       </ol>

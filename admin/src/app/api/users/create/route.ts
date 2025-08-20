@@ -2,16 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient } from 'mongodb';
 import crypto from 'crypto';
 import { omit } from '@/utils/omit';
-
-const url = 'mongodb://localhost:27017';
-const dbName = 'trueastrotalkDB';
+import { envConfig, envHelpers } from '@/lib/env-config';
+import { emailService } from '@/lib/email-service';
 
 function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
 export async function POST(request: NextRequest) {
-  const client = new MongoClient(url);
+  const client = new MongoClient(envHelpers.getDatabaseUrl());
   
   try {
     const body = await request.json();
@@ -74,7 +73,7 @@ export async function POST(request: NextRequest) {
     }
 
     await client.connect();
-    const db = client.db(dbName);
+    const db = client.db(envConfig.DB_NAME);
     const usersCollection = db.collection('users');
 
     // Check if user already exists
@@ -114,9 +113,16 @@ export async function POST(request: NextRequest) {
       zip: body.zip || '',
       account_status: body.account_status || 'active',
       is_online: body.is_online || false,
-      is_verified: body.is_verified !== undefined ? body.is_verified : true,
+      verification_status: body.verification_status || 'pending',
+      verification_status_message: body.verification_status_message || '',
+      verified_at: body.verification_status === 'verified' ? new Date() : null,
+      verified_by: body.verification_status === 'verified' ? 'admin' : null,
       qualifications: body.qualifications || [],
       skills: body.skills || [],
+      // Save rates both as direct fields and in commission_rates object for compatibility
+      call_rate: body.commission_rates?.call_rate || 0,
+      chat_rate: body.commission_rates?.chat_rate || 0,
+      video_rate: body.commission_rates?.video_rate || 0,
       commission_rates: body.commission_rates || {
         call_rate: 0,
         chat_rate: 0,
@@ -136,6 +142,29 @@ export async function POST(request: NextRequest) {
     const result = await usersCollection.insertOne(userData);
 
     if (result.insertedId) {
+      // Prepare user object for email templates
+      const newUser = {
+        ...userData,
+        _id: result.insertedId,
+        name: full_name,
+        email: email_address,
+        phone: phone_number,
+        role: user_type,
+        createdAt: userData.created_at
+      };
+
+      // Send emails asynchronously (don't block the response)
+      Promise.all([
+        // Send welcome email to the user
+        emailService.sendWelcomeEmail(newUser),
+        // Send admin notification email
+        emailService.sendAdminSignupNotification(newUser)
+      ]).then(([welcomeSent, adminNotificationSent]) => {
+        console.log(`Welcome email sent: ${welcomeSent}, Admin notification sent: ${adminNotificationSent}`);
+      }).catch(error => {
+        console.error('Error sending emails:', error);
+      });
+
       // Return success response without sensitive data
       const userResponse = omit(userData, ['password']);
       

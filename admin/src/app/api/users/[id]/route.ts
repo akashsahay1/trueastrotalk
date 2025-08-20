@@ -3,9 +3,8 @@ import { MongoClient, ObjectId } from 'mongodb';
 import crypto from 'crypto';
 import { omit } from '@/utils/omit';
 import { cleanupUserFiles } from '@/lib/file-cleanup';
-
-const url = 'mongodb://localhost:27017';
-const dbName = 'trueastrotalkDB';
+import { envConfig, envHelpers } from '@/lib/env-config';
+import { emailService } from '@/lib/email-service';
 
 function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
@@ -16,7 +15,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const client = new MongoClient(url);
+  const client = new MongoClient(envHelpers.getDatabaseUrl());
   
   try {
     const { id } = await params;
@@ -30,7 +29,7 @@ export async function GET(
     }
 
     await client.connect();
-    const db = client.db(dbName);
+    const db = client.db(envConfig.DB_NAME);
     const usersCollection = db.collection('users');
 
     const user = await usersCollection.findOne({ _id: new ObjectId(id) });
@@ -65,7 +64,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const client = new MongoClient(url);
+  const client = new MongoClient(envHelpers.getDatabaseUrl());
   
   try {
     const { id } = await params;
@@ -136,7 +135,7 @@ export async function PUT(
     }
 
     await client.connect();
-    const db = client.db(dbName);
+    const db = client.db(envConfig.DB_NAME);
     const usersCollection = db.collection('users');
 
     // Check if user exists
@@ -148,22 +147,17 @@ export async function PUT(
       );
     }
 
-    // Check if email/phone is already taken by another user
+    // Check if email is already taken by another user (phone numbers can be duplicate)
     const duplicateUser = await usersCollection.findOne({
       $and: [
         { _id: { $ne: new ObjectId(id) } },
-        {
-          $or: [
-            { email_address: email_address },
-            { phone_number: phone_number }
-          ]
-        }
+        { email_address: email_address }
       ]
     });
 
     if (duplicateUser) {
       return NextResponse.json(
-        { error: 'User with this email or phone number already exists' },
+        { error: 'User with this email already exists' },
         { status: 409 }
       );
     }
@@ -187,19 +181,23 @@ export async function PUT(
       zip: body.zip || '',
       account_status: body.account_status || 'active',
       is_online: body.is_online !== undefined ? body.is_online : existingUser.is_online,
-      is_verified: body.is_verified !== undefined ? body.is_verified : existingUser.is_verified,
-      // Also set verification_status based on is_verified for mobile compatibility
-      verification_status: body.is_verified !== undefined 
-        ? (body.is_verified ? 'verified' : 'unverified')
-        : (existingUser.is_verified ? 'verified' : 'unverified'),
+      verification_status: body.verification_status || existingUser.verification_status || 'pending',
+      verification_status_message: body.verification_status_message !== undefined ? body.verification_status_message : (existingUser.verification_status_message || ''),
+      verified_at: body.verification_status === 'verified' ? (body.verified_at || new Date()) : (body.verification_status === 'pending' || body.verification_status === 'rejected' ? null : existingUser.verified_at),
+      verified_by: body.verification_status === 'verified' ? (body.verified_by || 'admin') : (body.verification_status === 'pending' || body.verification_status === 'rejected' ? null : existingUser.verified_by),
       bio: body.bio || '',
       // Standardize on qualifications (not specializations) to match mobile
       qualifications: body.qualifications || [],
       skills: body.skills || [],
-      // Save rates as direct fields to match mobile registration
+      // Save rates both as direct fields and in commission_rates object for compatibility
       call_rate: body.commission_rates?.call_rate || 0,
       chat_rate: body.commission_rates?.chat_rate || 0,
       video_rate: body.commission_rates?.video_rate || 0,
+      commission_rates: {
+        call_rate: body.commission_rates?.call_rate || 0,
+        chat_rate: body.commission_rates?.chat_rate || 0,
+        video_rate: body.commission_rates?.video_rate || 0
+      },
       experience_years: body.experience_years || 0,
       updated_at: new Date()
     };
@@ -209,6 +207,10 @@ export async function PUT(
       updateData.password = hashPassword(body.password);
     }
 
+    // Check if verification status changed for astrologers
+    const verificationStatusChanged = existingUser.verification_status !== body.verification_status;
+    const isAstrologer = existingUser.user_type === 'astrologer';
+    
     // Update the user
     const result = await usersCollection.updateOne(
       { _id: new ObjectId(id) },
@@ -225,6 +227,27 @@ export async function PUT(
     // Get updated user data
     const updatedUser = await usersCollection.findOne({ _id: new ObjectId(id) });
     const userResponse = omit(updatedUser!, ['password']);
+
+    // Send email notification if astrologer verification status changed
+    if (verificationStatusChanged && isAstrologer && body.verification_status) {
+      const astrologerData = {
+        ...updatedUser,
+        name: updatedUser!.full_name,
+        email: updatedUser!.email_address
+      };
+
+      if (body.verification_status === 'verified' || body.verification_status === 'rejected') {
+        emailService.sendAstrologerStatusNotification(
+          astrologerData,
+          body.verification_status,
+          body.verification_status_message
+        ).then(sent => {
+          console.log(`Astrologer ${body.verification_status} email sent: ${sent}`);
+        }).catch(error => {
+          console.error('Error sending astrologer status email:', error);
+        });
+      }
+    }
 
     return NextResponse.json({
       message: 'User updated successfully',
@@ -246,7 +269,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const client = new MongoClient(url);
+  const client = new MongoClient(envHelpers.getDatabaseUrl());
   
   try {
     const { id } = await params;
@@ -260,7 +283,7 @@ export async function DELETE(
     }
 
     await client.connect();
-    const db = client.db(dbName);
+    const db = client.db(envConfig.DB_NAME);
     const usersCollection = db.collection('users');
 
     // Check if user exists

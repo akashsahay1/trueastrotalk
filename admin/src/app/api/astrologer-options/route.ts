@@ -2,21 +2,45 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 
 // GET - Fetch all astrologer options
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const { db } = await connectToDatabase();
     
-    const options = await db
-      .collection('astrologer_options')
-      .find({})
-      .sort({ category: 1, name: 1 })
-      .toArray();
+    // Get query parameters
+    const { searchParams } = new URL(request.url);
+    const type = searchParams.get('type') || '';
 
-    return NextResponse.json({
-      success: true,
-      data: options,
-      total: options.length
-    });
+    if (type) {
+      // Get specific type of options (skills, languages, qualifications)
+      const option = await db
+        .collection('astrologer_options')
+        .findOne({ type: type });
+
+      if (option && option.values) {
+        return NextResponse.json({
+          success: true,
+          [type]: option.values
+        });
+      } else {
+        return NextResponse.json({
+          success: false,
+          error: `No ${type} options found`
+        }, { status: 404 });
+      }
+    } else {
+      // Get all options (legacy support)
+      const options = await db
+        .collection('astrologer_options')
+        .find({})
+        .sort({ type: 1 })
+        .toArray();
+
+      return NextResponse.json({
+        success: true,
+        data: options,
+        total: options.length
+      });
+    }
   } catch (error) {
     console.error('Error fetching astrologer options:', error);
     return NextResponse.json(

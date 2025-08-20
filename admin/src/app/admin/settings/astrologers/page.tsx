@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { useEffect, useState } from 'react';
 import { successMessages, errorMessages, confirmMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
+import Link from 'next/link';
 
 interface AstrologerOption {
   _id: string;
@@ -259,10 +260,10 @@ export default function AstrologerOptionsPage() {
                     <nav aria-label="breadcrumb">
                       <ol className="breadcrumb">
                         <li className="breadcrumb-item">
-                          <a href="/admin/dashboard" className="breadcrumb-link">Dashboard</a>
+                          <Link href="/admin/dashboard" className="breadcrumb-link">Dashboard</Link>
                         </li>
                         <li className="breadcrumb-item">
-                          <a href="#" className="breadcrumb-link">Settings</a>
+                          <span className="breadcrumb-link">Settings</span>
                         </li>
                         <li className="breadcrumb-item active" aria-current="page">Astrologers</li>
                       </ol>

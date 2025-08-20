@@ -14,6 +14,40 @@ function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
+// Validate Google ID Token
+async function validateGoogleToken(idToken: string): Promise<{ email: string; name: string; picture?: string } | null> {
+  try {
+    // Google's token info endpoint
+    const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
+    
+    if (!response.ok) {
+      console.error('Google token validation failed:', response.status, response.statusText);
+      return null;
+    }
+    
+    const tokenInfo = await response.json();
+    
+    // Verify the token is for our app (optional - add your Google Client ID)
+    // if (tokenInfo.aud !== 'YOUR_GOOGLE_CLIENT_ID') {
+    //   console.error('Token audience mismatch');
+    //   return null;
+    // }
+    
+    if (tokenInfo.email && tokenInfo.email_verified) {
+      return {
+        email: tokenInfo.email,
+        name: tokenInfo.name || tokenInfo.email.split('@')[0],
+        picture: tokenInfo.picture
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error validating Google token:', error);
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -75,6 +109,56 @@ export async function POST(request: NextRequest) {
     }
 
     const user = await usersCollection.findOne(userQuery);
+
+    // Special handling for Google authentication when user doesn't exist
+    if (!user && auth_type === 'google' && google_access_token) {
+      console.log(`🔍 User ${userEmail} not found, validating Google token...`);
+      
+      // Validate the Google token first
+      const googleUserInfo = await validateGoogleToken(google_access_token);
+      
+      if (!googleUserInfo) {
+        await client.close();
+        return NextResponse.json(
+          { 
+            success: false,
+            error: 'Invalid Google token',
+            message: 'Invalid or expired Google authentication token' 
+          },
+          { status: 401 }
+        );
+      }
+      
+      // Verify the email matches
+      if (googleUserInfo.email.toLowerCase() !== userEmail.toLowerCase()) {
+        await client.close();
+        return NextResponse.json(
+          { 
+            success: false,
+            error: 'Email mismatch',
+            message: 'Google token email does not match provided email' 
+          },
+          { status: 401 }
+        );
+      }
+      
+      // Valid Google user but not registered yet
+      console.log(`✅ Valid Google user ${userEmail} needs to register`);
+      await client.close();
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'User not registered',
+          message: 'Please complete your registration to continue',
+          google_user_info: {
+            email: googleUserInfo.email,
+            name: googleUserInfo.name,
+            picture: googleUserInfo.picture
+          }
+        },
+        { status: 404 }
+      );
+    }
 
     if (!user) {
       await client.close();
@@ -153,9 +237,6 @@ export async function POST(request: NextRequest) {
         );
       }
     }
-
-    // Create JWT token with appropriate expiry
-    const tokenExpiry = isAdminLogin ? '24h' : '30d'; // Admin: 24h, Mobile: 30d
     
     // Get current time for consistent timestamps
     const now = Math.floor(Date.now() / 1000); // Current time in seconds

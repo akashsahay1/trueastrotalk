@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Colors -->
+    <color name="primary">#1877F2</color>
+    <color name="primary_light">#42A5F5</color>
+    <color name="primary_variant">#0F4C75</color>
+    <color name="secondary">#FF9500</color>
+    <color name="secondary_variant">#E6851F</color>
+    
+    <!-- Background Colors -->
+    <color name="background_light">#FFFFFF</color>
+    <color name="background_dark">#121212</color>
+    
+    <!-- Text Colors -->
+    <color name="text_primary_light">#212121</color>
+    <color name="text_secondary_light">#757575</color>
+    <color name="text_primary_dark">#FFFFFF</color>
+    <color name="text_secondary_dark">#BDBDBD</color>
+    
+    <!-- Alias colors for easy reference -->
+    <color name="text_primary">@color/text_primary_light</color>
+    <color name="text_secondary">@color/text_secondary_light</color>
+    
+    <!-- Grey Colors -->
+    <color name="grey_100">#F5F5F5</color>
+    <color name="grey_300">#E0E0E0</color>
+    <color name="grey_400">#BDBDBD</color>
+    <color name="grey_500">#9E9E9E</color>
+    <color name="grey_600">#757575</color>
+    
+    <!-- Status Colors -->
+    <color name="success">#4CAF50</color>
+    <color name="warning">#FF9800</color>
+    <color name="error">#F44336</color>
+    
+    <!-- Border Colors -->
+    <color name="border_light">#E0E0E0</color>
+    <color name="border_dark">#424242</color>
+    
+    <!-- Overlay Colors -->
+    <color name="overlay_background">#80000000</color>
+    
+    <!-- System Colors -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="white_30">#4DFFFFFF</color>
+    <color name="transparent">#00000000</color>
+</resources>

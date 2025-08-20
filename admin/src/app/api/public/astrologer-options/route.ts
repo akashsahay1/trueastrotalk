@@ -8,15 +8,22 @@ export async function GET() {
     
     const options = await db
       .collection('astrologer_options')
-      .find({ isActive: true })
-      .sort({ category: 1, name: 1 })
+      .find({})
       .toArray();
 
-    // Group by category and return only the names
+    // Extract values from the documents
     const groupedOptions = {
-      languages: options.filter(opt => opt.category === 'languages').map(opt => opt.name),
-      skills: options.filter(opt => opt.category === 'skills').map(opt => opt.name)
+      languages: [],
+      skills: []
     };
+
+    options.forEach(opt => {
+      if (opt.type === 'languages' && opt.values) {
+        groupedOptions.languages = opt.values;
+      } else if (opt.type === 'skills' && opt.values) {
+        groupedOptions.skills = opt.values;
+      }
+    });
 
     return NextResponse.json({
       success: true,

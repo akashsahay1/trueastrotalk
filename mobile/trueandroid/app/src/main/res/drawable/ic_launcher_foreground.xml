@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Background to center the logo -->
+    <group android:scaleX="0.7"
+           android:scaleY="0.7"
+           android:translateX="16.2"
+           android:translateY="16.2">
+        <!-- Actual logo will be displayed as bitmap through ic_launcher.png -->
+        <!-- This is just a fallback vector for adaptive icon -->
+        <path
+            android:fillColor="@color/white"
+            android:pathData="M54,10 C79.4,10 100,30.6 100,56 C100,81.4 79.4,102 54,102 C28.6,102 8,81.4 8,56 C8,30.6 28.6,10 54,10 Z" />
+        
+        <path
+            android:fillColor="@color/primary"
+            android:pathData="M54,20 C73.9,20 90,36.1 90,56 C90,75.9 73.9,92 54,92 C34.1,92 18,75.9 18,56 C18,36.1 34.1,20 54,20 Z" />
+            
+        <!-- Star symbol -->
+        <path
+            android:fillColor="@color/white"
+            android:pathData="M54,35 L59,48 L73,48 L62,57 L67,70 L54,63 L41,70 L46,57 L35,48 L49,48 Z" />
+    </group>
+</vector>

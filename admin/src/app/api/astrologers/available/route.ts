@@ -54,7 +54,6 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '10');
     const offset = parseInt(searchParams.get('offset') || '0');
-    // const specialization = searchParams.get('specialization'); // TODO: implement specialization filtering
     const onlineOnly = searchParams.get('online_only') === 'true';
 
     // Connect to MongoDB
@@ -69,7 +68,7 @@ export async function GET(request: NextRequest) {
     const query: Record<string, unknown> = {
       user_type: 'astrologer', // Only use standardized user_type field
       account_status: 'active',
-      verification_status: 'verified',
+      is_verified: true,
       // Ensure astrologer has a profile image (either direct URL or media library reference)
       $or: [
         { profile_image_id: { $exists: true, $ne: null } }, // Has media library reference
@@ -121,12 +120,12 @@ export async function GET(request: NextRequest) {
           phone_number: astrologer.phone_number,
           profile_image: resolvedProfileImage,
           bio: astrologer.bio || '',
-          qualifications: astrologer.qualifications || astrologer.specializations || ['Vedic', 'Numerology'],
+          qualifications: astrologer.qualifications,
+          skills: astrologer.skills,
           languages: astrologer.languages || ['Hindi', 'English'],
           experience_years: astrologer.experience_years || 5,
           is_online: astrologer.is_online || false,
           account_status: astrologer.account_status,
-          verification_status: astrologer.verification_status,
           rating: astrologer.rating || 4.5,
           total_reviews: astrologer.total_reviews || 0,
           total_consultations: realSessionCount, // Use real count from sessions collection

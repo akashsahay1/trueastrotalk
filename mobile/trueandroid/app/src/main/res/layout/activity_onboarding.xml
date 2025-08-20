@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_light"
+    android:fitsSystemWindows="true">
+
+    <!-- Skip Button -->
+    <TextView
+        android:id="@+id/btn_skip"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="@dimen/padding_md"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:padding="@dimen/padding_sm"
+        android:text="@string/skip"
+        android:textColor="@color/text_secondary_light"
+        android:textSize="@dimen/text_size_body_medium"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- ViewPager2 for Onboarding Slides -->
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/view_pager"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="@dimen/spacing_lg"
+        app:layout_constraintBottom_toTopOf="@+id/bottom_section"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btn_skip" />
+
+    <!-- Bottom Section with Indicators and Navigation -->
+    <LinearLayout
+        android:id="@+id/bottom_section"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/padding_lg"
+        android:paddingBottom="48dp"
+        android:clipToPadding="false"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <!-- Page Indicators -->
+        <LinearLayout
+            android:id="@+id/indicator_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="@dimen/spacing_xl"
+            android:orientation="horizontal" />
+
+        <!-- Navigation Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <!-- Previous Button -->
+            <TextView
+                android:id="@+id/btn_previous"
+                android:layout_width="80dp"
+                android:layout_height="@dimen/button_height_md"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:text="@string/previous"
+                android:textColor="@color/text_secondary_light"
+                android:textSize="@dimen/text_size_button_medium"
+                android:visibility="invisible" />
+
+            <!-- Spacer -->
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <!-- Next/Get Started Button -->
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btn_next"
+                android:layout_width="120dp"
+                android:layout_height="@dimen/button_height_md"
+                android:background="@drawable/button_primary"
+                android:text="@string/next"
+                android:textColor="@color/white"
+                android:textSize="@dimen/text_size_button_medium" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

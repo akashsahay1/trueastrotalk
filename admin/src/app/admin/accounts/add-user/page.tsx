@@ -3,10 +3,12 @@
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import Image from 'next/image';
 import { validateForm, getUserFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/validation';
 import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
+import AirDatePickerComponent from '@/components/AirDatePickerComponent';
 
 interface FormData {
   profile_image: string;
@@ -27,7 +29,8 @@ interface FormData {
   zip: string;
   account_status: string;
   is_online: boolean;
-  is_verified: boolean;
+  verification_status: string;
+  verification_status_message: string;
   experience_years: number;
   bio: string;
   languages: string[];
@@ -47,6 +50,7 @@ interface AstrologerOptions {
 
 export default function AddUserPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -56,7 +60,7 @@ export default function AddUserPage() {
     full_name: '',
     email_address: '',
     password: '',
-    user_type: 'customer',
+    user_type: searchParams.get('type') || 'customer',
     auth_type: 'email',
     phone_number: '',
     gender: 'male',
@@ -70,7 +74,8 @@ export default function AddUserPage() {
     zip: '',
     account_status: 'active',
     is_online: false,
-    is_verified: false,
+    verification_status: 'pending',
+    verification_status_message: '',
     experience_years: 0,
     bio: '',
     languages: [],
@@ -446,7 +451,7 @@ export default function AddUserPage() {
           <div className="container-fluid dashboard-content">
             {/* Page Header */}
             <div className="row">
-              <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+              <div className="col-xl-12 col-12 col-md-12 col-sm-12 col-12">
                 <div className="page-header">
                   <h2 className="pageheader-title">Add User</h2>
                   <p className="pageheader-text">Create a user account for the platform</p>
@@ -454,10 +459,10 @@ export default function AddUserPage() {
                     <nav aria-label="breadcrumb">
                       <ol className="breadcrumb">
                         <li className="breadcrumb-item">
-                          <a href="/admin/dashboard" className="breadcrumb-link">Dashboard</a>
+                          <Link href="/admin/dashboard" className="breadcrumb-link">Dashboard</Link>
                         </li>
                         <li className="breadcrumb-item">
-                          <a href="#" className="breadcrumb-link">Accounts</a>
+                          <span className="breadcrumb-link">Accounts</span>
                         </li>
                         <li className="breadcrumb-item active" aria-current="page">Add User</li>
                       </ol>
@@ -489,626 +494,544 @@ export default function AddUserPage() {
             )}
 
             <form onSubmit={handleSubmit}>              
-				<div className="row mb-4">
-					<div className="col-xl-6 col-6-12 col-md-6 col-sm-12 col-12">
-						{/* Basic Information Card */}
-						<div className="card mb-4">
-							<h5 className="card-header">Basic Information</h5>
-							<div className="card-body">
+							<div className="row mb-4">
+								<div className="col-xl-6 col-6 mb-4-12 col-md-6 col-sm-12 col-12">
+									{/* Basic Information Card */}
+									<div className="card mb-4">
+										<h5 className="card-header">Basic Information</h5>
+										<div className="card-body">
 
-								{/* Profile Image Upload */}
-								<div className="form-group row">
-									<div className="col-lg-12">
-										<label className="col-form-label">Profile Image</label>
-										<div className="d-flex align-items-start">
-											<div className="mr-3 text-center">
-												<div className="position-relative">
-													{imagePreview || formData.profile_image ? (
-														<>
-															<Image
-																src={imagePreview || formData.profile_image}
-																alt='Profile Preview'
-																width={80}
-																height={80}
-																className='rounded-circle'
-																style={{ width: '80px', height: '80px', objectFit: 'cover', cursor: 'pointer', border: '2px solid #dee2e6' }}
-																title="Click to change image"
-																onClick={() => document.getElementById('profile_image')?.click()}
-															/>
-															<button
-																type="button"
-																className="btn btn-danger btn-sm position-absolute"
-																style={{ top: '-5px', right: '-5px', width: '25px', height: '25px', borderRadius: '50%', padding: '0', fontSize: '14px' }}
-																onClick={removeImage}
-																title="Remove Image"
-															>×</button>
-														</>
-													) : (
-														<div className="rounded-circle bg-light d-flex align-items-center justify-content-center text-muted position-relative" style={{ width: '80px', height: '80px', cursor: 'pointer', border: '2px dashed #dee2e6', transition: 'all 0.3s ease'}} onClick={() => document.getElementById('profile_image')?.click()} onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#1877F2';	e.currentTarget.style.backgroundColor = '#f8f9fa';	}} onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#dee2e6'; e.currentTarget.style.backgroundColor = '#f8f9fa';}}	title="Click to upload image">
-															{imageUploading ? (
-																<i className="fas fa-spinner fa-spin fa-lg"></i>
-															) : (
-																<i className="fas fa-plus fa-lg text-primary"></i>
-															)}
-														</div>
-													)}
-												</div>
-												<small className="form-text text-muted mt-2 d-block">
-													Max file size: 5MB
-												</small>
-												{formData.profile_image && (
-													<div className="mt-2 text-success text-center">
-														<i className="fas fa-check-circle mr-1"></i>
-														<small>Image uploaded successfully</small>
-													</div>
-												)}
-												{/* Hidden file input */}
-												<input
-													type="file"
-													id="profile_image"
-													accept="image/jpeg,image/png,image/webp"
-													onChange={handleImageUpload}
-													disabled={imageUploading}
-													style={{ display: 'none' }}
-												/>
-											</div>
-											<div className="flex-grow-1">
-												{imageUploading && (
-													<div className="mt-2 text-primary">
-														<i className="fas fa-spinner fa-spin mr-2"></i>
-														Uploading image...
-													</div>
-												)}
-											</div>
-										</div>
-									</div>
-								</div> 
-								<div className="form-group row">
-									<div className="col-lg-3">
-										<label className="col-form-label">User Type <span className="text-danger">*</span></label>
-										<select 
-											className="custom-select"
-											name="user_type"
-											value={formData.user_type}
-											onChange={handleInputChange}
-											required
-											>
-											<option value="customer">Customer</option>
-											<option value="astrologer">Astrologer</option>
-											<option value="administrator">Administrator</option>
-											<option value="manager">Manager</option>
-										</select>
-									</div>
-									<div className="col-lg-3">
-										<label className="col-form-label">Account Status <span className="text-danger">*</span></label>
-										<select 
-											className="custom-select"
-											name="account_status"
-											value={formData.account_status}
-											onChange={handleInputChange}
-											required
-											>
-											<option value="active">Active</option>
-											<option value="inactive">Inactive</option>
-											<option value="banned">Banned</option>
-										</select>
-									</div>
-									<div className="col-lg-3">
-										<label className="col-form-label">Gender <span className="text-danger">*</span></label>
-										<select 
-											className="custom-select"
-											name="gender"
-											value={formData.gender}
-											onChange={handleInputChange}
-											required
-											>
-											<option value="male">Male</option>
-											<option value="female">Female</option>
-											<option value="other">Other</option>
-										</select>
-									</div>
-									<div className="col-lg-3">
-										<label className="col-form-label">Authentication Type</label>
-										<select 
-											className="custom-select"
-											name="auth_type"
-											value={formData.auth_type}
-											onChange={handleInputChange}
-											>
-											<option value="email">Email</option>
-											<option value="phone">Phone</option>
-											<option value="google">Google</option>
-										</select>
-									</div>
-								</div>
-
-								<div className="form-group row">
-									<div className="col-lg-6">
-										<label className="col-form-label">Full Name <span className="text-danger">*</span></label>
-										<input 
-											type="text" 
-											className="form-control"
-											name="full_name"
-											value={formData.full_name}
-											onChange={handleInputChange}
-											placeholder=""
-											required
-										/>
-									</div>
-									<div className="col-lg-6">
-										<label className="col-form-label">Phone Number <span className="text-danger">*</span></label>
-										<input 
-											type="tel" 
-											className="form-control"
-											name="phone_number"
-											value={formData.phone_number}
-											onChange={handleInputChange}
-											placeholder=""
-											required
-										/>
-									</div>
-								</div>
-
-								<div className="form-group row">
-									<div className="col-lg-6">
-										<label className="col-form-label">Email Address <span className="text-danger">*</span></label>
-										<input 
-											type="email" 
-											className="form-control"
-											name="email_address"
-											value={formData.email_address}
-											onChange={handleInputChange}
-											placeholder=""
-											required
-										/>
-									</div>
-									<div className="col-lg-6">
-										<label className="col-form-label">Password <span className="text-danger">*</span></label>
-										<input 
-											type="password" 
-											className="form-control"
-											name="password"
-											value={formData.password}
-											onChange={handleInputChange}
-											placeholder=""
-											required
-										/>							
-									</div>
-								</div>
-							</div>
-						</div>
-						{/* Personal Information Card */}
-						<div className="card mb-4">
-							<h5 className="card-header">Personal Information</h5>
-
-							<div className="card-body">
-								<div className="form-group row">
-								<div className="col-lg-4">
-								<label className="col-form-label">Date of Birth {isAstrologer && <span className="text-danger">*</span>}</label>
-								<input 
-								type="date" 
-								className="form-control"
-								name="date_of_birth"
-								value={formData.date_of_birth}
-								onChange={handleInputChange}
-								required={isAstrologer}
-								/>
-								</div>
-								<div className="col-lg-4">
-								<label className="col-form-label">Birth Time {isAstrologer && <span className="text-danger">*</span>}</label>
-								<input 
-								type="time" 
-								className="form-control"
-								name="birth_time"
-								value={formData.birth_time}
-								onChange={handleInputChange}
-								required={isAstrologer}
-								/>
-								</div>
-								<div className="col-lg-4">
-								<label className="col-form-label">Birth Place {isAstrologer && <span className="text-danger">*</span>}</label>
-								<input 
-								type="text" 
-								className="form-control"
-								name="birth_place"
-								value={formData.birth_place}
-								onChange={handleInputChange}
-								placeholder=""
-								required={isAstrologer}
-								/>
-								</div>
-								</div>
-
-								<div className="form-group row">
-									<div className="col-lg-12">
-										<label className="col-form-label">Address {isAstrologer && <span className="text-danger">*</span>}</label>
-										<textarea 
-											className="form-control"
-											name="address"
-											value={formData.address}
-											onChange={handleInputChange}
-											placeholder=""
-											rows={3}
-											required={isAstrologer}
-										/>
-									</div>
-								</div>
-
-								<div className="form-group row">
-									<div className="col-lg-3">
-										<label className="col-form-label">City {isAstrologer && <span className="text-danger">*</span>}</label>
-										<input 
-											type="text" 
-											className="form-control"
-											name="city"
-											value={formData.city}
-											onChange={handleInputChange}
-											placeholder=""
-											required={isAstrologer}
-										/>
-									</div>
-									<div className="col-lg-3">
-										<label className="col-form-label">State {isAstrologer && <span className="text-danger">*</span>}</label>
-										<input 
-											type="text" 
-											className="form-control"
-											name="state"
-											value={formData.state}
-											onChange={handleInputChange}
-											placeholder=""
-											required={isAstrologer}
-										/>
-									</div>
-									<div className="col-lg-3">
-										<label className="col-form-label">Country {isAstrologer && <span className="text-danger">*</span>}</label>
-										<input 
-											type="text" 
-											className="form-control"
-											name="country"
-											value={formData.country}
-											onChange={handleInputChange}
-											placeholder=""
-											required={isAstrologer}
-										/>
-									</div>
-									<div className="col-lg-3">
-										<label className="col-form-label">ZIP Code {isAstrologer && <span className="text-danger">*</span>}</label>
-										<input 
-											type="text" 
-											className="form-control"
-											name="zip"
-											value={formData.zip}
-											onChange={handleInputChange}
-											placeholder=""
-											required={isAstrologer}
-										/>
-									</div>
-								</div>
-
-								{/* Astrologer Professional Information */}
-								{isAstrologer && (
-									<>
-										<div className="form-group row">
-											<div className="col-lg-6">
-												<label className="col-form-label">Experience Years <span className="text-danger">*</span></label>
-												<input 
-													type="number" 
-													className="form-control"
-													name="experience_years"
-													value={formData.experience_years}
-													onChange={handleInputChange}
-													placeholder=""
-													min="1"
-													required
-												/>
-											</div>
-											<div className="col-lg-6">
-												<label className="col-form-label">Languages <span className="text-danger">*</span></label>
-												<div className="dropdown">
-													<input
-														type="text"
-														className="form-control dropdown-toggle"
-														value={formData.languages.join(', ') || 'Select languages...'}
-														onFocus={() => setShowLanguageDropdown(true)}
-														readOnly
-														style={{ cursor: 'pointer' }}
-														data-toggle="dropdown"
-													/>
-													{showLanguageDropdown && (
-														<div className="dropdown-menu show w-100" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-															<div className="px-3 py-2">
-																<div className="d-flex justify-content-between align-items-center mb-2">
-																	<small className="text-muted">Select Languages</small>
-																	<button
-																		type="button"
-																		className="btn btn-sm btn-outline-secondary"
-																		onClick={() => setShowLanguageDropdown(false)}
-																	>
-																		<i className="fas fa-times"></i>
-																	</button>
-																</div>
-																{optionsLoading ? (
-																	<div className="text-center py-2">
-																		<i className="fas fa-spinner fa-spin"></i>
-																		<small className="d-block text-muted">Loading...</small>
-																	</div>
+											{/* Profile Image Upload */}
+											<div className="form-group row">
+												<div className="col-12">
+													<label className="label">Profile Image</label>
+													<div className="d-flex align-items-start">
+														<div className="mr-3 text-center">
+															<div className="position-relative">
+																{imagePreview || formData.profile_image ? (
+																	<>
+																		<Image
+																			src={imagePreview || formData.profile_image}
+																			alt='Profile Preview'
+																			width={80}
+																			height={80}
+																			className='rounded-circle'
+																			style={{ width: '80px', height: '80px', objectFit: 'cover', cursor: 'pointer', border: '2px solid #dee2e6' }}
+																			title="Click to change image"
+																			onClick={() => document.getElementById('profile_image')?.click()}
+																		/>
+																		<button
+																			type="button"
+																			className="btn btn-danger btn-sm position-absolute"
+																			style={{ top: '-5px', right: '-5px', width: '25px', height: '25px', borderRadius: '50%', padding: '0', fontSize: '14px' }}
+																			onClick={removeImage}
+																			title="Remove Image"
+																		>×</button>
+																	</>
 																) : (
-																	<div style={{ maxHeight: '150px', overflowY: 'auto' }}>
-																		{astrologerOptions.languages.map((language) => (
-																			<div key={language} className="form-check">
-																				<input
-																					type="checkbox"
-																					className="form-check-input"
-																					id={`lang-${language}`}
-																					checked={formData.languages.includes(language)}
-																					onChange={() => toggleLanguage(language)}
-																				/>
-																				<label className="form-check-label" htmlFor={`lang-${language}`}>
-																					{language}
-																				</label>
-																			</div>
-																		))}
+																	<div className="rounded-circle bg-light d-flex align-items-center justify-content-center text-muted position-relative" style={{ width: '80px', height: '80px', cursor: 'pointer', border: '2px dashed #dee2e6', transition: 'all 0.3s ease'}} onClick={() => document.getElementById('profile_image')?.click()} onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#1877F2';	e.currentTarget.style.backgroundColor = '#f8f9fa';	}} onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#dee2e6'; e.currentTarget.style.backgroundColor = '#f8f9fa';}}	title="Click to upload image">
+																		{imageUploading ? (
+																			<i className="fas fa-spinner fa-spin fa-lg"></i>
+																		) : (
+																			<i className="fas fa-plus fa-lg text-primary"></i>
+																		)}
 																	</div>
 																)}
 															</div>
+															<small className="form-text text-muted mt-2 d-block">
+																Max file size: 5MB
+															</small>
+															{formData.profile_image && (
+																<div className="mt-2 text-success text-center">
+																	<i className="fas fa-check-circle mr-1"></i>
+																	<small>Image uploaded successfully</small>
+																</div>
+															)}
+															{/* Hidden file input */}
+															<input
+																type="file"
+																id="profile_image"
+																accept="image/jpeg,image/png,image/webp"
+																onChange={handleImageUpload}
+																disabled={imageUploading}
+																style={{ display: 'none' }}
+															/>
 														</div>
-													)}
-												</div>
-												{formData.languages.length > 0 && (
-													<div className="mt-2">
-														<small className="text-muted">Selected: </small>
-														<div className="d-flex flex-wrap">
-															{formData.languages.map((lang, index) => (
-																<span key={index} className="badge badge-success mr-1 mb-1">
-																	{lang}
-																	<button 
-																		type="button" 
-																		className="btn btn-sm ml-1 p-0" 
-																		style={{ background: 'none', border: 'none', color: 'white' }} 
-																		onClick={() => toggleLanguage(lang)}
-																	>
-																		×
-																	</button>
-																</span>
-															))}
+														<div className="flex-grow-1">
+															{imageUploading && (
+																<div className="mt-2 text-primary">
+																	<i className="fas fa-spinner fa-spin mr-2"></i>
+																	Uploading image...
+																</div>
+															)}
 														</div>
 													</div>
-												)}
+												</div>
+											</div> 
+											<div className="form-group row">
+												<div className="col-6 mb-4">
+													<label className="label">User Type <span className="text-danger">*</span></label>
+													<select className="custom-select" name="user_type" value={formData.user_type} onChange={handleInputChange} required>
+														<option value="customer">Customer</option>
+														<option value="astrologer">Astrologer</option>
+														<option value="administrator">Administrator</option>
+														<option value="manager">Manager</option>
+													</select>
+												</div>
+												<div className="col-6 mb-4">
+													<label className="label">Account Status <span className="text-danger">*</span></label>
+													<select className="custom-select" name="account_status" value={formData.account_status} onChange={handleInputChange} required>
+														<option value="active">Active</option>
+														<option value="inactive">Inactive</option>
+														<option value="banned">Banned</option>
+													</select>
+												</div>
+												<div className="col-6 mb-4">
+													<label className="label">Gender <span className="text-danger">*</span></label>
+													<select className="custom-select" name="gender" value={formData.gender} onChange={handleInputChange} required>
+														<option value="male">Male</option>
+														<option value="female">Female</option>
+														<option value="other">Other</option>
+													</select>
+												</div>
+												<div className="col-6 mb-4">
+													<label className="label">Authentication Type</label>
+													<select className="custom-select" name="auth_type" value={formData.auth_type} onChange={handleInputChange}>
+														<option value="email">Email</option>
+														<option value="phone">Phone</option>
+														<option value="google">Google</option>
+													</select>
+												</div>
+											</div>
+
+											<div className="form-group row">
+												<div className="col-6 mb-4">
+													<label className="label">Full Name <span className="text-danger">*</span></label>
+													<input type="text" className="form-control" name="full_name" value={formData.full_name} onChange={handleInputChange} placeholder="" required />
+												</div>
+												<div className="col-6 mb-4">
+													<label className="label">Phone Number <span className="text-danger">*</span></label>
+													<input type="tel" className="form-control" name="phone_number" value={formData.phone_number} onChange={handleInputChange} placeholder="" required />
+												</div>
+												<div className="col-6 mb-4">
+													<label className="label">Email Address <span className="text-danger">*</span></label>
+													<input type="email" className="form-control" name="email_address" value={formData.email_address} onChange={handleInputChange} placeholder="" required />
+												</div>
+												<div className="col-6 mb-4">
+													<label className="label">Password <span className="text-danger">*</span></label>
+													<input type="password" className="form-control" name="password" value={formData.password} onChange={handleInputChange} placeholder="" required />							
+												</div>
 											</div>
 										</div>
-
-										<div className="form-group row">
-											<div className="col-lg-12">
-												<label className="col-form-label">Professional Bio <span className="text-danger">*</span></label>
-												<textarea 
-													className="form-control"
-													name="bio"
-													value={formData.bio}
-													onChange={handleInputChange}
-													placeholder="Tell us about your experience and approach to astrology..."
-													rows={4}
-													required
-												/>
-												<small className="form-text text-muted">Minimum 50 characters</small>
-											</div>
-										</div>
-
-										<div className="form-group row">
-											<div className="col-lg-6">
-												<label className="col-form-label">Qualifications <span className="text-danger">*</span></label>
-												<div className="input-group mb-2">
+									</div>
+									{/* Personal Information Card */}
+									<div className="card mb-4">
+										<h5 className="card-header">Personal Information</h5>
+										<div className="card-body">
+											<div className="form-group row">
+												<div className="col-4 mb-4">
+													<label className="label">Birth Date {isAstrologer && <span className="text-danger">*</span>}</label>
+													<AirDatePickerComponent
+														className="form-control"
+														placeholder="Select birth date"
+														value={formData.date_of_birth}
+														onChange={(date: string) => {
+															setFormData(prev => ({
+																...prev,
+																date_of_birth: date
+															}));
+														}}
+														maxDate={new Date()}
+														minDate={new Date('1900-01-01')}
+													/>
+												</div>
+												<div className="col-4 mb-4">
+													<label className="label">Birth Time {isAstrologer && <span className="text-danger">*</span>}</label>
+													<input type="time" className="form-control" name="birth_time" value={formData.birth_time} onChange={handleInputChange} required={isAstrologer} />
+												</div>
+												<div className="col-4 mb-4">
+													<label className="label">Birth Place {isAstrologer && <span className="text-danger">*</span>}</label>
+													<input type="text" className="form-control" name="birth_place" value={formData.birth_place} onChange={handleInputChange} placeholder="" required={isAstrologer} />
+												</div>
+												<div className="col-12 mb-4">
+													<label className="label">Address {isAstrologer && <span className="text-danger">*</span>}</label>
+													<textarea 
+														className="form-control"
+														name="address"
+														value={formData.address}
+														onChange={handleInputChange}
+														placeholder=""
+														rows={3}
+														required={isAstrologer}
+													/>
+												</div>
+												<div className="col-6 mb-4">
+													<label className="label">Country {isAstrologer && <span className="text-danger">*</span>}</label>
 													<input 
 														type="text" 
 														className="form-control"
-														value={qualificationInput}
-														onChange={(e) => setQualificationInput(e.target.value)}
-														placeholder="Enter qualification"
-														onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addQualification())}
+														name="country"
+														value={formData.country}
+														onChange={handleInputChange}
+														placeholder=""
+														required={isAstrologer}
 													/>
-													<div className="input-group-append">
-														<button 
-															type="button" 
-															className="btn btn-outline-primary"
-															onClick={addQualification}
-														>
-															<i className="fas fa-plus"></i>
-														</button>
-													</div>
 												</div>
-												{formData.qualifications.length > 0 && (
-													<div className="d-flex flex-wrap">
-														{formData.qualifications.map((qual, index) => (
-															<span key={index} className="badge badge-primary mr-2 mb-2">
-																{qual}
-																<button 
-																	type="button" 
-																	className="btn btn-sm ml-1 p-0"
-																	style={{ background: 'none', border: 'none', color: 'white' }}
-																	onClick={() => removeQualification(index)}
-																>
-																	×
-																</button>
-															</span>
-														))}
-													</div>
-												)}
-											</div>
-											<div className="col-lg-6">
-												<label className="col-form-label">Skills <span className="text-danger">*</span></label>
-												<div className="dropdown">
-													<input
-														type="text"
-														className="form-control dropdown-toggle"
-														value={formData.skills.join(', ') || 'Select skills...'}
-														onFocus={() => setShowSkillDropdown(true)}
-														readOnly
-														style={{ cursor: 'pointer' }}
-														data-toggle="dropdown"
+												<div className="col-6 mb-4">
+													<label className="label">State {isAstrologer && <span className="text-danger">*</span>}</label>
+													<input 
+														type="text" 
+														className="form-control"
+														name="state"
+														value={formData.state}
+														onChange={handleInputChange}
+														placeholder=""
+														required={isAstrologer}
 													/>
-													{showSkillDropdown && (
-														<div className="dropdown-menu show w-100" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-															<div className="px-3 py-2">
-																<div className="d-flex justify-content-between align-items-center mb-2">
-																	<small className="text-muted">Select Skills</small>
-																	<button
-																		type="button"
-																		className="btn btn-sm btn-outline-secondary"
-																		onClick={() => setShowSkillDropdown(false)}
-																	>
-																		<i className="fas fa-times"></i>
-																	</button>
-																</div>
-																{optionsLoading ? (
-																	<div className="text-center py-2">
-																		<i className="fas fa-spinner fa-spin"></i>
-																		<small className="d-block text-muted">Loading...</small>
-																	</div>
-																) : (
-																	<div style={{ maxHeight: '150px', overflowY: 'auto' }}>
-																		{astrologerOptions.skills.map((skill) => (
-																			<div key={skill} className="form-check">
-																				<input
-																					type="checkbox"
-																					className="form-check-input"
-																					id={`skill-${skill}`}
-																					checked={formData.skills.includes(skill)}
-																					onChange={() => toggleSkill(skill)}
-																				/>
-																				<label className="form-check-label" htmlFor={`skill-${skill}`}>
-																					{skill}
-																				</label>
+												</div>
+												<div className="col-6 mb-4">
+													<label className="label">City {isAstrologer && <span className="text-danger">*</span>}</label>
+													<input 
+														type="text" 
+														className="form-control"
+														name="city"
+														value={formData.city}
+														onChange={handleInputChange}
+														placeholder=""
+														required={isAstrologer}
+													/>
+												</div>
+												<div className="col-6 mb-4">
+													<label className="label">ZIP Code {isAstrologer && <span className="text-danger">*</span>}</label>
+													<input 
+														type="text" 
+														className="form-control"
+														name="zip"
+														value={formData.zip}
+														onChange={handleInputChange}
+														placeholder=""
+														required={isAstrologer}
+													/>
+												</div>
+
+												{/* Astrologer Professional Information */}
+												{isAstrologer && (
+													<>
+														<div className="col-6 mb-4">
+															<label className="label">Experience Years <span className="text-danger">*</span></label>
+															<input 
+																type="number" 
+																className="form-control"
+																name="experience_years"
+																value={formData.experience_years}
+																onChange={handleInputChange}
+																placeholder=""
+																min="1"
+																required
+															/>
+														</div>
+														<div className="col-6 mb-4">
+															<label className="label">Languages <span className="text-danger">*</span></label>
+															<div className="dropdown">
+																<input
+																	type="text"
+																	className="form-control dropdown-toggle"
+																	value={formData.languages.join(', ') || 'Select languages...'}
+																	onFocus={() => setShowLanguageDropdown(true)}
+																	readOnly
+																	style={{ cursor: 'pointer' }}
+																	data-toggle="dropdown"
+																/>
+																{showLanguageDropdown && (
+																	<div className="dropdown-menu show w-100" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+																		<div className="px-3 py-2">
+																			<div className="d-flex justify-content-between align-items-center mb-2">
+																				<small className="text-muted">Select Languages</small>
+																				<button
+																					type="button"
+																					className="btn btn-sm btn-outline-secondary"
+																					onClick={() => setShowLanguageDropdown(false)}
+																				>
+																					<i className="fas fa-times"></i>
+																				</button>
 																			</div>
-																		))}
+																			{optionsLoading ? (
+																				<div className="text-center py-2">
+																					<i className="fas fa-spinner fa-spin"></i>
+																					<small className="d-block text-muted">Loading...</small>
+																				</div>
+																			) : (
+																				<div style={{ maxHeight: '150px', overflowY: 'auto' }}>
+																					{astrologerOptions.languages.map((language) => (
+																						<div key={language} className="form-check">
+																							<input
+																								type="checkbox"
+																								className="form-check-input"
+																								id={`lang-${language}`}
+																								checked={formData.languages.includes(language)}
+																								onChange={() => toggleLanguage(language)}
+																							/>
+																							<label className="form-check-label" htmlFor={`lang-${language}`}>
+																								{language}
+																							</label>
+																						</div>
+																					))}
+																				</div>
+																			)}
+																		</div>
 																	</div>
 																)}
 															</div>
+															{formData.languages.length > 0 && (
+																<div className="mt-2">
+																	<small className="text-muted">Selected: </small>
+																	<div className="d-flex flex-wrap">
+																		{formData.languages.map((lang, index) => (
+																			<span key={index} className="badge badge-success mr-1 mb-1">
+																				{lang}
+																				<button 
+																					type="button" 
+																					className="btn btn-sm ml-1 p-0" 
+																					style={{ background: 'none', border: 'none', color: 'white' }} 
+																					onClick={() => toggleLanguage(lang)}
+																				>
+																					×
+																				</button>
+																			</span>
+																		))}
+																	</div>
+																</div>
+															)}
 														</div>
-													)}
-												</div>
-												{formData.skills.length > 0 && (
-													<div className="mt-2">
-														<small className="text-muted">Selected: </small>
-														<div className="d-flex flex-wrap">
-															{formData.skills.map((skill, index) => (
-																<span key={index} className="badge badge-info mr-1 mb-1">
-																	{skill}
+														<div className="col-12">
+															<label className="label">About Me <span className="text-danger">*</span></label>
+															<textarea 
+																className="form-control"
+																name="bio"
+																value={formData.bio}
+																onChange={handleInputChange}
+																placeholder="Tell us about your experience and approach to astrology..."
+																rows={4}
+																required
+															/>
+															<small className="form-text text-muted">Minimum 50 characters</small>
+														</div>
+														<div className="col-6 mb-4">
+															<label className="label">Qualifications <span className="text-danger">*</span></label>
+															<div className="input-group mb-2">
+																<input 
+																	type="text" 
+																	className="form-control"
+																	value={qualificationInput}
+																	onChange={(e) => setQualificationInput(e.target.value)}
+																	placeholder="Enter qualification"
+																	onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addQualification())}
+																/>
+																<div className="input-group-append">
 																	<button 
 																		type="button" 
-																		className="btn btn-sm ml-1 p-0" 
-																		style={{ background: 'none', border: 'none', color: 'white' }} 
-																		onClick={() => toggleSkill(skill)}
+																		className="btn btn-outline-primary"
+																		onClick={addQualification}
 																	>
-																		×
+																		<i className="fas fa-plus"></i>
 																	</button>
-																</span>
-															))}
+																</div>
+															</div>
+															{formData.qualifications.length > 0 && (
+																<div className="d-flex flex-wrap">
+																	{formData.qualifications.map((qual, index) => (
+																		<span key={index} className="badge badge-primary mr-2 mb-2">
+																			{qual}
+																			<button 
+																				type="button" 
+																				className="btn btn-sm ml-1 p-0"
+																				style={{ background: 'none', border: 'none', color: 'white' }}
+																				onClick={() => removeQualification(index)}
+																			>
+																				×
+																			</button>
+																		</span>
+																	))}
+																</div>
+															)}
 														</div>
-													</div>
+														<div className="col-6 mb-4">
+															<label className="label">Skills <span className="text-danger">*</span></label>
+															<div className="dropdown">
+																<input
+																	type="text"
+																	className="form-control dropdown-toggle"
+																	value={formData.skills.join(', ') || 'Select skills...'}
+																	onFocus={() => setShowSkillDropdown(true)}
+																	readOnly
+																	style={{ cursor: 'pointer' }}
+																	data-toggle="dropdown"
+																/>
+																{showSkillDropdown && (
+																	<div className="dropdown-menu show w-100" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+																		<div className="px-3 py-2">
+																			<div className="d-flex justify-content-between align-items-center mb-2">
+																				<small className="text-muted">Select Skills</small>
+																				<button
+																					type="button"
+																					className="btn btn-sm btn-outline-secondary"
+																					onClick={() => setShowSkillDropdown(false)}
+																				>
+																					<i className="fas fa-times"></i>
+																				</button>
+																			</div>
+																			{optionsLoading ? (
+																				<div className="text-center py-2">
+																					<i className="fas fa-spinner fa-spin"></i>
+																					<small className="d-block text-muted">Loading...</small>
+																				</div>
+																			) : (
+																				<div style={{ maxHeight: '150px', overflowY: 'auto' }}>
+																					{astrologerOptions.skills.map((skill) => (
+																						<div key={skill} className="form-check">
+																							<input
+																								type="checkbox"
+																								className="form-check-input"
+																								id={`skill-${skill}`}
+																								checked={formData.skills.includes(skill)}
+																								onChange={() => toggleSkill(skill)}
+																							/>
+																							<label className="form-check-label" htmlFor={`skill-${skill}`}>
+																								{skill}
+																							</label>
+																						</div>
+																					))}
+																				</div>
+																			)}
+																		</div>
+																	</div>
+																)}
+															</div>
+															{formData.skills.length > 0 && (
+																<div className="mt-2">
+																	<div className="d-flex flex-wrap">
+																		{formData.skills.map((skill, index) => (
+																			<span key={index} className="badge badge-info mr-1 mb-1">
+																				{skill}
+																				<button 
+																					type="button" 
+																					className="btn btn-sm ml-1 p-0" 
+																					style={{ background: 'none', border: 'none', color: 'white' }} 
+																					onClick={() => toggleSkill(skill)}
+																				>
+																					×
+																				</button>
+																			</span>
+																		))}
+																	</div>
+																</div>
+															)}
+														</div>
+														<div className="col-4 mb-4">
+															<label className="label">Call Rate (₹/min) <span className="text-danger">*</span></label>
+															<input 
+																type="number" 
+																className="form-control"
+																name="commission_rates.call_rate"
+																value={formData.commission_rates.call_rate}
+																onChange={handleInputChange}
+																placeholder=""
+																min="0"
+																required={isAstrologer}
+															/>
+														</div>
+														<div className="col-4 mb-4">
+															<label className="label">Chat Rate (₹/min) <span className="text-danger">*</span></label>
+															<input 
+																type="number" 
+																className="form-control"
+																name="commission_rates.chat_rate"
+																value={formData.commission_rates.chat_rate}
+																onChange={handleInputChange}
+																placeholder=""
+																min="0"
+																required={isAstrologer}
+															/>
+														</div>
+														<div className="col-4 mb-4">
+															<label className="label">Video Rate (₹/min) <span className="text-danger">*</span></label>
+															<input 
+																type="number" 
+																className="form-control"
+																name="commission_rates.video_rate"
+																value={formData.commission_rates.video_rate}
+																onChange={handleInputChange}
+																placeholder=""
+																min="0"
+																required={isAstrologer}
+															/>
+														</div>
+													</>
 												)}
 											</div>
 										</div>
-
-										<div className="form-group row">
-											<div className="col-lg-4">
-												<label className="col-form-label">Call Rate (₹/min) <span className="text-danger">*</span></label>
-												<input 
-													type="number" 
-													className="form-control"
-													name="commission_rates.call_rate"
-													value={formData.commission_rates.call_rate}
-													onChange={handleInputChange}
-													placeholder=""
-													min="0"
-													required={isAstrologer}
-												/>
-											</div>
-											<div className="col-lg-4">
-												<label className="col-form-label">Chat Rate (₹/min) <span className="text-danger">*</span></label>
-												<input 
-													type="number" 
-													className="form-control"
-													name="commission_rates.chat_rate"
-													value={formData.commission_rates.chat_rate}
-													onChange={handleInputChange}
-													placeholder=""
-													min="0"
-													required={isAstrologer}
-												/>
-											</div>
-											<div className="col-lg-4">
-												<label className="col-form-label">Video Rate (₹/min) <span className="text-danger">*</span></label>
-												<input 
-													type="number" 
-													className="form-control"
-													name="commission_rates.video_rate"
-													value={formData.commission_rates.video_rate}
-													onChange={handleInputChange}
-													placeholder=""
-													min="0"
-													required={isAstrologer}
-												/>
-											</div>
-										</div>
-									</>
-								)}
-							</div>
-						</div>
-						{/* Account Settings Card */}
-						<div className="card mb-4">
-							<h5 className="card-header">Account Settings</h5>
-							<div className="card-body">
-								<div className="form-group row">
-									<div className="col-lg-4">
-										<div className="form-check">
-											<input 
-												className="form-check-input" 
-												type="checkbox" 
-												id="add_is_verified"
-												name="is_verified"
-												checked={formData.is_verified}
-												onChange={handleInputChange}
-											/>
-											<label className="form-check-label" htmlFor="add_is_verified">
-												Verified Account
-											</label>
+									</div>
+									{/* Account Settings Card */}
+									<div className="card mb-4">
+										<h5 className="card-header">Account Settings</h5>
+										<div className="card-body">
+											<div className="form-group row">
+												<div className="col-4 mb-4">
+													<label className="label">Verification Status</label>
+													<select 
+														className="custom-select"
+														name="verification_status"
+														value={formData.verification_status}
+														onChange={handleInputChange}
+													>
+														<option value="pending">Pending</option>
+														<option value="verified">Verified</option>
+														<option value="rejected">Rejected</option>
+													</select>
+												</div>
+												<div className="col-4 mb-4">
+													<div className="form-check mt-4">
+														<input 
+															className="form-check-input" 
+															type="checkbox" 
+															id="add_is_online"
+															name="is_online"
+															checked={formData.is_online}
+															onChange={handleInputChange}
+														/>
+														<label className="form-check-label" htmlFor="add_is_online">
+															Currently Online
+														</label>
+													</div>
+												</div>
+												<div className="col-12">
+													<label className="label">Verification Status Message</label>
+													<textarea className="form-control" name="verification_status_message" value={formData.verification_status_message} onChange={handleInputChange} placeholder="" rows={3}/>
+													<small className="form-text text-muted">
+														This message will be shown to the user regarding their verification status
+													</small>
+												</div>
+											</div>								
 										</div>
 									</div>
-									<div className="col-lg-4">
-										<div className="form-check">
-											<input 
-												className="form-check-input" 
-												type="checkbox" 
-												id="add_is_online"
-												name="is_online"
-												checked={formData.is_online}
-												onChange={handleInputChange}
-											/>
-											<label className="form-check-label" htmlFor="add_is_online">
-												Currently Online
-											</label>
+									<div className="row">
+										<div className="col-12">
+											<div className="text-left">									
+												<button type="submit" className="btn btn-primary" disabled={loading}>
+													{loading ? (
+														<><i className="fas fa-spinner fa-spin mr-2"></i>Processing...</>
+													) : (
+														<>Create Account</>
+													)}
+												</button>
+											</div>
 										</div>
 									</div>
-								</div>								
-							</div>
-						</div>
-						<div className="row">
-							<div className="col-lg-12">
-								<div className="text-left">									
-									<button type="submit" className="btn btn-primary" disabled={loading}>
-										{loading ? (
-											<><i className="fas fa-spinner fa-spin mr-2"></i>Processing...</>
-										) : (
-											<>Create Account</>
-										)}
-									</button>
+								</div>
+								<div className="col-xl-6 col-6 mb-4-12 col-md-6 col-sm-12 col-12">
+									
 								</div>
 							</div>
-						</div>
-					</div>
-					<div className="col-xl-6 col-6-12 col-md-6 col-sm-12 col-12">
-						
-					</div>
-				</div>
             </form>
           </div>
         </div>

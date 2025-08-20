@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- Email Address -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/email_input_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            app:startIconDrawable="@drawable/ic_mail_24"
+            app:boxStrokeWidth="1dp"
+            app:boxStrokeWidthFocused="2dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/email_edit_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Email Address"
+                android:inputType="textEmailAddress"
+                android:textSize="16sp"
+                android:textColor="@color/text_primary" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Hint text for Google login -->
+        <TextView
+            android:id="@+id/email_hint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:visibility="gone" />
+
+        <!-- Password Section -->
+        <LinearLayout
+            android:id="@+id/password_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Password -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/password_input_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                app:startIconDrawable="@drawable/ic_lock_24"
+                app:boxStrokeWidth="1dp"
+                app:boxStrokeWidthFocused="2dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/password_edit_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Password"
+                    android:inputType="textPassword"
+                    android:textSize="16sp"
+                    android:textColor="@color/text_primary" />
+
+                <ImageButton
+                    android:id="@+id/password_visibility_toggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="12dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_visibility_24"
+                    android:contentDescription="Toggle password visibility" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Confirm Password -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/confirm_password_input_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                app:startIconDrawable="@drawable/ic_lock_24"
+                app:boxStrokeWidth="1dp"
+                app:boxStrokeWidthFocused="2dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/confirm_password_edit_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Confirm Password"
+                    android:inputType="textPassword"
+                    android:textSize="16sp"
+                    android:textColor="@color/text_primary" />
+
+                <ImageButton
+                    android:id="@+id/confirm_password_visibility_toggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="12dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_visibility_24"
+                    android:contentDescription="Toggle password visibility" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>

@@ -4,7 +4,7 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-
+import Link from 'next/link';
 interface Transaction {
   _id: string;
   user_id: string;
@@ -174,10 +174,10 @@ function TransactionsContent() {
                     <nav aria-label="breadcrumb">
                       <ol className="breadcrumb">
                         <li className="breadcrumb-item">
-                          <a href="/admin/dashboard" className="breadcrumb-link">Dashboard</a>
+                          <Link href="/admin/dashboard" className="breadcrumb-link">Dashboard</Link>
                         </li>
                         <li className="breadcrumb-item">
-                          <a href="#" className="breadcrumb-link">Finance</a>
+                          <span className="breadcrumb-link">Finance</span>
                         </li>
                         <li className="breadcrumb-item active" aria-current="page">Transactions</li>
                       </ol>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/Header';
+import Link from 'next/link';import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { validateForm, getCategoryFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/validation';
 import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
@@ -98,7 +98,7 @@ export default function AddCategoryPage() {
                     <nav aria-label="breadcrumb">
                       <ol className="breadcrumb">
                         <li className="breadcrumb-item">
-                          <a href="/admin/dashboard" className="breadcrumb-link">Dashboard</a>
+                          <Link href="/admin/dashboard" className="breadcrumb-link">Dashboard</Link>
                         </li>
                         <li className="breadcrumb-item">
                           <a href="/admin/products" className="breadcrumb-link">Products</a>

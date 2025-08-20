@@ -14,7 +14,7 @@ interface User {
   phone_number: string;
   profile_image: string;
   account_status: string;
-  is_verified: boolean;
+  verification_status: string;
   is_online: boolean;
   city: string;
   state: string;
@@ -96,6 +96,32 @@ export default function CustomersPage() {
         return 'badge-danger';
       default:
         return 'badge-secondary';
+    }
+  };
+
+  const getVerificationBadge = (status: string) => {
+    switch (status) {
+      case 'verified':
+        return 'badge-success';
+      case 'pending':
+        return 'badge-warning';
+      case 'rejected':
+        return 'badge-danger';
+      default:
+        return 'badge-warning';
+    }
+  };
+
+  const getVerificationLabel = (status: string) => {
+    switch (status) {
+      case 'verified':
+        return 'Verified';
+      case 'pending':
+        return 'Pending';
+      case 'rejected':
+        return 'Rejected';
+      default:
+        return 'Pending';
     }
   };
 
@@ -193,10 +219,10 @@ export default function CustomersPage() {
                     <nav aria-label="breadcrumb">
                       <ol className="breadcrumb">
                         <li className="breadcrumb-item">
-                          <a href="/admin/dashboard" className="breadcrumb-link">Dashboard</a>
+                          <Link href="/admin/dashboard" className="breadcrumb-link">Dashboard</Link>
                         </li>
                         <li className="breadcrumb-item">
-                          <a href="#" className="breadcrumb-link">Accounts</a>
+                          <span className="breadcrumb-link">Accounts</span>
                         </li>
                         <li className="breadcrumb-item active" aria-current="page">Customers</li>
                       </ol>
@@ -331,8 +357,8 @@ export default function CustomersPage() {
                                   </span>
                                 </td>
                                 <td>
-                                  <span className={`badge ${user.is_verified ? 'badge-success' : 'badge-warning'}`}>
-                                    {user.is_verified ? 'Yes' : 'No'}
+                                  <span className={`badge ${getVerificationBadge(user.verification_status)}`}>
+                                    {getVerificationLabel(user.verification_status)}
                                   </span>
                                 </td>
                                 <td>

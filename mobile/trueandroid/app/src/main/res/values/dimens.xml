@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Padding and Margins -->
+    <dimen name="padding_xs">4dp</dimen>
+    <dimen name="padding_sm">8dp</dimen>
+    <dimen name="padding_md">16dp</dimen>
+    <dimen name="padding_lg">24dp</dimen>
+    <dimen name="padding_xl">32dp</dimen>
+    
+    <!-- Spacing -->
+    <dimen name="spacing_xs">4dp</dimen>
+    <dimen name="spacing_sm">8dp</dimen>
+    <dimen name="spacing_md">16dp</dimen>
+    <dimen name="spacing_lg">24dp</dimen>
+    <dimen name="spacing_xl">32dp</dimen>
+    
+    <!-- Button Heights -->
+    <dimen name="button_height_sm">36dp</dimen>
+    <dimen name="button_height_md">48dp</dimen>
+    <dimen name="button_height_lg">56dp</dimen>
+    
+    <!-- Border Radius -->
+    <dimen name="radius_xs">4dp</dimen>
+    <dimen name="radius_sm">8dp</dimen>
+    <dimen name="radius_md">12dp</dimen>
+    <dimen name="radius_lg">16dp</dimen>
+    <dimen name="radius_xl">24dp</dimen>
+    
+    <!-- Text Sizes -->
+    <dimen name="text_size_caption">12sp</dimen>
+    <dimen name="text_size_body_small">14sp</dimen>
+    <dimen name="text_size_body_medium">16sp</dimen>
+    <dimen name="text_size_body_large">18sp</dimen>
+    <dimen name="text_size_heading_6">16sp</dimen>
+    <dimen name="text_size_heading_5">18sp</dimen>
+    <dimen name="text_size_heading_4">20sp</dimen>
+    <dimen name="text_size_heading_3">24sp</dimen>
+    <dimen name="text_size_heading_2">28sp</dimen>
+    <dimen name="text_size_heading_1">32sp</dimen>
+    <dimen name="text_size_button_small">14sp</dimen>
+    <dimen name="text_size_button_medium">16sp</dimen>
+    <dimen name="text_size_button_large">18sp</dimen>
+</resources>

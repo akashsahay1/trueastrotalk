@@ -162,10 +162,10 @@ export default function CommissionsPage() {
                     <nav aria-label="breadcrumb">
                       <ol className="breadcrumb">
                         <li className="breadcrumb-item">
-                          <a href="/admin/dashboard" className="breadcrumb-link">Dashboard</a>
+                          <Link href="/admin/dashboard" className="breadcrumb-link">Dashboard</Link>
                         </li>
                         <li className="breadcrumb-item">
-                          <a href="#" className="breadcrumb-link">Finance</a>
+                          <span className="breadcrumb-link">Finance</span>
                         </li>
                         <li className="breadcrumb-item active" aria-current="page">Commissions</li>
                       </ol>

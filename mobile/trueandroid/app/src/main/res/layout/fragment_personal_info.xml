@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- Profile Image Section (for astrologers only) -->
+        <LinearLayout
+            android:id="@+id/profile_image_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="32dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Profile Photo"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary"
+                android:layout_marginBottom="8dp" />
+
+            <FrameLayout
+                android:id="@+id/profile_image_container"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:layout_gravity="center_horizontal"
+                android:background="@drawable/circle_border_primary">
+
+                <!-- Profile Image -->
+                <ImageView
+                    android:id="@+id/profile_image_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
+
+                <!-- Placeholder -->
+                <LinearLayout
+                    android:id="@+id/profile_image_placeholder"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <ImageView
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:src="@drawable/ic_camera_alt_24"
+                        android:tint="@color/primary"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Add Photo"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary"
+                        android:textAlignment="center" />
+
+                </LinearLayout>
+
+            </FrameLayout>
+
+        </LinearLayout>
+
+        <!-- Full Name -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/name_input_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            app:startIconDrawable="@drawable/ic_person_24"
+            app:boxStrokeWidth="1dp"
+            app:boxStrokeWidthFocused="2dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/name_edit_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Full Name"
+                android:inputType="textPersonName|textCapWords"
+                android:textSize="16sp"
+                android:textColor="@color/text_primary" />
+
+            <!-- Hint text for Google login -->
+            <TextView
+                android:id="@+id/name_hint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary"
+                android:visibility="gone" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Phone Number -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/phone_input_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            app:startIconDrawable="@drawable/ic_phone_24"
+            app:prefixText="+91 "
+            app:boxStrokeWidth="1dp"
+            app:boxStrokeWidthFocused="2dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/phone_edit_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Phone Number"
+                android:inputType="phone"
+                android:maxLength="10"
+                android:textSize="16sp"
+                android:textColor="@color/text_primary" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+    </LinearLayout>
+
+</ScrollView>

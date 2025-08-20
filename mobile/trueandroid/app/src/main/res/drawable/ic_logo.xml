@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    
+    <!-- Placeholder logo - replace with actual logo -->
+    <path
+        android:fillColor="@color/primary"
+        android:pathData="M100,20 L180,100 L100,180 L20,100 Z" />
+    
+    <path
+        android:fillColor="@color/white"
+        android:pathData="M100,60 L140,100 L100,140 L60,100 Z" />
+        
+    <!-- Star/Astrology symbol -->
+    <path
+        android:fillColor="@color/secondary"
+        android:pathData="M100,70 L105,85 L120,85 L108,95 L113,110 L100,100 L87,110 L92,95 L80,85 L95,85 Z" />
+
+</vector>

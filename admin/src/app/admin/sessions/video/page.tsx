@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert';
 
 interface VideoSession {
@@ -221,10 +222,10 @@ export default function VideoSessionsPage() {
                     <nav aria-label="breadcrumb">
                       <ol className="breadcrumb">
                         <li className="breadcrumb-item">
-                          <a href="/admin/dashboard" className="breadcrumb-link">Dashboard</a>
+                          <Link href="/admin/dashboard" className="breadcrumb-link">Dashboard</Link>
                         </li>
                         <li className="breadcrumb-item">
-                          <a href="#" className="breadcrumb-link">Sessions</a>
+                          <span className="breadcrumb-link">Sessions</span>
                         </li>
                         <li className="breadcrumb-item active" aria-current="page">Video Sessions</li>
                       </ol>

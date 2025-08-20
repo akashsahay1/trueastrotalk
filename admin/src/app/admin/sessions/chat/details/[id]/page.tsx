@@ -185,10 +185,10 @@ export default function ChatSessionDetailPage() {
                     <nav aria-label="breadcrumb">
                       <ol className="breadcrumb">
                         <li className="breadcrumb-item">
-                          <a href="/admin/dashboard" className="breadcrumb-link">Dashboard</a>
+                          <Link href="/admin/dashboard" className="breadcrumb-link">Dashboard</Link>
                         </li>
                         <li className="breadcrumb-item">
-                          <a href="#" className="breadcrumb-link">Sessions</a>
+                          <span className="breadcrumb-link">Sessions</span>
                         </li>
                         <li className="breadcrumb-item">
                           <Link href="/admin/sessions/chat" className="breadcrumb-link">Chat Sessions</Link>

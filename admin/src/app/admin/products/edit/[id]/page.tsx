@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Header from '@/components/Header';
+import Link from 'next/link';import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import MediaLibrary from '@/components/MediaLibrary';
 import Image from 'next/image';
@@ -229,7 +229,7 @@ export default function EditProductPage() {
                     <nav aria-label="breadcrumb">
                       <ol className="breadcrumb">
                         <li className="breadcrumb-item">
-                          <a href="/admin/dashboard" className="breadcrumb-link">Dashboard</a>
+                          <Link href="/admin/dashboard" className="breadcrumb-link">Dashboard</Link>
                         </li>
                         <li className="breadcrumb-item">
                           <a href="/admin/products" className="breadcrumb-link">Products</a>

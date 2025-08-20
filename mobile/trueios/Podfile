@@ -1,0 +1,47 @@
+# Uncomment the next line to define a global platform for your project
+platform :ios, '14.0'
+
+target 'TrueAstroTalk' do
+  # Comment the next line if you don't want to use dynamic frameworks
+  use_frameworks!
+
+  # Firebase
+  pod 'Firebase/Analytics'
+  pod 'Firebase/Auth'
+  pod 'Firebase/Firestore'
+  
+  # Google Sign In
+  pod 'GoogleSignIn'
+  
+  # Networking
+  pod 'Alamofire', '~> 5.8'
+  
+  # Image Loading
+  pod 'SDWebImage', '~> 5.18'
+  
+  # UI Components
+  pod 'lottie-ios'
+  pod 'SnapKit', '~> 5.6'
+  
+  # Utilities
+  pod 'SwiftyJSON', '~> 5.0'
+  pod 'KeychainAccess'
+
+  target 'TrueAstroTalkTests' do
+    inherit! :search_paths
+    # Pods for testing
+  end
+
+  target 'TrueAstroTalkUITests' do
+    # Pods for testing
+  end
+
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
+    end
+  end
+end
