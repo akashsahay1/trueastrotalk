@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       
       if (!config) {
         // Create default configuration if none exists
-        config = {
+        const newConfig = {
           type: 'general',
           razorpay: {
             keyId: '',
@@ -78,7 +78,8 @@ export async function GET(request: NextRequest) {
           updated_at: new Date().toISOString()
         };
         
-        await settingsCollection.insertOne(config);
+        const result = await settingsCollection.insertOne(newConfig);
+        config = { ...newConfig, _id: result.insertedId };
       }
 
       await client.close();
