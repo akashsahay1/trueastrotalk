@@ -256,6 +256,15 @@ test_*.js
 verify_*.js
 create-placeholder-images.html
 
+# Development and testing files
+*-backup.*
+*_backup.*
+*.backup
+test_*.md
+*_test.md
+EMAIL_SETUP.md
+CLEANUP.md
+
 # === DOCUMENTATION EXCEPTIONS ===
 
 # Keep important documentation
