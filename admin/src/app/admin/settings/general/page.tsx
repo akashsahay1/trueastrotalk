@@ -25,13 +25,6 @@ interface AppConfig {
 export default function GeneralSettingsPage() {
 	const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-
-  // Helper function to get auth token from cookies
-  const getAuthToken = () => {
-    const cookies = document.cookie.split(';');
-    const authCookie = cookies.find(cookie => cookie.trim().startsWith('auth-token='));
-    return authCookie ? authCookie.split('=')[1] : '';
-  };
   const [config, setConfig] = useState<AppConfig>({
     razorpay: {
       keyId: '',
@@ -58,9 +51,7 @@ export default function GeneralSettingsPage() {
     setLoading(true);
     try {
       const response = await fetch('/api/admin/settings/general', {
-        headers: {
-          'Authorization': `Bearer ${getAuthToken()}`,
-        },
+        credentials: 'include', // Include cookies in request
       });
       if (response.ok) {
         const data = await response.json();
@@ -82,8 +73,8 @@ export default function GeneralSettingsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getAuthToken()}`,
         },
+        credentials: 'include', // Include cookies in request
         body: JSON.stringify(config),
       });
 

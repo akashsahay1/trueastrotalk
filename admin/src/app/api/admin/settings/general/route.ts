@@ -12,9 +12,8 @@ const DB_NAME = 'trueastrotalkDB';
 // GET - Load configuration
 export async function GET(request: NextRequest) {
   try {
-    // Get token from header
-    const authHeader = request.headers.get('Authorization');
-    const token = authHeader?.replace('Bearer ', '');
+    // Get token from cookies (httpOnly cookie)
+    const token = request.cookies.get('auth-token')?.value;
 
     if (!token) {
       return NextResponse.json({ 
@@ -114,9 +113,8 @@ export async function GET(request: NextRequest) {
 // POST - Save configuration
 export async function POST(request: NextRequest) {
   try {
-    // Get token from header
-    const authHeader = request.headers.get('Authorization');
-    const token = authHeader?.replace('Bearer ', '');
+    // Get token from cookies (httpOnly cookie)
+    const token = request.cookies.get('auth-token')?.value;
 
     if (!token) {
       return NextResponse.json({ 
