@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     const usersCollection = db.collection('users');
 
     // Build query
-    const query: any = {
+    const query: Record<string, unknown> = {
       customer_id: payload.userId as string,
       status: { $in: ['completed', 'cancelled'] } // Only show finished consultations
     };

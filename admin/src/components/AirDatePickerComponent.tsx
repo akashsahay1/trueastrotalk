@@ -22,7 +22,7 @@ const AirDatePickerComponent: React.FC<AirDatePickerProps> = ({
   disabled = false
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const pickerRef = useRef<any>(null);
+  const pickerRef = useRef<{ selectDate: (date: Date, options?: { silent?: boolean }) => void; clear: () => void; destroy: () => void } | null>(null);
   const uniqueId = useId();
 
   useEffect(() => {
@@ -83,7 +83,7 @@ const AirDatePickerComponent: React.FC<AirDatePickerProps> = ({
           buttons: ['today', 'clear'],
           position: 'bottom left',
           container: document.body, // Append to body to avoid z-index issues
-          onSelect: ({ date, formattedDate }: { date: Date | Date[], formattedDate: string | string[] }) => {
+          onSelect: ({ formattedDate }: { date: Date | Date[], formattedDate: string | string[] }) => {
             if (onChange) {
               if (typeof formattedDate === 'string') {
                 onChange(formattedDate);
@@ -101,7 +101,7 @@ const AirDatePickerComponent: React.FC<AirDatePickerProps> = ({
             if (!isNaN(date.getTime())) {
               pickerRef.current.selectDate(date);
             }
-          } catch (error) {
+          } catch {
             console.warn('Invalid date value:', value);
           }
         }
@@ -119,7 +119,7 @@ const AirDatePickerComponent: React.FC<AirDatePickerProps> = ({
         pickerRef.current.destroy();
       }
     };
-  }, [maxDate, minDate]);
+  }, [onChange, placeholder, uniqueId, value, maxDate, minDate]);
 
   // Update value when prop changes
   useEffect(() => {
@@ -132,7 +132,7 @@ const AirDatePickerComponent: React.FC<AirDatePickerProps> = ({
           if (!isNaN(date.getTime())) {
             pickerRef.current.selectDate(date, { silent: true });
           }
-        } catch (error) {
+        } catch {
           console.warn('Invalid date value:', value);
         }
       }

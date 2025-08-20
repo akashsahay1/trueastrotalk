@@ -49,7 +49,7 @@ class EmailService {
   }
 
   // Template: Admin notification for new user signup
-  getAdminSignupNotificationTemplate(user: any): EmailTemplate {
+  getAdminSignupNotificationTemplate(user: { name: string; email: string; phone?: string; user_type: string }): EmailTemplate {
     return {
       subject: `New User Registration - ${user.name}`,
       html: `
@@ -150,7 +150,7 @@ class EmailService {
   }
 
   // Template: Welcome email for new users
-  getWelcomeEmailTemplate(user: any): EmailTemplate {
+  getWelcomeEmailTemplate(user: { name: string; email: string; user_type: string }): EmailTemplate {
     return {
       subject: `Welcome to True Astrotalk, ${user.name}!`,
       html: `
@@ -246,7 +246,7 @@ class EmailService {
   }
 
   // Template: Astrologer verification/rejection notification
-  getAstrologerStatusTemplate(astrologer: any, status: 'verified' | 'rejected', reason?: string): EmailTemplate {
+  getAstrologerStatusTemplate(astrologer: { name: string; email: string }, status: 'verified' | 'rejected', reason?: string): EmailTemplate {
     const isVerified = status === 'verified';
     
     return {
@@ -358,7 +358,7 @@ class EmailService {
   }
 
   // Send admin notification for new user signup
-  async sendAdminSignupNotification(user: any): Promise<boolean> {
+  async sendAdminSignupNotification(user: { name: string; email: string; phone?: string; user_type: string }): Promise<boolean> {
     const adminEmail = envConfig.SMTP.USER || 'admin@trueastrotalk.com'; // Admin email
     const template = this.getAdminSignupNotificationTemplate(user);
     
@@ -371,7 +371,7 @@ class EmailService {
   }
 
   // Send welcome email to new user
-  async sendWelcomeEmail(user: any): Promise<boolean> {
+  async sendWelcomeEmail(user: { name: string; email: string; user_type: string }): Promise<boolean> {
     const template = this.getWelcomeEmailTemplate(user);
     
     return await this.sendEmail({
@@ -383,7 +383,7 @@ class EmailService {
   }
 
   // Send astrologer status notification
-  async sendAstrologerStatusNotification(astrologer: any, status: 'verified' | 'rejected', reason?: string): Promise<boolean> {
+  async sendAstrologerStatusNotification(astrologer: { name: string; email: string }, status: 'verified' | 'rejected', reason?: string): Promise<boolean> {
     const template = this.getAstrologerStatusTemplate(astrologer, status, reason);
     
     return await this.sendEmail({

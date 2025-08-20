@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
+import { MongoClient } from 'mongodb';
 import { jwtVerify } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     const transactionsCollection = db.collection('transactions');
 
     // Build query
-    const query: any = {
+    const query: Record<string, unknown> = {
       user_id: payload.userId as string,
       user_type: 'customer'
     };

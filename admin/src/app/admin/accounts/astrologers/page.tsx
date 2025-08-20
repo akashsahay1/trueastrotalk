@@ -2,7 +2,7 @@
 
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert';
@@ -47,7 +47,6 @@ export default function AstrologersPage() {
   });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [searchInput, setSearchInput] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -69,7 +68,7 @@ export default function AstrologersPage() {
     document.body.className = '';
     fetchUsers(1, '', filters);
     fetchSkills();
-  }, []);
+  }, [fetchUsers, filters]);
 
   const fetchSkills = async () => {
     try {
@@ -83,7 +82,7 @@ export default function AstrologersPage() {
     }
   };
 
-  const fetchUsers = async (page: number, searchTerm: string, filterParams = filters) => {
+  const fetchUsers = useCallback(async (page: number, searchTerm: string, filterParams = filters) => {
     console.log(searchTerm, filterParams);
     setLoading(true);
     try {
@@ -125,11 +124,11 @@ export default function AstrologersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchUsers(1, searchInput, filters);
+    fetchUsers(1, search, filters);
   };
 
   const handlePageChange = (newPage: number) => {
