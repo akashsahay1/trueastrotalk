@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'config.dart';
+import '../services/auth/auth_service.dart';
+import '../services/service_locator.dart';
 
 class PaymentConfig {
   static PaymentConfig? _instance;
@@ -30,12 +32,26 @@ class PaymentConfig {
   /// This is the secure approach - credentials stay on server
   Future<void> _loadFromServer() async {
     try {
+      // Get authentication token
+      final authService = getIt<AuthService>();
+      final token = authService.authToken;
+      
+      if (token == null) {
+        throw Exception('User not authenticated. Please login first.');
+      }
+      
       final dio = Dio();
       final baseUrl = await Config.baseUrl;
       
-      // Remove /api from baseUrl to get the correct public endpoint
-      final serverUrl = baseUrl.replaceAll('/api', '');
-      final response = await dio.get('$serverUrl/api/public/app-config');
+      // Get app configuration from authenticated endpoint
+      final response = await dio.get(
+        '$baseUrl/app-config',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
       
       if (response.statusCode == 200) {
         final data = response.data;
