@@ -13,6 +13,7 @@ import 'services/service_locator.dart';
 import 'services/auth/auth_service.dart';
 import 'services/local/local_storage_service.dart';
 import 'services/network/dio_client.dart';
+import 'services/payment/razorpay_service.dart';
 import 'config/payment_config.dart';
 
 void main() async {
@@ -40,9 +41,13 @@ void main() async {
 
   // Initialize payment configuration
   try {
+    debugPrint('🔧 Initializing PaymentConfig...');
     await PaymentConfig.instance.initialize();
+    debugPrint('🔧 Initializing RazorpayService...');
+    RazorpayService.instance.initialize();
+    debugPrint('✅ Payment services initialized successfully');
   } catch (e) {
-    debugPrint('Payment config initialization failed: $e');
+    debugPrint('❌ Payment config initialization failed: $e');
   }
 
   // Set system UI overlay style

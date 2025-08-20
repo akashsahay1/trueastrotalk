@@ -17,7 +17,7 @@ function getFullImageUrl(request: NextRequest, imageUrl: string | null | undefin
   }
   
   // Get the actual host from the request headers
-  const host = request.headers.get('host') || 'localhost:4000';
+  const host = request.headers.get('host') || 'www.trueastrotalk.com';
   const protocol = request.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
   const baseUrl = `${protocol}://${host}`;
   

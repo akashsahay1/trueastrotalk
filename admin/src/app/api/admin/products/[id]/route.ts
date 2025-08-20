@@ -18,13 +18,13 @@ function getFullImageUrl(imageUrl: string | null | undefined): string | null {
   
   // If it's a relative path, construct full URL
   if (imageUrl.startsWith('/')) {
-    // Remove /api from the base URL if present, since we want the root domain
-    const baseUrl = envConfig.NEXTAUTH_URL || 'http://localhost:3000';
+    // Use production URL by default, fallback to localhost only in local development
+    const baseUrl = envConfig.NEXTAUTH_URL || 'https://www.trueastrotalk.com';
     return `${baseUrl}${imageUrl}`;
   }
   
   // If it doesn't start with /, add / prefix and then construct full URL  
-  const baseUrl = envConfig.NEXTAUTH_URL || 'http://localhost:3000';
+  const baseUrl = envConfig.NEXTAUTH_URL || 'https://www.trueastrotalk.com';
   return `${baseUrl}/${imageUrl}`;
 }
 

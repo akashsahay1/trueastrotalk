@@ -8,13 +8,15 @@ class Config {
   static const String version = '1.0.0';
   static const int buildNumber = 1;
 
-  // Environment
-  static const bool isDevelopment = kDebugMode;
-  static const bool isProduction = !kDebugMode;
+  // Environment Mode - Change this to switch between local and production
+  static const String appMode = 'production'; // 'local' or 'production'
+
+  static bool get isDevelopment => appMode == 'local';
+  static bool get isProduction => appMode == 'production';
 
   // Auto-detect local IP for development
   static String? _cachedLocalIP;
-  
+
   static Future<String> _getLocalIP() async {
     // For development, always use the computer's IP address
     // This bypasses auto-detection which was finding the device's own IP
@@ -22,7 +24,7 @@ class Config {
       _cachedLocalIP = '192.168.0.124'; // Your computer's IP address
       return _cachedLocalIP!;
     }
-    
+
     // For production, use localhost or production server
     return 'localhost';
   }
@@ -32,7 +34,7 @@ class Config {
     if (isProduction) {
       return 'https://www.trueastrotalk.com/api';
     }
-    
+
     // Development mode - auto-detect IP
     final ip = await _getLocalIP();
     return 'http://$ip:4000/api';
@@ -42,7 +44,7 @@ class Config {
     if (isProduction) {
       return 'https://www.trueastrotalk.com';
     }
-    
+
     // Development mode - auto-detect IP
     final ip = await _getLocalIP();
     return 'http://$ip:4000';
@@ -53,7 +55,7 @@ class Config {
     if (isProduction) {
       return 'https://www.trueastrotalk.com/api';
     }
-    
+
     final ip = _cachedLocalIP ?? (Platform.isAndroid ? '10.0.2.2' : 'localhost');
     return 'http://$ip:4000/api';
   }
@@ -62,7 +64,7 @@ class Config {
     if (isProduction) {
       return 'https://www.trueastrotalk.com';
     }
-    
+
     final ip = _cachedLocalIP ?? (Platform.isAndroid ? '10.0.2.2' : 'localhost');
     return 'http://$ip:4000';
   }
@@ -123,8 +125,8 @@ class Config {
   static const String appStoreUrl = 'https://apps.apple.com/app/true-astrotalk/id123456789';
 
   // Debug settings
-  static const bool enableLogger = isDevelopment;
-  static const bool enableNetworkLogs = isDevelopment;
+  static const bool enableLogger = appMode == 'local';
+  static const bool enableNetworkLogs = appMode == 'local';
   static const bool enablePerformanceMonitoring = true;
 
   // Retry configuration

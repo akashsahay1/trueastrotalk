@@ -16,7 +16,9 @@ class RazorpayService {
   
   /// Initialize Razorpay service
   void initialize() {
+    debugPrint('🔧 RazorpayService: Creating Razorpay instance...');
     _razorpay = Razorpay();
+    debugPrint('✅ RazorpayService: Razorpay instance created successfully');
   }
 
   /// Process wallet recharge payment
@@ -28,8 +30,10 @@ class RazorpayService {
     required Function(PaymentFailureResponse response) onError,
   }) async {
     try {
+      debugPrint('🔧 RazorpayService: Checking if _razorpay is initialized...');
+      debugPrint('🔧 RazorpayService: _razorpay is ${_razorpay == null ? "NULL" : "NOT NULL"}');
       if (_razorpay == null) {
-        throw Exception('Razorpay not initialized');
+        throw Exception('Razorpay not configured. Call initialize() first.');
       }
 
       // Get services
