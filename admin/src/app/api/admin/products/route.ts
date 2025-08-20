@@ -1,9 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 import { UploadService } from '@/lib/upload-service';
 
 const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const DB_NAME = 'trueastrotalkDB';
+
+// Helper function to resolve media ID to full URL
+async function resolveMediaUrl(request: NextRequest, mediaId: string | ObjectId | null | undefined, db: any): Promise<string | null> {
+  if (!mediaId) return null;
+  
+  try {
+    const mediaFile = await db.collection('media_files').findOne({_id: new ObjectId(mediaId)});
+    if (!mediaFile || !mediaFile.file_path) return null;
+    
+    // Get the actual host from the request headers
+    const host = request.headers.get('host') || 'www.trueastrotalk.com';
+    const protocol = request.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
+    const baseUrl = `${protocol}://${host}`;
+    
+    return `${baseUrl}${mediaFile.file_path}`;
+  } catch (error) {
+    console.error('Error resolving media URL:', error);
+    return null;
+  }
+}
 
 // Helper function to convert relative image URLs to full URLs
 function getFullImageUrl(request: NextRequest, imageUrl: string | null | undefined): string | null {
@@ -60,13 +80,28 @@ export async function GET(request: NextRequest) {
 
     const totalProducts = await productsCollection.countDocuments(query);
 
-    await client.close();
-
     // Transform products to include full image URLs
-    const productsWithFullUrls = products.map(product => ({
-      ...product,
-      image_url: getFullImageUrl(request, product.image_url)
-    }));
+    const productsWithFullUrls = await Promise.all(
+      products.map(async (product) => {
+        let imageUrl = null;
+        
+        // Try new image_id field first, then fallback to old image_url field
+        if (product.image_id) {
+          imageUrl = await resolveMediaUrl(request, product.image_id, client.db(DB_NAME));
+        } else if (product.image_url) {
+          imageUrl = getFullImageUrl(request, product.image_url);
+        }
+        
+        return {
+          ...product,
+          image_url: imageUrl,
+          // Remove old fields to keep response clean
+          image_id: undefined
+        };
+      })
+    );
+
+    await client.close();
 
     return NextResponse.json({
       success: true,
