@@ -25,6 +25,13 @@ interface AppConfig {
 export default function GeneralSettingsPage() {
 	const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Helper function to get auth token from cookies
+  const getAuthToken = () => {
+    const cookies = document.cookie.split(';');
+    const authCookie = cookies.find(cookie => cookie.trim().startsWith('auth-token='));
+    return authCookie ? authCookie.split('=')[1] : '';
+  };
   const [config, setConfig] = useState<AppConfig>({
     razorpay: {
       keyId: '',
@@ -50,7 +57,11 @@ export default function GeneralSettingsPage() {
   const loadConfig = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/settings/general');
+      const response = await fetch('/api/admin/settings/general', {
+        headers: {
+          'Authorization': `Bearer ${getAuthToken()}`,
+        },
+      });
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.config) {
@@ -71,19 +82,22 @@ export default function GeneralSettingsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getAuthToken()}`,
         },
         body: JSON.stringify(config),
       });
 
       if (response.ok) {
+        const data = await response.json();
         alert('Configuration saved successfully!');
       } else {
         const error = await response.json();
+        console.error('Save failed:', error);
         alert(`Failed to save: ${error.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Failed to save configuration:', error);
-      alert('Failed to save configuration');
+      alert('Failed to save configuration: ' + error);
     } finally {
       setSaving(false);
     }
