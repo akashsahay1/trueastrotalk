@@ -64,12 +64,6 @@ export default function AstrologersPage() {
   });
   const [availableSkills, setAvailableSkills] = useState<string[]>([]);
 
-  useEffect(() => {
-    document.body.className = '';
-    fetchUsers(1, '', filters);
-    fetchSkills();
-  }, [fetchUsers, fetchSkills, filters]);
-
   const fetchSkills = useCallback(async () => {
     try {
       const response = await fetch('/api/astrologer-options?type=skills');
@@ -126,6 +120,11 @@ export default function AstrologersPage() {
     }
   }, [filters]);
 
+  useEffect(() => {
+    document.body.className = '';
+    fetchUsers(1, '', filters);
+    fetchSkills();
+  }, [fetchUsers, fetchSkills, filters]);
 
   const handlePageChange = (newPage: number) => {
     fetchUsers(newPage, search, filters);
