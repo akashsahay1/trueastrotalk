@@ -206,6 +206,7 @@ Dockerfile.prod
 
 # Build outputs
 dist/
+!**/public/assets/libs/*/dist/
 build/
 out/
 

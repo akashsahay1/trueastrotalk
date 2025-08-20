@@ -343,7 +343,7 @@ export default function AstrologersPage() {
                         Filter {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
                       </button>
                       <Link href="/admin/accounts/add-user?type=astrologer" className="btn btn-primary">
-                        <i className="fas fa-plus mr-2"></i>Add Astrologer
+                        <i className="fas fa-plus mr-2"></i> Add
                       </Link>
                     </div>
                   </div>
