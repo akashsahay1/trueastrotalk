@@ -308,6 +308,12 @@ function AddUserPageContent() {
       // Birth time validation for astrologers
       if (!formData.birth_time) {
         customErrors.birth_time = 'Birth time is required for astrologers';
+      } else {
+        // Validate time format - accepts formats like "07:30 AM", "7:30 PM", "14:30"
+        const timeRegex = /^(0?[1-9]|1[0-2]|2[0-3]):([0-5][0-9])(\s?(AM|PM|am|pm))?$|^([01]?[0-9]|2[0-3]):([0-5][0-9])$/;
+        if (!timeRegex.test(formData.birth_time.trim())) {
+          customErrors.birth_time = 'Please enter a valid time (e.g., 07:30 AM or 14:30)';
+        }
       }
 
       // Birth place validation for astrologers
@@ -647,11 +653,37 @@ function AddUserPageContent() {
 												</div>
 												<div className="col-4 mb-4">
 													<label className="label">Birth Time {isAstrologer && <span className="text-danger">*</span>}</label>
-													<input type="time" className="form-control" name="birth_time" value={formData.birth_time} onChange={handleInputChange} required={isAstrologer} />
+													<input 
+														type="text" 
+														className={`form-control ${_fieldErrors.birth_time ? 'is-invalid' : ''}`} 
+														name="birth_time" 
+														value={formData.birth_time} 
+														onChange={handleInputChange} 
+														placeholder="07:30 AM" 
+														required={isAstrologer} 
+													/>
+													{_fieldErrors.birth_time && (
+														<div className="invalid-feedback d-block">
+															{_fieldErrors.birth_time}
+														</div>
+													)}
 												</div>
 												<div className="col-4 mb-4">
 													<label className="label">Birth Place {isAstrologer && <span className="text-danger">*</span>}</label>
-													<input type="text" className="form-control" name="birth_place" value={formData.birth_place} onChange={handleInputChange} placeholder="" required={isAstrologer} />
+													<input 
+														type="text" 
+														className={`form-control ${_fieldErrors.birth_place ? 'is-invalid' : ''}`} 
+														name="birth_place" 
+														value={formData.birth_place} 
+														onChange={handleInputChange} 
+														placeholder="" 
+														required={isAstrologer} 
+													/>
+													{_fieldErrors.birth_place && (
+														<div className="invalid-feedback d-block">
+															{_fieldErrors.birth_place}
+														</div>
+													)}
 												</div>
 												<div className="col-12 mb-4">
 													<label className="label">Address {isAstrologer && <span className="text-danger">*</span>}</label>

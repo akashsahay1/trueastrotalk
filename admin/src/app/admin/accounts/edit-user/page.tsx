@@ -149,6 +149,33 @@ function EditUserContent() {
           }
         };
 
+        // Format time for input fields (ensures HH:MM format)
+        const formatTime = (timeString: string) => {
+          if (!timeString) return '';
+          
+          // If it's already in HH:MM format, return as is
+          if (/^\d{2}:\d{2}$/.test(timeString)) {
+            return timeString;
+          }
+          
+          // If it's in HH:MM:SS format, remove seconds
+          if (/^\d{2}:\d{2}:\d{2}$/.test(timeString)) {
+            return timeString.substring(0, 5);
+          }
+          
+          // If it's a Date object or timestamp, extract time
+          try {
+            const date = new Date(timeString);
+            if (!isNaN(date.getTime())) {
+              return date.toTimeString().substring(0, 5);
+            }
+          } catch {
+            // Fallback for any other format
+          }
+          
+          return timeString;
+        };
+
         setFormData({
           profile_image_id: user.profile_image_id || '',
           social_auth_profile_image: user.social_auth_profile_image || '',
@@ -160,7 +187,7 @@ function EditUserContent() {
           phone_number: user.phone_number || '',
           gender: user.gender || 'male',
           date_of_birth: formatDate(user.date_of_birth),
-          birth_time: user.birth_time || '',
+          birth_time: formatTime(user.birth_time),
           birth_place: user.birth_place || '',
           address: user.address || '',
           city: user.city || '',
@@ -219,6 +246,12 @@ function EditUserContent() {
       setFormData(prev => ({
         ...prev,
         [name]: checked
+      }));
+    } else if (type === 'time' || type === 'date') {
+      // Special handling for time and date inputs - preserve the value as-is
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
       }));
     } else if (name.includes('.')) {
       // Handle nested objects like commission_rates.call_rate
@@ -352,6 +385,12 @@ function EditUserContent() {
       // Birth time validation for astrologers
       if (!formData.birth_time) {
         customErrors.birth_time = 'Birth time is required for astrologers';
+      } else {
+        // Validate time format - accepts formats like "07:30 AM", "7:30 PM", "14:30"
+        const timeRegex = /^(0?[1-9]|1[0-2]|2[0-3]):([0-5][0-9])(\s?(AM|PM|am|pm))?$|^([01]?[0-9]|2[0-3]):([0-5][0-9])$/;
+        if (!timeRegex.test(formData.birth_time.trim())) {
+          customErrors.birth_time = 'Please enter a valid time (e.g., 07:30 AM or 14:30)';
+        }
       }
 
       // Birth place validation for astrologers
@@ -689,7 +728,7 @@ function EditUserContent() {
                         </div>
                         <div className="col-6 mb-4">
                           <label className="label">Phone Number <span className="text-danger">*</span></label>
-                          <input type="tel" className={`form-control ${fieldErrors.phone_number ? 'is-invalid' : ''}`} name="phone_number" value={formData.phone_number} onChange={handleInputChange} placeholder="+91XXXXXXXXXX" required />
+                          <input type="tel" className={`form-control ${fieldErrors.phone_number ? 'is-invalid' : ''}`} name="phone_number" value={formData.phone_number} onChange={handleInputChange} placeholder="" required />
                           {fieldErrors.phone_number && (
                             <div className="invalid-feedback d-block">
                               {fieldErrors.phone_number}
@@ -707,7 +746,7 @@ function EditUserContent() {
 													<div className="col-4 mb-4">
 														<label className="label">Birth Date {isAstrologer && <span className="text-danger">*</span>}</label>
 														<AirDatePickerComponent
-															className="form-control"
+															className={`form-control ${fieldErrors.date_of_birth ? 'is-invalid' : ''}`}
 															placeholder="Select birth date"
 															value={formData.date_of_birth}
 															onChange={(date: string) => {
@@ -719,14 +758,45 @@ function EditUserContent() {
 															maxDate={new Date()}
 															minDate={new Date('1900-01-01')}
 														/>
+														{fieldErrors.date_of_birth && (
+															<div className="invalid-feedback d-block">
+																{fieldErrors.date_of_birth}
+															</div>
+														)}
 													</div>
 													<div className="col-4 mb-4">
 														<label className="label">Birth Time {isAstrologer && <span className="text-danger">*</span>}</label>
-														<input type="time" className="form-control" name="birth_time" value={formData.birth_time} onChange={handleInputChange} required={isAstrologer} />
+														<input 
+															type="text" 
+															className={`form-control ${fieldErrors.birth_time ? 'is-invalid' : ''}`} 
+															name="birth_time" 
+															value={formData.birth_time} 
+															onChange={handleInputChange} 
+															placeholder="07:30 AM"
+															required={isAstrologer} 
+														/>
+														{fieldErrors.birth_time && (
+															<div className="invalid-feedback d-block">
+																{fieldErrors.birth_time}
+															</div>
+														)}
 													</div>
 													<div className="col-4 mb-4">
 														<label className="label">Birth Place {isAstrologer && <span className="text-danger">*</span>}</label>
-														<input type="text" className="form-control" name="birth_place" value={formData.birth_place} onChange={handleInputChange} placeholder="" required={isAstrologer} />
+														<input 
+															type="text" 
+															className={`form-control ${fieldErrors.birth_place ? 'is-invalid' : ''}`} 
+															name="birth_place" 
+															value={formData.birth_place} 
+															onChange={handleInputChange} 
+															placeholder="" 
+															required={isAstrologer} 
+														/>
+														{fieldErrors.birth_place && (
+															<div className="invalid-feedback d-block">
+																{fieldErrors.birth_place}
+															</div>
+														)}
 													</div>
 													{/* Address Information */}
 													<div className="col-6 mb-4">

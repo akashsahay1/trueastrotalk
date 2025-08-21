@@ -69,7 +69,16 @@ export default function AstrologersPage() {
       const response = await fetch('/api/astrologer-options?type=skills');
       const data = await response.json();
       if (response.ok && data.skills) {
-        setAvailableSkills(data.skills);
+        // Handle both string array and object array formats
+        const skills = data.skills.map((skill: string | {name?: string; value?: string}) => {
+          if (typeof skill === 'string') {
+            return skill;
+          } else if (skill && typeof skill === 'object') {
+            return skill.name || skill.value || String(skill);
+          }
+          return String(skill);
+        });
+        setAvailableSkills(skills);
       }
     } catch (error) {
       console.error('Error fetching skills:', error);
@@ -299,7 +308,7 @@ export default function AstrologersPage() {
             <div className="row">
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                 <div className="page-header">
-                  <h2 className="pageheader-title">Astrologers</h2>
+                  <h2 className="pageheader-title">Astrologers ({pagination.totalCount})</h2>
                   <p className="pageheader-text">Manage all astrologer accounts and their services</p>
                   <div className="page-breadcrumb">
                     <nav aria-label="breadcrumb">
@@ -322,9 +331,8 @@ export default function AstrologersPage() {
             <div className="row">
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                 <div className="card">
-                  <div className="card-header d-flex justify-content-between align-items-center">
-                    <h5 className="mb-0">Astrologer List ({pagination.totalCount} total)</h5>
-                    <div>
+                  <div className="card-body">
+										<div className='d-flex justify-content-end align-items-center mb-3'>
                       {selectedUsers.length > 0 && (
                         <button 
                           className="btn btn-danger mr-2"
@@ -340,15 +348,10 @@ export default function AstrologersPage() {
                         onClick={openModal}
                       >
                         <i className="fas fa-filter mr-1"></i>
-                        Filter {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
+                        Filters {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
                       </button>
-                      <Link href="/admin/accounts/add-user?type=astrologer" className="btn btn-primary">
-                        <i className="fas fa-plus mr-2"></i> Add
-                      </Link>
+                      <Link href="/admin/accounts/add-user?type=astrologer" className="btn btn-primary">Add New</Link>
                     </div>
-                  </div>
-                  <div className="card-body">
-
                     {/* Users Table */}
                     <div className="table-responsive">
                       <table className="table table-striped table-bordered">
@@ -382,7 +385,7 @@ export default function AstrologersPage() {
                             </tr>
                           ) : users.length > 0 ? (
                             users.map((user) => (
-                              <tr key={user._id}>
+                              <tr key={String(user._id)}>
                                 <td>
                                   <input 
                                     type="checkbox" 
@@ -642,8 +645,8 @@ export default function AstrologersPage() {
                         onChange={(e) => handleFilterChange('skills', e.target.value)}
                       >
                         <option value="">All Skills</option>
-                        {availableSkills.map((skill) => (
-                          <option key={skill} value={skill}>{skill}</option>
+                        {availableSkills.map((skill, index) => (
+                          <option key={`skill-${index}-${skill}`} value={skill}>{skill}</option>
                         ))}
                       </select>
                     </div>

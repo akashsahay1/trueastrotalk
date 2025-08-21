@@ -39,17 +39,27 @@ export default function CustomersPage() {
     hasPrevPage: false
   });
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [searchInput, setSearchInput] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [modalAnimating, setModalAnimating] = useState(false);
+  const [filters, setFilters] = useState({
+    search: '',
+    accountStatus: '',
+    verificationStatus: '',
+    city: '',
+    state: '',
+    country: '',
+    fromDate: '',
+    toDate: ''
+  });
 
   useEffect(() => {
     document.body.className = '';
-    fetchUsers(1, '');
-  }, []);
+    fetchUsers(1);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const fetchUsers = async (page: number, searchTerm: string) => {
+  const fetchUsers = async (page: number, filterParams = filters) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -58,8 +68,17 @@ export default function CustomersPage() {
         type: 'customer'
       });
       
-      if (searchTerm) {
-        params.append('search', searchTerm);
+      if (filterParams?.search) {
+        params.append('search', filterParams.search);
+      }
+      
+      // Add filter parameters
+      if (filterParams) {
+        Object.entries(filterParams).forEach(([key, value]) => {
+          if (value && key !== 'search') {
+            params.append(key, value);
+          }
+        });
       }
 
       const response = await fetch(`/api/users?${params}`);
@@ -68,7 +87,6 @@ export default function CustomersPage() {
       if (response.ok) {
         setUsers(data.data.users);
         setPagination(data.data.pagination);
-        setSearch(searchTerm);
       }
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -77,13 +95,48 @@ export default function CustomersPage() {
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchUsers(1, searchInput);
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
   };
 
+  const openModal = () => {
+    setShowFilterModal(true);
+    setTimeout(() => setModalAnimating(true), 10);
+  };
+
+  const closeModal = () => {
+    setModalAnimating(false);
+    setTimeout(() => setShowFilterModal(false), 300);
+  };
+
+  const clearFilters = () => {
+    const clearedFilters = {
+      search: '',
+      accountStatus: '',
+      verificationStatus: '',
+      city: '',
+      state: '',
+      country: '',
+      fromDate: '',
+      toDate: ''
+    };
+    setFilters(clearedFilters);
+    fetchUsers(1, clearedFilters);
+    closeModal();
+  };
+
+  const applyFilters = () => {
+    fetchUsers(1, filters);
+    closeModal();
+  };
+
+  const hasActiveFilters = Object.values(filters).some(value => value !== '');
+
   const handlePageChange = (newPage: number) => {
-    fetchUsers(newPage, search);
+    fetchUsers(newPage, filters);
   };
 
   const getStatusBadge = (status: string) => {
@@ -137,7 +190,7 @@ export default function CustomersPage() {
 
       if (response.ok) {
         successMessages.deleted('User');
-        fetchUsers(pagination.currentPage, search);
+        fetchUsers(pagination.currentPage, filters);
       } else {
         await response.json();
         errorMessages.deleteFailed('user');
@@ -176,7 +229,7 @@ export default function CustomersPage() {
       }
 
       setSelectedUsers([]);
-      fetchUsers(pagination.currentPage, search);
+      fetchUsers(pagination.currentPage, filters);
     } catch (error) {
       console.error('Error in bulk delete:', error);
       alert('Error deleting users. Please try again.');
@@ -213,7 +266,7 @@ export default function CustomersPage() {
             <div className="row">
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                 <div className="page-header">
-                  <h2 className="pageheader-title">Customers</h2>
+                  <h2 className="pageheader-title">Customers ({pagination.totalCount})</h2>
                   <p className="pageheader-text">Manage all customer accounts</p>
                   <div className="page-breadcrumb">
                     <nav aria-label="breadcrumb">
@@ -236,9 +289,8 @@ export default function CustomersPage() {
             <div className="row">
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                 <div className="card">
-                  <div className="card-header d-flex justify-content-between align-items-center">
-                    <h5 className="mb-0">Customer List ({pagination.totalCount} total)</h5>
-                    <div>
+                  <div className="card-body">
+										<div className='d-flex justify-content-end align-items-center mb-3'>
                       {selectedUsers.length > 0 && (
                         <button 
                           className="btn btn-danger mr-2"
@@ -249,43 +301,15 @@ export default function CustomersPage() {
                           Delete Selected ({selectedUsers.length})
                         </button>
                       )}
-                      <Link href="/admin/accounts/add-user" className="btn btn-primary">
-                        <i className="fas fa-plus mr-2"></i>Add Customer
-                      </Link>
+                      <button 
+                        className="btn btn-outline-secondary mr-2"
+                        onClick={openModal}
+                      >
+                        <i className="fas fa-filter mr-1"></i>
+                        Filters {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
+                      </button>
+                      <Link href="/admin/accounts/add-user" className="btn btn-primary">Add New</Link>
                     </div>
-                  </div>
-                  <div className="card-body">
-                    {/* Search Form */}
-                    <form onSubmit={handleSearch} className="row mb-3">
-                      <div className="col-md-8">
-                        <div className="form-group">
-                          <input 
-                            type="text" 
-                            className="form-control" 
-                            placeholder="Search by name, email, or phone..." 
-                            value={searchInput}
-                            onChange={(e) => setSearchInput(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div className="col-md-4">
-                        <button type="submit" className="btn btn-outline-primary mr-2" disabled={loading}>
-                          <i className="fas fa-search mr-1"></i>Search
-                        </button>
-                        <button 
-                          type="button" 
-                          className="btn btn-outline-secondary"
-                          onClick={() => {
-                            setSearchInput('');
-                            fetchUsers(1, '');
-                          }}
-                          disabled={loading}
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    </form>
-
                     {/* Users Table */}
                     <div className="table-responsive">
                       <table className="table table-striped table-bordered">
@@ -467,6 +491,162 @@ export default function CustomersPage() {
           </div>
         </div>
       </div>
+      {/* Filter Modal */}
+      {showFilterModal && (
+        <div className={`modal fade ${modalAnimating ? 'show' : ''}`} style={{display: 'block'}} tabIndex={-1} role="dialog">
+          <div className="modal-dialog modal-dialog-centered modal-md" role="document">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Filter Customers</h5>
+                <button 
+                  type="button" 
+                  className="close" 
+                  onClick={closeModal}
+                >
+                  <span>&times;</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                {/* Search Field */}
+                <div className="form-group">
+                  <label>Search</label>
+                  <input 
+                    type="text" 
+                    className="form-control form-control-sm" 
+                    placeholder="Search by name, email, or phone"
+                    value={filters.search}
+                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                  />
+                </div>
+
+                {/* Status Filters - 2 columns */}
+                <div className="row">
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Account Status</label>
+                      <select 
+                        className="form-control form-control-sm"
+                        value={filters.accountStatus}
+                        onChange={(e) => handleFilterChange('accountStatus', e.target.value)}
+                      >
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="banned">Banned</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Verification Status</label>
+                      <select 
+                        className="form-control form-control-sm"
+                        value={filters.verificationStatus}
+                        onChange={(e) => handleFilterChange('verificationStatus', e.target.value)}
+                      >
+                        <option value="">All Verification</option>
+                        <option value="verified">Verified</option>
+                        <option value="pending">Pending</option>
+                        <option value="rejected">Rejected</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Location Filters - 2 columns */}
+                <div className="row">
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>City</label>
+                      <input 
+                        type="text" 
+                        className="form-control form-control-sm" 
+                        placeholder="Filter by city"
+                        value={filters.city}
+                        onChange={(e) => handleFilterChange('city', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>State</label>
+                      <input 
+                        type="text" 
+                        className="form-control form-control-sm" 
+                        placeholder="Filter by state"
+                        value={filters.state}
+                        onChange={(e) => handleFilterChange('state', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Country Filter */}
+                <div className="form-group">
+                  <label>Country</label>
+                  <input 
+                    type="text" 
+                    className="form-control form-control-sm" 
+                    placeholder="Filter by country"
+                    value={filters.country}
+                    onChange={(e) => handleFilterChange('country', e.target.value)}
+                  />
+                </div>
+
+                {/* Date Range - 2 columns */}
+                <div className="row">
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Joined From</label>
+                      <input 
+                        type="date" 
+                        className="form-control form-control-sm"
+                        value={filters.fromDate}
+                        onChange={(e) => handleFilterChange('fromDate', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Joined Upto</label>
+                      <input 
+                        type="date" 
+                        className="form-control form-control-sm"
+                        value={filters.toDate}
+                        onChange={(e) => handleFilterChange('toDate', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary btn-sm" 
+                  onClick={clearFilters}
+                >
+                  Clear All
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-primary btn-sm" 
+                  onClick={applyFilters}
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Backdrop */}
+      {showFilterModal && (
+        <div 
+          className={`modal-backdrop fade ${modalAnimating ? 'show' : ''}`}
+          onClick={closeModal}
+        ></div>
+      )}
     </div>
   );
 }

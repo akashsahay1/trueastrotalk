@@ -68,7 +68,7 @@ export const validationRules = {
   
   userType: {
     required: true,
-    custom: (value: string) => ['customer', 'astrologer', 'admin', 'manager'].includes(value),
+    custom: (value: string) => ['customer', 'astrologer', 'administrator', 'manager'].includes(value),
     message: 'Please select a valid user type'
   },
   
