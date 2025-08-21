@@ -1,26 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { MongoClient } from 'mongodb';
 import { jwtVerify } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 );
 
-// Get Razorpay credentials from environment variables
-const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
-const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
+const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
+const DB_NAME = 'trueastrotalkDB';
 
 export async function POST(request: NextRequest) {
   try {
-    // Validate Razorpay credentials
-    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
-      console.error('Missing Razorpay credentials in environment variables');
-      return NextResponse.json({
-        success: false,
-        error: 'Payment service configuration error',
-        message: 'Payment service is not properly configured'
-      }, { status: 500 });
-    }
-
     // Get token from header
     const authHeader = request.headers.get('Authorization');
     const token = authHeader?.replace('Bearer ', '');
@@ -43,6 +33,42 @@ export async function POST(request: NextRequest) {
         error: 'Invalid token',
         message: 'Authentication token is invalid or expired' 
       }, { status: 401 });
+    }
+
+    // Connect to MongoDB to get Razorpay credentials
+    const client = new MongoClient(MONGODB_URL);
+    await client.connect();
+    
+    const db = client.db(DB_NAME);
+    const settingsCollection = db.collection('app_settings');
+
+    let RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET;
+
+    try {
+      // Get Razorpay credentials from database
+      const config = await settingsCollection.findOne({ type: 'general' });
+      
+      if (!config || !config.razorpay?.keyId || !config.razorpay?.keySecret) {
+        await client.close();
+        console.error('Missing Razorpay credentials in database configuration');
+        return NextResponse.json({
+          success: false,
+          error: 'Payment service configuration error',
+          message: 'Payment service is not properly configured'
+        }, { status: 500 });
+      }
+
+      RAZORPAY_KEY_ID = config.razorpay.keyId;
+      RAZORPAY_KEY_SECRET = config.razorpay.keySecret;
+
+    } catch (dbError) {
+      await client.close();
+      console.error('Error fetching Razorpay credentials from database:', dbError);
+      return NextResponse.json({
+        success: false,
+        error: 'Payment service configuration error',
+        message: 'Failed to load payment service configuration'
+      }, { status: 500 });
     }
 
     // Parse request body
@@ -100,6 +126,7 @@ export async function POST(request: NextRequest) {
     }
 
     const razorpayOrder = await razorpayResponse.json();
+    await client.close();
 
     return NextResponse.json({
       success: true,

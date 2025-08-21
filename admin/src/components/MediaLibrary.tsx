@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert';
 
@@ -21,6 +21,8 @@ interface MediaLibraryProps {
   selectedImage?: string;
 }
 
+type ViewMode = 'grid' | 'list';
+
 export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage }: MediaLibraryProps) {
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [loading, setLoading] = useState(false);
@@ -28,6 +30,11 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
   const [selectedFile, setSelectedFile] = useState<string | null>(selectedImage || null);
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [sidebarFile, setSidebarFile] = useState<MediaFile | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -38,6 +45,17 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
   useEffect(() => {
     setSelectedFile(selectedImage || null);
   }, [selectedImage]);
+
+  // Filter files based on search query
+  const filteredFiles = useMemo(() => {
+    if (!searchQuery.trim()) return mediaFiles;
+    
+    const query = searchQuery.toLowerCase().trim();
+    return mediaFiles.filter(file => 
+      file.original_name.toLowerCase().includes(query) ||
+      file.filename.toLowerCase().includes(query)
+    );
+  }, [mediaFiles, searchQuery]);
 
   const fetchMediaFiles = async () => {
     setLoading(true);
@@ -63,9 +81,9 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File size should be less than 5MB');
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size should be less than 10MB');
       return;
     }
 
@@ -91,7 +109,7 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
           if (response.success) {
             fetchMediaFiles(); // Refresh the media files
             setSelectedFile(response.file_path);
-            setSelectedMediaId(response.file_id?.toString() || response.file_id); // Set the uploaded file's media ID
+            setSelectedMediaId(response.file_id?.toString() || response.file_id);
           } else {
             alert(response.message || 'Upload failed');
           }
@@ -139,6 +157,11 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
           setSelectedFile(null);
           setSelectedMediaId(null);
         }
+        // Close sidebar if showing deleted file
+        if (sidebarFile?._id === fileId) {
+          setShowSidebar(false);
+          setSidebarFile(null);
+        }
         successMessages.deleted('File');
       } else {
         errorMessages.deleteFailed('file');
@@ -149,9 +172,71 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedFiles.size === 0) return;
+    
+    const confirmed = await confirmDialogs.deleteItem(`${selectedFiles.size} file(s)`);
+    if (!confirmed) return;
+
+    try {
+      const deletePromises = Array.from(selectedFiles).map(fileId =>
+        fetch(`/api/admin/media/${fileId}`, { method: 'DELETE' })
+      );
+
+      await Promise.all(deletePromises);
+      fetchMediaFiles();
+      setSelectedFiles(new Set());
+      setShowSidebar(false);
+      setSidebarFile(null);
+      successMessages.deleted(`${selectedFiles.size} file(s)`);
+    } catch (error) {
+      console.error('Error deleting files:', error);
+      errorMessages.deleteFailed('files');
+    }
+  };
+
+  const handleFileClick = (file: MediaFile) => {
+    if (viewMode === 'grid') {
+      // In grid view, clicking opens sidebar
+      setSidebarFile(file);
+      setShowSidebar(true);
+    } else {
+      // In list view, clicking selects
+      setSelectedFile(file.file_path);
+      setSelectedMediaId(file._id);
+    }
+  };
+
+  const handleFileSelect = (fileId: string, isChecked: boolean) => {
+    const newSelected = new Set(selectedFiles);
+    if (isChecked) {
+      newSelected.add(fileId);
+    } else {
+      newSelected.delete(fileId);
+    }
+    setSelectedFiles(newSelected);
+  };
+
+  const handleSelectAllFiles = (isChecked: boolean) => {
+    if (isChecked) {
+      setSelectedFiles(new Set(filteredFiles.map(f => f._id)));
+    } else {
+      setSelectedFiles(new Set());
+    }
+  };
+
   const handleSelect = () => {
     if (selectedFile) {
       onSelect(selectedFile, selectedMediaId || undefined);
+      onClose();
+    }
+  };
+
+  const handleSidebarSelect = () => {
+    if (sidebarFile) {
+      setSelectedFile(sidebarFile.file_path);
+      setSelectedMediaId(sidebarFile._id);
+      onSelect(sidebarFile.file_path, sidebarFile._id);
       onClose();
     }
   };
@@ -162,6 +247,16 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   if (!isOpen) return null;
@@ -181,135 +276,314 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
             </button>
           </div>
           
-          <div className="modal-body" style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-            {/* Upload Section */}
-            <div className="mb-4">
-              <div className="row">
-                <div className="col-md-6">
-                  <label className="btn btn-primary">
-                    <i className="fas fa-upload"></i> Upload New Image
+          <div className="modal-body p-0" style={{ flex: 1, overflowY: 'hidden', display: 'flex' }}>
+            {/* Main content area */}
+            <div style={{ flex: showSidebar ? '1 1 70%' : '1 1 100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              {/* Toolbar */}
+              <div className="p-3 border-bottom">
+                <div className="row align-items-center">
+                  <div className="col-md-4">
+                    <label className="btn btn-primary btn-sm">
+                      Upload New
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        style={{ display: 'none' }}
+                        disabled={uploading}
+                      />
+                    </label>
+                    {viewMode === 'list' && selectedFiles.size > 0 && (
+                      <button
+                        className="btn btn-danger btn-sm ml-2"
+                        onClick={handleBulkDelete}
+                      >
+                        <i className="fas fa-trash"></i> Delete Selected ({selectedFiles.size})
+                      </button>
+                    )}
+                  </div>
+                  <div className="col-md-4">
                     <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileUpload}
-                      style={{ display: 'none' }}
-                      disabled={uploading}
+                      type="text"
+                      className="form-control form-control-sm"
+                      placeholder="Search files..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
                     />
-                  </label>
-                </div>
-                <div className="col-md-6">
-                  {uploading && (
-                    <div>
-                      <div className="progress">
-                        <div 
-                          className="progress-bar" 
-                          role="progressbar" 
-                          style={{ width: `${uploadProgress}%` }}
-                        >
-                          {Math.round(uploadProgress)}%
-                        </div>
-                      </div>
+                  </div>
+                  <div className="col-md-4 text-right">
+                    <div className="d-flex align-items-center justify-content-end">
+                      <button
+                        type="button"
+                        className={`btn btn-link p-2 ${viewMode === 'grid' ? 'text-primary' : 'text-muted'}`}
+                        onClick={() => setViewMode('grid')}
+                        title="Grid View"
+                      >
+                        <i className="fas fa-th fa-lg"></i>
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn-link p-2 ${viewMode === 'list' ? 'text-primary' : 'text-muted'}`}
+                        onClick={() => setViewMode('list')}
+                        title="List View"
+                      >
+                        <i className="fas fa-list fa-lg"></i>
+                      </button>
                     </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Media Grid */}
-            <div style={{ minHeight: '200px' }}>
-              {loading ? (
-                <div className="text-center py-5">
-                  <div className="spinner-border" role="status">
-                    <span className="sr-only">Loading...</span>
                   </div>
                 </div>
-              ) : (
-                <div className="row">
-                  {mediaFiles.length === 0 ? (
-                    <div className="col-12 text-center py-5">
-                      <p className="text-muted">No images uploaded yet. Upload your first image to get started.</p>
-                    </div>
-                  ) : (
-                    mediaFiles.map((file) => (
-                      <div key={file._id} className="col-lg-3 col-md-4 col-sm-6 col-12 mb-3">
+
+                {/* Upload Progress */}
+                {uploading && (
+                  <div className="mt-3">
+                    <div className="progress" style={{ height: '6px' }}>
                       <div 
-                        className={`card h-100 ${selectedFile === file.file_path ? 'border-primary' : ''}`}
-                        style={{ cursor: 'pointer' }}
+                        className="progress-bar" 
+                        role="progressbar" 
+                        style={{ width: `${uploadProgress}%` }}
                       >
+                      </div>
+                    </div>
+                    <small className="text-muted">Uploading... {Math.round(uploadProgress)}%</small>
+                  </div>
+                )}
+              </div>
+
+              {/* Media content */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+                {loading ? (
+                  <div className="text-center py-5">
+                    <div className="spinner-border" role="status">
+                      <span className="sr-only">Loading...</span>
+                    </div>
+                  </div>
+                ) : filteredFiles.length === 0 ? (
+                  <div className="text-center py-5">
+                    <p className="text-muted">
+                      {searchQuery ? 'No files match your search criteria.' : 'No images uploaded yet. Upload your first image to get started.'}
+                    </p>
+                  </div>
+                ) : viewMode === 'grid' ? (
+                  /* Grid View - 6 images per row, no buttons */
+                  <div className="row">
+                    {filteredFiles.map((file) => (
+                      <div key={file._id} className="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-12 mb-3">
                         <div 
-                          className="card-img-top d-flex align-items-center justify-content-center"
-                          style={{ height: '150px', overflow: 'hidden', backgroundColor: '#f8f9fa', position: 'relative' }}
-                          onClick={() => {
-                            setSelectedFile(file.file_path);
-                            setSelectedMediaId(file._id);
-                          }}
+                          className={`card h-100 ${selectedFile === file.file_path ? 'border-primary' : ''} ${sidebarFile?._id === file._id ? 'shadow-sm border-info' : ''}`}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => handleFileClick(file)}
                         >
-                          <Image
-                            src={file.file_path}
-                            alt={file.original_name}
-                            style={{ 
-                              objectFit: 'cover' 
-                            }}
-                            fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          />
-                        </div>
-                        <div className="card-body p-2">
-                          <h6 className="card-title text-truncate mb-1" title={file.original_name}>
-                            {file.original_name}
-                          </h6>
-                          <small className="text-muted d-block">
-                            {formatFileSize(file.file_size)}
-                          </small>
-                          <small className="text-muted d-block">
-                            {new Date(file.uploaded_at).toLocaleDateString()}
-                          </small>
-                        </div>
-                        <div className="card-footer p-2">
-                          <div className="d-flex justify-content-between">
-                            <button
-                              className={`btn btn-sm ${selectedFile === file.file_path ? 'btn-primary' : 'btn-outline-primary'}`}
-                              onClick={() => {
-                            setSelectedFile(file.file_path);
-                            setSelectedMediaId(file._id);
-                          }}
-                            >
-                              {selectedFile === file.file_path ? 'Selected' : 'Select'}
-                            </button>
-                            <button
-                              className="btn btn-sm btn-outline-danger"
-                              onClick={() => handleDeleteFile(file._id)}
-                              title="Delete"
-                            >
-                              <i className="fas fa-trash"></i>
-                            </button>
+                          <div 
+                            className="card-img-top d-flex align-items-center justify-content-center"
+                            style={{ height: '120px', overflow: 'hidden', backgroundColor: '#f8f9fa', position: 'relative' }}
+                          >
+                            <Image
+                              src={file.file_path}
+                              alt={file.original_name}
+                              style={{ objectFit: 'cover' }}
+                              fill
+                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 16vw"
+                            />
+                          </div>
+                          <div className="card-body p-2">
+                            <h6 className="card-title text-truncate mb-1 small" title={file.original_name}>
+                              {file.original_name}
+                            </h6>
+                            <small className="text-muted d-block">
+                              {formatFileSize(file.file_size)}
+                            </small>
                           </div>
                         </div>
                       </div>
-                    </div>
-                    ))
-                  )}
-                </div>
-              )}
+                    ))}
+                  </div>
+                ) : (
+                  /* List View - with checkboxes and bulk actions */
+                  <div className="table-responsive">
+                    <table className="table table-sm table-hover">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '40px' }}>
+                            <input
+                              type="checkbox"
+                              checked={selectedFiles.size === filteredFiles.length && filteredFiles.length > 0}
+                              onChange={(e) => handleSelectAllFiles(e.target.checked)}
+                            />
+                          </th>
+                          <th style={{ width: '80px' }}>Preview</th>
+                          <th>Name</th>
+                          <th style={{ width: '100px' }}>Size</th>
+                          <th style={{ width: '150px' }}>Date</th>
+                          <th style={{ width: '140px' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredFiles.map((file) => (
+                          <tr key={file._id} className={selectedFile === file.file_path ? 'table-active' : ''}>
+                            <td>
+                              <input
+                                type="checkbox"
+                                checked={selectedFiles.has(file._id)}
+                                onChange={(e) => handleFileSelect(file._id, e.target.checked)}
+                              />
+                            </td>
+                            <td>
+                              <div style={{ width: '60px', height: '40px', position: 'relative', overflow: 'hidden', borderRadius: '4px' }}>
+                                <Image
+                                  src={file.file_path}
+                                  alt={file.original_name}
+                                  style={{ objectFit: 'cover' }}
+                                  fill
+                                  sizes="60px"
+                                />
+                              </div>
+                            </td>
+                            <td>
+                              <div 
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => handleFileClick(file)}
+                              >
+                                <strong>{file.original_name}</strong>
+                                <br />
+                                <small className="text-muted">{file.filename}</small>
+                              </div>
+                            </td>
+                            <td>{formatFileSize(file.file_size)}</td>
+                            <td>
+                              <small>{formatDate(file.uploaded_at)}</small>
+                            </td>
+                            <td className="media-actions-cell">
+                              <button
+                                className={`btn ${selectedFile === file.file_path ? 'btn-primary' : 'btn-outline-primary'} btn-sm media-select-btn`}
+                                onClick={() => {
+                                  setSelectedFile(file.file_path);
+                                  setSelectedMediaId(file._id);
+                                }}
+                              >
+                                {selectedFile === file.file_path ? 'Selected' : 'Select'}
+                              </button>
+                              <button
+                                className="btn btn-outline-danger btn-sm media-delete-btn"
+                                onClick={() => handleDeleteFile(file._id)}
+                                title="Delete"
+                              >
+                                <i className="fas fa-trash"></i>
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </div>
+
+            {/* Sidebar */}
+            {showSidebar && sidebarFile && (
+              <div style={{ flex: '0 0 30%', borderLeft: '1px solid #dee2e6', display: 'flex', flexDirection: 'column' }}>
+                <div className="p-3 border-bottom d-flex justify-content-between align-items-center">
+                  <h6 className="mb-0">File Details</h6>
+                  <button 
+                    type="button" 
+                    className="btn btn-sm btn-outline-secondary" 
+                    onClick={() => setShowSidebar(false)}
+                    title="Close"
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
+                </div>
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                  {/* Image Preview */}
+                  <div className="p-3 text-center" style={{ borderBottom: '1px solid #dee2e6' }}>
+                    <div style={{ position: 'relative', width: '200px', height: '150px', margin: '0 auto', borderRadius: '8px', overflow: 'hidden' }}>
+                      <Image
+                        src={sidebarFile.file_path}
+                        alt={sidebarFile.original_name}
+                        style={{ objectFit: 'cover' }}
+                        fill
+                        sizes="200px"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* File Details */}
+                  <div className="p-3">
+                    <div className="mb-3">
+                      <label className="form-label small text-muted mb-1">File Name</label>
+                      <p className="mb-0 small">{sidebarFile.original_name}</p>
+                    </div>
+                    
+                    <div className="mb-3">
+                      <label className="form-label small text-muted mb-1">File Size</label>
+                      <p className="mb-0 small">{formatFileSize(sidebarFile.file_size)}</p>
+                    </div>
+                    
+                    <div className="mb-3">
+                      <label className="form-label small text-muted mb-1">Type</label>
+                      <p className="mb-0 small">{sidebarFile.mime_type}</p>
+                    </div>
+                    
+                    <div className="mb-3">
+                      <label className="form-label small text-muted mb-1">Uploaded</label>
+                      <p className="mb-0 small">{formatDate(sidebarFile.uploaded_at)}</p>
+                    </div>
+                    
+                    <div className="mb-3">
+                      <label className="form-label small text-muted mb-1">File Path</label>
+                      <p className="mb-0 small text-break">{sidebarFile.file_path}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Sidebar Actions */}
+                <div className="p-3 border-top">
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm w-100 mb-2"
+                    onClick={handleSidebarSelect}
+                  >
+                    <i className="fas fa-check"></i> Select This File
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger btn-sm w-100"
+                    onClick={() => handleDeleteFile(sidebarFile._id)}
+                  >
+                    <i className="fas fa-trash"></i> Delete File
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="modal-footer" style={{ flexShrink: 0, borderTop: '1px solid #dee2e6' }}>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={onClose}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleSelect}
-              disabled={!selectedFile}
-            >
-              Select Image
-            </button>
+            <div className="d-flex justify-content-between align-items-center w-100">
+              <div>
+                {selectedFile && (
+                  <small className="text-muted">
+                    Selected: {mediaFiles.find(f => f.file_path === selectedFile)?.original_name}
+                  </small>
+                )}
+              </div>
+              <div className="modal-footer-buttons">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={onClose}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSelect}
+                  disabled={!selectedFile}
+                >
+                  Select Image
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

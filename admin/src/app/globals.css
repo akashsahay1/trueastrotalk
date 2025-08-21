@@ -284,6 +284,40 @@ select {
   vertical-align: middle;
 }
 
+/* Media Library Custom Styles */
+.media-actions-cell {
+  white-space: nowrap;
+}
+
+.media-select-btn {
+  width: 70px;
+  margin-right: 4px;
+}
+
+.media-delete-btn {
+  float: right;
+}
+
+.modal-footer-buttons .btn:not(:last-child) {
+  margin-right: 8px;
+}
+
+/* Upload button styling - ensure it matches other primary buttons */
+label.btn-primary {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+  color: #ffffff !important;
+  cursor: pointer;
+  font-weight: normal !important;
+}
+
+label.btn-primary:hover {
+  background-color: var(--primary-hover) !important;
+  border-color: var(--primary-hover) !important;
+  color: #ffffff !important;
+  font-weight: normal !important;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .splash-container {

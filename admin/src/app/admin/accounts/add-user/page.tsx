@@ -206,10 +206,10 @@ function AddUserPageContent() {
       return;
     }
 
-    // Validate file size (5MB max)
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    // Validate file size (10MB max)
+    const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
-      setError('File size too large. Maximum size is 5MB.');
+      setError('File size too large. Maximum size is 10MB.');
       return;
     }
 

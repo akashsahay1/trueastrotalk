@@ -37,13 +37,8 @@ export const envConfig = {
 
   // File Upload
   UPLOAD_DIR: process.env.UPLOAD_DIR || 'public/uploads',
-  MAX_FILE_SIZE: parseInt(process.env.MAX_FILE_SIZE || '5242880'), // 5MB
+  MAX_FILE_SIZE: parseInt(process.env.MAX_FILE_SIZE || '10485760'), // 10MB
 
-  // Payment Gateway
-  RAZORPAY: {
-    KEY_ID: process.env.RAZORPAY_KEY_ID || '',
-    KEY_SECRET: process.env.RAZORPAY_KEY_SECRET || '',
-  },
 
   // Email Configuration
   SMTP: {
@@ -105,10 +100,8 @@ export const envHelpers = {
   /**
    * Check if specific service is configured
    */
-  isServiceConfigured: (service: 'razorpay' | 'smtp' | 'firebase' | 'google' | 'twilio' | 'sendgrid') => {
+  isServiceConfigured: (service: 'smtp' | 'firebase' | 'google' | 'twilio' | 'sendgrid') => {
     switch (service) {
-      case 'razorpay':
-        return !!(envConfig.RAZORPAY.KEY_ID && envConfig.RAZORPAY.KEY_SECRET);
       case 'smtp':
         return !!(envConfig.SMTP.USER && envConfig.SMTP.PASS);
       case 'firebase':
@@ -135,7 +128,6 @@ export const envHelpers = {
       database: envConfig.MONGODB_URL.includes('localhost') ? 'Local MongoDB' : 'Remote MongoDB',
       baseUrl: envConfig.API_BASE_URL,
       services: {
-        razorpay: envHelpers.isServiceConfigured('razorpay'),
         smtp: envHelpers.isServiceConfigured('smtp'),
         firebase: envHelpers.isServiceConfigured('firebase'),
         google: envHelpers.isServiceConfigured('google'),

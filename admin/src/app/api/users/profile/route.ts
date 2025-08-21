@@ -260,12 +260,12 @@ export async function PUT(request: NextRequest) {
         }, { status: 400 });
       }
 
-      // Validate file size (5MB max)
-      const maxSize = 5 * 1024 * 1024;
+      // Validate file size (10MB max)
+      const maxSize = 10 * 1024 * 1024;
       if (profileImageFile.size > maxSize) {
         return NextResponse.json({
           success: false,
-          error: 'File too large. Maximum size is 5MB.'
+          error: 'File too large. Maximum size is 10MB.'
         }, { status: 400 });
       }
 
