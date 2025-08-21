@@ -143,7 +143,6 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         _featuredAstrologers = astrologersList.map((json) => Astrologer.fromJson(json)).toList();
         _isLoadingAstrologers = false;
       });
-
     } catch (e) {
       setState(() {
         _isLoadingAstrologers = false;
@@ -159,7 +158,6 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         _featuredProducts = products;
         _isLoadingProducts = false;
       });
-
     } catch (e) {
       setState(() {
         _isLoadingProducts = false;
@@ -341,10 +339,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
             title: const Text('History'),
             onTap: () {
               Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const HistoryScreen()),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryScreen()));
             },
           ),
           ListTile(
@@ -352,10 +347,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
             title: const Text('Help'),
             onTap: () {
               Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const HelpScreen()),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const HelpScreen()));
             },
           ),
         ],
@@ -600,25 +592,14 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
               ),
               // Call button only for featured astrologers
               ElevatedButton.icon(
-                onPressed: astrologer.isOnline 
-                    ? () => _startCallWithAstrologer(astrologer)
-                    : null,
+                onPressed: astrologer.isOnline ? () => _startCallWithAstrologer(astrologer) : null,
                 icon: const Icon(Icons.call, size: 18),
-                label: Text(
-                  astrologer.callRate == 0 
-                      ? 'FREE' 
-                      : '₹${astrologer.callRate.toInt()}/min',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
+                label: Text(astrologer.callRate == 0 ? 'FREE' : '₹${astrologer.callRate.toInt()}/min', style: const TextStyle(fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: astrologer.isOnline 
-                      ? AppColors.primary 
-                      : AppColors.grey300,
+                  backgroundColor: astrologer.isOnline ? AppColors.primary : AppColors.grey300,
                   foregroundColor: AppColors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
               ),
             ],
@@ -687,12 +668,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           // Product Image
           ClipRRect(
             borderRadius: const BorderRadius.only(topLeft: Radius.circular(Dimensions.radiusMd), topRight: Radius.circular(Dimensions.radiusMd)),
-            child: Container(
-              height: 140,
-              width: double.infinity,
-              color: AppColors.grey100,
-              child: _buildProductImage(product),
-            ),
+            child: Container(height: 140, width: double.infinity, color: AppColors.grey100, child: _buildProductImage(product)),
           ),
           // Product Details - Fixed height to prevent overflow
           SizedBox(
@@ -787,18 +763,11 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         },
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
-          return Center(
-            child: CircularProgressIndicator(
-              value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                  : null,
-              strokeWidth: 2,
-            ),
-          );
+          return Center(child: CircularProgressIndicator(value: loadingProgress.expectedTotalBytes != null ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes! : null, strokeWidth: 2));
         },
       );
     }
-    
+
     return _buildPlaceholderImage();
   }
 
@@ -869,19 +838,11 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCallScreen() {
-    return AstrologersCallScreen(
-      userApiService: _userApiService, 
-      onAstrologerTap: _navigateToAstrologerDetails, 
-      onStartCall: _startCallWithAstrologer
-    );
+    return AstrologersCallScreen(userApiService: _userApiService, onAstrologerTap: _navigateToAstrologerDetails, onStartCall: _startCallWithAstrologer);
   }
-  
+
   Widget _buildChatScreen() {
-    return AstrologersChatScreen(
-      userApiService: _userApiService, 
-      onAstrologerTap: _navigateToAstrologerDetails, 
-      onStartChat: _startChatWithAstrologer
-    );
+    return AstrologersChatScreen(userApiService: _userApiService, onAstrologerTap: _navigateToAstrologerDetails, onStartChat: _startChatWithAstrologer);
   }
 
   Widget _buildProfileScreen() {
@@ -1088,10 +1049,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   }
 
   void _openHelp() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const HelpScreen()),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (context) => const HelpScreen()));
   }
 
   void _openWalletRecharge() {
@@ -1109,10 +1067,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   }
 
   void _viewConsultationHistory() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const HistoryScreen()),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryScreen()));
   }
 
   Future<void> _handleLogout() async {
@@ -1444,7 +1399,6 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     );
   }
 
-
   Widget _buildAstrologerDrawer() {
     return Drawer(
       child: Column(
@@ -1602,7 +1556,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          _isOnlineToggleLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Switch(value: _currentUser?.isOnline ?? false, onChanged: (value) => _toggleOnlineStatus(), activeThumbColor: AppColors.success),
+          _isOnlineToggleLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Switch(value: _currentUser?.isOnline ?? false, onChanged: (value) => _toggleOnlineStatus(), activeColor: AppColors.success),
         ],
       ),
     );

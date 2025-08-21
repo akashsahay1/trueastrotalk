@@ -357,7 +357,7 @@ export default function AstrologersPage() {
                       <table className="table table-striped table-bordered">
                         <thead>
                           <tr>
-                            <th>
+                            <th className='text-center'>
                               <input 
                                 type="checkbox" 
                                 checked={users.length > 0 && selectedUsers.length === users.length}
@@ -386,7 +386,7 @@ export default function AstrologersPage() {
                           ) : users.length > 0 ? (
                             users.map((user) => (
                               <tr key={String(user._id)}>
-                                <td>
+                                <td className='text-center'>
                                   <input 
                                     type="checkbox" 
                                     checked={selectedUsers.includes(user._id)}

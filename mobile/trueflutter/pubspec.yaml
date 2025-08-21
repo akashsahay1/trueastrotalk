@@ -140,7 +140,6 @@ flutter:
 
   assets:
     - assets/images/
-    - assets/icons/
     - assets/animations/
     - assets/config/
 

@@ -301,7 +301,7 @@ export default function AdminsPage() {
                       <table className="table table-striped table-bordered">
                         <thead>
                           <tr>
-                            <th>
+                            <th className='text-center'>
                               <input 
                                 type="checkbox" 
                                 onChange={handleSelectAll}
@@ -330,7 +330,7 @@ export default function AdminsPage() {
                           ) : users.length > 0 ? (
                             users.map((user, index) => (
                               <tr key={user._id}>
-                                <td>{((pagination.currentPage - 1) * 30) + index + 1}</td>
+                                <td className='text-center'>{((pagination.currentPage - 1) * 30) + index + 1}</td>
                                 <td>
                                   <div className="d-flex align-items-center">
                                     {user.profile_image ? (
