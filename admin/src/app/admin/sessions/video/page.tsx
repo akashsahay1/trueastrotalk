@@ -33,6 +33,13 @@ interface PaginationInfo {
   hasPrevPage: boolean;
 }
 
+interface VideoStatistics {
+  totalVideosToday: number;
+  ongoingVideos: number;
+  pendingSessions: number;
+  avgDuration: string;
+}
+
 export default function VideoSessionsPage() {
   const router = useRouter();
   const [sessions, setSessions] = useState<VideoSession[]>([]);
@@ -44,18 +51,57 @@ export default function VideoSessionsPage() {
     hasPrevPage: false
   });
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [searchInput, setSearchInput] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
   const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [modalAnimating, setModalAnimating] = useState(false);
+  const [filters, setFilters] = useState({
+    search: '',
+    status: '',
+    astrologer: '',
+    fromDate: '',
+    toDate: '',
+    minAmount: '',
+    maxAmount: '',
+    rating: '',
+    sessionId: ''
+  });
+  const [statistics, setStatistics] = useState<VideoStatistics>({
+    totalVideosToday: 0,
+    ongoingVideos: 0,
+    pendingSessions: 0,
+    avgDuration: '0m'
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
 
   useEffect(() => {
     document.body.className = '';
-    fetchSessions(1, '', '');
+    fetchSessions(1);
+    fetchStatistics();
   }, []);
 
-  const fetchSessions = async (page: number, searchTerm: string, status: string) => {
+  const fetchStatistics = async () => {
+    setStatsLoading(true);
+    try {
+      const response = await fetch('/api/sessions/stats?type=video');
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setStatistics({
+          totalVideosToday: data.data.totalToday || 0,
+          ongoingVideos: data.data.ongoing || 0,
+          pendingSessions: data.data.pending || 0,
+          avgDuration: data.data.avgDuration || '0m'
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching video statistics:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  const fetchSessions = async (page: number, filterParams = filters) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -64,12 +110,17 @@ export default function VideoSessionsPage() {
         type: 'video'
       });
       
-      if (searchTerm) {
-        params.append('search', searchTerm);
+      if (filterParams?.search) {
+        params.append('search', filterParams.search);
       }
       
-      if (status) {
-        params.append('status', status);
+      // Add filter parameters
+      if (filterParams) {
+        Object.entries(filterParams).forEach(([key, value]) => {
+          if (value && key !== 'search') {
+            params.append(key, value);
+          }
+        });
       }
 
       const response = await fetch(`/api/sessions?${params}`);
@@ -78,7 +129,8 @@ export default function VideoSessionsPage() {
       if (response.ok) {
         setSessions(data.data.sessions);
         setPagination(data.data.pagination);
-        setSearch(searchTerm);
+        // Refresh statistics after fetching sessions
+        fetchStatistics();
       } else {
         console.error('Error fetching sessions:', data.error);
         setSessions([]);
@@ -91,13 +143,49 @@ export default function VideoSessionsPage() {
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchSessions(1, searchInput, statusFilter);
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
   };
 
+  const openModal = () => {
+    setShowFilterModal(true);
+    setTimeout(() => setModalAnimating(true), 10);
+  };
+
+  const closeModal = () => {
+    setModalAnimating(false);
+    setTimeout(() => setShowFilterModal(false), 300);
+  };
+
+  const clearFilters = () => {
+    const clearedFilters = {
+      search: '',
+      status: '',
+      astrologer: '',
+      fromDate: '',
+      toDate: '',
+      minAmount: '',
+      maxAmount: '',
+      rating: '',
+      sessionId: ''
+    };
+    setFilters(clearedFilters);
+    fetchSessions(1, clearedFilters);
+    closeModal();
+  };
+
+  const applyFilters = () => {
+    fetchSessions(1, filters);
+    closeModal();
+  };
+
+  const hasActiveFilters = Object.values(filters).some(value => value !== '');
+
   const handlePageChange = (newPage: number) => {
-    fetchSessions(newPage, search, statusFilter);
+    fetchSessions(newPage, filters);
   };
 
   const getStatusBadge = (status: string) => {
@@ -139,7 +227,7 @@ export default function VideoSessionsPage() {
 
       if (response.ok) {
         successMessages.deleted('Session');
-        fetchSessions(pagination.currentPage, search, statusFilter);
+        fetchSessions(pagination.currentPage, filters);
       } else {
         await response.json();
         errorMessages.deleteFailed('session');
@@ -175,7 +263,7 @@ export default function VideoSessionsPage() {
         const result = await response.json();
         alert(result.message);
         setSelectedSessions([]);
-        fetchSessions(pagination.currentPage, search, statusFilter);
+        fetchSessions(pagination.currentPage, filters);
       } else {
         await response.json();
         alert('Error deleting sessions. Please try again.');
@@ -242,7 +330,13 @@ export default function VideoSessionsPage() {
                   <div className="card-body">
                     <h5 className="text-muted">Total Videos Today</h5>
                     <div className="metric-value d-inline-block">
-                      <h1 className="mb-1">16</h1>
+                      <h1 className="mb-1">
+                        {statsLoading ? (
+                          <i className="fas fa-spinner fa-spin"></i>
+                        ) : (
+                          statistics.totalVideosToday
+                        )}
+                      </h1>
                     </div>
                   </div>
                 </div>
@@ -252,7 +346,13 @@ export default function VideoSessionsPage() {
                   <div className="card-body">
                     <h5 className="text-muted">Ongoing Videos</h5>
                     <div className="metric-value d-inline-block">
-                      <h1 className="mb-1">2</h1>
+                      <h1 className="mb-1">
+                        {statsLoading ? (
+                          <i className="fas fa-spinner fa-spin"></i>
+                        ) : (
+                          statistics.ongoingVideos
+                        )}
+                      </h1>
                     </div>
                   </div>
                 </div>
@@ -262,7 +362,13 @@ export default function VideoSessionsPage() {
                   <div className="card-body">
                     <h5 className="text-muted">Pending Sessions</h5>
                     <div className="metric-value d-inline-block">
-                      <h1 className="mb-1">5</h1>
+                      <h1 className="mb-1">
+                        {statsLoading ? (
+                          <i className="fas fa-spinner fa-spin"></i>
+                        ) : (
+                          statistics.pendingSessions
+                        )}
+                      </h1>
                     </div>
                   </div>
                 </div>
@@ -272,7 +378,13 @@ export default function VideoSessionsPage() {
                   <div className="card-body">
                     <h5 className="text-muted">Avg Duration</h5>
                     <div className="metric-value d-inline-block">
-                      <h1 className="mb-1">42m</h1>
+                      <h1 className="mb-1">
+                        {statsLoading ? (
+                          <i className="fas fa-spinner fa-spin"></i>
+                        ) : (
+                          statistics.avgDuration
+                        )}
+                      </h1>
                     </div>
                   </div>
                 </div>
@@ -283,67 +395,29 @@ export default function VideoSessionsPage() {
             <div className="row">
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                 <div className="card">
-                  <div className="card-header d-flex justify-content-between align-items-center">
-                    <h5 className="mb-0">Video Sessions ({pagination.totalCount} total)</h5>
-                    {selectedSessions.length > 0 && (
-                      <button 
-                        className="btn btn-danger"
-                        onClick={handleBulkDelete}
-                        disabled={deleting === 'bulk'}
-                      >
-                        <i className="fas fa-trash mr-1"></i>
-                        Delete Selected ({selectedSessions.length})
-                      </button>
-                    )}
-                  </div>
                   <div className="card-body">
-                    {/* Search and Filter Form */}
-                    <form onSubmit={handleSearch} className="row mb-3">
-                      <div className="col-md-5">
-                        <div className="form-group">
-                          <input 
-                            type="text" 
-                            className="form-control" 
-                            placeholder="Search by customer name, astrologer, or session ID..." 
-                            value={searchInput}
-                            onChange={(e) => setSearchInput(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div className="col-md-3">
-                        <div className="form-group">
-                          <select 
-                            className="form-control" 
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
+                    <div className='d-flex justify-content-between align-items-center mb-3'>
+                      <h5 className="mb-0">Video Sessions ({pagination.totalCount} total)</h5>
+                      <div>
+                        {selectedSessions.length > 0 && (
+                          <button 
+                            className="btn btn-danger mr-2"
+                            onClick={handleBulkDelete}
+                            disabled={deleting === 'bulk'}
                           >
-                            <option value="">All Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="ongoing">Ongoing</option>
-                            <option value="completed">Completed</option>
-                            <option value="cancelled">Cancelled</option>
-                            <option value="failed">Failed</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div className="col-md-4">
-                        <button type="submit" className="btn btn-outline-primary mr-2" disabled={loading}>
-                          <i className="fas fa-search mr-1"></i>Search
-                        </button>
+                            <i className="fas fa-trash mr-1"></i>
+                            Delete Selected ({selectedSessions.length})
+                          </button>
+                        )}
                         <button 
-                          type="button" 
                           className="btn btn-outline-secondary"
-                          onClick={() => {
-                            setSearchInput('');
-                            setStatusFilter('');
-                            fetchSessions(1, '', '');
-                          }}
-                          disabled={loading}
+                          onClick={openModal}
                         >
-                          Clear
+                          <i className="fas fa-filter mr-1"></i>
+                          Filters {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
                         </button>
                       </div>
-                    </form>
+                    </div>
 
                     {/* Sessions Table */}
                     <div className="table-responsive">
@@ -536,6 +610,179 @@ export default function VideoSessionsPage() {
           </div>
         </div>
       </div>
+      
+      {/* Filter Modal */}
+      {showFilterModal && (
+        <div className={`modal fade ${modalAnimating ? 'show' : ''}`} style={{display: 'block'}} tabIndex={-1} role="dialog">
+          <div className="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Filter Video Sessions</h5>
+                <button 
+                  type="button" 
+                  className="close" 
+                  onClick={closeModal}
+                >
+                  <span>&times;</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                {/* Search Field */}
+                <div className="form-group">
+                  <label>Search</label>
+                  <input 
+                    type="text" 
+                    className="form-control form-control-sm" 
+                    placeholder="Search by customer name, astrologer, or session ID"
+                    value={filters.search}
+                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                  />
+                </div>
+
+                {/* Session ID and Status - 2 columns */}
+                <div className="row">
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Session ID</label>
+                      <input 
+                        type="text" 
+                        className="form-control form-control-sm" 
+                        placeholder="Filter by session ID"
+                        value={filters.sessionId}
+                        onChange={(e) => handleFilterChange('sessionId', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Status</label>
+                      <select 
+                        className="form-control form-control-sm"
+                        value={filters.status}
+                        onChange={(e) => handleFilterChange('status', e.target.value)}
+                      >
+                        <option value="">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="ongoing">Ongoing</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                        <option value="failed">Failed</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Astrologer Filter */}
+                <div className="form-group">
+                  <label>Astrologer</label>
+                  <input 
+                    type="text" 
+                    className="form-control form-control-sm" 
+                    placeholder="Filter by astrologer name"
+                    value={filters.astrologer}
+                    onChange={(e) => handleFilterChange('astrologer', e.target.value)}
+                  />
+                </div>
+
+                {/* Amount Range - 2 columns */}
+                <div className="row">
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Min Amount (₹)</label>
+                      <input 
+                        type="number" 
+                        className="form-control form-control-sm" 
+                        placeholder="Minimum amount"
+                        value={filters.minAmount}
+                        onChange={(e) => handleFilterChange('minAmount', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Max Amount (₹)</label>
+                      <input 
+                        type="number" 
+                        className="form-control form-control-sm" 
+                        placeholder="Maximum amount"
+                        value={filters.maxAmount}
+                        onChange={(e) => handleFilterChange('maxAmount', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Date Range - 2 columns */}
+                <div className="row">
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>From Date</label>
+                      <input 
+                        type="date" 
+                        className="form-control form-control-sm"
+                        value={filters.fromDate}
+                        onChange={(e) => handleFilterChange('fromDate', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>To Date</label>
+                      <input 
+                        type="date" 
+                        className="form-control form-control-sm"
+                        value={filters.toDate}
+                        onChange={(e) => handleFilterChange('toDate', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rating Filter */}
+                <div className="form-group">
+                  <label>Minimum Rating</label>
+                  <select 
+                    className="form-control form-control-sm"
+                    value={filters.rating}
+                    onChange={(e) => handleFilterChange('rating', e.target.value)}
+                  >
+                    <option value="">All Ratings</option>
+                    <option value="1">1 Star & Above</option>
+                    <option value="2">2 Stars & Above</option>
+                    <option value="3">3 Stars & Above</option>
+                    <option value="4">4 Stars & Above</option>
+                    <option value="5">5 Stars Only</option>
+                  </select>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary btn-sm" 
+                  onClick={clearFilters}
+                >
+                  Clear All
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-primary btn-sm" 
+                  onClick={applyFilters}
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Backdrop */}
+      {showFilterModal && (
+        <div 
+          className={`modal-backdrop fade ${modalAnimating ? 'show' : ''}`}
+          onClick={closeModal}
+        ></div>
+      )}
     </div>
   );
 }

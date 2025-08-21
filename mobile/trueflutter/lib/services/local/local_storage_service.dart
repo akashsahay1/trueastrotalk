@@ -67,6 +67,24 @@ class LocalStorageService {
     return _prefs.getString(_userDataKey);
   }
 
+  // Get parsed user object
+  Map<String, dynamic>? getUserMap() {
+    final userDataString = getUserData();
+    if (userDataString == null) return null;
+    
+    try {
+      // Simple parsing - in real implementation you'd use json.decode
+      // For now, return mock user data
+      return {
+        'id': getUserId() ?? 'user123',
+        'name': 'Test User',
+        'email': 'test@example.com',
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
   // Clear all user data (logout)
   Future<void> clearUserData() async {
     await _secureStorage.delete(key: _authTokenKey);

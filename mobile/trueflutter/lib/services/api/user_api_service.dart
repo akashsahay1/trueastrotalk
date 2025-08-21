@@ -461,6 +461,36 @@ class UserApiService {
     }
   }
 
+  // Get all products with optional pagination and filters
+  Future<List<Product>> getAllProducts({
+    int? limit,
+    int? offset,
+    String? category,
+    String? search,
+    bool? inStock,
+  }) async {
+    try {
+      final queryParams = <String, dynamic>{};
+      
+      if (limit != null) queryParams['limit'] = limit.toString();
+      if (offset != null) queryParams['offset'] = offset.toString();
+      if (category != null && category != 'All') queryParams['category'] = category;
+      if (search != null && search.isNotEmpty) queryParams['search'] = search;
+      if (inStock != null) queryParams['in_stock'] = inStock.toString();
+
+      final response = await _dio.get(ApiEndpoints.adminProducts, queryParameters: queryParams);
+
+      if (response.statusCode == 200) {
+        final productsData = response.data['products'] as List<dynamic>;
+        return productsData.map((json) => Product.fromJson(json)).toList();
+      } else {
+        throw Exception('Failed to get products: ${response.data['message']}');
+      }
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    }
+  }
+
   // Get astrologer options (languages, qualifications, skills)
   Future<Map<String, List<String>>> getAstrologerOptions() async {
     

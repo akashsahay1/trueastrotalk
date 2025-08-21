@@ -6,6 +6,11 @@ import '../models/astrologer.dart';
 import '../models/enums.dart';
 import '../services/api/user_api_service.dart';
 import '../services/service_locator.dart';
+import '../services/chat/chat_service.dart';
+import '../services/call/call_service.dart';
+import '../models/call.dart';
+import 'package:share_plus/share_plus.dart';
+import 'chat_screen.dart';
 
 class AstrologerDetailsScreen extends StatefulWidget {
   final Astrologer? astrologer;
@@ -25,6 +30,7 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> with 
   late TabController _tabController;
   Astrologer? _astrologer;
   bool _isLoading = false;
+  bool _isFavorite = false;
 
   @override
   void initState() {
@@ -37,6 +43,8 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> with 
     // Load astrologer data if only ID is provided
     if (_astrologer == null && widget.astrologerId != null) {
       _loadAstrologerData();
+    } else if (_astrologer != null) {
+      _loadFavoriteStatus();
     }
   }
 
@@ -62,6 +70,7 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> with 
         setState(() {
           _isLoading = false;
         });
+        _loadFavoriteStatus();
       }
     } catch (e) {
       setState(() {
@@ -112,6 +121,17 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> with 
           SliverToBoxAdapter(child: Column(children: [_buildAstrologerHeader(), _buildTabSection()])),
         ],
       ),
+      floatingActionButton: _astrologer!.isOnline
+          ? FloatingActionButton.extended(
+              onPressed: _startChat,
+              icon: const Icon(Icons.chat, color: AppColors.white),
+              label: Text(
+                'Quick Chat',
+                style: AppTextStyles.buttonMedium.copyWith(color: AppColors.white),
+              ),
+              backgroundColor: AppColors.success,
+            )
+          : null,
       bottomNavigationBar: _buildBottomActionBar(),
     );
   }
@@ -131,7 +151,10 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> with 
           onPressed: _shareAstrologer,
         ),
         IconButton(
-          icon: const Icon(Icons.favorite_border, color: AppColors.white),
+          icon: Icon(
+            _isFavorite ? Icons.favorite : Icons.favorite_border,
+            color: AppColors.white,
+          ),
           onPressed: _toggleFavorite,
         ),
       ],
@@ -423,6 +446,8 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> with 
             _buildInfoRow('Experience', '${_astrologer!.experienceYears} years'),
             const SizedBox(height: Dimensions.spacingMd),
             _buildInfoRow('Status', _astrologer!.verificationStatus.name),
+            const SizedBox(height: Dimensions.spacingMd),
+            _buildInfoRow('Phone', _astrologer!.phoneNumber ?? 'Not provided'),
           ],
         ),
       ),
@@ -556,34 +581,69 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> with 
         boxShadow: [BoxShadow(color: AppColors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, -2))],
       ),
       child: SafeArea(
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _astrologer!.isOnline ? () => _startChat() : null,
-                icon: const Icon(Icons.chat, size: 20),
-                label: Text(_astrologer!.chatRate == 0 ? 'FREE CHAT' : 'CHAT ₹${_astrologer!.chatRate.toInt()}/min', style: AppTextStyles.buttonMedium),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _astrologer!.isOnline ? AppColors.success : AppColors.grey400,
-                  foregroundColor: AppColors.white,
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Dimensions.radiusMd)),
+            if (!_astrologer!.isOnline) 
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.offline_bolt, size: 16, color: AppColors.error),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Astrologer is currently offline',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(width: Dimensions.spacingMd),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _astrologer!.isOnline ? () => _startCall() : null,
-                icon: const Icon(Icons.call, size: 20),
-                label: Text('CALL ₹${_astrologer!.callRate.toInt()}/min', style: AppTextStyles.buttonMedium),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _astrologer!.isOnline ? AppColors.primary : AppColors.grey400,
-                  foregroundColor: AppColors.white,
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Dimensions.radiusMd)),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _astrologer!.isOnline ? () => _startChat() : null,
+                    icon: const Icon(Icons.chat, size: 20),
+                    label: Text(
+                      _astrologer!.chatRate == 0 ? 'FREE CHAT' : 'CHAT ₹${_astrologer!.chatRate.toInt()}/min',
+                      style: AppTextStyles.buttonMedium,
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _astrologer!.isOnline ? AppColors.success : AppColors.grey400,
+                      foregroundColor: AppColors.white,
+                      minimumSize: const Size(double.infinity, 52),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Dimensions.radiusMd)),
+                      elevation: _astrologer!.isOnline ? 2 : 0,
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(width: Dimensions.spacingMd),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _astrologer!.isOnline ? () => _startCall() : null,
+                    icon: const Icon(Icons.call, size: 20),
+                    label: Text('CALL ₹${_astrologer!.callRate.toInt()}/min', style: AppTextStyles.buttonMedium),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _astrologer!.isOnline ? AppColors.primary : AppColors.grey400,
+                      foregroundColor: AppColors.white,
+                      minimumSize: const Size(double.infinity, 52),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Dimensions.radiusMd)),
+                      elevation: _astrologer!.isOnline ? 2 : 0,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -592,39 +652,218 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> with 
   }
 
   // Action methods
-  void _shareAstrologer() {
-    // Implement share functionality
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Share functionality coming soon'), backgroundColor: AppColors.info));
+  void _shareAstrologer() async {
+    try {
+      final shareText = '''
+🔮 ${_astrologer!.fullName} - Expert Astrologer
+
+⭐ Rating: ${_astrologer!.ratingText} (${_astrologer!.totalReviews} reviews)
+💼 Experience: ${_astrologer!.experienceYears} years
+🎯 Specializations: ${_astrologer!.skills.take(3).join(', ')}
+
+💬 Chat: ${_astrologer!.chatRate == 0 ? 'FREE' : '₹${_astrologer!.chatRate.toInt()}/min'}
+📞 Call: ₹${_astrologer!.callRate.toInt()}/min
+🎥 Video: ₹${_astrologer!.videoRate.toInt()}/min
+
+Connect now on True AstroTalk! 🌟
+      ''';
+      
+      await Share.share(
+        shareText,
+        subject: '${_astrologer!.fullName} - Expert Astrologer on True AstroTalk',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to share: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
-  void _toggleFavorite() {
-    // Implement favorite functionality
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Favorites functionality coming soon'), backgroundColor: AppColors.info));
+  void _toggleFavorite() async {
+    setState(() {
+      _isFavorite = !_isFavorite;
+    });
+    
+    try {
+      // TODO: Save to local storage or call API to update favorite status
+      // final localStorage = getIt<LocalStorageService>();
+      // await localStorage.saveFavoriteAstrologer(_astrologer!.id, _isFavorite);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isFavorite 
+                ? '${_astrologer!.fullName} added to favorites' 
+                : '${_astrologer!.fullName} removed from favorites',
+            ),
+            backgroundColor: _isFavorite ? AppColors.success : AppColors.info,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      // Revert state on error
+      setState(() {
+        _isFavorite = !_isFavorite;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update favorites: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
-  void _startChat() {
+  void _startChat() async {
     if (!_astrologer!.isOnline) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${_astrologer!.fullName} is currently offline'), backgroundColor: AppColors.error));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${_astrologer!.fullName} is currently offline'),
+          backgroundColor: AppColors.error,
+        ),
+      );
       return;
     }
 
-    // Implement chat functionality
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Starting chat with ${_astrologer!.fullName}...'), backgroundColor: AppColors.success));
+    try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Starting chat with ${_astrologer!.fullName}...'),
+          backgroundColor: AppColors.info,
+        ),
+      );
 
-    // Navigate to chat screen
-    debugPrint('Starting chat with ${_astrologer!.displayName}');
+      // Start chat session
+      final chatService = getIt<ChatService>();
+      final chatSession = await chatService.startChatSession(_astrologer!.id);
+
+      // Navigate to chat screen
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ChatScreen(
+              chatSession: chatSession,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to start chat: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
-  void _startCall() {
+  void _startCall() async {
     if (!_astrologer!.isOnline) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${_astrologer!.fullName} is currently offline'), backgroundColor: AppColors.error));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${_astrologer!.fullName} is currently offline'),
+          backgroundColor: AppColors.error,
+        ),
+      );
       return;
     }
 
-    // Implement call functionality
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Starting call with ${_astrologer!.fullName}...'), backgroundColor: AppColors.primary));
+    // Show call type selection dialog
+    final callType = await _showCallTypeDialog();
+    if (callType == null) return;
 
-    // Navigate to call screen
-    debugPrint('Starting call with ${_astrologer!.displayName}');
+    try {
+      // Show loading indicator
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Starting ${callType.displayName.toLowerCase()} call with ${_astrologer!.fullName}...'),
+            backgroundColor: AppColors.info,
+          ),
+        );
+      }
+
+      // Start call session
+      final callService = getIt<CallService>();
+      await callService.initialize(); // Ensure call service is initialized
+      await callService.startCallSession(_astrologer!.id, callType);
+
+      // TODO: Navigate to call screen when implemented
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${callType.displayName} call initiated! Call screen coming soon.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to start call: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<CallType?> _showCallTypeDialog() async {
+    return showDialog<CallType>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Choose Call Type'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.call, color: AppColors.primary),
+              title: Text('Voice Call'),
+              subtitle: Text('₹${_astrologer!.callRate.toInt()}/min'),
+              onTap: () => Navigator.pop(context, CallType.voice),
+            ),
+            ListTile(
+              leading: const Icon(Icons.videocam, color: AppColors.primary),
+              title: Text('Video Call'),
+              subtitle: Text('₹${_astrologer!.videoRate.toInt()}/min'),
+              onTap: () => Navigator.pop(context, CallType.video),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _loadFavoriteStatus() async {
+    try {
+      // TODO: Load favorite status from local storage or API
+      // final localStorage = getIt<LocalStorageService>();
+      // final isFavorite = await localStorage.isAstrologerFavorite(_astrologer!.id);
+      // setState(() {
+      //   _isFavorite = isFavorite;
+      // });
+    } catch (e) {
+      debugPrint('Failed to load favorite status: $e');
+    }
   }
 }

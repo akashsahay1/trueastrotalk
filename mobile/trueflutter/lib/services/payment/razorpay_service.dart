@@ -21,6 +21,45 @@ class RazorpayService {
     debugPrint('✅ RazorpayService: Razorpay instance created successfully');
   }
 
+  /// Initialize Razorpay for checkout with callbacks
+  void initializeRazorpay({
+    required Function(PaymentSuccessResponse) onPaymentSuccess,
+    required Function(PaymentFailureResponse) onPaymentError,
+    required Function(ExternalWalletResponse) onExternalWallet,
+  }) {
+    if (_razorpay == null) {
+      initialize();
+    }
+
+    _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, onPaymentSuccess);
+    _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, onPaymentError);
+    _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, onExternalWallet);
+  }
+
+  /// Create payment options for checkout
+  Map<String, dynamic> createPaymentOptions({
+    required double amount,
+    required String orderId,
+    required String userEmail,
+    required String userContact,
+  }) {
+    return PaymentConfig.instance.getRazorpayOptions(
+      amount: amount,
+      orderId: orderId,
+      customerName: 'Customer', // You can pass actual name if needed
+      customerEmail: userEmail,
+      customerPhone: userContact,
+    );
+  }
+
+  /// Open Razorpay checkout
+  void openCheckout(Map<String, dynamic> options) {
+    if (_razorpay == null) {
+      throw Exception('Razorpay not initialized');
+    }
+    _razorpay!.open(options);
+  }
+
   /// Process wallet recharge payment
   Future<PaymentResult> processWalletRecharge({
     required BuildContext context,

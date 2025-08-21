@@ -17,6 +17,16 @@ import 'astrologers_chat.dart';
 import 'wallet.dart';
 import 'history.dart';
 import 'help.dart';
+import 'products_list.dart';
+import 'product_details.dart';
+import 'cart.dart';
+import 'chat_list.dart';
+import 'chat_screen.dart';
+import 'call_list.dart';
+import '../services/cart_service.dart';
+import '../services/chat/chat_service.dart';
+import '../services/call/call_service.dart';
+import '../models/call.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,6 +38,7 @@ class HomeScreen extends StatefulWidget {
 class _CustomerHomeScreenState extends State<HomeScreen> {
   late final AuthService _authService;
   late final UserApiService _userApiService;
+  late final CartService _cartService;
 
   app_user.User? _currentUser;
   double _walletBalance = 0.0;
@@ -53,7 +64,24 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     super.initState();
     _authService = getIt<AuthService>();
     _userApiService = getIt<UserApiService>();
+    _cartService = getIt<CartService>();
+    
+    // Listen to cart changes to update cart icon badge
+    _cartService.addListener(_onCartChanged);
+    
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _cartService.removeListener(_onCartChanged);
+    super.dispose();
+  }
+
+  void _onCartChanged() {
+    if (mounted) {
+      setState(() {}); // Rebuild to update cart icon badge
+    }
   }
 
   Future<void> _loadData() async {
@@ -232,6 +260,40 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         IconButton(
           icon: const Icon(Icons.notifications_outlined, color: AppColors.white),
           onPressed: _openNotifications,
+        ),
+        // Cart icon with badge
+        Stack(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.shopping_cart_outlined, color: AppColors.white),
+              onPressed: _openCart,
+            ),
+            if (_cartService.totalItems > 0)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: AppColors.error,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
+                  child: Text(
+                    '${_cartService.totalItems}',
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
         ),
         Container(
           margin: const EdgeInsets.only(right: 8),
@@ -838,11 +900,53 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCallScreen() {
-    return AstrologersCallScreen(userApiService: _userApiService, onAstrologerTap: _navigateToAstrologerDetails, onStartCall: _startCallWithAstrologer);
+    return Scaffold(
+      body: AstrologersCallScreen(
+        userApiService: _userApiService,
+        onAstrologerTap: _navigateToAstrologerDetails,
+        onStartCall: _startCallWithAstrologer,
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const CallListScreen(),
+            ),
+          );
+        },
+        icon: const Icon(Icons.history, color: AppColors.white),
+        label: Text(
+          'Call History',
+          style: AppTextStyles.buttonMedium.copyWith(color: AppColors.white),
+        ),
+        backgroundColor: AppColors.primary,
+      ),
+    );
   }
 
   Widget _buildChatScreen() {
-    return AstrologersChatScreen(userApiService: _userApiService, onAstrologerTap: _navigateToAstrologerDetails, onStartChat: _startChatWithAstrologer);
+    return Scaffold(
+      body: AstrologersChatScreen(
+        userApiService: _userApiService,
+        onAstrologerTap: _navigateToAstrologerDetails,
+        onStartChat: _startChatWithAstrologer,
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const ChatListScreen(),
+            ),
+          );
+        },
+        icon: const Icon(Icons.chat_bubble_outline, color: AppColors.white),
+        label: Text(
+          'My Chats',
+          style: AppTextStyles.buttonMedium.copyWith(color: AppColors.white),
+        ),
+        backgroundColor: AppColors.primary,
+      ),
+    );
   }
 
   Widget _buildProfileScreen() {
@@ -1056,6 +1160,13 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     // Navigate to wallet recharge screen
   }
 
+  void _openCart() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CartScreen()),
+    );
+  }
+
   void _viewAllAstrologers() {
     setState(() {
       _selectedBottomNavIndex = 1; // Switch to Call tab
@@ -1081,24 +1192,111 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _startChatWithAstrologer(Astrologer astrologer) {
-    // Navigate to chat consultation with specific astrologer
-    debugPrint('Starting chat with ${astrologer.displayName}');
+  void _startChatWithAstrologer(Astrologer astrologer) async {
+    if (!astrologer.isOnline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${astrologer.fullName} is currently offline'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Starting chat with ${astrologer.fullName}...'),
+          backgroundColor: AppColors.info,
+        ),
+      );
+
+      // Start chat session
+      final chatService = getIt<ChatService>();
+      await chatService.initialize(); // Ensure chat service is initialized
+      final chatSession = await chatService.startChatSession(astrologer.id);
+
+      // Navigate to chat screen
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ChatScreen(
+              chatSession: chatSession,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to start chat: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
-  void _startCallWithAstrologer(Astrologer astrologer) {
-    // Navigate to call consultation with specific astrologer
-    debugPrint('Starting call with ${astrologer.displayName}');
+  void _startCallWithAstrologer(Astrologer astrologer) async {
+    if (!astrologer.isOnline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${astrologer.fullName} is currently offline'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Starting voice call with ${astrologer.fullName}...'),
+          backgroundColor: AppColors.info,
+        ),
+      );
+
+      // Start call session
+      final callService = getIt<CallService>();
+      await callService.initialize(); // Ensure call service is initialized
+      await callService.startCallSession(astrologer.id, CallType.voice);
+
+      // TODO: Navigate to actual call screen when implemented
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Voice call initiated! Call screen coming soon.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to start call: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
   void _viewAllProducts() {
-    // Navigate to products listing screen
-    debugPrint('Viewing all products');
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ProductsListScreen()),
+    );
   }
 
   void _viewProduct(Product product) {
-    // Navigate to product detail screen
-    debugPrint('Viewing product: ${product.name}');
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => ProductDetailsScreen(product: product)),
+    );
   }
 
   Widget _buildProfileImage() {
@@ -1556,7 +1754,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          _isOnlineToggleLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Switch(value: _currentUser?.isOnline ?? false, onChanged: (value) => _toggleOnlineStatus(), activeColor: AppColors.success),
+          _isOnlineToggleLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Switch(value: _currentUser?.isOnline ?? false, onChanged: (value) => _toggleOnlineStatus(), activeThumbColor: AppColors.success),
         ],
       ),
     );
