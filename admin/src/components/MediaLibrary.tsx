@@ -30,6 +30,8 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
   const [selectedFile, setSelectedFile] = useState<string | null>(selectedImage || null);
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadingFiles, setUploadingFiles] = useState<number>(0);
+  const [currentFileIndex, setCurrentFileIndex] = useState<number>(0);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
@@ -72,69 +74,110 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
+    // Convert FileList to Array
+    const fileArray = Array.from(files);
+    
+    // Validate all files
+    const invalidFiles = fileArray.filter(file => !file.type.startsWith('image/'));
+    if (invalidFiles.length > 0) {
+      errorMessages.updateFailed(`Please select only image files. ${invalidFiles.length} non-image file(s) detected.`);
+      event.target.value = '';
       return;
     }
 
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      alert('File size should be less than 10MB');
+    // Validate file sizes (max 10MB each)
+    const oversizedFiles = fileArray.filter(file => file.size > 10 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      errorMessages.updateFailed(`${oversizedFiles.length} file(s) exceed 10MB limit`);
+      event.target.value = '';
       return;
     }
 
     setUploading(true);
     setUploadProgress(0);
+    setUploadingFiles(fileArray.length);
+    setCurrentFileIndex(0);
 
-    const formData = new FormData();
-    formData.append('file', file);
+    let successCount = 0;
+    let failCount = 0;
+    let lastUploadedPath = '';
+    let lastUploadedId = '';
 
-    try {
-      const xhr = new XMLHttpRequest();
-      
-      xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable) {
-          const percentComplete = (e.loaded / e.total) * 100;
-          setUploadProgress(percentComplete);
-        }
-      });
+    // Upload files sequentially to show progress
+    for (let i = 0; i < fileArray.length; i++) {
+      setCurrentFileIndex(i + 1);
+      const file = fileArray[i];
+      const formData = new FormData();
+      formData.append('file', file);
 
-      xhr.onload = function() {
-        if (xhr.status === 200 || xhr.status === 201) {
-          const response = JSON.parse(xhr.responseText);
-          if (response.success) {
-            fetchMediaFiles(); // Refresh the media files
-            setSelectedFile(response.file_path);
-            setSelectedMediaId(response.file_id?.toString() || response.file_id);
-          } else {
-            alert(response.message || 'Upload failed');
-          }
-        } else {
-          alert('Upload failed');
-        }
-        setUploading(false);
-        setUploadProgress(0);
-      };
+      try {
+        const xhr = new XMLHttpRequest();
+        
+        // Create a promise for each upload
+        await new Promise<void>((resolve) => {
+          xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+              // Calculate overall progress
+              const fileProgress = (e.loaded / e.total) * 100;
+              const overallProgress = ((i * 100) + fileProgress) / fileArray.length;
+              setUploadProgress(overallProgress);
+            }
+          });
 
-      xhr.onerror = function() {
-        alert('Upload failed');
-        setUploading(false);
-        setUploadProgress(0);
-      };
+          xhr.onload = function() {
+            if (xhr.status === 200 || xhr.status === 201) {
+              const response = JSON.parse(xhr.responseText);
+              if (response.success) {
+                successCount++;
+                lastUploadedPath = response.file_path;
+                lastUploadedId = response.file_id?.toString() || response.file_id;
+              } else {
+                failCount++;
+              }
+            } else {
+              failCount++;
+            }
+            resolve();
+          };
 
-      xhr.open('POST', '/api/admin/media/upload');
-      xhr.send(formData);
+          xhr.onerror = function() {
+            failCount++;
+            resolve();
+          };
 
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      alert('Upload failed');
-      setUploading(false);
-      setUploadProgress(0);
+          xhr.open('POST', '/api/admin/media/upload');
+          xhr.send(formData);
+        });
+
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        failCount++;
+      }
     }
+
+    // Show results
+    if (successCount > 0 && failCount === 0) {
+      successMessages.created(`${successCount} file(s) uploaded successfully`);
+      fetchMediaFiles(); // Refresh the media files
+      // Select the last uploaded file
+      if (lastUploadedPath) {
+        setSelectedFile(lastUploadedPath);
+        setSelectedMediaId(lastUploadedId);
+      }
+    } else if (successCount > 0 && failCount > 0) {
+      errorMessages.updateFailed(`${successCount} file(s) uploaded, ${failCount} failed`);
+      fetchMediaFiles();
+    } else {
+      errorMessages.updateFailed('All uploads failed');
+    }
+
+    setUploading(false);
+    setUploadProgress(0);
+    setUploadingFiles(0);
+    setCurrentFileIndex(0);
 
     // Reset the input
     event.target.value = '';
@@ -284,15 +327,19 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
                 <div className="row align-items-center">
                   <div className="col-md-4">
                     <label className="btn btn-primary btn-sm">
-                      Upload New
+                      <i className="fas fa-upload"></i> Upload Images
                       <input
                         type="file"
                         accept="image/*"
+                        multiple
                         onChange={handleFileUpload}
                         style={{ display: 'none' }}
                         disabled={uploading}
                       />
                     </label>
+                    <small className="text-muted ml-2">
+                      Hold Ctrl/Cmd to select multiple
+                    </small>
                     {viewMode === 'list' && selectedFiles.size > 0 && (
                       <button
                         className="btn btn-danger btn-sm ml-2"
@@ -336,9 +383,16 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
                 {/* Upload Progress */}
                 {uploading && (
                   <div className="mt-3">
+                    {uploadingFiles > 1 && (
+                      <div className="mb-1">
+                        <small className="text-muted">
+                          Uploading file {currentFileIndex} of {uploadingFiles}
+                        </small>
+                      </div>
+                    )}
                     <div className="progress" style={{ height: '6px' }}>
                       <div 
-                        className="progress-bar" 
+                        className="progress-bar progress-bar-striped progress-bar-animated" 
                         role="progressbar" 
                         style={{ width: `${uploadProgress}%` }}
                       >
