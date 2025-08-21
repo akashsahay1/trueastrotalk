@@ -4,6 +4,9 @@ import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 import '../common/constants/dimensions.dart';
 import '../models/order.dart';
+import '../services/service_locator.dart';
+import '../services/api/orders_api_service.dart';
+import '../services/local/local_storage_service.dart';
 
 class OrderDetailsScreen extends StatefulWidget {
   final Order order;
@@ -18,7 +21,16 @@ class OrderDetailsScreen extends StatefulWidget {
 }
 
 class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
+  late final OrdersApiService _ordersApiService;
+  late final LocalStorageService _localStorage;
   bool _isUpdating = false;
+  
+  @override
+  void initState() {
+    super.initState();
+    _ordersApiService = getIt<OrdersApiService>();
+    _localStorage = getIt<LocalStorageService>();
+  }
 
   Future<void> _cancelOrder() async {
     if (!widget.order.canBeCancelled) {
@@ -55,8 +67,17 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       });
 
       try {
-        // TODO: Call API to cancel order
-        await Future.delayed(const Duration(seconds: 2)); // Simulate API call
+        // Call API to cancel order
+        final userId = _localStorage.getString('user_id') ?? 'user123';
+        final result = await _ordersApiService.cancelOrder(
+          orderId: widget.order.id ?? '',
+          userId: userId,
+          reason: 'Cancelled by customer',
+        );
+        
+        if (!result['success']) {
+          throw Exception(result['error'] ?? 'Failed to cancel order');
+        }
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

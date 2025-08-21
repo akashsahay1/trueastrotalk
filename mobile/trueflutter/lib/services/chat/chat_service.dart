@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import '../../models/chat.dart';
-// import '../api/user_api_service.dart'; // TODO: Uncomment when implementing real API
+import '../api/chat_api_service.dart';
 import '../socket/socket_service.dart';
-// import '../service_locator.dart'; // TODO: Uncomment when needed
+import '../service_locator.dart';
 
 class ChatService extends ChangeNotifier {
   static ChatService? _instance;
@@ -10,7 +10,7 @@ class ChatService extends ChangeNotifier {
   
   ChatService._();
 
-  // final UserApiService _apiService = getIt<UserApiService>(); // TODO: Will be used for real API calls
+  final ChatApiService _chatApiService = getIt<ChatApiService>();
   final SocketService _socketService = SocketService.instance;
   
   // Current chat sessions and messages
@@ -106,17 +106,33 @@ class ChatService extends ChangeNotifier {
     try {
       debugPrint('📋 Loading chat sessions');
       
-      // TODO: Call actual API endpoint
-      // final sessions = await _apiService.getChatSessions();
-      // _chatSessions = sessions;
+      // Get current user ID (you should get this from your auth service)
+      final userId = _getCurrentUserId();
+      if (userId == null) {
+        debugPrint('⚠️ No user ID found, cannot load chat sessions');
+        _chatSessions = [];
+        notifyListeners();
+        return;
+      }
+
+      final result = await _chatApiService.getChatSessions(
+        userId: userId,
+        userType: 'user',
+      );
       
-      // For now, create some mock data for testing
-      _chatSessions = [];
+      if (result['success']) {
+        _chatSessions = result['chat_sessions'];
+        debugPrint('✅ Loaded ${_chatSessions.length} chat sessions');
+      } else {
+        debugPrint('❌ Failed to load chat sessions: ${result['error']}');
+        _chatSessions = [];
+      }
       
       notifyListeners();
     } catch (e) {
       debugPrint('❌ Failed to load chat sessions: $e');
-      rethrow;
+      _chatSessions = [];
+      notifyListeners();
     }
   }
 
@@ -125,40 +141,37 @@ class ChatService extends ChangeNotifier {
     try {
       debugPrint('🎯 Starting chat session with astrologer: $astrologerId');
       
-      // TODO: Call API to create chat session
-      // final session = await _apiService.createChatSession(astrologerId);
-      
-      // Create mock session for now
-      final session = ChatSession(
-        id: 'chat_${DateTime.now().millisecondsSinceEpoch}',
-        user: _getCurrentUser(), // You'd get this from auth service
-        astrologer: _getMockAstrologer(astrologerId), // You'd get this from API
-        status: ChatStatus.active,
-        ratePerMinute: 5.0,
-        startTime: DateTime.now(),
-        durationMinutes: 0,
-        totalAmount: 0.0,
-        unreadCount: 0,
-        messages: [],
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+      final userId = _getCurrentUserId();
+      if (userId == null) {
+        throw Exception('User not logged in');
+      }
+
+      final result = await _chatApiService.createChatSession(
+        userId: userId,
+        astrologerId: astrologerId,
       );
       
-      // Add to sessions list
-      _chatSessions.insert(0, session);
-      _activeChatSession = session;
-      
-      // Join socket room
-      await _socketService.joinChatSession(session.id);
-      
-      // Send welcome system message
-      await _socketService.sendMessage(
-        session.id,
-        'Chat session started with ${session.astrologer.fullName}',
-      );
-      
-      notifyListeners();
-      return session;
+      if (result['success']) {
+        final session = result['session'] as ChatSession;
+        
+        // Add to sessions list
+        _chatSessions.insert(0, session);
+        _activeChatSession = session;
+        
+        // Join socket room
+        await _socketService.joinChatSession(session.id);
+        
+        // Send welcome system message
+        await _socketService.sendMessage(
+          session.id,
+          'Chat session started with astrologer',
+        );
+        
+        notifyListeners();
+        return session;
+      } else {
+        throw Exception(result['error']);
+      }
       
     } catch (e) {
       debugPrint('❌ Failed to start chat session: $e');
@@ -258,18 +271,28 @@ class ChatService extends ChangeNotifier {
     try {
       debugPrint('📨 Loading messages for session: $sessionId');
       
-      // TODO: Call API to get messages
-      // final messages = await _apiService.getChatMessages(sessionId);
-      // _messagesBySession[sessionId] = messages;
+      final userId = _getCurrentUserId();
       
-      // For now, initialize empty message list
-      _messagesBySession[sessionId] = [];
+      final result = await _chatApiService.getMessages(
+        sessionId: sessionId,
+        userId: userId,
+        userType: 'user',
+      );
+      
+      if (result['success']) {
+        _messagesBySession[sessionId] = result['messages'];
+        debugPrint('✅ Loaded ${result['messages'].length} messages for session $sessionId');
+      } else {
+        debugPrint('❌ Failed to load messages: ${result['error']}');
+        _messagesBySession[sessionId] = [];
+      }
       
       notifyListeners();
       
     } catch (e) {
       debugPrint('❌ Failed to load messages: $e');
-      rethrow;
+      _messagesBySession[sessionId] = [];
+      notifyListeners();
     }
   }
 
@@ -284,42 +307,11 @@ class ChatService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Get mock data - Replace with real implementation
-  // Note: These are temporary mock methods for development
-  
-  // ignore: unused_element
-  dynamic _getCurrentUser() {
-    // TODO: Get from auth service
-    return {
-      'id': 'user123',
-      'name': 'Test User',
-      'email': 'test@example.com',
-    };
-  }
-  
-  // ignore: unused_element
-  dynamic _getMockAstrologer(String astrologerId) {
-    // TODO: Get from API
-    return {
-      'id': astrologerId,
-      'full_name': 'Astrologer Name',
-      'email_address': 'astrologer@example.com',
-      'qualifications': [],
-      'languages': ['English'],
-      'skills': ['Vedic Astrology'],
-      'experience_years': 5,
-      'is_online': true,
-      'verification_status': 'verified',
-      'is_available': true,
-      'rating': 4.5,
-      'total_reviews': 100,
-      'total_consultations': 500,
-      'chat_rate': 5.0,
-      'call_rate': 10.0,
-      'video_rate': 15.0,
-      'created_at': DateTime.now().toIso8601String(),
-      'updated_at': DateTime.now().toIso8601String(),
-    };
+  /// Get current user ID from local storage or auth service
+  String? _getCurrentUserId() {
+    // Get from local storage or auth service
+    // For now, return a mock user ID (replace with actual implementation)
+    return 'user123'; // Replace with auth service integration
   }
 
   /// Cleanup

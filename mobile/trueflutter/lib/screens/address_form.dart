@@ -3,6 +3,9 @@ import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 import '../common/constants/dimensions.dart';
 import '../models/address.dart';
+import '../services/service_locator.dart';
+import '../services/api/addresses_api_service.dart';
+import '../services/local/local_storage_service.dart';
 
 class AddressFormScreen extends StatefulWidget {
   final Address? address; // For editing existing address
@@ -17,6 +20,8 @@ class AddressFormScreen extends StatefulWidget {
 }
 
 class _AddressFormScreenState extends State<AddressFormScreen> {
+  late final AddressesApiService _addressesApiService;
+  late final LocalStorageService _localStorage;
   final _formKey = GlobalKey<FormState>();
   final _scrollController = ScrollController();
 
@@ -38,6 +43,8 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
   @override
   void initState() {
     super.initState();
+    _addressesApiService = getIt<AddressesApiService>();
+    _localStorage = getIt<LocalStorageService>();
     
     final existingAddress = widget.address;
     
@@ -99,8 +106,40 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
         updatedAt: DateTime.now(),
       );
 
-      // TODO: Save to backend
-      // await _userApiService.saveAddress(address);
+      // Save to backend
+      final userId = _localStorage.getString('user_id') ?? 'user123';
+      final result = widget.address != null
+          ? await _addressesApiService.updateAddress(
+              addressId: widget.address!.id ?? '',
+              userId: userId,
+              label: '${address.fullName} - ${address.addressType}',
+              fullName: address.fullName,
+              phoneNumber: address.phoneNumber,
+              addressLine1: address.addressLine1,
+              addressLine2: address.addressLine2,
+              city: address.city,
+              state: address.state,
+              postalCode: address.pincode,
+              addressType: address.addressType,
+              isDefault: address.isDefault,
+            )
+          : await _addressesApiService.createAddress(
+              userId: userId,
+              label: '${address.fullName} - ${address.addressType}',
+              fullName: address.fullName,
+              phoneNumber: address.phoneNumber,
+              addressLine1: address.addressLine1,
+              addressLine2: address.addressLine2,
+              city: address.city,
+              state: address.state,
+              postalCode: address.pincode,
+              addressType: address.addressType,
+              isDefault: address.isDefault,
+            );
+      
+      if (!result['success']) {
+        throw Exception(result['error'] ?? 'Failed to save address');
+      }
 
       if (mounted) {
         Navigator.of(context).pop(address);

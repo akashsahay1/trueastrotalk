@@ -43,6 +43,19 @@ class CartItem {
     );
   }
 
+  factory CartItem.fromApiJson(Map<String, dynamic> json) {
+    return CartItem(
+      productId: json['product_id'] ?? '',
+      productName: json['product']?['name'] ?? json['product_name'] ?? '',
+      productPrice: (json['product']?['price'] as num?)?.toDouble() ?? 
+                   (json['product_price'] as num?)?.toDouble() ?? 0.0,
+      productImage: json['product']?['images']?[0] ?? json['product_image'],
+      category: json['product']?['category'] ?? json['category'] ?? '',
+      quantity: json['quantity'] ?? 1,
+      addedAt: DateTime.tryParse(json['created_at'] ?? json['added_at'] ?? '') ?? DateTime.now(),
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'product_id': productId,

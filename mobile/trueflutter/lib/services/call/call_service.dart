@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import '../../models/call.dart';
-// import '../api/user_api_service.dart'; // TODO: Uncomment when implementing real API
+import '../api/calls_api_service.dart';
 import '../socket/socket_service.dart';
-// import '../service_locator.dart'; // TODO: Uncomment when needed
+import '../service_locator.dart';
 
 class CallService extends ChangeNotifier {
   static CallService? _instance;
@@ -10,7 +10,7 @@ class CallService extends ChangeNotifier {
   
   CallService._();
 
-  // final UserApiService _apiService = getIt<UserApiService>(); // TODO: Will be used for real API calls
+  final CallsApiService _callsApiService = getIt<CallsApiService>();
   final SocketService _socketService = SocketService.instance;
   
   // Current call sessions
@@ -158,17 +158,32 @@ class CallService extends ChangeNotifier {
     try {
       debugPrint('📋 Loading call sessions');
       
-      // TODO: Call actual API endpoint
-      // final sessions = await _apiService.getCallSessions();
-      // _callSessions = sessions;
+      final userId = _getCurrentUserId();
+      if (userId == null) {
+        debugPrint('⚠️ No user ID found, cannot load call sessions');
+        _callSessions = [];
+        notifyListeners();
+        return;
+      }
+
+      final result = await _callsApiService.getCallSessions(
+        userId: userId,
+        userType: 'user',
+      );
       
-      // For now, create some mock data for testing
-      _callSessions = [];
+      if (result['success']) {
+        _callSessions = result['call_sessions'];
+        debugPrint('✅ Loaded ${_callSessions.length} call sessions');
+      } else {
+        debugPrint('❌ Failed to load call sessions: ${result['error']}');
+        _callSessions = [];
+      }
       
       notifyListeners();
     } catch (e) {
       debugPrint('❌ Failed to load call sessions: $e');
-      rethrow;
+      _callSessions = [];
+      notifyListeners();
     }
   }
 
@@ -177,41 +192,37 @@ class CallService extends ChangeNotifier {
     try {
       debugPrint('📞 Starting ${callType.name} call with astrologer: $astrologerId');
       
-      // TODO: Call API to create call session and get room details
-      // final session = await _apiService.createCallSession(astrologerId, callType);
-      
-      // Create mock session for now
-      final session = CallSession(
-        id: 'call_${DateTime.now().millisecondsSinceEpoch}',
-        user: _getCurrentUser(),
-        astrologer: _getMockAstrologer(astrologerId),
-        callType: callType,
-        status: CallStatus.ringing,
-        ratePerMinute: callType == CallType.video ? 15.0 : 10.0,
-        startTime: DateTime.now(),
-        durationMinutes: 0,
-        totalAmount: 0.0,
-        roomId: 'room_${DateTime.now().millisecondsSinceEpoch}',
-        token: 'token_${DateTime.now().millisecondsSinceEpoch}',
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+      final userId = _getCurrentUserId();
+      if (userId == null) {
+        throw Exception('User not logged in');
+      }
+
+      final result = await _callsApiService.createCallSession(
+        userId: userId,
+        astrologerId: astrologerId,
+        callType: callType == CallType.video ? 'video' : 'voice',
       );
       
-      // Add to sessions list
-      _callSessions.insert(0, session);
-      _activeCallSession = session;
-      
-      // Emit call request via socket
-      _socketService.emit('start_call_session', {
-        'callSessionId': session.id,
-        'userId': session.user.id,
-        'astrologerId': astrologerId,
-        'callType': callType.name.toLowerCase(),
-        'roomId': session.roomId,
-      });
-      
-      notifyListeners();
-      return session;
+      if (result['success']) {
+        final session = result['session'] as CallSession;
+        
+        // Add to sessions list
+        _callSessions.insert(0, session);
+        _activeCallSession = session;
+        
+        // Emit call request via socket
+        _socketService.emit('initiate_call', {
+          'sessionId': session.id,
+          'callerId': userId,
+          'callerType': 'user',
+          'callType': callType.name.toLowerCase(),
+        });
+        
+        notifyListeners();
+        return session;
+      } else {
+        throw Exception(result['error']);
+      }
       
     } catch (e) {
       debugPrint('❌ Failed to start call session: $e');
@@ -327,41 +338,17 @@ class CallService extends ChangeNotifier {
 
   /// Show incoming call UI (to be implemented with a proper call screen overlay)
   void _showIncomingCallUI(CallSession callSession) {
-    // TODO: Implement incoming call overlay UI
     // This would typically show a full-screen incoming call interface
-    debugPrint('📞 Should show incoming call UI for: ${callSession.astrologer.fullName}');
+    // You can implement this with a navigation to a call screen or overlay
+    debugPrint('📞 Incoming call from: ${callSession.astrologer.fullName}');
+    // Navigator.push(context, MaterialPageRoute(builder: (_) => IncomingCallScreen(callSession)));
   }
 
-  /// Get mock data - Replace with real implementation
-  dynamic _getCurrentUser() {
-    return {
-      'id': 'user123',
-      'name': 'Test User',
-      'email': 'test@example.com',
-    };
-  }
-  
-  dynamic _getMockAstrologer(String astrologerId) {
-    return {
-      'id': astrologerId,
-      'full_name': 'Astrologer Name',
-      'email_address': 'astrologer@example.com',
-      'qualifications': [],
-      'languages': ['English'],
-      'skills': ['Vedic Astrology'],
-      'experience_years': 5,
-      'is_online': true,
-      'verification_status': 'verified',
-      'is_available': true,
-      'rating': 4.5,
-      'total_reviews': 100,
-      'total_consultations': 500,
-      'chat_rate': 5.0,
-      'call_rate': 10.0,
-      'video_rate': 15.0,
-      'created_at': DateTime.now().toIso8601String(),
-      'updated_at': DateTime.now().toIso8601String(),
-    };
+  /// Get current user ID from local storage or auth service
+  String? _getCurrentUserId() {
+    // Get from local storage or auth service
+    // For now, return a mock user ID (replace with actual implementation)
+    return 'user123'; // Replace with: getIt<AuthService>().currentUser?.id
   }
 
   /// Cleanup

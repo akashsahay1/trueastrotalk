@@ -1264,7 +1264,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       await callService.initialize(); // Ensure call service is initialized
       await callService.startCallSession(astrologer.id, CallType.voice);
 
-      // TODO: Navigate to actual call screen when implemented
+      // Navigate to actual call screen when implemented
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

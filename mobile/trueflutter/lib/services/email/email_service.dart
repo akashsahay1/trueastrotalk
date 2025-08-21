@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import '../../models/order.dart';
 import '../../models/user.dart';
-// import '../api/user_api_service.dart'; // TODO: Uncomment when implementing real API
-// import '../service_locator.dart'; // TODO: Uncomment when needed
+import '../api/notifications_api_service.dart';
+import '../service_locator.dart';
 
 class EmailService {
   static EmailService? _instance;
@@ -10,7 +10,7 @@ class EmailService {
   
   EmailService._();
 
-  // final UserApiService _userApiService = getIt<UserApiService>(); // TODO: Will be used for real API calls
+  final NotificationsApiService _notificationsApiService = getIt<NotificationsApiService>();
 
   /// Send order confirmation email
   Future<EmailResult> sendOrderConfirmationEmail({
@@ -21,19 +21,21 @@ class EmailService {
     try {
       debugPrint('📧 Sending order confirmation email for order ${order.orderNumber}');
 
-      // final emailData = _buildOrderConfirmationEmailData(order, user); // TODO: Use when implementing real API
+      final emailData = _buildOrderConfirmationEmailData(order, user);
       
-      // TODO: Call backend API to send email
-      // final response = await _userApiService.sendOrderConfirmationEmail(
-      //   authToken,
-      //   emailData,
-      // );
+      final result = await _notificationsApiService.sendEmailNotification(
+        type: 'order_confirmation',
+        recipientEmail: user.email ?? '',
+        recipientName: user.name,
+        data: emailData['data'],
+      );
 
-      // Simulate API call for now
-      await Future.delayed(const Duration(seconds: 1));
-
-      debugPrint('✅ Order confirmation email sent successfully');
-      return EmailResult.success('Order confirmation email sent successfully');
+      if (result['success']) {
+        debugPrint('✅ Order confirmation email sent successfully');
+        return EmailResult.success('Order confirmation email sent successfully', data: result);
+      } else {
+        throw Exception(result['error']);
+      }
     } catch (e) {
       debugPrint('❌ Failed to send order confirmation email: $e');
       return EmailResult.error('Failed to send order confirmation email: $e');
@@ -50,19 +52,21 @@ class EmailService {
     try {
       debugPrint('📧 Sending order status update email for order ${order.orderNumber}');
 
-      // final emailData = _buildOrderStatusUpdateEmailData(order, user, previousStatus); // TODO: Use when implementing real API
+      final emailData = _buildOrderStatusUpdateEmailData(order, user, previousStatus);
       
-      // TODO: Call backend API to send email
-      // final response = await _userApiService.sendOrderStatusUpdateEmail(
-      //   authToken,
-      //   emailData,
-      // );
+      final result = await _notificationsApiService.sendEmailNotification(
+        type: 'order_status_update',
+        recipientEmail: user.email ?? '',
+        recipientName: user.name,
+        data: emailData['data'],
+      );
 
-      // Simulate API call for now
-      await Future.delayed(const Duration(seconds: 1));
-
-      debugPrint('✅ Order status update email sent successfully');
-      return EmailResult.success('Order status update email sent successfully');
+      if (result['success']) {
+        debugPrint('✅ Order status update email sent successfully');
+        return EmailResult.success('Order status update email sent successfully', data: result);
+      } else {
+        throw Exception(result['error']);
+      }
     } catch (e) {
       debugPrint('❌ Failed to send order status update email: $e');
       return EmailResult.error('Failed to send order status update email: $e');
@@ -79,16 +83,18 @@ class EmailService {
     try {
       debugPrint('📧 Sending order cancellation email for order ${order.orderNumber}');
 
-      // final emailData = _buildOrderCancellationEmailData(order, user, cancellationReason); // TODO: Use when implementing real API
+      final emailData = _buildOrderCancellationEmailData(order, user, cancellationReason);
       
-      // TODO: Call backend API to send email
-      // final response = await _userApiService.sendOrderCancellationEmail(
-      //   authToken,
-      //   emailData,
-      // );
-
-      // Simulate API call for now
-      await Future.delayed(const Duration(seconds: 1));
+      final result = await _notificationsApiService.sendEmailNotification(
+        type: 'order_cancellation',
+        recipientEmail: user.email ?? '',
+        recipientName: user.name,
+        data: emailData['data'],
+      );
+      
+      if (!result['success']) {
+        throw Exception(result['error']);
+      }
 
       debugPrint('✅ Order cancellation email sent successfully');
       return EmailResult.success('Order cancellation email sent successfully');
@@ -107,16 +113,18 @@ class EmailService {
     try {
       debugPrint('📧 Sending order delivery email for order ${order.orderNumber}');
 
-      // final emailData = _buildOrderDeliveryEmailData(order, user); // TODO: Use when implementing real API
+      final emailData = _buildOrderDeliveryEmailData(order, user);
       
-      // TODO: Call backend API to send email
-      // final response = await _userApiService.sendOrderDeliveryEmail(
-      //   authToken,
-      //   emailData,
-      // );
-
-      // Simulate API call for now
-      await Future.delayed(const Duration(seconds: 1));
+      final result = await _notificationsApiService.sendEmailNotification(
+        type: 'order_delivered',
+        recipientEmail: user.email ?? '',
+        recipientName: user.name,
+        data: emailData['data'],
+      );
+      
+      if (!result['success']) {
+        throw Exception(result['error']);
+      }
 
       debugPrint('✅ Order delivery email sent successfully');
       return EmailResult.success('Order delivery email sent successfully');

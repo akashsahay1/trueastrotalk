@@ -1,12 +1,41 @@
 class ApiEndpoints {
-  // Base endpoints (Note: baseUrl in config already includes /api)
+  // Products endpoints
+  static const String products = '/products';
+  static String productById(String id) => '$products/$id';
+  
+  // Cart endpoints
+  static const String cart = '/cart';
+  
+  // Orders endpoints
+  static const String orders = '/orders';
+  static String orderById(String id) => '$orders/$id';
+  
+  // Addresses endpoints
+  static const String addresses = '/addresses';
+  
+  // Chat endpoints
+  static const String chat = '/chat';
+  static String chatById(String id) => '$chat/$id';
+  static const String chatMessages = '/chat/messages';
+  
+  // Calls endpoints
+  static const String calls = '/calls';
+  static String callById(String id) => '$calls/$id';
+  
+  // Notifications endpoints
+  static const String pushNotifications = '/notifications/push';
+  static const String emailNotifications = '/notifications/email';
+  
+  // Socket endpoints
+  static const String socket = '/socket';
+
+  // Auth endpoints (for future implementation)
   static const String auth = '/auth';
   static const String customers = '/customers';
   static const String astrologers = '/astrologers';
   static const String consultations = '/consultations';
   static const String wallet = '/wallet';
   static const String upload = '/upload';
-  static const String admin = '/admin';
 
   // Auth endpoints
   static const String register = '$auth/register';
@@ -49,8 +78,8 @@ class ApiEndpoints {
   static const String uploadSampleVideo = '$upload/sample-video';
 
   // Admin endpoints
-  static const String adminProducts = '$admin/products';
-
+  static const String adminProducts = '/admin/products';
+  
   // Public endpoints
   static const String publicAstrologerOptions = '/public/astrologer-options';
 }

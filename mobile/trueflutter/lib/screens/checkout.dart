@@ -11,6 +11,7 @@ import '../services/cart_service.dart';
 import '../services/auth/auth_service.dart';
 import '../services/payment/razorpay_service.dart';
 import '../services/email/email_service.dart';
+import '../services/api/orders_api_service.dart';
 import 'address_list.dart';
 import 'order_success.dart';
 
@@ -33,13 +34,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   late final AuthService _authService;
   late final RazorpayService _razorpayService;
   late final EmailService _emailService;
+  late final OrdersApiService _ordersApiService;
   
   Cart? _currentCart;
   Address? _selectedAddress;
   PaymentMethod _selectedPaymentMethod = PaymentMethod.razorpay;
   
   bool _isPlacingOrder = false;
-  final bool _useShippingAsBilling = true;
   
   final TextEditingController _notesController = TextEditingController();
 
@@ -50,6 +51,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     _authService = getIt<AuthService>();
     _razorpayService = getIt<RazorpayService>();
     _emailService = getIt<EmailService>();
+    _ordersApiService = getIt<OrdersApiService>();
     
     _currentCart = widget.cart ?? _cartService.cart;
     
@@ -239,37 +241,38 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         .map((cartItem) => OrderItem.fromCartItem(cartItem))
         .toList();
 
-    final order = Order(
+    // Save order to backend
+    final result = await _ordersApiService.createOrder(
       userId: user.id,
-      items: orderItems,
-      subtotal: _currentCart!.totalPrice,
-      shippingCost: _calculateShipping(),
-      taxAmount: _calculateTax(),
-      totalAmount: _getFinalTotal(),
-      status: OrderStatus.pending,
-      paymentStatus: paymentMethod == PaymentMethod.cod 
-          ? PaymentStatus.pending 
-          : PaymentStatus.completed,
-      paymentMethod: paymentMethod,
-      paymentId: paymentId,
-      razorpayOrderId: razorpayOrderId,
+      items: orderItems.map((item) => {
+        'product_id': item.productId,
+        'product_name': item.productName,
+        'quantity': item.quantity,
+        'price': item.productPrice,
+        'category': item.category,
+      }).toList(),
       shippingAddress: _selectedAddress!,
-      billingAddress: _useShippingAsBilling ? _selectedAddress : null,
-      orderDate: DateTime.now(),
-      expectedDeliveryDate: DateTime.now().add(const Duration(days: 7)),
-      notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
-      createdAt: DateTime.now(),
+      paymentMethod: paymentMethod.name,
+      paymentDetails: {
+        if (paymentId != null) 'payment_id': paymentId,
+        if (razorpayOrderId != null) 'razorpay_order_id': razorpayOrderId,
+        if (_notesController.text.trim().isNotEmpty) 'notes': _notesController.text.trim(),
+      },
     );
-
-    // TODO: Save order to backend
-    // final savedOrder = await _userApiService.createOrder(order);
+    
+    if (!result['success']) {
+      throw Exception(result['error'] ?? 'Failed to create order');
+    }
+    
+    // Get the created order from API response
+    final savedOrder = result['order'] as Order;
     
     // Send order confirmation email
     final authToken = _authService.authToken;
     if (authToken != null) {
       try {
         await _emailService.sendOrderConfirmationEmail(
-          order: order,
+          order: savedOrder,
           user: user,
           authToken: authToken,
         );
@@ -280,7 +283,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
     }
     
-    return order;
+    return savedOrder;
   }
 
   void _navigateToOrderSuccess(Order order) {
@@ -630,9 +633,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ),
         borderRadius: BorderRadius.circular(Dimensions.radiusSm),
       ),
+      // ignore: deprecated_member_use
       child: RadioListTile<PaymentMethod>(
         value: method,
+        // ignore: deprecated_member_use
         groupValue: _selectedPaymentMethod,
+        // ignore: deprecated_member_use
         onChanged: (value) {
           setState(() {
             _selectedPaymentMethod = value!;

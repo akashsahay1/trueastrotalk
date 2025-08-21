@@ -5,6 +5,7 @@ import '../common/constants/dimensions.dart';
 import '../models/address.dart';
 import '../services/service_locator.dart';
 import '../services/local/local_storage_service.dart';
+import '../services/api/addresses_api_service.dart';
 import 'address_form.dart';
 
 class AddressListScreen extends StatefulWidget {
@@ -21,6 +22,7 @@ class AddressListScreen extends StatefulWidget {
 
 class _AddressListScreenState extends State<AddressListScreen> {
   late final LocalStorageService _localStorage;
+  late final AddressesApiService _addressesApiService;
   
   List<Address> _addresses = [];
   bool _isLoading = true;
@@ -29,6 +31,7 @@ class _AddressListScreenState extends State<AddressListScreen> {
   void initState() {
     super.initState();
     _localStorage = getIt<LocalStorageService>();
+    _addressesApiService = getIt<AddressesApiService>();
     _loadAddresses();
   }
 
@@ -38,15 +41,15 @@ class _AddressListScreenState extends State<AddressListScreen> {
     });
 
     try {
-      // For now, load from local storage
-      // In production, this would fetch from API
-      final addressesData = _localStorage.getString('user_addresses');
-      if (addressesData != null && addressesData.isNotEmpty) {
-        // Parse addresses from storage
-        // This is simplified - you'd use proper JSON parsing
-        _addresses = _getSampleAddresses();
+      // Load addresses from API
+      final userId = _localStorage.getString('user_id') ?? 'user123';
+      final result = await _addressesApiService.getAddresses(userId);
+      
+      if (result['success']) {
+        _addresses = result['addresses'] as List<Address>;
       } else {
-        _addresses = _getSampleAddresses();
+        debugPrint('Failed to load addresses: ${result['error']}');
+        _addresses = _getSampleAddresses(); // Fallback to sample data
       }
     } catch (e) {
       debugPrint('Error loading addresses: $e');

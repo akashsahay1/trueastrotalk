@@ -1,6 +1,13 @@
 import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
 import 'api/user_api_service.dart';
+import 'api/products_api_service.dart';
+import 'api/cart_api_service.dart';
+import 'api/orders_api_service.dart';
+import 'api/addresses_api_service.dart';
+import 'api/chat_api_service.dart';
+import 'api/calls_api_service.dart';
+import 'api/notifications_api_service.dart';
 import 'auth/auth_service.dart';
 import 'network/dio_client.dart';
 import 'local/local_storage_service.dart';
@@ -25,6 +32,34 @@ void setupServiceLocator() {
     UserApiService(getIt<Dio>(), getIt<LocalStorageService>()),
   );
 
+  getIt.registerSingleton<ProductsApiService>(
+    ProductsApiService(getIt<Dio>()),
+  );
+
+  getIt.registerSingleton<CartApiService>(
+    CartApiService(getIt<Dio>()),
+  );
+
+  getIt.registerSingleton<OrdersApiService>(
+    OrdersApiService(getIt<Dio>()),
+  );
+
+  getIt.registerSingleton<AddressesApiService>(
+    AddressesApiService(getIt<Dio>()),
+  );
+
+  getIt.registerSingleton<ChatApiService>(
+    ChatApiService(getIt<Dio>()),
+  );
+
+  getIt.registerSingleton<CallsApiService>(
+    CallsApiService(getIt<Dio>()),
+  );
+
+  getIt.registerSingleton<NotificationsApiService>(
+    NotificationsApiService(getIt<Dio>()),
+  );
+
   // Register Auth service
   getIt.registerSingleton<AuthService>(
     AuthService(getIt<UserApiService>()),
@@ -32,7 +67,7 @@ void setupServiceLocator() {
 
   // Register Cart service
   getIt.registerSingleton<CartService>(
-    CartService(getIt<LocalStorageService>()),
+    CartService(getIt<LocalStorageService>(), getIt<CartApiService>()),
   );
 
   // Register Razorpay service

@@ -4,8 +4,9 @@ import '../common/themes/text_styles.dart';
 import '../common/constants/dimensions.dart';
 import '../models/order.dart';
 import '../models/address.dart';
-// import '../services/service_locator.dart'; // TODO: Uncomment when needed
-// import '../services/local/local_storage_service.dart'; // TODO: Uncomment when needed
+import '../services/service_locator.dart';
+import '../services/api/orders_api_service.dart';
+import '../services/local/local_storage_service.dart';
 import 'order_details.dart';
 
 class OrdersListScreen extends StatefulWidget {
@@ -16,7 +17,8 @@ class OrdersListScreen extends StatefulWidget {
 }
 
 class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerProviderStateMixin {
-  // late final LocalStorageService _localStorage; // TODO: Will be used for real API calls
+  late final OrdersApiService _ordersApiService;
+  late final LocalStorageService _localStorage;
   late TabController _tabController;
   
   List<Order> _allOrders = [];
@@ -27,7 +29,8 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
   @override
   void initState() {
     super.initState();
-    // _localStorage = getIt<LocalStorageService>(); // TODO: Uncomment when needed for real API
+    _ordersApiService = getIt<OrdersApiService>();
+    _localStorage = getIt<LocalStorageService>();
     _tabController = TabController(length: _tabs.length, vsync: this);
     _loadOrders();
   }
@@ -44,9 +47,26 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
     });
 
     try {
-      // For now, load sample data
-      // In production, this would fetch from API
-      _allOrders = _getSampleOrders();
+      // Get user ID from local storage
+      final userId = _localStorage.getString('user_id') ?? 'user123';
+      
+      // Fetch orders from API
+      final result = await _ordersApiService.getOrders(
+        userId: userId,
+        userType: 'user',
+      );
+      
+      if (result['success']) {
+        _allOrders = result['orders'];
+      } else {
+        // Fallback to sample data if API fails
+        _allOrders = _getSampleOrders();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['error'] ?? 'Failed to load orders')),
+          );
+        }
+      }
     } catch (e) {
       debugPrint('Error loading orders: $e');
       _allOrders = _getSampleOrders();
@@ -235,44 +255,67 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
     );
 
     if (result == true) {
-      // TODO: Call API to cancel order
-      setState(() {
-        final index = _allOrders.indexWhere((o) => o.id == order.id);
-        if (index >= 0) {
-          _allOrders[index] = Order(
-            id: order.id,
-            orderNumber: order.orderNumber,
-            userId: order.userId,
-            items: order.items,
-            subtotal: order.subtotal,
-            shippingCost: order.shippingCost,
-            taxAmount: order.taxAmount,
-            totalAmount: order.totalAmount,
-            status: OrderStatus.cancelled,
-            paymentStatus: order.paymentStatus,
-            paymentMethod: order.paymentMethod,
-            paymentId: order.paymentId,
-            razorpayOrderId: order.razorpayOrderId,
-            shippingAddress: order.shippingAddress,
-            billingAddress: order.billingAddress,
-            orderDate: order.orderDate,
-            expectedDeliveryDate: order.expectedDeliveryDate,
-            deliveredDate: order.deliveredDate,
-            trackingNumber: order.trackingNumber,
-            notes: order.notes,
-            createdAt: order.createdAt,
-            updatedAt: DateTime.now(),
+      // Call API to cancel order
+      try {
+        final userId = _localStorage.getString('user_id') ?? 'user123';
+        final cancelResult = await _ordersApiService.cancelOrder(
+          orderId: order.id ?? '',
+          userId: userId,
+          reason: 'Cancelled by customer',
+        );
+        
+        if (cancelResult['success']) {
+          // Update local state
+          setState(() {
+            final index = _allOrders.indexWhere((o) => o.id == order.id);
+            if (index >= 0) {
+              _allOrders[index] = Order(
+                id: order.id,
+                orderNumber: order.orderNumber,
+                userId: order.userId,
+                items: order.items,
+                subtotal: order.subtotal,
+                shippingCost: order.shippingCost,
+                taxAmount: order.taxAmount,
+                totalAmount: order.totalAmount,
+                status: OrderStatus.cancelled,
+                paymentStatus: order.paymentStatus,
+                paymentMethod: order.paymentMethod,
+                paymentId: order.paymentId,
+                razorpayOrderId: order.razorpayOrderId,
+                shippingAddress: order.shippingAddress,
+                billingAddress: order.billingAddress,
+                orderDate: order.orderDate,
+                expectedDeliveryDate: order.expectedDeliveryDate,
+                deliveredDate: order.deliveredDate,
+                trackingNumber: order.trackingNumber,
+                notes: order.notes,
+                createdAt: order.createdAt,
+                updatedAt: DateTime.now(),
+              );
+            }
+          });
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Order cancelled successfully'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          }
+        } else {
+          throw Exception(cancelResult['error'] ?? 'Failed to cancel order');
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to cancel order: $e'),
+              backgroundColor: AppColors.error,
+            ),
           );
         }
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Order cancelled successfully'),
-            backgroundColor: AppColors.success,
-          ),
-        );
       }
     }
   }

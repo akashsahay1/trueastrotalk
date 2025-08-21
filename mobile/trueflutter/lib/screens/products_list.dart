@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 import '../common/constants/dimensions.dart';
-import '../services/api/user_api_service.dart';
+import '../services/api/products_api_service.dart';
 import '../services/service_locator.dart';
 import '../models/product.dart';
 import 'product_details.dart';
@@ -15,7 +15,7 @@ class ProductsListScreen extends StatefulWidget {
 }
 
 class _ProductsListScreenState extends State<ProductsListScreen> {
-  late final UserApiService _userApiService;
+  late final ProductsApiService _productsApiService;
   
   List<Product> _products = [];
   List<Product> _filteredProducts = [];
@@ -29,7 +29,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   @override
   void initState() {
     super.initState();
-    _userApiService = getIt<UserApiService>();
+    _productsApiService = getIt<ProductsApiService>();
     _loadProducts();
   }
 
@@ -45,7 +45,13 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
         _isLoading = true;
       });
 
-      final products = await _userApiService.getAllProducts();
+      final result = await _productsApiService.getProducts();
+      
+      if (!result['success']) {
+        throw Exception(result['error']);
+      }
+      
+      final products = result['products'] as List<Product>;
       
       setState(() {
         _products = products;

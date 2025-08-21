@@ -356,7 +356,7 @@ class _CallListScreenState extends State<CallListScreen> {
           ),
         );
         
-        // TODO: Navigate to actual call screen
+        // Navigate to actual call screen when implemented
         // Navigator.of(context).push(
         //   MaterialPageRoute(
         //     builder: (context) => CallScreen(callSession: session),

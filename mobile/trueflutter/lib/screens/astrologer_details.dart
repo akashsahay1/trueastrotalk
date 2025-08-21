@@ -6,6 +6,7 @@ import '../models/astrologer.dart';
 import '../models/enums.dart';
 import '../services/api/user_api_service.dart';
 import '../services/service_locator.dart';
+import '../services/local/local_storage_service.dart';
 import '../services/chat/chat_service.dart';
 import '../services/call/call_service.dart';
 import '../models/call.dart';
@@ -690,9 +691,9 @@ Connect now on True AstroTalk! 🌟
     });
     
     try {
-      // TODO: Save to local storage or call API to update favorite status
-      // final localStorage = getIt<LocalStorageService>();
-      // await localStorage.saveFavoriteAstrologer(_astrologer!.id, _isFavorite);
+      // Save favorite status to local storage
+      final localStorage = getIt<LocalStorageService>();
+      await localStorage.saveString('favorite_${_astrologer!.id}', _isFavorite.toString());
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -801,7 +802,7 @@ Connect now on True AstroTalk! 🌟
       await callService.initialize(); // Ensure call service is initialized
       await callService.startCallSession(_astrologer!.id, callType);
 
-      // TODO: Navigate to call screen when implemented
+      // Navigate to call screen - implement when call UI is ready
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -856,7 +857,10 @@ Connect now on True AstroTalk! 🌟
 
   Future<void> _loadFavoriteStatus() async {
     try {
-      // TODO: Load favorite status from local storage or API
+      // Load favorite status from local storage
+    final localStorage = getIt<LocalStorageService>();
+    final favoriteStatus = localStorage.getString('favorite_${_astrologer!.id}');
+    _isFavorite = favoriteStatus == 'true';
       // final localStorage = getIt<LocalStorageService>();
       // final isFavorite = await localStorage.isAstrologerFavorite(_astrologer!.id);
       // setState(() {
