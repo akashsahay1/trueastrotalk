@@ -337,9 +337,6 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
                         disabled={uploading}
                       />
                     </label>
-                    <small className="text-muted ml-2">
-                      Hold Ctrl/Cmd to select multiple
-                    </small>
                     {viewMode === 'list' && selectedFiles.size > 0 && (
                       <button
                         className="btn btn-danger btn-sm ml-2"
