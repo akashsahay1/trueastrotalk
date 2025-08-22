@@ -15,8 +15,10 @@ import 'cart_service.dart';
 import 'payment/razorpay_service.dart';
 import 'email/email_service.dart';
 import 'socket/socket_service.dart';
+import 'webrtc/webrtc_service.dart';
 import 'chat/chat_service.dart';
 import 'call/call_service.dart';
+import 'wallet/wallet_service.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -90,8 +92,18 @@ void setupServiceLocator() {
     ChatService.instance,
   );
 
+  // Register WebRTC service
+  getIt.registerSingleton<WebRTCService>(
+    WebRTCService.instance,
+  );
+
   // Register Call service
   getIt.registerSingleton<CallService>(
     CallService.instance,
+  );
+
+  // Register Wallet service
+  getIt.registerSingleton<WalletService>(
+    WalletService.instance,
   );
 }

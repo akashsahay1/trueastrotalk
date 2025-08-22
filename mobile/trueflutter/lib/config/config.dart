@@ -9,7 +9,7 @@ class Config {
   static const int buildNumber = 1;
 
   // Environment Mode - Change this to switch between local and production
-  static const String appMode = 'production'; // 'local' or 'production'
+  static const String appMode = 'local'; // 'local' or 'production'
 
   static bool get isDevelopment => appMode == 'local';
   static bool get isProduction => appMode == 'production';
@@ -18,10 +18,10 @@ class Config {
   static String? _cachedLocalIP;
 
   static Future<String> _getLocalIP() async {
-    // For development, always use the computer's IP address
-    // This bypasses auto-detection which was finding the device's own IP
+    // For development, always use localhost for admin panel integration
+    // The admin panel runs on localhost:3000 with API endpoints
     if (isDevelopment) {
-      _cachedLocalIP = '192.168.0.124'; // Your computer's IP address
+      _cachedLocalIP = 'localhost'; // Use localhost for admin panel
       return _cachedLocalIP!;
     }
 
@@ -35,7 +35,7 @@ class Config {
       return 'https://www.trueastrotalk.com/api';
     }
 
-    // Development mode - auto-detect IP
+    // Development mode - connect to admin panel API
     final ip = await _getLocalIP();
     return 'http://$ip:4000/api';
   }
@@ -45,7 +45,7 @@ class Config {
       return 'https://www.trueastrotalk.com';
     }
 
-    // Development mode - auto-detect IP
+    // Development mode - connect to admin panel
     final ip = await _getLocalIP();
     return 'http://$ip:4000';
   }

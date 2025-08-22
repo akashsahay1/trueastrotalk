@@ -61,15 +61,15 @@ class SocketService extends ChangeNotifier {
         throw Exception('User not authenticated');
       }
       
-      // Socket.IO server URL (use provided or default)
-      final socketUrl = serverUrl ?? 'http://localhost:3001';
+      // Socket.IO server URL (use provided or default - Socket.IO dedicated port)
+      final socketUrl = serverUrl ?? 'http://localhost:4001';
       
       debugPrint('🔌 Connecting to Socket.IO server: $socketUrl');
       
       // Initialize socket with authentication
       _socket = socket_io.io(socketUrl, 
         socket_io.OptionBuilder()
-          .setTransports(['websocket'])
+          .setTransports(['websocket', 'polling'])
           .enableAutoConnect()
           .setAuth({
             'token': authToken,
@@ -119,6 +119,15 @@ class SocketService extends ChangeNotifier {
       notifyListeners();
     });
     
+    // Authentication events
+    _socket!.on('authenticated', (data) {
+      debugPrint('✅ Socket authenticated: $data');
+    });
+    
+    _socket!.on('authentication_error', (data) {
+      debugPrint('❌ Socket authentication error: $data');
+    });
+
     // Chat events
     _socket!.on('new_message', (data) {
       debugPrint('📨 Received new message: $data');
@@ -130,24 +139,65 @@ class SocketService extends ChangeNotifier {
       }
     });
     
-    _socket!.on('session_updated', (data) {
-      debugPrint('🔄 Session updated: $data');
-      try {
-        final session = ChatSession.fromJson(data);
-        _sessionUpdateStreamController.add(session);
-      } catch (e) {
-        debugPrint('❌ Failed to parse session update: $e');
-      }
+    _socket!.on('chat_history', (data) {
+      debugPrint('📚 Received chat history: ${data['messages']?.length ?? 0} messages');
     });
     
-    _socket!.on('user_typing', (data) {
+    _socket!.on('typing_start', (data) {
       debugPrint('✍️ User typing: $data');
-      _typingStreamController.add(data);
+      _typingStreamController.add({...data, 'isTyping': true});
     });
     
-    _socket!.on('user_stopped_typing', (data) {
+    _socket!.on('typing_stop', (data) {
       debugPrint('✋ User stopped typing: $data');
-      _typingStreamController.add(data);
+      _typingStreamController.add({...data, 'isTyping': false});
+    });
+    
+    _socket!.on('messages_read', (data) {
+      debugPrint('👁️ Messages marked as read: $data');
+    });
+    
+    // WebRTC Call events
+    _socket!.on('incoming_call', (data) {
+      debugPrint('📞 Incoming call: $data');
+    });
+    
+    _socket!.on('call_initiated', (data) {
+      debugPrint('📞 Call initiated: $data');
+    });
+    
+    _socket!.on('call_answered', (data) {
+      debugPrint('✅ Call answered: $data');
+    });
+    
+    _socket!.on('call_rejected', (data) {
+      debugPrint('❌ Call rejected: $data');
+    });
+    
+    _socket!.on('call_ended', (data) {
+      debugPrint('📴 Call ended: $data');
+    });
+    
+    // WebRTC Signaling events
+    _socket!.on('webrtc_offer', (data) {
+      debugPrint('📨 WebRTC offer received: $data');
+    });
+    
+    _socket!.on('webrtc_answer', (data) {
+      debugPrint('📨 WebRTC answer received: $data');
+    });
+    
+    _socket!.on('webrtc_ice_candidate', (data) {
+      debugPrint('🧊 ICE candidate received: $data');
+    });
+    
+    // Presence events
+    _socket!.on('user_online', (data) {
+      debugPrint('🟢 User online: $data');
+    });
+    
+    _socket!.on('user_offline', (data) {
+      debugPrint('🔴 User offline: $data');
     });
     
     // Error events
@@ -165,10 +215,8 @@ class SocketService extends ChangeNotifier {
     debugPrint('🏠 Joining chat session: $chatSessionId');
     _currentChatSessionId = chatSessionId;
     
-    _socket!.emit('join_chat', {
-      'chatSessionId': chatSessionId,
-      'userId': _currentUser!.id,
-      'userType': 'user',
+    _socket!.emit('join_chat_session', {
+      'sessionId': chatSessionId,
     });
   }
 
@@ -180,16 +228,15 @@ class SocketService extends ChangeNotifier {
     
     debugPrint('🚪 Leaving chat session: $_currentChatSessionId');
     
-    _socket!.emit('leave_chat', {
-      'chatSessionId': _currentChatSessionId,
-      'userId': _currentUser!.id,
+    _socket!.emit('leave_chat_session', {
+      'sessionId': _currentChatSessionId,
     });
     
     _currentChatSessionId = null;
   }
 
   /// Send a text message
-  Future<void> sendMessage(String chatSessionId, String content) async {
+  Future<void> sendMessage(String chatSessionId, String content, {String messageType = 'text', String? imageUrl, String? voiceUrl}) async {
     if (!_isConnected || _socket == null) {
       throw Exception('Socket not connected');
     }
@@ -197,13 +244,11 @@ class SocketService extends ChangeNotifier {
     debugPrint('💬 Sending message: $content');
     
     final messageData = {
-      'chatSessionId': chatSessionId,
-      'senderId': _currentUser!.id,
-      'senderName': _currentUser!.name,
-      'senderType': 'user',
-      'type': 'text',
+      'sessionId': chatSessionId,
       'content': content,
-      'timestamp': DateTime.now().toIso8601String(),
+      'messageType': messageType,
+      if (imageUrl != null) 'imageUrl': imageUrl,
+      if (voiceUrl != null) 'voiceUrl': voiceUrl,
     };
     
     _socket!.emit('send_message', messageData);
@@ -214,14 +259,10 @@ class SocketService extends ChangeNotifier {
     if (!_isConnected || _socket == null) return;
     
     final typingData = {
-      'chatSessionId': chatSessionId,
-      'userId': _currentUser!.id,
-      'userName': _currentUser!.name,
-      'userType': 'user',
-      'isTyping': isTyping,
+      'sessionId': chatSessionId,
     };
     
-    _socket!.emit(isTyping ? 'typing' : 'stop_typing', typingData);
+    _socket!.emit(isTyping ? 'typing_start' : 'typing_stop', typingData);
   }
 
   /// Start a new chat session
@@ -258,9 +299,8 @@ class SocketService extends ChangeNotifier {
     if (!_isConnected || _socket == null) return;
     
     _socket!.emit('mark_messages_read', {
-      'chatSessionId': chatSessionId,
+      'sessionId': chatSessionId,
       'messageIds': messageIds,
-      'userId': _currentUser!.id,
     });
   }
 

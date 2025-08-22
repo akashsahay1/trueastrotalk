@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
-import { validateForm, getCategoryFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/validation';
+import { validateForm, getCategoryFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/client-validation';
 import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
 
 export default function AddCategoryPage() {
@@ -30,10 +30,10 @@ export default function AddCategoryPage() {
     const validation = validateForm(formDataForValidation, rules);
     
     if (Object.keys(validation.errors).length > 0) {
-      displayFieldErrors(validation.errors);
-      setFieldErrors(validation.errors);
+      const fieldErrors = displayFieldErrors(validation.errors);
+      setFieldErrors(fieldErrors);
       
-      const firstError = Object.values(validation.errors)[0];
+      const firstError = Object.values(fieldErrors)[0];
       errorMessages.createFailed(`Validation Error: ${firstError}`);
       
       return false;

@@ -89,7 +89,21 @@
       "Bash(git check-ignore:*)",
       "Bash(git ls-tree:*)",
       "Bash(git fetch:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(npm test:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx playwright:*)",
+      "Bash(rg:*)",
+      "Bash(timeout 300 npm run build)",
+      "Bash(timeout 180 npm run build)",
+      "Bash(timeout 240 npm run build)",
+      "Bash(timeout 360 npm run build)",
+      "Bash(timeout 600 npm run build)",
+      "Bash(do echo:*)",
+      "Bash(time curl:*)",
+      "Bash(cat:*)",
+      "Bash(unzip:*)",
+      "Bash(dart:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

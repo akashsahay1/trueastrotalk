@@ -51,7 +51,7 @@ const DB_NAME = 'trueastrotalkDB';
 export async function GET(request: NextRequest) {
   try {
     // Verify authentication
-    const token = request.cookies.get('auth-token')?.value;
+    const token = request.cookies.get('auth_token')?.value;
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -92,13 +92,18 @@ export async function GET(request: NextRequest) {
       query.user_type = userType;
     }
     
-    // Handle legacy search (for backward compatibility)
+    // Optimized search with text index
     if (search) {
-      query.$or = [
-        { full_name: { $regex: search, $options: 'i' } },
-        { email_address: { $regex: search, $options: 'i' } },
-        { phone_number: { $regex: search, $options: 'i' } }
-      ];
+      // Use text search if available, fallback to regex
+      if (search.length > 2) {
+        query.$text = { $search: search };
+      } else {
+        query.$or = [
+          { full_name: { $regex: `^${search}`, $options: 'i' } },
+          { email_address: { $regex: `^${search}`, $options: 'i' } },
+          { phone_number: { $regex: search, $options: 'i' } }
+        ];
+      }
     }
 
     // Apply individual filters
@@ -197,7 +202,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-  } catch(error) {
+  } catch (error) {
     console.error(error);
     return NextResponse.json(
       { error: 'Internal server error' },

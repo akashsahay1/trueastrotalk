@@ -4,9 +4,20 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+interface UserInfo {
+  full_name: string;
+  user_type: string;
+  profile_image?: string;
+}
+
 export default function Header() {
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [userInfo, setUserInfo] = useState<UserInfo>({
+    full_name: 'Administrator',
+    user_type: 'Administrator'
+  });
+
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -34,12 +45,18 @@ export default function Header() {
             <li className="nav-item dropdown nav-user">
               <a className="nav-link nav-user-img" href="#" id="navbarDropdownMenuLink2" data-toggle="dropdown"
                 aria-haspopup="true" aria-expanded="false">
-                <Image src="/assets/images/avatar-1.jpg" alt="Admin" className="avatar-xs rounded-circle" width={32} height={32} />
+                {userInfo.profile_image ? (
+                  <Image src={userInfo.profile_image} alt={userInfo.full_name} className="avatar-xs rounded-circle" width={32} height={32} />
+                ) : (
+                  <div className="avatar-xs rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
+                    {userInfo.full_name.charAt(0).toUpperCase()}
+                  </div>
+                )}
               </a>
               <div className="dropdown-menu dropdown-menu-right nav-user-dropdown" aria-labelledby="navbarDropdownMenuLink2">
                 <div className="nav-user-info">
-                  <h5 className="mb-0 text-white nav-user-name">Akash Sahay</h5>
-                  <span className="status"></span><span>Administrator</span>
+                  <h5 className="mb-0 text-white nav-user-name">{userInfo.full_name}</h5>
+                  <span className="status"></span><span className="text-capitalize">{userInfo.user_type}</span>
                 </div>
                 <a className="dropdown-item" href="#">
                   <i className="fas fa-user mr-2"></i>Account

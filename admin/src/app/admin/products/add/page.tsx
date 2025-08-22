@@ -6,7 +6,7 @@ import Link from 'next/link';import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import MediaLibrary from '@/components/MediaLibrary';
 import Image from 'next/image';
-import { validateForm, getProductFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/validation';
+import { validateForm, getProductFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/client-validation';
 import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
 
 interface Category {
@@ -68,10 +68,12 @@ export default function AddProductPage() {
       customErrors.category = 'Please select a category';
     }
 
-    const allErrors = { ...validation.errors, ...customErrors };
+    // Convert validation errors to field errors format
+    const validationFieldErrors = displayFieldErrors(validation.errors);
+    
+    const allErrors = { ...validationFieldErrors, ...customErrors };
     
     if (Object.keys(allErrors).length > 0) {
-      displayFieldErrors(allErrors);
       setFieldErrors(allErrors);
       
       const firstError = Object.values(allErrors)[0];

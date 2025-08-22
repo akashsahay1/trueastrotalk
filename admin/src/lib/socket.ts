@@ -51,7 +51,7 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
       // Handle user authentication
       socket.on('authenticate', async (data) => {
         try {
-          const { userId, userType, token } = data;
+          const { userId, userType } = data;
           
           // Verify user token here if needed
           // For now, we'll trust the client-side authentication
@@ -138,11 +138,20 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
             updateData.$inc = { user_unread_count: 1 };
           }
 
+          const mongoUpdate: Record<string, unknown> = {};
+          
+          if (updateData.$inc) {
+            // Separate $inc operations from $set operations
+            const { $inc, ...setFields } = updateData;
+            mongoUpdate.$set = setFields;
+            mongoUpdate.$inc = $inc;
+          } else {
+            mongoUpdate.$set = updateData;
+          }
+
           await db.collection('chat_sessions').updateOne(
             { _id: new ObjectId(sessionId) },
-            updateData.$inc ? 
-              { $set: { ...updateData, $inc: undefined }, $inc: updateData.$inc } :
-              { $set: updateData }
+            mongoUpdate
           );
 
           await client.close();
@@ -229,7 +238,7 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
       // Handle call answer
       socket.on('answer_call', async (data) => {
         try {
-          const { sessionId, userId } = data;
+          const { sessionId } = data;
           
           const call = activeCalls.get(sessionId);
           if (!call) {
@@ -272,7 +281,7 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
       // Handle call rejection
       socket.on('reject_call', async (data) => {
         try {
-          const { sessionId, userId } = data;
+          const { sessionId } = data;
           
           const call = activeCalls.get(sessionId);
           if (!call) {
@@ -308,7 +317,7 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
       // Handle call end
       socket.on('end_call', async (data) => {
         try {
-          const { sessionId, userId } = data;
+          const { sessionId } = data;
           
           const call = activeCalls.get(sessionId);
           if (!call) {

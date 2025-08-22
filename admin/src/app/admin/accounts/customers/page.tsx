@@ -324,13 +324,13 @@ export default function CustomersPage() {
                               />
                             </th>
                             <th>Name</th>
-                            <th>Email</th>
+                            <th className="d-none d-md-table-cell">Email</th>
                             <th>Phone</th>
-                            <th>Location</th>
+                            <th className="d-none d-lg-table-cell">Location</th>
                             <th>Status</th>
-                            <th>Verified</th>
-                            <th>Online</th>
-                            <th>Joined</th>
+                            <th className="d-none d-md-table-cell">Verified</th>
+                            <th className="d-none d-lg-table-cell">Online</th>
+                            <th className="d-none d-xl-table-cell">Joined</th>
                             <th>Actions</th>
                           </tr>
                         </thead>
@@ -344,7 +344,7 @@ export default function CustomersPage() {
                           ) : users.length > 0 ? (
                             users.map((user) => (
                               <tr key={user._id}>
-                                <td className='text-center'>
+                                <td className='text-center' data-label="Select">
                                   <input 
                                     type="checkbox" 
                                     checked={selectedUsers.includes(user._id)}
@@ -352,7 +352,7 @@ export default function CustomersPage() {
                                     className="table-checkbox"
                                   />
                                 </td>
-                                <td>
+                                <td data-label="Name">
                                   <div className="d-flex align-items-center">
                                     {user.profile_image ? (
                                       <Image
@@ -369,39 +369,43 @@ export default function CustomersPage() {
                                         {user.full_name.charAt(0)}
                                       </div>
                                     )}
-                                    {user.full_name}
+                                    <div>
+                                      <div className="font-weight-bold">{user.full_name}</div>
+                                      <small className="text-muted d-block d-md-none">{user.email_address}</small>
+                                    </div>
                                   </div>
                                 </td>
-                                <td>{user.email_address}</td>
-                                <td>{user.phone_number}</td>
-                                <td>{user.city ? `${user.city}, ${user.state}` : '-'}</td>
-                                <td>
+                                <td data-label="Email" className="d-none d-md-table-cell">{user.email_address}</td>
+                                <td data-label="Phone">{user.phone_number}</td>
+                                <td data-label="Location" className="d-none d-lg-table-cell">{user.city ? `${user.city}, ${user.state}` : '-'}</td>
+                                <td data-label="Status">
                                   <span className={`badge ${getStatusBadge(user.account_status)}`}>
                                     {user.account_status}
                                   </span>
                                 </td>
-                                <td>
+                                <td data-label="Verified" className="d-none d-md-table-cell">
                                   <span className={`badge ${getVerificationBadge(user.verification_status)}`}>
                                     {getVerificationLabel(user.verification_status)}
                                   </span>
                                 </td>
-                                <td>
+                                <td data-label="Online" className="d-none d-lg-table-cell">
+                                  <span className={`status-indicator ${user.is_online ? 'online' : 'offline'}`}></span>
                                   <span className={`badge ${user.is_online ? 'badge-success' : 'badge-secondary'}`}>
                                     {user.is_online ? 'Online' : 'Offline'}
                                   </span>
                                 </td>
-                                <td>{new Date(user.created_at).toLocaleDateString()}</td>
-                                <td>
-                                  <div>
+                                <td data-label="Joined" className="d-none d-xl-table-cell">{new Date(user.created_at).toLocaleDateString()}</td>
+                                <td data-label="Actions">
+                                  <div className="quick-actions">
                                     <Link 
                                       href={`/admin/accounts/edit-user?id=${user._id}`}
-                                      className="btn btn-outline-primary btn-sm mr-1"
+                                      className="btn btn-outline-primary btn-sm"
                                       title="Edit"
                                     >
                                       <i className="fas fa-edit"></i>
                                     </Link>
                                     <button 
-                                      className="btn btn-outline-info btn-sm mr-1"
+                                      className="btn btn-outline-info btn-sm"
                                       title="View Details"
                                       onClick={() => {/* TODO: Implement view details */}}
                                     >

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
+import { MongoClient } from 'mongodb';
 import nodemailer from 'nodemailer';
 
 const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
@@ -17,10 +17,10 @@ const EMAIL_CONFIG = {
 };
 
 // Create transporter
-const transporter = nodemailer.createTransporter(EMAIL_CONFIG);
+const transporter = nodemailer.createTransport(EMAIL_CONFIG);
 
 // Email templates
-const getEmailTemplate = (type: string, data: any) => {
+const getEmailTemplate = (type: string, data: Record<string, unknown>) => {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://trueastrotalk.com';
   
   switch (type) {
@@ -57,11 +57,11 @@ const getEmailTemplate = (type: string, data: any) => {
                 <div class="order-details">
                   <h3>Order Details</h3>
                   <p><strong>Order Number:</strong> ${data.order_number}</p>
-                  <p><strong>Order Date:</strong> ${new Date(data.order_date).toLocaleDateString()}</p>
+                  <p><strong>Order Date:</strong> ${new Date(data.order_date as string).toLocaleDateString()}</p>
                   <p><strong>Payment Method:</strong> ${data.payment_method === 'cod' ? 'Cash on Delivery' : 'Online Payment'}</p>
                   
                   <h4>Items Ordered:</h4>
-                  ${data.items.map((item: any) => `
+                  ${(data.items as Array<Record<string, unknown>>).map((item) => `
                     <div class="item">
                       <strong>${item.product_name}</strong><br>
                       Quantity: ${item.quantity} × ₹${item.price} = ₹${item.total}
@@ -79,11 +79,11 @@ const getEmailTemplate = (type: string, data: any) => {
                 <div class="order-details">
                   <h4>Shipping Address:</h4>
                   <p>
-                    ${data.shipping_address.full_name}<br>
-                    ${data.shipping_address.phone_number}<br>
-                    ${data.shipping_address.address_line_1}<br>
-                    ${data.shipping_address.address_line_2 ? data.shipping_address.address_line_2 + '<br>' : ''}
-                    ${data.shipping_address.city}, ${data.shipping_address.state} - ${data.shipping_address.postal_code}
+                    ${(data.shipping_address as Record<string, unknown>).full_name}<br>
+                    ${(data.shipping_address as Record<string, unknown>).phone_number}<br>
+                    ${(data.shipping_address as Record<string, unknown>).address_line_1}<br>
+                    ${(data.shipping_address as Record<string, unknown>).address_line_2 ? (data.shipping_address as Record<string, unknown>).address_line_2 + '<br>' : ''}
+                    ${(data.shipping_address as Record<string, unknown>).city}, ${(data.shipping_address as Record<string, unknown>).state} - ${(data.shipping_address as Record<string, unknown>).postal_code}
                   </p>
                 </div>
                 
@@ -131,7 +131,7 @@ const getEmailTemplate = (type: string, data: any) => {
                 <p>We have an update on your order <strong>${data.order_number}</strong>.</p>
                 
                 <div class="status-update">
-                  <h3>Status: ${data.status.charAt(0).toUpperCase() + data.status.slice(1)}</h3>
+                  <h3>Status: ${(data.status as string).charAt(0).toUpperCase() + (data.status as string).slice(1)}</h3>
                   ${data.tracking_number ? `<p><strong>Tracking Number:</strong> ${data.tracking_number}</p>` : ''}
                   ${data.status === 'shipped' ? '<p>Your order is on its way! You should receive it within 3-5 business days.</p>' : ''}
                   ${data.status === 'delivered' ? '<p>Your order has been delivered! We hope you enjoy your purchase.</p>' : ''}

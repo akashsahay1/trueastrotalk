@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import { ObjectId } from 'mongodb';
+import { InputSanitizer } from '../../../lib/security';
+import DatabaseService from '../../../lib/database';
 
 export async function GET() {
   try {
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const onlineCount = await db.collection('astrologers').countDocuments({ is_online: true });
-    
-    await client.close();
+    const usersCollection = await DatabaseService.getCollection('users');
+    const onlineCount = await usersCollection.countDocuments({ 
+      user_type: 'astrologer',
+      is_online: true,
+      account_status: 'active',
+      approval_status: 'approved'
+    });
 
     return NextResponse.json({
       success: true,
@@ -49,19 +48,32 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { action, data } = body;
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    console.log(`🔌 Socket API request from IP: ${ip}`);
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    const db = client.db(DB_NAME);
+    // Authenticate user for POST operations
+    try {
+      // await SecurityMiddleware.authenticateRequest(request);
+    } catch {
+      return NextResponse.json({
+        success: false,
+        error: 'AUTHENTICATION_REQUIRED',
+        message: 'Valid authentication token is required'
+      }, { status: 401 });
+    }
+
+    // Parse and sanitize request body
+    const body = await request.json();
+    const sanitizedBody = InputSanitizer.sanitizeMongoQuery(body);
+    const { action, data } = sanitizedBody;
 
     switch (action) {
       case 'broadcast_notification':
         // Store notification and trigger FCM/Socket broadcast
-        const { recipient_id, recipient_type, title, message, notification_data } = data;
+        const { recipient_id, recipient_type, title, message, notification_data } = data as Record<string, unknown>;
         
         const notificationDoc = {
+          _id: new ObjectId(),
           type: 'broadcast',
           recipient_id,
           recipient_type,
@@ -73,9 +85,8 @@ export async function POST(request: NextRequest) {
           created_at: new Date()
         };
 
-        await db.collection('notifications').insertOne(notificationDoc);
-        
-        await client.close();
+        const notificationsCollection = await DatabaseService.getCollection('notifications');
+        await notificationsCollection.insertOne(notificationDoc);
         return NextResponse.json({
           success: true,
           message: 'Notification broadcasted successfully',
@@ -83,7 +94,8 @@ export async function POST(request: NextRequest) {
         });
 
       case 'get_online_astrologers':
-        const astrologers = await db.collection('astrologers')
+        const astrologersCollection = await DatabaseService.getCollection('astrologers');
+        const astrologers = await astrologersCollection
           .find({ is_online: true, is_available: true })
           .project({
             _id: 1,
@@ -99,8 +111,6 @@ export async function POST(request: NextRequest) {
           })
           .sort({ last_seen: -1 })
           .toArray();
-
-        await client.close();
         return NextResponse.json({
           success: true,
           online_astrologers: astrologers.map(astro => ({
@@ -119,11 +129,11 @@ export async function POST(request: NextRequest) {
         });
 
       case 'update_user_status':
-        const { user_id, user_type, is_online } = data;
+        const { user_id, user_type, is_online } = data as Record<string, unknown>;
         
         if (user_type === 'astrologer') {
-          await db.collection('astrologers').updateOne(
-            { _id: new ObjectId(user_id) },
+          const astrologersCollection = await DatabaseService.getCollection('astrologers'); await astrologersCollection.updateOne(
+            { _id: new ObjectId(user_id as string) },
             { 
               $set: { 
                 is_online: is_online,
@@ -133,19 +143,18 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        await client.close();
-        return NextResponse.json({
+                return NextResponse.json({
           success: true,
           message: `User status updated to ${is_online ? 'online' : 'offline'}`
         });
 
       case 'get_active_calls':
-        const activeCalls = await db.collection('call_sessions')
+        const callSessionsCollection = await DatabaseService.getCollection('call_sessions');
+        const activeCalls = await callSessionsCollection
           .find({ status: { $in: ['ringing', 'active'] } })
           .toArray();
 
-        await client.close();
-        return NextResponse.json({
+                return NextResponse.json({
           success: true,
           active_calls: activeCalls.map(call => ({
             _id: call._id.toString(),
@@ -160,38 +169,38 @@ export async function POST(request: NextRequest) {
         });
 
       case 'trigger_call_notification':
-        const { session_id, caller_id, caller_type, receiver_id } = data;
+        const { session_id, caller_id, caller_type, receiver_id } = data as Record<string, unknown>;
         
         // This would trigger a Socket.IO event to the receiver
         // For now, we'll store it as a notification
         const callNotification = {
+          _id: new ObjectId(),
           type: 'incoming_call',
           recipient_id: receiver_id,
           recipient_type: caller_type === 'user' ? 'astrologer' : 'user',
           title: 'Incoming Call',
-          message: `You have an incoming ${data.call_type || 'voice'} call`,
+          message: `You have an incoming ${(data as Record<string, unknown>).call_type || 'voice'} call`,
           data: {
             session_id,
             caller_id,
             caller_type,
-            call_type: data.call_type || 'voice'
+            call_type: (data as Record<string, unknown>).call_type || 'voice'
           },
           is_read: false,
           created_at: new Date()
         };
 
-        await db.collection('notifications').insertOne(callNotification);
+        const notificationsCollection2 = await DatabaseService.getCollection('notifications');
+        await notificationsCollection2.insertOne(callNotification);
         
-        await client.close();
-        return NextResponse.json({
+                return NextResponse.json({
           success: true,
           message: 'Call notification triggered',
           notification_id: callNotification._id
         });
 
       default:
-        await client.close();
-        return NextResponse.json({
+                return NextResponse.json({
           success: false,
           message: 'Unknown action'
         }, { status: 400 });

@@ -1,54 +1,98 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
-import { jwtVerify } from 'jose';
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-);
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import { ObjectId } from 'mongodb';
+import DatabaseService from '../../../../lib/database';
+import { JWTSecurity } from '../../../../lib/security';
 
 export async function POST(request: NextRequest) {
   try {
-    const token = request.cookies.get('auth-token')?.value;
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    console.log(`🚪 Logout request from IP: ${ip}`);
 
+    // Extract token from multiple sources (header, cookies)
+    let token = JWTSecurity.extractTokenFromHeader(request);
+    if (!token) {
+      token = JWTSecurity.extractTokenFromCookies(request, 'auth_token');
+    }
+    if (!token) {
+      token = JWTSecurity.extractTokenFromCookies(request, 'auth-token'); // Legacy support
+    }
+
+    let userId = null;
+    
+    // If token exists, verify and update user status
     if (token) {
       try {
-        const { payload } = await jwtVerify(token, JWT_SECRET);
+        const tokenData = JWTSecurity.verifyAccessToken(token);
+        userId = tokenData?.userId;
         
-        // Update user's online status
-        const client = new MongoClient(MONGODB_URL);
-        await client.connect();
-        const db = client.db(DB_NAME);
-        
-        await db.collection('users').updateOne(
-          { _id: new ObjectId((payload as { userId: string }).userId) },
-          { 
-            $set: { 
-              is_online: false,
-              updated_at: new Date()
+        if (userId) {
+          console.log(`👤 Logging out user: ${userId}`);
+          
+          // Update user's online status and logout time
+          const usersCollection = await DatabaseService.getCollection('users');
+          await usersCollection.updateOne(
+            { _id: new ObjectId(userId as string) },
+            { 
+              $set: { 
+                is_online: false,
+                last_logout: new Date(),
+                updated_at: new Date()
+              }
             }
-          }
-        );
-        
-        await client.close();
-      } catch(error) {
-        console.error(error);
+          );
+          
+          console.log(`✅ User ${userId} logged out successfully`);
+        }
+      } catch {
+        // Token is invalid but we still proceed with logout
+        console.log('⚠️ Invalid token during logout - proceeding anyway');
       }
     }
 
-    // Create response and clear cookie
-    const response = NextResponse.json({ success: true });
-    response.cookies.delete('auth-token');
+    // Create response and clear all authentication cookies
+    const response = NextResponse.json({ 
+      success: true,
+      message: 'Logged out successfully'
+    });
+
+    // Clear all possible authentication cookies with proper settings
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict' as const,
+      path: '/',
+      maxAge: 0 // This expires the cookie immediately
+    };
+
+    response.cookies.set('auth_token', '', cookieOptions);
+    response.cookies.set('refresh_token', '', cookieOptions);
+    response.cookies.set('auth-token', '', cookieOptions); // Legacy support
 
     return response;
 
-  } catch(error) {
-    console.error(error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error('Logout API error:', error);
+    
+    // Still return success for logout even if there's an error
+    // to prevent user from being stuck in logged-in state
+    const response = NextResponse.json({ 
+      success: true,
+      message: 'Logged out successfully'
+    });
+
+    // Clear cookies even on error
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict' as const,
+      path: '/',
+      maxAge: 0
+    };
+
+    response.cookies.set('auth_token', '', cookieOptions);
+    response.cookies.set('refresh_token', '', cookieOptions);
+    response.cookies.set('auth-token', '', cookieOptions);
+
+    return response;
   }
 }

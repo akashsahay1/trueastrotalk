@@ -7,7 +7,7 @@ import { useEffect, useState, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { validateForm, getUserFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/validation';
+import { validateForm, getUserFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/client-validation';
 import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
 import AirDatePickerComponent from '@/components/AirDatePickerComponent';
 
@@ -346,7 +346,7 @@ function EditUserContent() {
     };
 
     // Get validation rules
-    const rules = getUserFormRules(formData.user_type);
+    const rules = getUserFormRules();
 
     // Validate form
     const validation = validateForm(formDataForValidation, rules);
@@ -440,12 +440,14 @@ function EditUserContent() {
       }
     }
 
+    // Convert validation errors to field errors format
+    const validationFieldErrors = displayFieldErrors(validation.errors);
+    
     // Combine all errors
-    const allErrors = { ...validation.errors, ...customErrors };
+    const allErrors = { ...validationFieldErrors, ...customErrors };
 
     // Display errors on form fields
     if (Object.keys(allErrors).length > 0) {
-      displayFieldErrors(allErrors);
       setFieldErrors(allErrors);
 
       // Show first error in SweetAlert

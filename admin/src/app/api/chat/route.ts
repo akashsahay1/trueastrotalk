@@ -1,51 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import { ObjectId } from 'mongodb';
+import DatabaseService from '../../../lib/database';
+import { SecurityMiddleware, InputSanitizer } from '../../../lib/security';
 
 // GET - Get user's chat sessions
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const userType = searchParams.get('userType') || 'user'; // 'user' or 'astrologer'
-    const status = searchParams.get('status');
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const page = parseInt(searchParams.get('page') || '1');
-    const skip = (page - 1) * limit;
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    console.log(`💬 Chat sessions fetch request from IP: ${ip}`);
 
-    if (!userId) {
+    // Authenticate user
+    let authenticatedUser;
+    try {
+      authenticatedUser = await SecurityMiddleware.authenticateRequest(request);
+    } catch {
       return NextResponse.json({
         success: false,
-        error: 'Missing user ID',
-        message: 'User ID is required'
-      }, { status: 400 });
+        error: 'AUTHENTICATION_REQUIRED',
+        message: 'Valid authentication token is required'
+      }, { status: 401 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const chatSessionsCollection = db.collection('chat_sessions');
-    const usersCollection = db.collection('users');
-    const astrologersCollection = db.collection('astrologers');
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50); // Max 50 items
+    const page = Math.max(parseInt(searchParams.get('page') || '1'), 1);
+    const skip = (page - 1) * limit;
 
-    // Build query based on user type
+    // User can only access their own chat sessions
+    const userId = authenticatedUser.userId;
+    const userType = authenticatedUser.user_type;
+
+    // Validate user type
+    if (!['customer', 'astrologer'].includes(userType as string)) {
+      return NextResponse.json({
+        success: false,
+        error: 'INVALID_USER_TYPE',
+        message: 'Invalid user type for chat access'
+      }, { status: 403 });
+    }
+
+    const chatSessionsCollection = await DatabaseService.getCollection('chat_sessions');
+    const usersCollection = await DatabaseService.getCollection('users');
+
+    // Build secure query based on user type
     const query: Record<string, unknown> = {};
-    if (userType === 'user') {
-      query.user_id = userId;
-    } else {
-      query.astrologer_id = userId;
+    if (userType === 'customer') {
+      query.user_id = new ObjectId(userId as string);
+    } else if (userType === 'astrologer') {
+      query.astrologer_id = new ObjectId(userId as string);
     }
     
+    // Validate and sanitize status filter
     if (status) {
-      query.status = status;
+      const validStatuses = ['pending', 'active', 'completed', 'cancelled'];
+      if (validStatuses.includes(status)) {
+        query.status = status;
+      }
     }
 
-    // Get chat sessions with pagination
+    // Get chat sessions with pagination and security projection
     const chatSessions = await chatSessionsCollection
-      .find(query)
+      .find(query, {
+        projection: {
+          // Don't expose sensitive internal data
+          internal_notes: 0,
+          admin_flags: 0
+        }
+      })
       .sort({ updated_at: -1 })
       .skip(skip)
       .limit(limit)
@@ -53,12 +75,33 @@ export async function GET(request: NextRequest) {
 
     const totalSessions = await chatSessionsCollection.countDocuments(query);
 
-    // Populate user and astrologer details
+    // Populate user and astrologer details securely
     const populatedSessions = await Promise.all(
       chatSessions.map(async (session) => {
         const [user, astrologer] = await Promise.all([
-          usersCollection.findOne({ _id: new ObjectId(session.user_id) }),
-          astrologersCollection.findOne({ _id: new ObjectId(session.astrologer_id) })
+          usersCollection.findOne(
+            { _id: new ObjectId(session.user_id as string) },
+            { 
+              projection: { 
+                password: 0, 
+                google_access_token: 0,
+                failed_login_attempts: 0,
+                registration_ip: 0
+              } 
+            }
+          ),
+          usersCollection.findOne(
+            { _id: new ObjectId(session.astrologer_id as string) },
+            { 
+              projection: { 
+                password: 0, 
+                google_access_token: 0,
+                failed_login_attempts: 0,
+                registration_ip: 0,
+                total_earnings: 0  // Don't expose earnings to customers
+              } 
+            }
+          )
         ]);
 
         return {
@@ -66,34 +109,40 @@ export async function GET(request: NextRequest) {
           session_id: session._id.toString(),
           user: user ? {
             _id: user._id.toString(),
-            name: user.name,
-            email: user.email,
-            profile_image: user.profile_image
+            full_name: user.full_name,
+            profile_image: user.profile_image || '',
+            // Only show essential info to astrologer
+            ...(userType === 'astrologer' && {
+              phone_number: user.phone_number
+            })
           } : null,
           astrologer: astrologer ? {
             _id: astrologer._id.toString(),
             full_name: astrologer.full_name,
-            email_address: astrologer.email_address,
-            profile_image: astrologer.profile_image,
+            profile_image: astrologer.profile_image || '',
             chat_rate: astrologer.chat_rate,
-            is_online: astrologer.is_online
+            is_online: astrologer.is_online || false,
+            rating: astrologer.rating || 0,
+            specializations: astrologer.specializations || []
           } : null,
           status: session.status,
           rate_per_minute: session.rate_per_minute,
           start_time: session.start_time,
           end_time: session.end_time,
-          duration_minutes: session.duration_minutes,
-          total_amount: session.total_amount,
+          duration_minutes: session.duration_minutes || 0,
+          total_amount: session.total_amount || 0,
           last_message: session.last_message,
           last_message_time: session.last_message_time,
-          unread_count: userType === 'user' ? session.user_unread_count : session.astrologer_unread_count,
+          unread_count: userType === 'customer' ? 
+            (session.user_unread_count || 0) : 
+            (session.astrologer_unread_count || 0),
           created_at: session.created_at,
           updated_at: session.updated_at
         };
       })
     );
 
-    await client.close();
+    console.log(`✅ Retrieved ${chatSessions.length} chat sessions for user ${userId}`);
 
     return NextResponse.json({
       success: true,
@@ -106,11 +155,11 @@ export async function GET(request: NextRequest) {
       }
     });
 
-  } catch(error) {
+  } catch (error) {
     console.error('Chat sessions GET error:', error);
     return NextResponse.json({
       success: false,
-      error: 'Internal server error',
+      error: 'INTERNAL_SERVER_ERROR',
       message: 'An error occurred while fetching chat sessions'
     }, { status: 500 });
   }
@@ -119,61 +168,116 @@ export async function GET(request: NextRequest) {
 // POST - Create new chat session
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { user_id, astrologer_id } = body;
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    console.log(`💬 Chat session creation request from IP: ${ip}`);
 
-    if (!user_id || !astrologer_id) {
+    // Authenticate user
+    let authenticatedUser;
+    try {
+      authenticatedUser = await SecurityMiddleware.authenticateRequest(request);
+    } catch {
       return NextResponse.json({
         success: false,
-        error: 'Missing required fields',
-        message: 'User ID and Astrologer ID are required'
+        error: 'AUTHENTICATION_REQUIRED',
+        message: 'Valid authentication token is required'
+      }, { status: 401 });
+    }
+
+    // Parse and sanitize request body
+    const body = await request.json();
+    const sanitizedBody = InputSanitizer.sanitizeMongoQuery(body);
+    
+    const { astrologer_id } = sanitizedBody;
+
+    // Only customers can create chat sessions
+    if (authenticatedUser.user_type !== 'customer') {
+      return NextResponse.json({
+        success: false,
+        error: 'INVALID_USER_TYPE',
+        message: 'Only customers can initiate chat sessions'
+      }, { status: 403 });
+    }
+
+    const user_id = authenticatedUser.userId;
+
+    if (!astrologer_id) {
+      return NextResponse.json({
+        success: false,
+        error: 'MISSING_ASTROLOGER_ID',
+        message: 'Astrologer ID is required'
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const chatSessionsCollection = db.collection('chat_sessions');
-    const astrologersCollection = db.collection('astrologers');
-    const usersCollection = db.collection('users');
+    // Validate astrologer_id format
+    if (!ObjectId.isValid(astrologer_id as string)) {
+      return NextResponse.json({
+        success: false,
+        error: 'INVALID_ASTROLOGER_ID',
+        message: 'Invalid astrologer ID format'
+      }, { status: 400 });
+    }
+
+    const chatSessionsCollection = await DatabaseService.getCollection('chat_sessions');
+    const usersCollection = await DatabaseService.getCollection('users');
 
     // Check if astrologer exists and is available
-    const astrologer = await astrologersCollection.findOne({ 
-      _id: new ObjectId(astrologer_id),
-      is_online: true,
-      is_available: true
+    const astrologer = await usersCollection.findOne({ 
+      _id: new ObjectId(astrologer_id as string),
+      user_type: 'astrologer',
+      account_status: 'active',
+      approval_status: 'approved'
     });
 
     if (!astrologer) {
-      await client.close();
       return NextResponse.json({
         success: false,
-        error: 'Astrologer not available',
-        message: 'Astrologer is not available for chat'
-      }, { status: 400 });
-    }
-
-    // Check if user exists
-    const user = await usersCollection.findOne({ _id: new ObjectId(user_id) });
-    if (!user) {
-      await client.close();
-      return NextResponse.json({
-        success: false,
-        error: 'User not found',
-        message: 'User not found'
+        error: 'ASTROLOGER_NOT_FOUND',
+        message: 'Astrologer not found or not approved'
       }, { status: 404 });
     }
 
-    // Check if there's already an active session
+    // Check if astrologer is online for chat (removed availability check)
+    if (!astrologer.is_online) {
+      return NextResponse.json({
+        success: false,
+        error: 'ASTROLOGER_NOT_AVAILABLE',
+        message: 'Astrologer is currently not online for chat'
+      }, { status: 400 });
+    }
+
+    // Verify customer exists and has active account
+    const user = await usersCollection.findOne({ 
+      _id: new ObjectId(user_id as string),
+      account_status: 'active'
+    });
+    
+    if (!user) {
+      return NextResponse.json({
+        success: false,
+        error: 'USER_NOT_FOUND',
+        message: 'User account not found or inactive'
+      }, { status: 404 });
+    }
+
+    // Check if user has sufficient wallet balance
+    const estimatedCost = (Number(astrologer.chat_rate) || 30) * 5; // Estimate 5 minutes minimum
+    if ((Number(user.wallet_balance) || 0) < estimatedCost) {
+      return NextResponse.json({
+        success: false,
+        error: 'INSUFFICIENT_BALANCE',
+        message: `Insufficient wallet balance. Minimum ₹${estimatedCost} required for chat session.`
+      }, { status: 400 });
+    }
+
+    // Check if there's already an active session between these users
     const existingSession = await chatSessionsCollection.findOne({
-      user_id: user_id,
-      astrologer_id: astrologer_id,
+      user_id: new ObjectId(user_id as string),
+      astrologer_id: new ObjectId(astrologer_id as string),
       status: { $in: ['pending', 'active'] }
     });
 
     if (existingSession) {
-      await client.close();
+      console.log(`📱 Returning existing chat session ${existingSession._id} for user ${user_id}`);
       return NextResponse.json({
         success: true,
         message: 'Active session already exists',
@@ -182,33 +286,61 @@ export async function POST(request: NextRequest) {
           _id: existingSession._id.toString(),
           status: existingSession.status,
           rate_per_minute: existingSession.rate_per_minute,
-          start_time: existingSession.start_time
+          start_time: existingSession.start_time,
+          astrologer: {
+            _id: astrologer._id.toString(),
+            full_name: astrologer.full_name,
+            profile_image: astrologer.profile_image || '',
+            chat_rate: astrologer.chat_rate,
+            is_online: astrologer.is_online
+          }
         }
       });
     }
 
-    // Create new chat session
+    // Check for rate limiting - max 3 new sessions per hour per user
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const recentSessions = await chatSessionsCollection.countDocuments({
+      user_id: new ObjectId(user_id as string),
+      created_at: { $gte: oneHourAgo }
+    });
+
+    if (recentSessions >= 3) {
+      return NextResponse.json({
+        success: false,
+        error: 'RATE_LIMIT_EXCEEDED',
+        message: 'Maximum 3 chat sessions per hour allowed. Please try again later.'
+      }, { status: 429 });
+    }
+
+    // Create new chat session with secure data
     const sessionData = {
-      user_id: user_id,
-      astrologer_id: astrologer_id,
-      status: 'pending', // pending -> active -> completed
-      rate_per_minute: astrologer.chat_rate || 5.0,
+      _id: new ObjectId(),
+      user_id: new ObjectId(user_id as string),
+      astrologer_id: new ObjectId(astrologer_id as string),
+      status: 'pending', // pending -> active -> completed -> cancelled
+      rate_per_minute: Number(astrologer.chat_rate) || 30,
       start_time: new Date(),
       end_time: null,
       duration_minutes: 0,
-      total_amount: 0.0,
+      total_amount: 0,
       last_message: null,
       last_message_time: null,
       user_unread_count: 0,
       astrologer_unread_count: 0,
       created_at: new Date(),
-      updated_at: new Date()
+      updated_at: new Date(),
+      created_by_ip: ip,
+      metadata: {
+        user_agent: request.headers.get('user-agent') || '',
+        client_type: request.headers.get('x-client-type') || 'web'
+      }
     };
 
     const result = await chatSessionsCollection.insertOne(sessionData);
     const sessionId = result.insertedId.toString();
 
-    await client.close();
+    console.log(`✅ Chat session created successfully: ${sessionId} between user ${user_id} and astrologer ${astrologer_id}`);
 
     return NextResponse.json({
       success: true,
@@ -221,23 +353,25 @@ export async function POST(request: NextRequest) {
         start_time: sessionData.start_time,
         user: {
           _id: user._id.toString(),
-          name: user.name,
-          email: user.email
+          full_name: user.full_name,
+          profile_image: user.profile_image || ''
         },
         astrologer: {
           _id: astrologer._id.toString(),
           full_name: astrologer.full_name,
-          email_address: astrologer.email_address,
-          chat_rate: astrologer.chat_rate
+          profile_image: astrologer.profile_image || '',
+          chat_rate: astrologer.chat_rate,
+          rating: astrologer.rating || 0,
+          specializations: astrologer.specializations || []
         }
       }
     }, { status: 201 });
 
-  } catch(error) {
+  } catch (error) {
     console.error('Chat session POST error:', error);
     return NextResponse.json({
       success: false,
-      error: 'Internal server error',
+      error: 'INTERNAL_SERVER_ERROR',
       message: 'An error occurred while creating chat session'
     }, { status: 500 });
   }

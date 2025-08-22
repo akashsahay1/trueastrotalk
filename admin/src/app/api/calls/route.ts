@@ -145,11 +145,10 @@ export async function POST(request: NextRequest) {
     const astrologersCollection = db.collection('astrologers');
     const usersCollection = db.collection('users');
 
-    // Check if astrologer exists and is available
+    // Check if astrologer exists and is online (removed availability check)
     const astrologer = await astrologersCollection.findOne({ 
       _id: new ObjectId(astrologer_id),
-      is_online: true,
-      is_available: true
+      is_online: true
     });
 
     if (!astrologer) {

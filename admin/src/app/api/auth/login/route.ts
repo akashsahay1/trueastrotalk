@@ -1,24 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
-import crypto from 'crypto';
-import { SignJWT } from 'jose';
+// import rateLimit from 'express-rate-limit';
+import DatabaseService from '../../../../lib/database';
+import { 
+  PasswordSecurity, 
+  JWTSecurity, 
+  ValidationSchemas, 
+  InputSanitizer, 
+  // SecurityMiddleware,
+  // RateLimitConfig 
+} from '../../../../lib/security';
+import { ErrorHandler, ErrorCode } from '../../../../lib/error-handler';
+import { Validator } from '../../../../lib/validation';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-);
+// Rate limiting for login attempts
+// const loginLimiter = rateLimit({
+//   ...RateLimitConfig.auth,
+//   keyGenerator: (req) => {
+//     // Rate limit by IP and email combination
+//     const forwarded = req.headers['x-forwarded-for'] as string;
+//     const ip = forwarded ? forwarded.split(',')[0] : req.connection.remoteAddress;
+//     return `${ip}-login`;
+//   }
+// });
 
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
-
-function hashPassword(password: string): string {
-  return crypto.createHash('sha256').update(password).digest('hex');
-}
-
-// Validate Google ID Token
+/**
+ * Validate Google ID Token (Enhanced security)
+ */
 async function validateGoogleToken(idToken: string): Promise<{ email: string; name: string; picture?: string } | null> {
   try {
-    // Google's token info endpoint
-    const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
+    // Verify the token with Google's tokeninfo endpoint
+    const response = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`,
+      {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        }
+      }
+    );
     
     if (!response.ok) {
       console.error('Google token validation failed:', response.status, response.statusText);
@@ -27,287 +46,387 @@ async function validateGoogleToken(idToken: string): Promise<{ email: string; na
     
     const tokenInfo = await response.json();
     
-    // Verify the token is for our app (optional - add your Google Client ID)
-    // if (tokenInfo.aud !== 'YOUR_GOOGLE_CLIENT_ID') {
-    //   console.error('Token audience mismatch');
-    //   return null;
-    // }
-    
-    if (tokenInfo.email && tokenInfo.email_verified) {
-      return {
-        email: tokenInfo.email,
-        name: tokenInfo.name || tokenInfo.email.split('@')[0],
-        picture: tokenInfo.picture
-      };
+    // Verify token fields
+    if (!tokenInfo.email || !tokenInfo.email_verified) {
+      console.error('Google token missing verified email');
+      return null;
+    }
+
+    // Optional: Verify audience (add your Google Client ID)
+    const expectedAudience = process.env.GOOGLE_CLIENT_ID;
+    if (expectedAudience && tokenInfo.aud !== expectedAudience) {
+      console.error('Google token audience mismatch');
+      return null;
     }
     
-    return null;
+    // Verify token is still valid (not expired)
+    const now = Math.floor(Date.now() / 1000);
+    if (tokenInfo.exp && tokenInfo.exp < now) {
+      console.error('Google token expired');
+      return null;
+    }
+    
+    return {
+      email: tokenInfo.email.toLowerCase(),
+      name: tokenInfo.name || tokenInfo.email.split('@')[0],
+      picture: tokenInfo.picture
+    };
+    
   } catch (error) {
     console.error('Error validating Google token:', error);
     return null;
   }
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { email, password, email_address, auth_type, google_access_token, google_photo_url, google_display_name } = body;
+async function handleLogin(request: NextRequest): Promise<NextResponse> {
+  // Apply rate limiting (in production, use proper middleware)
+  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  console.log(`🔐 Login attempt from IP: ${ip}`);
+
+  // Parse and validate request body
+  const body = await request.json();
+  
+  // Sanitize input to prevent XSS and injection attacks
+  const sanitizedBody = InputSanitizer.sanitizeMongoQuery(body);
+  
+  const { 
+    email_address, 
+    password, 
+    auth_type = 'email', 
+    google_access_token, 
+    google_photo_url, 
+    google_display_name,
+    device_info
+  } = sanitizedBody;
+  
+  // Standardize to email_address only
+  const userEmail = InputSanitizer.sanitizeEmail(email_address as string || '');
+  
+  // Validate required fields
+  Validator.validateRequestBody(sanitizedBody, [
+    { field: 'email_address', value: userEmail, rules: ['required', 'email'] },
+    { field: 'auth_type', value: auth_type, rules: ['required'] }
+  ]);
+
+  // Validate auth type
+  if (!['email', 'google'].includes(auth_type as string)) {
+    throw ErrorHandler.validationError('Invalid authentication type');
+  }
+
+  // For email auth, password is required
+  if (auth_type === 'email' && !password) {
+    throw ErrorHandler.validationError('Password is required for email authentication');
+  }
+
+  // For Google auth, token is required
+  if (auth_type === 'google' && !google_access_token) {
+    throw ErrorHandler.validationError('Google access token is required');
+  }
+
+    // Validate email format
+    const emailValidation = ValidationSchemas.userLogin.validate({ 
+      email: userEmail, 
+      password: password || 'dummy' // Dummy password for validation
+    });
     
-    // Support both old admin format (email) and new mobile format (email_address)
-    const userEmail = email_address || email;
-    
-    if (!userEmail) {
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Missing credentials',
-          message: 'Email address is required' 
-        },
-        { status: 400 }
-      );
+    if (emailValidation.error && emailValidation.error.details.some(d => d.path.includes('email'))) {
+      return NextResponse.json({
+        success: false,
+        error: 'INVALID_EMAIL_FORMAT',
+        message: 'Please provide a valid email address'
+      }, { status: 400 });
+    }
+
+    // Validate auth type
+    if (!['email', 'google'].includes(auth_type as string)) {
+      return NextResponse.json({
+        success: false,
+        error: 'INVALID_AUTH_TYPE',
+        message: 'Invalid authentication type'
+      }, { status: 400 });
     }
 
     // For email auth, password is required
-    if (auth_type === 'email' || !auth_type) {
-      if (!password) {
-        return NextResponse.json(
-          { 
-            success: false,
-            error: 'Missing credentials',
-            message: 'Password is required for email authentication' 
-          },
-          { status: 400 }
-        );
-      }
+    if (auth_type === 'email' && !password) {
+      return NextResponse.json({
+        success: false,
+        error: 'MISSING_PASSWORD',
+        message: 'Password is required for email authentication'
+      }, { status: 400 });
     }
 
-    // Connect to MongoDB
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const usersCollection = db.collection('users');
-
-    // Determine if this is admin or mobile login based on request
-    const isAdminLogin = email && !email_address; // Old admin format uses 'email' field
-    
-    let userQuery;
-    if (isAdminLogin) {
-      // Admin login - only administrators
-      userQuery = {
-        email_address: userEmail,
-        user_type: 'administrator',
-        account_status: 'active'
-      };
-    } else {
-      // Mobile login - customers and astrologers
-      userQuery = {
-        email_address: userEmail,
-        user_type: { $in: ['customer', 'astrologer'] },
-        account_status: { $ne: 'banned' }
-      };
+    // For Google auth, token is required
+    if (auth_type === 'google' && !google_access_token) {
+      return NextResponse.json({
+        success: false,
+        error: 'MISSING_GOOGLE_TOKEN',
+        message: 'Google access token is required'
+      }, { status: 400 });
     }
 
-    const user = await usersCollection.findOne(userQuery);
+  // Connect to database
+  const usersCollection = await DatabaseService.getCollection('users');
 
-    // Special handling for Google authentication when user doesn't exist
-    if (!user && auth_type === 'google' && google_access_token) {
+  // Build secure query with proper sanitization
+  const userQuery: Record<string, unknown> = {
+    email_address: userEmail,
+    account_status: { $ne: 'banned' }
+  };
+
+  // Find user with proper error handling
+  let user;
+  try {
+    user = await usersCollection.findOne(userQuery);
+  } catch (dbError) {
+    console.error('Database query error:', dbError);
+    throw ErrorHandler.databaseError('Failed to query user information');
+  }
+
+    // Handle Google authentication for non-existing users
+    if (!user && auth_type === 'google') {
       console.log(`🔍 User ${userEmail} not found, validating Google token...`);
       
-      // Validate the Google token first
-      const googleUserInfo = await validateGoogleToken(google_access_token);
+      const googleUserInfo = await validateGoogleToken(google_access_token as string);
       
       if (!googleUserInfo) {
-        await client.close();
-        return NextResponse.json(
-          { 
-            success: false,
-            error: 'Invalid Google token',
-            message: 'Invalid or expired Google authentication token' 
-          },
-          { status: 401 }
+        throw ErrorHandler.createError(
+          ErrorCode.INVALID_CREDENTIALS,
+          'Invalid Google token',
+          'Invalid or expired Google authentication token'
         );
       }
       
-      // Verify the email matches
-      if (googleUserInfo.email.toLowerCase() !== userEmail.toLowerCase()) {
-        await client.close();
-        return NextResponse.json(
-          { 
-            success: false,
-            error: 'Email mismatch',
-            message: 'Google token email does not match provided email' 
-          },
-          { status: 401 }
+      // Verify email matches
+      if (googleUserInfo.email !== userEmail) {
+        throw ErrorHandler.createError(
+          ErrorCode.INVALID_CREDENTIALS,
+          'Email mismatch',
+          'Google token email does not match provided email'
         );
       }
       
-      // Valid Google user but not registered yet
-      console.log(`✅ Valid Google user ${userEmail} needs to register`);
-      await client.close();
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'User not registered',
-          message: 'Please complete your registration to continue',
-          google_user_info: {
-            email: googleUserInfo.email,
-            name: googleUserInfo.name,
-            picture: googleUserInfo.picture
-          }
-        },
-        { status: 404 }
-      );
-    }
-
-    if (!user) {
-      await client.close();
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Invalid credentials',
-          message: isAdminLogin ? 'Invalid credentials' : 'Email or password is incorrect' 
-        },
-        { status: 401 }
-      );
-    }
-
-    // Verify authentication based on auth_type
-    if (user.auth_type === 'google' && auth_type === 'google') {
-      // For Google OAuth users, validate the Google access token
-      if (!google_access_token) {
-        await client.close();
-        return NextResponse.json(
-          { 
-            success: false,
-            error: 'Missing Google token',
-            message: 'Google access token is required for Google authentication' 
-          },
-          { status: 401 }
-        );
-      }
-      // Skip password verification for Google users
-      console.log(`✅ Google user ${user.email_address} authenticated successfully`);
-    } else if (auth_type === 'google' && google_access_token) {
-      // User is trying to login with Google but their account is email-based
-      // Automatically update their auth_type to Google and login
-      console.log(`🔄 Migrating user ${user.email_address} from email to Google auth`);
-      
-      // Update user to support Google authentication
-      await usersCollection.updateOne(
-        { _id: user._id },
-        { 
-          $set: { 
-            auth_type: 'google',
-            google_access_token: google_access_token,
-            updated_at: new Date()
-          }
+      // Valid Google user but not registered
+      console.log(`✅ Valid Google user ${userEmail} needs registration`);
+      return NextResponse.json({
+        success: false,
+        error: 'USER_NOT_REGISTERED',
+        message: 'Please complete your registration to continue',
+        google_user_info: {
+          email: googleUserInfo.email,
+          name: googleUserInfo.name,
+          picture: googleUserInfo.picture
         }
-      );
+      }, { status: 404 });
+    }
+
+  // User not found
+  if (!user) {
+    console.log(`❌ Login failed for ${userEmail}: User not found`);
+    
+    // Generic error message to prevent user enumeration
+    throw ErrorHandler.createError(
+      ErrorCode.INVALID_CREDENTIALS,
+      'User not found',
+      'Invalid email or password'
+    );
+  }
+
+  // Check account status
+  if (user.account_status === 'banned') {
+    console.log(`🚫 Login blocked for ${userEmail}: Account banned`);
+    throw ErrorHandler.createError(
+      ErrorCode.ACCOUNT_LOCKED,
+      'Account banned',
+      'Your account has been suspended. Please contact support.'
+    );
+  }
+
+  if (user.account_status === 'inactive') {
+    console.log(`⏸️ Login blocked for ${userEmail}: Account inactive`);
+    throw ErrorHandler.createError(
+      ErrorCode.ACCESS_DENIED,
+      'Account inactive',
+      'Please verify your account to continue'
+    );
+  }
+
+    // Authenticate based on auth type
+    if (auth_type === 'google') {
+      // Validate Google token for existing user
+      const googleUserInfo = await validateGoogleToken(google_access_token as string);
       
-      // Update the user object for response
-      user.auth_type = 'google';
-      user.google_access_token = google_access_token;
-      
-      // Skip password verification since we're now using Google auth
-    } else {
-      // For email users, verify password
-      if (!password) {
-        await client.close();
-        return NextResponse.json(
-          { 
-            success: false,
-            error: 'Invalid credentials',
-            message: 'Password is required for email authentication' 
-          },
-          { status: 401 }
-        );
+      if (!googleUserInfo || googleUserInfo.email !== userEmail) {
+        console.log(`❌ Google auth failed for ${userEmail}: Invalid token`);
+        return NextResponse.json({
+          success: false,
+          error: 'INVALID_GOOGLE_TOKEN',
+          message: 'Invalid Google authentication'
+        }, { status: 401 });
       }
       
-      const hashedPassword = hashPassword(password);
-      if (user.password !== hashedPassword) {
-        await client.close();
-        return NextResponse.json(
-          { 
+      console.log(`✅ Google authentication successful for ${userEmail}`);
+      
+    } else if (auth_type === 'email') {
+      // Verify password using bcrypt
+      if (!user.password) {
+        console.log(`❌ Login failed for ${userEmail}: No password set`);
+        return NextResponse.json({
+          success: false,
+          error: 'NO_PASSWORD_SET',
+          message: 'Please set a password or use Google sign-in'
+        }, { status: 401 });
+      }
+
+      try {
+        const isPasswordValid = await PasswordSecurity.verifyPassword(password as string, user.password as string);
+        
+        if (!isPasswordValid) {
+          console.log(`❌ Login failed for ${userEmail}: Invalid password`);
+          
+          // Log failed login attempt
+          await usersCollection.updateOne(
+            { _id: user._id },
+            [
+              {
+                $set: {
+                  failed_login_attempts: {
+                    $add: [
+                      { $ifNull: ["$failed_login_attempts", 0] },
+                      1
+                    ]
+                  },
+                  last_failed_login: new Date()
+                }
+              }
+            ]
+          );
+          
+          return NextResponse.json({
             success: false,
-            error: 'Invalid credentials',
-            message: isAdminLogin ? 'Invalid credentials' : 'Email or password is incorrect' 
-          },
-          { status: 401 }
-        );
+            error: 'INVALID_CREDENTIALS',
+            message: 'Invalid email or password'
+          }, { status: 401 });
+        }
+      } catch (passwordError) {
+        console.error('Password verification error:', passwordError);
+        return NextResponse.json({
+          success: false,
+          error: 'AUTHENTICATION_ERROR',
+          message: 'Unable to verify credentials'
+        }, { status: 500 });
+      }
+      
+      console.log(`✅ Email authentication successful for ${userEmail}`);
+    }
+
+    // Check for too many failed login attempts
+    if (Number(user.failed_login_attempts) >= 5) {
+      const lastFailed = user.last_failed_login;
+      const lockoutTime = 30 * 60 * 1000; // 30 minutes
+      
+      if (lastFailed && (new Date().getTime() - new Date(lastFailed as string | number | Date).getTime()) < lockoutTime) {
+        return NextResponse.json({
+          success: false,
+          error: 'ACCOUNT_LOCKED',
+          message: 'Account temporarily locked due to too many failed attempts'
+        }, { status: 423 });
       }
     }
-    
-    // Get current time for consistent timestamps
-    const now = Math.floor(Date.now() / 1000); // Current time in seconds
-    
-    const token = await new SignJWT({
+
+    // Generate secure JWT tokens
+    const tokenPayload = {
       userId: user._id.toString(),
       email: user.email_address,
       full_name: user.full_name,
       user_type: user.user_type,
-      account_status: user.account_status
-    })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt(now) // Set explicit issued at time
-      .setNotBefore(now) // Token is valid from now
-      .setExpirationTime(now + (isAdminLogin ? 24 * 60 * 60 : 30 * 24 * 60 * 60)) // Explicit expiry
-      .sign(JWT_SECRET);
-
-    // Update user's online status and Google profile data if applicable
-    const updateData: {
-      is_online: boolean;
-      updated_at: Date;
-      profile_image?: string;
-      full_name?: string;
-    } = { 
-      is_online: true,
-      updated_at: new Date()
+      account_status: user.account_status,
+      session_id: crypto.randomUUID() // Add session tracking
     };
 
-    // If this is a Google user login, update their profile image and display name
-    if (user.auth_type === 'google' && auth_type === 'google') {
+    const accessToken = JWTSecurity.generateAccessToken(tokenPayload);
+    const refreshToken = JWTSecurity.generateRefreshToken({ 
+      userId: user._id.toString(),
+      session_id: tokenPayload.session_id 
+    });
+
+    // Update user login information
+    const updateData: Record<string, unknown> = {
+      is_online: true,
+      last_login: new Date(),
+      updated_at: new Date(),
+      failed_login_attempts: 0, // Reset failed attempts
+      last_failed_login: null,
+      login_count: (Number(user.login_count) || 0) + 1
+    };
+
+    // Update Google profile data if applicable
+    if (auth_type === 'google') {
       if (google_photo_url) {
         updateData.profile_image = google_photo_url;
-        console.log(`📸 Updated Google profile image for ${userEmail}: ${google_photo_url}`);
       }
-      if (google_display_name && google_display_name !== user.full_name) {
+      if (google_display_name) {
         updateData.full_name = google_display_name;
-        console.log(`👤 Updated Google display name for ${userEmail}: ${google_display_name}`);
       }
+      updateData.auth_type = 'google';
+      updateData.google_access_token = google_access_token;
     }
 
-    await usersCollection.updateOne(
-      { _id: user._id },
-      { $set: updateData }
-    );
+    // Store device info for security tracking
+    if (device_info) {
+      updateData.last_device_info = {
+        ...device_info,
+        ip_address: ip,
+        login_time: new Date()
+      };
+    }
 
-    await client.close();
+    try {
+      await usersCollection.updateOne(
+        { _id: user._id },
+        { $set: updateData }
+      );
+    } catch (updateError) {
+      console.error('Failed to update user login info:', updateError);
+      // Continue with login even if update fails
+    }
 
-    if (isAdminLogin) {
-      // Admin response format with cookie
+    console.log(`✅ Login successful for ${userEmail} (${user.user_type})`);
+
+    // Prepare response based on user type
+    if (user.user_type === 'administrator') {
+      // Admin response with secure cookie
       const response = NextResponse.json({
         success: true,
         user: {
           id: user._id.toString(),
           full_name: user.full_name,
           email: user.email_address,
-          user_type: user.user_type
+          user_type: user.user_type,
+          last_login: new Date()
         }
       });
 
-      // Set HTTP-only cookie for admin
-      response.cookies.set('auth-token', token, {
+      // Set secure HTTP-only cookie
+      response.cookies.set('auth_token', accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        maxAge: 60 * 60 * 1000, // 1 hour
+        path: '/'
+      });
+
+      response.cookies.set('refresh_token', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
         path: '/'
       });
 
       return response;
+
     } else {
-      // Mobile response format with token in body
+      // Mobile response with tokens in body
       return NextResponse.json({
         success: true,
         message: 'Login successful',
@@ -324,9 +443,8 @@ export async function POST(request: NextRequest) {
             profile_image: user.profile_image || '',
             wallet_balance: user.wallet_balance || 0,
             is_verified: user.is_verified || false,
-            is_online: user.is_online || false,
+            is_online: true,
             gender: user.gender || '',
-            // Birth information
             date_of_birth: user.date_of_birth || '',
             birth_time: user.birth_time || '',
             birth_place: user.birth_place || '',
@@ -335,34 +453,28 @@ export async function POST(request: NextRequest) {
             state: user.state || '',
             country: user.country || 'India',
             zip: user.zip || '',
-            // Astrologer-specific fields (only include if they exist in DB)
             bio: user.bio || '',
             experience_years: user.experience_years || '',
             languages: user.languages || '',
             qualifications: user.qualifications || [],
             skills: user.skills || '',
-            // Consultation rates
             call_rate: user.call_rate || 0,
             chat_rate: user.chat_rate || 0,
             video_rate: user.video_rate || 0,
-            // Additional fields for completeness
             created_at: user.created_at,
-            updated_at: user.updated_at
+            updated_at: new Date(),
+            last_login: new Date()
           },
-          token
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          expires_in: 3600 // 1 hour in seconds
         }
       });
     }
+}
 
-  } catch(error) {
-    console.error(error);
-    return NextResponse.json(
-      { 
-        success: false,
-        error: 'Internal server error',
-        message: 'An error occurred during login' 
-      },
-      { status: 500 }
-    );
-  }
+// Export the login function directly without error handler wrapper
+// (since we have comprehensive error handling inside the function)
+export async function POST(request: NextRequest) {
+  return handleLogin(request);
 }

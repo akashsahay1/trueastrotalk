@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import { ObjectId } from 'mongodb';
+import DatabaseService from '../../../../lib/database';
 
 // GET - Get single product details
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const productId = params.id;
+    const resolvedParams = await params;
+    const productId = resolvedParams.id;
 
     if (!productId || !ObjectId.isValid(productId)) {
       return NextResponse.json({
@@ -20,12 +19,8 @@ export async function GET(
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const productsCollection = db.collection('products');
-    const reviewsCollection = db.collection('product_reviews');
+    const productsCollection = await DatabaseService.getCollection('products');
+    const reviewsCollection = await DatabaseService.getCollection('product_reviews');
 
     // Get product
     const product = await productsCollection.findOne({ 
@@ -34,7 +29,6 @@ export async function GET(
     });
 
     if (!product) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Product not found',
@@ -96,13 +90,11 @@ export async function GET(
         price: related.price,
         original_price: related.original_price,
         discount_percentage: related.discount_percentage,
-        images: related.images ? related.images.slice(0, 1) : [],
+        images: Array.isArray(related.images) ? related.images.slice(0, 1) : [],
         rating: related.rating || 0,
         review_count: related.review_count || 0
       }))
     };
-
-    await client.close();
 
     return NextResponse.json({
       success: true,
@@ -122,10 +114,11 @@ export async function GET(
 // PUT - Update specific product
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const productId = params.id;
+    const resolvedParams = await params;
+    const productId = resolvedParams.id;
     const body = await request.json();
 
     if (!productId || !ObjectId.isValid(productId)) {
@@ -136,16 +129,11 @@ export async function PUT(
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const productsCollection = db.collection('products');
+    const productsCollection = await DatabaseService.getCollection('products');
 
     // Check if product exists
     const existingProduct = await productsCollection.findOne({ _id: new ObjectId(productId) });
     if (!existingProduct) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Product not found',
@@ -204,8 +192,8 @@ export async function PUT(
 
     // Recalculate discount percentage if price or original_price changed
     if (updateData.price !== undefined || updateData.original_price !== undefined) {
-      const newPrice = updateData.price || existingProduct.price;
-      const newOriginalPrice = updateData.original_price || existingProduct.original_price;
+      const newPrice = (updateData.price as number) || (existingProduct.price as number);
+      const newOriginalPrice = (updateData.original_price as number) || (existingProduct.original_price as number);
       
       if (newOriginalPrice && newOriginalPrice > newPrice) {
         updateData.discount_percentage = Math.round(((newOriginalPrice - newPrice) / newOriginalPrice) * 100);
@@ -214,12 +202,11 @@ export async function PUT(
       }
     }
 
+    // Update the product
     const result = await productsCollection.updateOne(
       { _id: new ObjectId(productId) },
       { $set: updateData }
     );
-
-    await client.close();
 
     return NextResponse.json({
       success: true,
@@ -240,10 +227,11 @@ export async function PUT(
 // DELETE - Delete specific product
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const productId = params.id;
+    const resolvedParams = await params;
+    const productId = resolvedParams.id;
 
     if (!productId || !ObjectId.isValid(productId)) {
       return NextResponse.json({
@@ -253,16 +241,11 @@ export async function DELETE(
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const productsCollection = db.collection('products');
+    const productsCollection = await DatabaseService.getCollection('products');
 
     // Check if product exists
     const existingProduct = await productsCollection.findOne({ _id: new ObjectId(productId) });
     if (!existingProduct) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Product not found',
@@ -275,18 +258,17 @@ export async function DELETE(
       { _id: new ObjectId(productId) },
       { 
         $set: { 
-          is_active: false,
+          is_active: false, 
           deleted_at: new Date(),
-          updated_at: new Date()
+          updated_at: new Date() 
         }
       }
     );
 
-    await client.close();
-
     return NextResponse.json({
       success: true,
-      message: 'Product deleted successfully'
+      message: 'Product deleted successfully',
+      modified_count: result.modifiedCount
     });
 
   } catch(error) {

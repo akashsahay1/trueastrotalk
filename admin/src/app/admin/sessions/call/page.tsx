@@ -2,7 +2,7 @@
 
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert';
@@ -77,7 +77,7 @@ export default function CallSessionsPage() {
     document.body.className = '';
     fetchSessions(1);
     fetchStatistics();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchStatistics = async () => {
     setStatsLoading(true);
@@ -100,7 +100,7 @@ export default function CallSessionsPage() {
     }
   };
 
-  const fetchSessions = async (page: number, filterParams = filters) => {
+  const fetchSessions = useCallback(async (page: number, filterParams = filters) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -140,7 +140,7 @@ export default function CallSessionsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({

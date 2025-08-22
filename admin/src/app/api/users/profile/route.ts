@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
-import { jwtVerify } from 'jose';
+import { ObjectId } from 'mongodb';
 import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
-import { deleteFile } from '@/lib/file-cleanup';
+import DatabaseService from '../../../../lib/database';
+import { 
+  SecurityMiddleware, 
+  InputSanitizer
+} from '../../../../lib/security';
 
 // Helper function to get base URL for images
 function getBaseUrl(request: NextRequest): string {
@@ -52,121 +55,138 @@ async function resolveProfileImage(user: Record<string, unknown>, mediaCollectio
   return `${baseUrl}/assets/images/avatar-1.jpg`;
 }
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-);
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+// Helper function to delete file safely
+async function deleteFile(filePath: string, options?: { deleteFromFilesystem?: boolean; logActivity?: boolean }) {
+  try {
+    if (options?.deleteFromFilesystem && filePath.startsWith('/uploads/')) {
+      const fullPath = path.join(process.cwd(), 'public', filePath);
+      if (existsSync(fullPath)) {
+        const fs = await import('fs/promises');
+        await fs.unlink(fullPath);
+        if (options.logActivity) {
+          console.log(`🗑️ Deleted old profile image: ${filePath}`);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error deleting file:', error);
+  }
+}
 
 // GET user profile
 export async function GET(request: NextRequest) {
   try {
-    // Get token from header (mobile) or cookie (admin)
-    const authHeader = request.headers.get('Authorization');
-    const cookieToken = request.cookies.get('auth-token')?.value;
-    const token = authHeader?.replace('Bearer ', '') || cookieToken;
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    console.log(`👤 Profile fetch request from IP: ${ip}`);
 
-    if (!token) {
-      return NextResponse.json({ 
-        success: false,
-        error: 'Unauthorized',
-        message: 'No authentication token provided' 
-      }, { status: 401 });
-    }
-
-    let payload;
+    // Authenticate user with enhanced security
+    let user;
     try {
-      const result = await jwtVerify(token, JWT_SECRET);
-      payload = result.payload;
+      user = await SecurityMiddleware.authenticateRequest(request);
     } catch {
-      return NextResponse.json({ 
+      return NextResponse.json({
         success: false,
-        error: 'Invalid token',
-        message: 'Authentication token is invalid or expired' 
+        error: 'AUTHENTICATION_REQUIRED',
+        message: 'Valid authentication token is required'
       }, { status: 401 });
     }
 
-    // Connect to MongoDB
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const usersCollection = db.collection('users');
-    const mediaCollection = db.collection('media_files');
+    // Get user from database with security checks
+    const usersCollection = await DatabaseService.getCollection('users');
+    const mediaCollection = await DatabaseService.getCollection('media_files');
 
-    const user = await usersCollection.findOne(
-      { _id: new ObjectId(payload.userId as string) },
-      { projection: { password: 0 } } // Exclude password
+    const dbUser = await usersCollection.findOne(
+      { 
+        _id: new ObjectId(user.userId as string),
+        account_status: { $ne: 'banned' }
+      },
+      { 
+        projection: { 
+          password: 0, // Never return password
+          google_access_token: 0, // Don't expose tokens
+          failed_login_attempts: 0,
+          last_failed_login: 0
+        } 
+      }
     );
 
-    if (!user) {
-      await client.close();
-      return NextResponse.json({ 
+    if (!dbUser) {
+      return NextResponse.json({
         success: false,
-        error: 'User not found',
-        message: 'User account no longer exists' 
+        error: 'USER_NOT_FOUND',
+        message: 'User account not found or has been suspended'
       }, { status: 404 });
+    }
+
+    // Check account status
+    if (dbUser.account_status === 'inactive') {
+      return NextResponse.json({
+        success: false,
+        error: 'ACCOUNT_INACTIVE',
+        message: 'Account is inactive. Please verify your account.'
+      }, { status: 403 });
     }
 
     // Get base URL for image resolution
     const baseUrl = getBaseUrl(request);
     
     // Resolve profile image to full URL
-    const profileImageUrl = await resolveProfileImage(user, mediaCollection, baseUrl);
+    const profileImageUrl = await resolveProfileImage(dbUser, mediaCollection, baseUrl);
 
-    await client.close();
+    console.log(`✅ Profile fetched successfully for user: ${user.userId}`);
 
     return NextResponse.json({
       success: true,
       user: {
-        id: user._id.toString(),
-        full_name: user.full_name,
-        email_address: user.email_address,
-        phone_number: user.phone_number,
-        user_type: user.user_type,
-        account_status: user.account_status,
-        verification_status: user.verification_status,
-        profile_image: profileImageUrl, // Return full URL instead of relative path
-        wallet_balance: user.wallet_balance || 0,
-        is_verified: user.is_verified || false,
-        date_of_birth: user.date_of_birth || '',
-        birth_time: user.birth_time || '',
-        birth_place: user.birth_place || '',
-        address: user.address || '',
-        city: user.city || '',
-        state: user.state || '',
-        country: user.country || '',
-        zip: user.zip || '',
-        created_at: user.created_at,
-        updated_at: user.updated_at,
+        id: dbUser._id.toString(),
+        full_name: dbUser.full_name,
+        email_address: dbUser.email_address,
+        phone_number: dbUser.phone_number || '',
+        user_type: dbUser.user_type,
+        account_status: dbUser.account_status,
+        verification_status: dbUser.verification_status || 'unverified',
+        profile_image: profileImageUrl,
+        wallet_balance: dbUser.wallet_balance || 0,
+        is_verified: dbUser.is_verified || false,
+        date_of_birth: dbUser.date_of_birth || '',
+        birth_time: dbUser.birth_time || '',
+        birth_place: dbUser.birth_place || '',
+        address: dbUser.address || '',
+        city: dbUser.city || '',
+        state: dbUser.state || '',
+        country: dbUser.country || 'India',
+        zip: dbUser.zip || '',
+        gender: dbUser.gender || '',
+        created_at: dbUser.created_at,
+        updated_at: dbUser.updated_at,
         
-        // Astrologer-specific fields
-        bio: user.bio || '',
-        experience_years: user.experience_years || null,
-        languages: user.languages || [],
-        skills: user.skills || [],
-        qualifications: user.qualifications || [],
-        certifications: user.certifications || [],
-        chat_rate: user.chat_rate || null,
-        call_rate: user.call_rate || null,
-        video_rate: user.video_rate || null,
-        is_online: user.is_online || false,
-        total_consultations: user.total_consultations || 0,
-        total_earnings: user.total_earnings || 0,
-        rating: user.rating || 0,
-        total_reviews: user.total_reviews || 0,
-        education: user.education || '',
-        experience: user.experience || '',
-        upi_id: user.upi_id || ''
+        // Astrologer-specific fields (only return if user is astrologer)
+        ...(dbUser.user_type === 'astrologer' && {
+          bio: dbUser.bio || '',
+          experience_years: dbUser.experience_years || 0,
+          languages: dbUser.languages || '',
+          skills: dbUser.skills || '',
+          qualifications: dbUser.qualifications || [],
+          specializations: dbUser.specializations || [],
+          chat_rate: dbUser.chat_rate || 0,
+          call_rate: dbUser.call_rate || 0,
+          video_rate: dbUser.video_rate || 0,
+          // Removed availability system - using online status instead
+          is_online: dbUser.is_online || false,
+          total_consultations: dbUser.total_consultations || 0,
+          total_earnings: dbUser.total_earnings || 0,
+          rating: dbUser.rating || 0,
+          total_reviews: dbUser.total_reviews || 0,
+          approval_status: dbUser.approval_status || 'pending'
+        })
       }
     });
 
-  } catch(error) {
-    console.error(error);
+  } catch (error) {
+    console.error('Profile fetch error:', error);
     return NextResponse.json({
       success: false,
-      error: 'Internal server error',
+      error: 'INTERNAL_SERVER_ERROR',
       message: 'An error occurred while retrieving profile'
     }, { status: 500 });
   }
@@ -175,28 +195,18 @@ export async function GET(request: NextRequest) {
 // PUT update user profile (handles both JSON data and file uploads)
 export async function PUT(request: NextRequest) {
   try {
-    // Get token from header (mobile) or cookie (admin)
-    const authHeader = request.headers.get('Authorization');
-    const cookieToken = request.cookies.get('auth-token')?.value;
-    const token = authHeader?.replace('Bearer ', '') || cookieToken;
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    console.log(`📝 Profile update request from IP: ${ip}`);
 
-    if (!token) {
-      return NextResponse.json({ 
-        success: false,
-        error: 'Unauthorized',
-        message: 'No authentication token provided' 
-      }, { status: 401 });
-    }
-
-    let payload;
+    // Authenticate user with enhanced security
+    let user;
     try {
-      const result = await jwtVerify(token, JWT_SECRET);
-      payload = result.payload;
+      user = await SecurityMiddleware.authenticateRequest(request);
     } catch {
-      return NextResponse.json({ 
+      return NextResponse.json({
         success: false,
-        error: 'Invalid token',
-        message: 'Authentication token is invalid or expired' 
+        error: 'AUTHENTICATION_REQUIRED',
+        message: 'Valid authentication token is required'
       }, { status: 401 });
     }
 
@@ -204,23 +214,27 @@ export async function PUT(request: NextRequest) {
     let updateData: Record<string, unknown> = {};
     let profileImageFile: File | null = null;
 
-    // Handle both JSON and FormData
+    // Handle both JSON and FormData with input sanitization
     if (contentType?.includes('multipart/form-data')) {
       // Handle form data with potential file upload
       const formData = await request.formData();
       
       // Extract profile image file if present
-      profileImageFile = formData.get('profile_image') as File;
+      const imageFile = formData.get('profile_image') as File;
+      if (imageFile && imageFile.size > 0) {
+        profileImageFile = imageFile;
+      }
       
-      // Extract other form fields
+      // Extract and sanitize other form fields
       for (const [key, value] of formData.entries()) {
-        if (key !== 'profile_image') {
-          updateData[key] = value.toString();
+        if (key !== 'profile_image' && typeof value === 'string') {
+          updateData[key] = InputSanitizer.sanitizeString(value);
         }
       }
     } else {
-      // Handle JSON data
-      updateData = await request.json();
+      // Handle JSON data with sanitization
+      const body = await request.json();
+      updateData = InputSanitizer.sanitizeMongoQuery(body);
     }
     
     // Handle field mapping between mobile app and database
@@ -234,13 +248,71 @@ export async function PUT(request: NextRequest) {
     }
     
     // Remove sensitive fields that shouldn't be updated via this endpoint
-    delete updateData._id;
-    delete updateData.password;
-    delete updateData.user_type;
-    delete updateData.account_status;
-    delete updateData.verification_status;
-    delete updateData.wallet_balance;
-    delete updateData.created_at;
+    const protectedFields = [
+      '_id', 'password', 'user_type', 'account_status', 'verification_status',
+      'wallet_balance', 'created_at', 'email_address', 'is_verified',
+      'login_count', 'failed_login_attempts', 'last_login', 'last_logout',
+      'google_access_token', 'registration_ip', 'total_earnings',
+      'approval_status', 'is_online'
+    ];
+    
+    protectedFields.forEach(field => delete updateData[field]);
+
+    // Validate required fields based on user type
+    const usersCollection = await DatabaseService.getCollection('users');
+    const existingUser = await usersCollection.findOne({ 
+      _id: new ObjectId(user.userId as string),
+      account_status: { $ne: 'banned' }
+    });
+    
+    if (!existingUser) {
+      return NextResponse.json({
+        success: false,
+        error: 'USER_NOT_FOUND',
+        message: 'User account not found or has been suspended'
+      }, { status: 404 });
+    }
+
+    // Validate input data based on user type
+    if (existingUser.user_type === 'astrologer') {
+      // Validate astrologer-specific fields
+      if (updateData.call_rate && (Number(updateData.call_rate) < 10 || Number(updateData.call_rate) > 10000)) {
+        return NextResponse.json({
+          success: false,
+          error: 'INVALID_CALL_RATE',
+          message: 'Call rate must be between ₹10 and ₹10,000 per minute'
+        }, { status: 400 });
+      }
+      
+      if (updateData.chat_rate && (Number(updateData.chat_rate) < 5 || Number(updateData.chat_rate) > 5000)) {
+        return NextResponse.json({
+          success: false,
+          error: 'INVALID_CHAT_RATE',
+          message: 'Chat rate must be between ₹5 and ₹5,000 per minute'
+        }, { status: 400 });
+      }
+
+      if (updateData.experience_years && (Number(updateData.experience_years) < 0 || Number(updateData.experience_years) > 50)) {
+        return NextResponse.json({
+          success: false,
+          error: 'INVALID_EXPERIENCE',
+          message: 'Experience must be between 0 and 50 years'
+        }, { status: 400 });
+      }
+    }
+
+    // Validate phone number if provided
+    if (updateData.phone_number) {
+      const cleanPhone = InputSanitizer.sanitizePhoneNumber(updateData.phone_number as string);
+      if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+        return NextResponse.json({
+          success: false,
+          error: 'INVALID_PHONE',
+          message: 'Please provide a valid phone number'
+        }, { status: 400 });
+      }
+      updateData.phone_number = cleanPhone;
+    }
 
     // Handle profile image upload if present
     let imageUrl: string | null = null;
@@ -296,26 +368,6 @@ export async function PUT(request: NextRequest) {
     // Add updated timestamp
     updateData.updated_at = new Date();
 
-    // Connect to MongoDB
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const usersCollection = db.collection('users');
-    const mediaCollection = db.collection('media_files');
-
-    // Get existing user data to check for old profile image
-    const existingUser = await usersCollection.findOne({ _id: new ObjectId(payload.userId as string) });
-    
-    if (!existingUser) {
-      await client.close();
-      return NextResponse.json({ 
-        success: false,
-        error: 'User not found',
-        message: 'User account no longer exists' 
-      }, { status: 404 });
-    }
-
     // If uploading a new profile image, clean up the old one
     if (imageUrl && existingUser.profile_image && existingUser.profile_image !== imageUrl) {
       await deleteFile(existingUser.profile_image as string, { 
@@ -325,12 +377,11 @@ export async function PUT(request: NextRequest) {
     }
 
     const result = await usersCollection.updateOne(
-      { _id: new ObjectId(payload.userId as string) },
+      { _id: new ObjectId(user.userId as string) },
       { $set: updateData }
     );
 
     if (result.matchedCount === 0) {
-      await client.close();
       return NextResponse.json({ 
         success: false,
         error: 'User not found',
@@ -340,6 +391,7 @@ export async function PUT(request: NextRequest) {
 
     // Add image to media library if uploaded
     if (imageUrl && profileImageFile) {
+      const mediaCollection = await DatabaseService.getCollection('media_files');
       const fileData = {
         filename: path.basename(imageUrl),
         original_name: profileImageFile.name,
@@ -347,8 +399,8 @@ export async function PUT(request: NextRequest) {
         file_size: profileImageFile.size,
         mime_type: profileImageFile.type,
         file_type: 'profile_image',
-        uploaded_by: payload.userId as string,
-        associated_record: payload.userId as string,
+        uploaded_by: user.userId as string,
+        associated_record: user.userId as string,
         is_external: false,
         uploaded_at: new Date(),
         created_at: new Date(),
@@ -359,12 +411,11 @@ export async function PUT(request: NextRequest) {
 
     // Get updated user
     const updatedUser = await usersCollection.findOne(
-      { _id: new ObjectId(payload.userId as string) },
+      { _id: new ObjectId(user.userId as string) },
       { projection: { password: 0 } }
     );
 
     if (!updatedUser) {
-      await client.close();
       return NextResponse.json({ 
         success: false,
         error: 'User not found',
@@ -376,9 +427,9 @@ export async function PUT(request: NextRequest) {
     const baseUrl = getBaseUrl(request);
     
     // Resolve profile image to full URL
-    const profileImageUrl = await resolveProfileImage(updatedUser, mediaCollection, baseUrl);
+    const mediaCollection2 = await DatabaseService.getCollection('media_files');
+    const profileImageUrl = await resolveProfileImage(updatedUser, mediaCollection2, baseUrl);
 
-    await client.close();
 
     return NextResponse.json({
       success: true,

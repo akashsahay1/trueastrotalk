@@ -277,7 +277,7 @@ export async function PUT(request: NextRequest) {
       updateData.is_default = false;
     }
 
-    const result = await addressesCollection.updateOne(
+    await addressesCollection.updateOne(
       { _id: new ObjectId(address_id) },
       { $set: updateData }
     );
@@ -344,7 +344,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete the address
-    const result = await addressesCollection.deleteOne({
+    await addressesCollection.deleteOne({
       _id: new ObjectId(addressId),
       user_id: userId
     });

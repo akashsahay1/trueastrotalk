@@ -25,8 +25,11 @@ import 'chat_screen.dart';
 import 'call_list.dart';
 import '../services/cart_service.dart';
 import '../services/chat/chat_service.dart';
-import '../services/call/call_service.dart';
-import '../models/call.dart';
+import '../services/socket/socket_service.dart';
+import '../services/webrtc/webrtc_service.dart';
+import '../services/wallet/wallet_service.dart';
+import 'incoming_call_screen.dart';
+import 'active_call_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -39,6 +42,9 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   late final AuthService _authService;
   late final UserApiService _userApiService;
   late final CartService _cartService;
+  late final SocketService _socketService;
+  late final WebRTCService _webrtcService;
+  late final WalletService _walletService;
 
   app_user.User? _currentUser;
   double _walletBalance = 0.0;
@@ -65,6 +71,9 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     _authService = getIt<AuthService>();
     _userApiService = getIt<UserApiService>();
     _cartService = getIt<CartService>();
+    _socketService = getIt<SocketService>();
+    _webrtcService = getIt<WebRTCService>();
+    _walletService = getIt<WalletService>();
     
     // Listen to cart changes to update cart icon badge
     _cartService.addListener(_onCartChanged);
@@ -75,6 +84,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _cartService.removeListener(_onCartChanged);
+    _socketService.disconnect();
     super.dispose();
   }
 
@@ -90,6 +100,12 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       await _loadUserData();
 
       debugPrint('📱 User loaded: ${_currentUser?.name}, isAstrologer: ${_currentUser?.isAstrologer}');
+
+      // Initialize Socket.IO connection after user is loaded
+      _initializeSocketConnection();
+
+      // Initialize wallet service for all users
+      await _walletService.initialize();
 
       // Then load type-specific data
       if (_currentUser?.isAstrologer == true) {
@@ -127,6 +143,58 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   Future<void> refreshUserData() async {
     await _loadUserData();
   }
+
+  // Initialize Socket.IO connection for real-time features
+  Future<void> _initializeSocketConnection() async {
+    try {
+      if (_currentUser != null) {
+        debugPrint('🔌 Initializing Socket.IO connection...');
+        await _socketService.connect();
+        
+        // Setup incoming call listeners
+        _setupCallListeners();
+        
+        debugPrint('✅ Socket.IO connection initialized');
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to initialize Socket.IO: $e');
+    }
+  }
+
+  // Setup listeners for incoming calls and messages
+  void _setupCallListeners() {
+    // Listen for incoming calls
+    _socketService.on('incoming_call', (data) {
+      debugPrint('📞 Incoming call received: $data');
+      _showIncomingCallDialog(data);
+    });
+
+    // Listen for call status changes
+    _socketService.on('call_answered', (data) {
+      debugPrint('✅ Call answered: $data');
+    });
+
+    _socketService.on('call_rejected', (data) {
+      debugPrint('❌ Call rejected: $data');
+    });
+
+    _socketService.on('call_ended', (data) {
+      debugPrint('📴 Call ended: $data');
+    });
+  }
+
+  // Show incoming call screen
+  void _showIncomingCallDialog(Map<String, dynamic> callData) {
+    if (!mounted) return;
+    
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => IncomingCallScreen(callData: callData),
+        fullscreenDialog: true,
+      ),
+    );
+  }
+
 
   // Method to refresh astrologer dashboard data
   Future<void> _loadAstrologerDashboard() async {
@@ -1203,6 +1271,23 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       return;
     }
 
+    // Check wallet balance for chat
+    final hasSufficientBalance = _walletService.hasSufficientBalanceForChat(astrologer);
+    
+    if (!hasSufficientBalance) {
+      final message = _walletService.getInsufficientChatBalanceMessage(astrologer);
+      
+      // Show insufficient balance dialog with recharge option
+      final shouldRecharge = await _showInsufficientBalanceDialog(message);
+      if (shouldRecharge == true && mounted) {
+        // Navigate to wallet screen for recharge
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const WalletScreen()),
+        );
+      }
+      return;
+    }
+
     try {
       // Show loading indicator
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1251,29 +1336,77 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     }
 
     try {
+      // Show call type selection dialog
+      final callType = await _showCallTypeDialog();
+      if (callType == null) return; // User cancelled
+
+      // Check wallet balance for selected call type
+      final callTypeStr = callType == CallType.video ? 'video' : 'voice';
+      final hasSufficientBalance = _walletService.hasSufficientBalanceForCall(astrologer, callTypeStr);
+      
+      if (!hasSufficientBalance) {
+        final message = _walletService.getInsufficientCallBalanceMessage(astrologer, callTypeStr);
+        
+        // Show insufficient balance dialog with recharge option
+        final shouldRecharge = await _showInsufficientBalanceDialog(message);
+        if (shouldRecharge == true && mounted) {
+          // Navigate to wallet screen for recharge
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => const WalletScreen()),
+          );
+        }
+        return;
+      }
+
       // Show loading indicator
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Starting voice call with ${astrologer.fullName}...'),
-          backgroundColor: AppColors.info,
-        ),
-      );
-
-      // Start call session
-      final callService = getIt<CallService>();
-      await callService.initialize(); // Ensure call service is initialized
-      await callService.startCallSession(astrologer.id, CallType.voice);
-
-      // Navigate to actual call screen when implemented
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Voice call initiated! Call screen coming soon.'),
-            backgroundColor: AppColors.success,
+            content: Text('Starting ${callType == CallType.video ? 'video' : 'voice'} call with ${astrologer.fullName}...'),
+            backgroundColor: AppColors.info,
           ),
         );
       }
+
+      // Initialize WebRTC
+      await _webrtcService.initialize();
+
+      // Generate session ID for this call
+      final sessionId = 'call-${DateTime.now().millisecondsSinceEpoch}';
+      
+      // Initiate call via Socket.IO
+      _socketService.emit('initiate_call', {
+        'callType': callType == CallType.video ? 'video' : 'voice',
+        'sessionId': sessionId,
+        'astrologerId': astrologer.id,
+        'userId': _currentUser?.id,
+      });
+
+      // Navigate to active call screen
+      debugPrint('📞 Call initiated with ${astrologer.fullName}, sessionId: $sessionId');
+
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ActiveCallScreen(
+              callData: {
+                'sessionId': sessionId,
+                'callId': sessionId,
+                'callType': callType == CallType.video ? 'video' : 'voice',
+                'receiverId': astrologer.id,
+                'receiverName': astrologer.fullName,
+                'receiverProfileImage': astrologer.profileImage,
+                'callerId': _currentUser?.id,
+                'callerName': _currentUser?.name,
+              },
+              isIncoming: false,
+            ),
+          ),
+        );
+      }
+
     } catch (e) {
+      debugPrint('❌ Failed to start call: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1283,6 +1416,79 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         );
       }
     }
+  }
+
+  // Show dialog to select call type (voice or video)
+  Future<CallType?> _showCallTypeDialog() async {
+    return showDialog<CallType>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Call Type'),
+        content: const Text('Choose the type of call you want to make:'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(CallType.voice),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.phone),
+                const SizedBox(width: 8),
+                const Text('Voice Call'),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(CallType.video),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.videocam),
+                const SizedBox(width: 8),
+                const Text('Video Call'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Show dialog for insufficient wallet balance
+  Future<bool?> _showInsufficientBalanceDialog(String message) async {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.account_balance_wallet, color: AppColors.error),
+            const SizedBox(width: 8),
+            const Text('Insufficient Balance'),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.white,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.add, size: 16),
+                const SizedBox(width: 4),
+                const Text('Recharge Wallet'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _viewAllProducts() {

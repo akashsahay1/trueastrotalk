@@ -1,43 +1,90 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import { ObjectId } from 'mongodb';
+import DatabaseService from '../../../../lib/database';
+import { 
+  SecurityMiddleware, 
+  InputSanitizer
+} from '../../../../lib/security';
 
 // POST - Send new message
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    console.log(`💬 Chat message send request from IP: ${ip}`);
+
+    // Authenticate user
+    let authenticatedUser;
+    try {
+      authenticatedUser = await SecurityMiddleware.authenticateRequest(request);
+    } catch {
+      return NextResponse.json({
+        success: false,
+        error: 'AUTHENTICATION_REQUIRED',
+        message: 'Valid authentication token is required'
+      }, { status: 401 });
+    }
+
+    // Parse and sanitize request body
     const body = await request.json();
+    const sanitizedBody = InputSanitizer.sanitizeMongoQuery(body);
+    
     const { 
       session_id, 
-      sender_id, 
-      sender_name, 
-      sender_type, 
       message_type = 'text', 
       content, 
       image_url 
-    } = body;
+    } = sanitizedBody;
 
-    if (!session_id || !sender_id || !sender_name || !sender_type || (!content && !image_url)) {
+    // Use authenticated user data instead of trusting client data
+    const sender_id = authenticatedUser.userId;
+    const sender_name = authenticatedUser.full_name;
+    const sender_type = authenticatedUser.user_type === 'customer' ? 'user' : 'astrologer';
+
+    // Validate required fields
+    if (!session_id || (!content && !image_url)) {
       return NextResponse.json({
         success: false,
-        error: 'Missing required fields',
-        message: 'Session ID, sender info, and content are required'
+        error: 'MISSING_REQUIRED_FIELDS',
+        message: 'Session ID and message content are required'
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const chatMessagesCollection = db.collection('chat_messages');
-    const chatSessionsCollection = db.collection('chat_sessions');
+    // Validate session_id format
+    if (!ObjectId.isValid(session_id as string)) {
+      return NextResponse.json({
+        success: false,
+        error: 'INVALID_SESSION_ID',
+        message: 'Invalid session ID format'
+      }, { status: 400 });
+    }
+
+    // Validate message type
+    const validMessageTypes = ['text', 'image', 'system'];
+    if (!validMessageTypes.includes(message_type as string)) {
+      return NextResponse.json({
+        success: false,
+        error: 'INVALID_MESSAGE_TYPE',
+        message: 'Invalid message type'
+      }, { status: 400 });
+    }
+
+    // Validate content length
+    if (content && (content as string).length > 1000) {
+      return NextResponse.json({
+        success: false,
+        error: 'MESSAGE_TOO_LONG',
+        message: 'Message content cannot exceed 1000 characters'
+      }, { status: 400 });
+    }
+
+
+    const chatMessagesCollection = await DatabaseService.getCollection('chat_messages');
+    const chatSessionsCollection = await DatabaseService.getCollection('chat_sessions');
 
     // Verify session exists and is active
-    const session = await chatSessionsCollection.findOne({ _id: new ObjectId(session_id) });
+    const session = await chatSessionsCollection.findOne({ _id: new ObjectId(session_id as string) });
 
     if (!session) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Session not found',
@@ -46,7 +93,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (session.status !== 'active' && session.status !== 'pending') {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Session not active',
@@ -56,7 +102,6 @@ export async function POST(request: NextRequest) {
 
     // Verify sender has access to this session
     if (sender_type === 'user' && session.user_id !== sender_id) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Access denied',
@@ -65,7 +110,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (sender_type === 'astrologer' && session.astrologer_id !== sender_id) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Access denied',
@@ -111,14 +155,17 @@ export async function POST(request: NextRequest) {
       updateData.start_time = new Date();
     }
 
+    // Separate $inc from regular update fields
+    const { $inc, ...setFields } = updateData;
+    const updateOperation: Record<string, unknown> = { $set: setFields };
+    if ($inc) {
+      updateOperation.$inc = $inc;
+    }
+    
     await chatSessionsCollection.updateOne(
-      { _id: new ObjectId(session_id) },
-      updateData.$inc ? 
-        { $set: { ...updateData, $inc: undefined }, $inc: updateData.$inc } :
-        { $set: updateData }
+      { _id: new ObjectId(session_id as string) },
+      updateOperation
     );
-
-    await client.close();
 
     // Format message for response
     const formattedMessage = {
@@ -165,12 +212,8 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const chatMessagesCollection = db.collection('chat_messages');
-    const chatSessionsCollection = db.collection('chat_sessions');
+    const chatMessagesCollection = await DatabaseService.getCollection('chat_messages');
+    const chatSessionsCollection = await DatabaseService.getCollection('chat_sessions');
 
     // Convert message IDs to ObjectIds
     const messageObjectIds = message_ids
@@ -178,7 +221,6 @@ export async function PUT(request: NextRequest) {
       .map(id => new ObjectId(id));
 
     if (messageObjectIds.length === 0) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Invalid message IDs',
@@ -221,7 +263,7 @@ export async function PUT(request: NextRequest) {
       const unreadCountField = user_type === 'user' ? 'user_unread_count' : 'astrologer_unread_count';
       
       await chatSessionsCollection.updateOne(
-        { _id: new ObjectId(sessionId) },
+        { _id: new ObjectId(sessionId as string) },
         { 
           $set: { 
             [unreadCountField]: unreadCount,
@@ -231,7 +273,6 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    await client.close();
 
     return NextResponse.json({
       success: true,
@@ -268,20 +309,15 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const chatMessagesCollection = db.collection('chat_messages');
-    const chatSessionsCollection = db.collection('chat_sessions');
+    const chatMessagesCollection = await DatabaseService.getCollection('chat_messages');
+    const chatSessionsCollection = await DatabaseService.getCollection('chat_sessions');
 
     // Verify user has access to this session
     if (userId && userType) {
       const session = await chatSessionsCollection.findOne({ _id: new ObjectId(sessionId) });
       
       if (!session) {
-        await client.close();
-        return NextResponse.json({
+          return NextResponse.json({
           success: false,
           error: 'Session not found',
           message: 'Chat session not found'
@@ -289,8 +325,7 @@ export async function GET(request: NextRequest) {
       }
 
       if (userType === 'user' && session.user_id !== userId) {
-        await client.close();
-        return NextResponse.json({
+          return NextResponse.json({
           success: false,
           error: 'Access denied',
           message: 'You do not have access to this chat session'
@@ -298,8 +333,7 @@ export async function GET(request: NextRequest) {
       }
 
       if (userType === 'astrologer' && session.astrologer_id !== userId) {
-        await client.close();
-        return NextResponse.json({
+          return NextResponse.json({
           success: false,
           error: 'Access denied',
           message: 'You do not have access to this chat session'
@@ -332,7 +366,6 @@ export async function GET(request: NextRequest) {
       timestamp: msg.timestamp
     }));
 
-    await client.close();
 
     return NextResponse.json({
       success: true,

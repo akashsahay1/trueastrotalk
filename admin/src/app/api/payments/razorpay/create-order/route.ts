@@ -1,150 +1,252 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
-import { jwtVerify } from 'jose';
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-);
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import { ObjectId } from 'mongodb';
+import DatabaseService from '../../../../../lib/database';
+import { SecurityMiddleware, InputSanitizer, EncryptionSecurity } from '../../../../../lib/security';
 
 export async function POST(request: NextRequest) {
   try {
-    // Get token from header
-    const authHeader = request.headers.get('Authorization');
-    const token = authHeader?.replace('Bearer ', '');
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    console.log(`💳 Payment order creation request from IP: ${ip}`);
 
-    if (!token) {
-      return NextResponse.json({ 
-        success: false,
-        error: 'Unauthorized',
-        message: 'No authentication token provided' 
-      }, { status: 401 });
-    }
-
-    let payload;
+    // Authenticate user
+    let user;
     try {
-      const result = await jwtVerify(token, JWT_SECRET);
-      payload = result.payload;
+      user = await SecurityMiddleware.authenticateRequest(request);
     } catch {
-      return NextResponse.json({ 
-        success: false,
-        error: 'Invalid token',
-        message: 'Authentication token is invalid or expired' 
-      }, { status: 401 });
-    }
-
-    // Connect to MongoDB to get Razorpay credentials
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const settingsCollection = db.collection('app_settings');
-
-    let RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET;
-
-    try {
-      // Get Razorpay credentials from database
-      const config = await settingsCollection.findOne({ type: 'general' });
-      
-      if (!config || !config.razorpay?.keyId || !config.razorpay?.keySecret) {
-        await client.close();
-        console.error('Missing Razorpay credentials in database configuration');
-        return NextResponse.json({
-          success: false,
-          error: 'Payment service configuration error',
-          message: 'Payment service is not properly configured'
-        }, { status: 500 });
-      }
-
-      RAZORPAY_KEY_ID = config.razorpay.keyId;
-      RAZORPAY_KEY_SECRET = config.razorpay.keySecret;
-
-    } catch (dbError) {
-      await client.close();
-      console.error('Error fetching Razorpay credentials from database:', dbError);
       return NextResponse.json({
         success: false,
-        error: 'Payment service configuration error',
-        message: 'Failed to load payment service configuration'
-      }, { status: 500 });
+        error: 'AUTHENTICATION_REQUIRED',
+        message: 'Valid authentication token is required'
+      }, { status: 401 });
     }
 
-    // Parse request body
+    // Parse and sanitize request body
     const body = await request.json();
-    const { amount, currency = 'INR', receipt } = body;
+    const sanitizedBody = InputSanitizer.sanitizeMongoQuery(body);
+    
+    const { 
+      amount, 
+      currency = 'INR', 
+      receipt,
+      purpose = 'wallet_recharge',
+      order_type = 'wallet'
+    } = sanitizedBody;
 
-    // Validate input
-    if (!amount || amount <= 0) {
-      return NextResponse.json({ 
+    // Comprehensive input validation
+    if (!amount || typeof amount !== 'number' || amount <= 0) {
+      return NextResponse.json({
         success: false,
-        error: 'Invalid amount',
-        message: 'Amount must be greater than 0' 
+        error: 'INVALID_AMOUNT',
+        message: 'Amount must be a positive number greater than 0'
       }, { status: 400 });
+    }
+
+    // Validate amount limits (₹10 to ₹50,000)
+    if (amount < 10 || amount > 50000) {
+      return NextResponse.json({
+        success: false,
+        error: 'AMOUNT_OUT_OF_RANGE',
+        message: 'Amount must be between ₹10 and ₹50,000'
+      }, { status: 400 });
+    }
+
+    // Validate currency
+    if (currency !== 'INR') {
+      return NextResponse.json({
+        success: false,
+        error: 'INVALID_CURRENCY',
+        message: 'Only INR currency is supported'
+      }, { status: 400 });
+    }
+
+    // Validate purpose
+    const validPurposes = ['wallet_recharge', 'consultation_payment', 'product_purchase'];
+    if (!validPurposes.includes(purpose as string)) {
+      return NextResponse.json({
+        success: false,
+        error: 'INVALID_PURPOSE',
+        message: 'Invalid payment purpose'
+      }, { status: 400 });
+    }
+
+    // Get user from database to verify account status
+    const usersCollection = await DatabaseService.getCollection('users');
+    const dbUser = await usersCollection.findOne({
+      _id: new ObjectId(user.userId as string),
+      account_status: { $ne: 'banned' }
+    });
+
+    if (!dbUser) {
+      return NextResponse.json({
+        success: false,
+        error: 'USER_NOT_FOUND',
+        message: 'User account not found or suspended'
+      }, { status: 404 });
+    }
+
+    if (dbUser.account_status !== 'active') {
+      return NextResponse.json({
+        success: false,
+        error: 'ACCOUNT_INACTIVE',
+        message: 'Account must be active to make payments'
+      }, { status: 403 });
+    }
+
+    // Get encrypted Razorpay credentials from database
+    const settingsCollection = await DatabaseService.getCollection('app_settings');
+    const config = await settingsCollection.findOne({ type: 'payment_gateway' });
+    
+    const configObj = config as Record<string, unknown>;
+    const razorpayConfig = configObj?.razorpay as Record<string, unknown>;
+    if (!razorpayConfig?.keyId || !razorpayConfig?.encryptedKeySecret) {
+      console.error('Missing Razorpay credentials in database configuration');
+      return NextResponse.json({
+        success: false,
+        error: 'PAYMENT_SERVICE_UNAVAILABLE',
+        message: 'Payment service is temporarily unavailable'
+      }, { status: 503 });
+    }
+
+    // Decrypt Razorpay credentials
+    let RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET;
+    try {
+      RAZORPAY_KEY_ID = razorpayConfig.keyId as string;
+      
+      const encryptionPassword = process.env.ENCRYPTION_PASSWORD;
+      if (!encryptionPassword) {
+        throw new Error('ENCRYPTION_PASSWORD not configured');
+      }
+      
+      RAZORPAY_KEY_SECRET = EncryptionSecurity.decrypt(
+        razorpayConfig.encryptedKeySecret as string,
+        encryptionPassword
+      );
+    } catch (decryptError) {
+      console.error('Failed to decrypt Razorpay credentials:', decryptError);
+      return NextResponse.json({
+        success: false,
+        error: 'PAYMENT_SERVICE_ERROR',
+        message: 'Payment service configuration error'
+      }, { status: 500 });
     }
 
     // Convert amount to paise (Razorpay expects amount in smallest currency unit)
     const amountInPaise = Math.round(amount * 100);
 
-    // Create Razorpay order
+    // Generate secure receipt ID
+    const secureReceipt = receipt || `${purpose}_${user.userId}_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
+
+    // Create Razorpay order with comprehensive data
     const orderData = {
       amount: amountInPaise,
       currency,
-      receipt: receipt || `wallet_${payload.userId}_${Date.now()}`,
+      receipt: secureReceipt,
       notes: {
-        user_id: payload.userId as string,
-        user_type: payload.user_type as string,
-        purpose: 'wallet_recharge'
+        user_id: user.userId,
+        user_email: user.email,
+        user_type: user.user_type,
+        purpose,
+        order_type,
+        created_at: new Date().toISOString(),
+        ip_address: ip
       }
     };
 
-    // Create the order using Razorpay API
-    console.log('Creating Razorpay order with data:', orderData);
+    // Log payment attempt (excluding sensitive data)
+    console.log(`💳 Creating Razorpay order for user ${user.userId}: ₹${amount} for ${purpose}`);
     
-    const razorpayResponse = await fetch('https://api.razorpay.com/v1/orders', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Basic ${Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString('base64')}`
-      },
-      body: JSON.stringify(orderData)
-    });
+    // Create the order using Razorpay API with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-    console.log('Razorpay response status:', razorpayResponse.status);
-
-    if (!razorpayResponse.ok) {
-      const errorData = await razorpayResponse.json();
-      console.error('Razorpay order creation failed:', errorData);
-      console.error('Request data was:', orderData);
-      console.error('Response status:', razorpayResponse.status);
+    let razorpayResponse;
+    try {
+      razorpayResponse = await fetch('https://api.razorpay.com/v1/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString('base64')}`,
+          'User-Agent': 'TrueAstroTalk-API/1.0'
+        },
+        body: JSON.stringify(orderData),
+        signal: controller.signal
+      });
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      console.error('Razorpay API request failed:', fetchError);
       return NextResponse.json({
         success: false,
-        error: 'Payment service error',
-        message: `Failed to create payment order: ${errorData.error?.description || 'Unknown error'}`
+        error: 'PAYMENT_SERVICE_TIMEOUT',
+        message: 'Payment service is currently unavailable. Please try again.'
+      }, { status: 503 });
+    }
+
+    clearTimeout(timeoutId);
+
+    if (!razorpayResponse.ok) {
+      const errorData = await razorpayResponse.json().catch(() => ({}));
+      console.error('Razorpay order creation failed:', {
+        status: razorpayResponse.status,
+        error: errorData,
+        amount: amountInPaise,
+        user: user.userId
+      });
+      
+      return NextResponse.json({
+        success: false,
+        error: 'PAYMENT_ORDER_FAILED',
+        message: 'Failed to create payment order. Please try again.'
       }, { status: 500 });
     }
 
     const razorpayOrder = await razorpayResponse.json();
-    await client.close();
 
+    // Store payment order in database for tracking
+    const paymentsCollection = await DatabaseService.getCollection('payment_orders');
+    const paymentRecord = {
+      _id: new ObjectId(),
+      razorpay_order_id: razorpayOrder.id,
+      user_id: new ObjectId(user.userId as string),
+      amount: amount,
+      amount_paise: amountInPaise,
+      currency,
+      purpose,
+      order_type,
+      receipt: secureReceipt,
+      status: 'created',
+      created_at: new Date(),
+      created_by_ip: ip,
+      user_agent: request.headers.get('user-agent') || '',
+      metadata: {
+        user_email: user.email,
+        user_type: user.user_type
+      }
+    };
+
+    await paymentsCollection.insertOne(paymentRecord);
+
+    console.log(`✅ Payment order created successfully: ${razorpayOrder.id} for user ${user.userId}`);
+
+    // Return sanitized response (no sensitive data)
     return NextResponse.json({
       success: true,
+      message: 'Payment order created successfully',
       data: {
         id: razorpayOrder.id,
         amount: razorpayOrder.amount,
         currency: razorpayOrder.currency,
         receipt: razorpayOrder.receipt,
-        status: razorpayOrder.status
+        status: razorpayOrder.status,
+        created_at: razorpayOrder.created_at
       }
     });
 
-  } catch(error) {
-    console.error('Error creating Razorpay order:', error);
+  } catch (error) {
+    console.error('Payment order creation error:', error);
     return NextResponse.json({
       success: false,
-      error: 'Internal server error',
-      message: 'An error occurred while creating the payment order'
+      error: 'INTERNAL_SERVER_ERROR',
+      message: 'An internal error occurred. Please try again later.'
     }, { status: 500 });
   }
 }

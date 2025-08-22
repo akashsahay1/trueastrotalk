@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import { ObjectId } from 'mongodb';
+import DatabaseService from '../../../lib/database';
 
 // GET - Get all products with filtering and pagination
 export async function GET(request: NextRequest) {
@@ -19,11 +17,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const skip = (page - 1) * limit;
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const productsCollection = db.collection('products');
+    const productsCollection = await DatabaseService.getCollection('products');
 
     // Build query
     const query: Record<string, unknown> = { is_active: true };
@@ -42,8 +36,8 @@ export async function GET(request: NextRequest) {
 
     if (minPrice || maxPrice) {
       query.price = {};
-      if (minPrice) query.price.$gte = parseFloat(minPrice);
-      if (maxPrice) query.price.$lte = parseFloat(maxPrice);
+      if (minPrice) (query.price as Record<string, unknown>).$gte = parseFloat(minPrice);
+      if (maxPrice) (query.price as Record<string, unknown>).$lte = parseFloat(maxPrice);
     }
 
     if (inStock === 'true') {
@@ -93,8 +87,6 @@ export async function GET(request: NextRequest) {
       created_at: product.created_at,
       updated_at: product.updated_at
     }));
-
-    await client.close();
 
     return NextResponse.json({
       success: true,
@@ -176,18 +168,13 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const productsCollection = db.collection('products');
+    const productsCollection = await DatabaseService.getCollection('products');
 
     // Check if SKU already exists
     if (sku) {
       const existingProduct = await productsCollection.findOne({ sku: sku });
       if (existingProduct) {
-        await client.close();
-        return NextResponse.json({
+            return NextResponse.json({
           success: false,
           error: 'SKU already exists',
           message: 'A product with this SKU already exists'
@@ -231,7 +218,6 @@ export async function POST(request: NextRequest) {
     const result = await productsCollection.insertOne(productData);
     const productId = result.insertedId.toString();
 
-    await client.close();
 
     return NextResponse.json({
       success: true,
@@ -271,17 +257,12 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const productsCollection = db.collection('products');
+    const productsCollection = await DatabaseService.getCollection('products');
 
     // Check if product exists
     const existingProduct = await productsCollection.findOne({ _id: new ObjectId(product_id) });
     if (!existingProduct) {
-      await client.close();
-      return NextResponse.json({
+        return NextResponse.json({
         success: false,
         error: 'Product not found',
         message: 'Product not found'
@@ -299,8 +280,7 @@ export async function PUT(request: NextRequest) {
     if (updateFields.price !== undefined) {
       const newPrice = parseFloat(updateFields.price);
       if (newPrice <= 0) {
-        await client.close();
-        return NextResponse.json({
+            return NextResponse.json({
           success: false,
           error: 'Invalid price',
           message: 'Price must be greater than 0'
@@ -316,8 +296,7 @@ export async function PUT(request: NextRequest) {
     if (updateFields.stock_quantity !== undefined) {
       const newStock = parseInt(updateFields.stock_quantity);
       if (newStock < 0) {
-        await client.close();
-        return NextResponse.json({
+            return NextResponse.json({
           success: false,
           error: 'Invalid stock quantity',
           message: 'Stock quantity cannot be negative'
@@ -327,15 +306,15 @@ export async function PUT(request: NextRequest) {
     }
     if (updateFields.weight !== undefined) updateData.weight = updateFields.weight ? parseFloat(updateFields.weight) : null;
     if (updateFields.dimensions !== undefined) updateData.dimensions = updateFields.dimensions || null;
-    if (updateFields.tags !== undefined) updateData.tags = Array.isArray(updateFields.tags) ? updateFields.tags.map(tag => tag.trim()) : [];
+    if (updateFields.tags !== undefined) updateData.tags = Array.isArray(updateFields.tags) ? updateFields.tags.map((tag: string) => tag.trim()) : [];
     if (updateFields.is_featured !== undefined) updateData.is_featured = Boolean(updateFields.is_featured);
     if (updateFields.is_bestseller !== undefined) updateData.is_bestseller = Boolean(updateFields.is_bestseller);
     if (updateFields.is_active !== undefined) updateData.is_active = Boolean(updateFields.is_active);
 
     // Recalculate discount percentage if price or original_price changed
     if (updateData.price !== undefined || updateData.original_price !== undefined) {
-      const newPrice = updateData.price || existingProduct.price;
-      const newOriginalPrice = updateData.original_price || existingProduct.original_price;
+      const newPrice = (updateData.price as number) || (existingProduct.price as number);
+      const newOriginalPrice = (updateData.original_price as number) || (existingProduct.original_price as number);
       
       if (newOriginalPrice && newOriginalPrice > newPrice) {
         updateData.discount_percentage = Math.round(((newOriginalPrice - newPrice) / newOriginalPrice) * 100);
@@ -343,13 +322,11 @@ export async function PUT(request: NextRequest) {
         updateData.discount_percentage = 0;
       }
     }
-
+    // Update the product
     const result = await productsCollection.updateOne(
       { _id: new ObjectId(product_id) },
       { $set: updateData }
     );
-
-    await client.close();
 
     return NextResponse.json({
       success: true,
@@ -381,17 +358,12 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const productsCollection = db.collection('products');
+    const productsCollection = await DatabaseService.getCollection('products');
 
     // Check if product exists
     const existingProduct = await productsCollection.findOne({ _id: new ObjectId(productId) });
     if (!existingProduct) {
-      await client.close();
-      return NextResponse.json({
+        return NextResponse.json({
         success: false,
         error: 'Product not found',
         message: 'Product not found'
@@ -399,18 +371,6 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Soft delete - mark as inactive instead of hard delete
-    const result = await productsCollection.updateOne(
-      { _id: new ObjectId(productId) },
-      { 
-        $set: { 
-          is_active: false,
-          deleted_at: new Date(),
-          updated_at: new Date()
-        }
-      }
-    );
-
-    await client.close();
 
     return NextResponse.json({
       success: true,

@@ -237,7 +237,10 @@ export const successMessages = {
     showSuccessAlert('Updated!', `${itemType} has been updated successfully.`),
   
   saved: () =>
-    showSuccessAlert('Saved!', 'Changes have been saved successfully.')
+    showSuccessAlert('Saved!', 'Changes have been saved successfully.'),
+  
+  custom: (message: string, title: string = 'Success') =>
+    showSuccessAlert(title, message)
 };
 
 /**
@@ -266,5 +269,8 @@ export const errorMessages = {
     showErrorAlert('Unauthorized', 'You are not authorized to perform this action.'),
   
   notFound: (itemType: string = 'item') =>
-    showErrorAlert('Not Found', `${itemType} not found. It may have been deleted.`)
+    showErrorAlert('Not Found', `${itemType} not found. It may have been deleted.`),
+  
+  custom: (message: string, title: string = 'Error') =>
+    showErrorAlert(title, message)
 };

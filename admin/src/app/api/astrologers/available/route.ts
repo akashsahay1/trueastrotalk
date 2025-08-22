@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import { ObjectId } from 'mongodb';
+import DatabaseService from '../../../../lib/database';
+// import { InputSanitizer } from '../../../../lib/security';
 
 // Helper function to get base URL for images
 function getBaseUrl(request: NextRequest): string {
@@ -45,18 +44,23 @@ async function resolveProfileImage(user: Record<string, unknown>, mediaCollectio
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const offset = parseInt(searchParams.get('offset') || '0');
-    const onlineOnly = searchParams.get('online_only') === 'true';
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    console.log(`🔮 Available astrologers request from IP: ${ip}`);
 
-    // Connect to MongoDB
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
+    const { searchParams } = new URL(request.url);
     
-    const db = client.db(DB_NAME);
-    const usersCollection = db.collection('users');
-    const mediaCollection = db.collection('media_files');
+    // Sanitize and validate query parameters
+    const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50); // Max 50
+    const offset = Math.max(parseInt(searchParams.get('offset') || '0'), 0);
+    const onlineOnly = searchParams.get('online_only') === 'true';
+    // const specialization = searchParams.get('specialization');
+    // const minRating = parseFloat(searchParams.get('min_rating') || '0');
+    // const maxRate = parseFloat(searchParams.get('max_rate') || '1000');
+    // const sortBy = searchParams.get('sort_by') || 'rating'; // rating, experience, rate
+
+    const usersCollection = await DatabaseService.getCollection('users');
+    const mediaCollection = await DatabaseService.getCollection('media_files');
+    // const chatSessionsCollection = await DatabaseService.getCollection('chat_sessions');
 
     // Build query for available astrologers - only verified ones with complete profiles
     const query: Record<string, unknown> = {
@@ -78,18 +82,28 @@ export async function GET(request: NextRequest) {
       .limit(limit)
       .toArray();
 
-    // Get sessions collection to calculate real session counts
-    const sessionsCollection = db.collection('sessions');
-
-    // Calculate actual session counts for each astrologer
-    const astrologerSessionCounts = new Map();
+    // Optimized bulk session count calculation
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
+    const astrologerIds = astrologers.map(a => a._id);
     
-    for (const astrologer of astrologers) {
-      const sessionCount = await sessionsCollection.countDocuments({
-        astrologer_id: astrologer._id
-      });
-      astrologerSessionCounts.set(astrologer._id.toString(), sessionCount);
-    }
+    const sessionCounts = await sessionsCollection.aggregate([
+      {
+        $match: {
+          astrologer_id: { $in: astrologerIds }
+        }
+      },
+      {
+        $group: {
+          _id: '$astrologer_id',
+          count: { $sum: 1 }
+        }
+      }
+    ]).toArray();
+
+    const astrologerSessionCounts = new Map();
+    sessionCounts.forEach(item => {
+      astrologerSessionCounts.set(item._id.toString(), item.count);
+    });
 
     // Get base URL for image resolution
     const baseUrl = getBaseUrl(request);
@@ -129,7 +143,7 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    await client.close();
+    // Database connection is managed by DatabaseService
 
     return NextResponse.json({
       success: true,

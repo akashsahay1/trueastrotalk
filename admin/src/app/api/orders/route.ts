@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
+import { ObjectId } from 'mongodb';
+import DatabaseService from '../../../lib/database';
+import '../../../lib/security';
 
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
-
-// Generate order number
+// Generate secure order number
 function generateOrderNumber(): string {
   const timestamp = Date.now().toString();
-  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-  return `ORD-${timestamp.slice(-8)}-${random}`;
+  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+  const randomChars = Math.random().toString(36).substring(2, 5).toUpperCase();
+  return `TA-${timestamp.slice(-6)}-${randomChars}-${random}`;
 }
 
 // GET - Get user's orders
@@ -29,11 +29,7 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const ordersCollection = db.collection('orders');
+    const ordersCollection = await DatabaseService.getCollection('orders');
 
     // Build query
     const query: Record<string, unknown> = { user_id: userId };
@@ -72,7 +68,6 @@ export async function GET(request: NextRequest) {
       delivered_at: order.delivered_at
     }));
 
-    await client.close();
 
     return NextResponse.json({
       success: true,
@@ -124,13 +119,9 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const ordersCollection = db.collection('orders');
-    const productsCollection = db.collection('products');
-    const cartCollection = db.collection('cart_items');
+    const ordersCollection = await DatabaseService.getCollection('orders');
+    const productsCollection = await DatabaseService.getCollection('products');
+    const cartCollection = await DatabaseService.getCollection('cart_items');
 
     // Validate items and calculate totals
     let subtotal = 0;
@@ -143,8 +134,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (!product) {
-        await client.close();
-        return NextResponse.json({
+            return NextResponse.json({
           success: false,
           error: 'Product not found',
           message: `Product ${item.product_id} not found or not available`
@@ -152,24 +142,23 @@ export async function POST(request: NextRequest) {
       }
 
       // Check stock availability
-      if (product.stock_quantity < item.quantity) {
-        await client.close();
-        return NextResponse.json({
+      if (Number(product.stock_quantity) < Number(item.quantity)) {
+            return NextResponse.json({
           success: false,
           error: 'Insufficient stock',
           message: `Only ${product.stock_quantity} items available for ${product.name}`
         }, { status: 400 });
       }
 
-      const itemTotal = product.price * item.quantity;
+      const itemTotal = Number(product.price) * Number(item.quantity);
       subtotal += itemTotal;
 
       validatedItems.push({
         product_id: item.product_id,
         product_name: product.name,
         product_image: product.image_url,
-        price: product.price,
-        quantity: item.quantity,
+        price: Number(product.price),
+        quantity: Number(item.quantity),
         total: itemTotal,
         category: product.category
       });
@@ -217,18 +206,17 @@ export async function POST(request: NextRequest) {
     // Update product stock
     for (const item of validatedItems) {
       await productsCollection.updateOne(
-        { _id: new ObjectId(item.product_id) },
+        { _id: new ObjectId(item.product_id as string) },
         { 
-          $inc: { stock_quantity: -item.quantity },
+          $inc: { stock_quantity: -(item.quantity as number) },
           $set: { updated_at: new Date() }
-        }
+        } as Record<string, unknown>
       );
     }
 
     // Clear user's cart
     await cartCollection.deleteMany({ user_id: user_id });
 
-    await client.close();
 
     return NextResponse.json({
       success: true,
@@ -266,11 +254,7 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const ordersCollection = db.collection('orders');
+    const ordersCollection = await DatabaseService.getCollection('orders');
 
     // Build update object
     const updateData: Record<string, unknown> = {
@@ -297,12 +281,11 @@ export async function PUT(request: NextRequest) {
       updateData.tracking_number = tracking_number;
     }
 
+    // Update the order
     const result = await ordersCollection.updateOne(
-      { _id: new ObjectId(order_id) },
+      { _id: new ObjectId(order_id as string) },
       { $set: updateData }
     );
-
-    await client.close();
 
     if (result.matchedCount === 0) {
       return NextResponse.json({

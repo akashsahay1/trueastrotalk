@@ -45,8 +45,14 @@ export default function DashboardPage() {
       const data = await response.json();
       
       if (response.ok) {
-        setStats(data.stats);
-        setRecentCustomers(data.recentCustomers);
+        // API returns data directly, not in a nested stats object
+        setStats({
+          totalCustomers: data.totalCustomers || 0,
+          totalAstrologers: data.totalAstrologers || 0,
+          totalOrders: data.totalOrders || 0,
+          totalRevenue: data.totalRevenue || 0
+        });
+        setRecentCustomers(data.recentCustomers || []);
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -85,55 +91,85 @@ export default function DashboardPage() {
             </div>
 
             {/* Key Metrics */}
-            <div className="row">
-              <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12 mb-4">
-                <div className="card border-3 border-top border-top-primary">
-                  <div className="card-body">
-                    <h5 className="text-muted">Customers</h5>
-                    <div className="metric-value d-inline-block">
-                      <h1 className="mb-1">{loading ? '...' : stats.totalCustomers.toLocaleString()}</h1>
-                    </div>
-                    <div className="metric-label d-inline-block float-right text-success font-weight-bold">
-                      <span className="text-color-light">Total registered</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12 mb-4">
-                <div className="card border-3 border-top border-top-primary">
-                  <div className="card-body">
-                    <h5 className="text-muted">Astrologers</h5>
-                    <div className="metric-value d-inline-block">
-                      <h1 className="mb-1">{loading ? '...' : stats.totalAstrologers.toLocaleString()}</h1>
-                    </div>
-                    <div className="metric-label d-inline-block float-right text-success font-weight-bold">
-                      <span className="text-color-light">Active consultants</span>
+            <div className="ecommerce-widget">
+              <div className="row">
+                <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
+                  <div className="card border-top-primary shadow-sm h-100">
+                    <div className="card-body">
+                      <h5 className="text-muted mb-4">Customers</h5>
+                      <div className="d-flex justify-content-between">
+                        <div className="metric-value">
+                          <h1 className="font-weight-bold">
+                            {loading ? '...' : (stats?.totalCustomers || 0).toLocaleString()}
+                          </h1>
+                        </div>
+                        <div className="metric-label text-success font-weight-bold align-self-center">
+                          <span className="icon-shape icon-xs rounded-circle text-success bg-success-light">
+                            <i className="fa fa-fw fa-arrow-up"></i>
+                          </span>
+                          <span className="ml-1">12%</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12 mb-4">
-                <div className="card border-3 border-top border-top-primary">
-                  <div className="card-body">
-                    <h5 className="text-muted">Orders</h5>
-                    <div className="metric-value d-inline-block">
-                      <h1 className="mb-1">{loading ? '...' : stats.totalOrders.toLocaleString()}</h1>
-                    </div>
-                    <div className="metric-label d-inline-block float-right text-success font-weight-bold">
-                      <span className="text-color-light">Total consultations</span>
+                <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
+                  <div className="card border-top-primary shadow-sm h-100">
+                    <div className="card-body">
+                      <h5 className="text-muted mb-4">Astrologers</h5>
+                      <div className="d-flex justify-content-between">
+                        <div className="metric-value">
+                          <h1 className="font-weight-bold">
+                            {loading ? '...' : (stats?.totalAstrologers || 0).toLocaleString()}
+                          </h1>
+                        </div>
+                        <div className="metric-label align-self-center text-success font-weight-bold">
+                          <span className="icon-shape icon-xs rounded-circle text-success bg-success-light">
+                            <i className="fa fa-fw fa-arrow-up"></i>
+                          </span>
+                          <span className="ml-1">8%</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12 mb-4">
-                <div className="card border-3 border-top border-top-primary">
-                  <div className="card-body">
-                    <h5 className="text-muted">Revenue</h5>
-                    <div className="metric-value d-inline-block">
-                      <h1 className="mb-1">₹{loading ? '...' : stats.totalRevenue.toLocaleString()}</h1>
+                <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
+                  <div className="card border-top-primary shadow-sm h-100">
+                    <div className="card-body">
+                      <h5 className="text-muted mb-4">Sessions</h5>
+                      <div className="d-flex justify-content-between">
+                        <div className="metric-value">
+                          <h1 className="font-weight-bold">
+                            {loading ? '...' : (stats?.totalOrders || 0).toLocaleString()}
+                          </h1>
+                        </div>
+                        <div className="metric-label align-self-center text-success font-weight-bold">
+                          <span className="icon-shape icon-xs rounded-circle text-success bg-success-light">
+                            <i className="fa fa-fw fa-arrow-up"></i>
+                          </span>
+                          <span className="ml-1">15%</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="metric-label d-inline-block float-right text-success font-weight-bold">
-                      <span className="text-color-light">Total earned</span>
+                  </div>
+                </div>
+                <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
+                  <div className="card border-top-primary shadow-sm h-100">
+                    <div className="card-body">
+                      <h5 className="text-muted mb-4">Revenue</h5>
+                      <div className="d-flex justify-content-between">
+                        <div className="metric-value">
+                          <h1 className="font-weight-bold">
+                            ₹{loading ? '...' : (stats?.totalRevenue || 0).toLocaleString()}
+                          </h1>
+                        </div>
+                        <div className="metric-label align-self-center text-danger font-weight-bold">
+                          <span className="icon-shape icon-xs rounded-circle text-danger bg-danger-light">
+                            <i className="fa fa-fw fa-arrow-down"></i>
+                          </span>
+                          <span className="ml-1">2%</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

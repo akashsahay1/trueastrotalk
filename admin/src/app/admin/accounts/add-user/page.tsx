@@ -6,7 +6,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { validateForm, getUserFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/validation';
+import { validateForm, getUserFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/client-validation';
 import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
 import AirDatePickerComponent from '@/components/AirDatePickerComponent';
 
@@ -90,8 +90,7 @@ function AddUserPageContent() {
 
   const [imageUploading, setImageUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState('');
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
   
   // Dropdown states
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
@@ -369,12 +368,14 @@ function AddUserPageContent() {
       }
     }
 
+    // Convert validation errors to field errors format
+    const validationFieldErrors = displayFieldErrors(validation.errors);
+    
     // Combine all errors
-    const allErrors = { ...validation.errors, ...customErrors };
+    const allErrors = { ...validationFieldErrors, ...customErrors };
     
     // Display errors on form fields
     if (Object.keys(allErrors).length > 0) {
-      displayFieldErrors(allErrors);
       setFieldErrors(allErrors);
       
       // Show first error in SweetAlert
@@ -655,16 +656,16 @@ function AddUserPageContent() {
 													<label className="label">Birth Time {isAstrologer && <span className="text-danger">*</span>}</label>
 													<input 
 														type="text" 
-														className={`form-control ${_fieldErrors.birth_time ? 'is-invalid' : ''}`} 
+														className={`form-control ${fieldErrors.birth_time ? 'is-invalid' : ''}`} 
 														name="birth_time" 
 														value={formData.birth_time} 
 														onChange={handleInputChange} 
 														placeholder="07:30 AM" 
 														required={isAstrologer} 
 													/>
-													{_fieldErrors.birth_time && (
+													{fieldErrors.birth_time && (
 														<div className="invalid-feedback d-block">
-															{_fieldErrors.birth_time}
+															{fieldErrors.birth_time}
 														</div>
 													)}
 												</div>
@@ -672,16 +673,16 @@ function AddUserPageContent() {
 													<label className="label">Birth Place {isAstrologer && <span className="text-danger">*</span>}</label>
 													<input 
 														type="text" 
-														className={`form-control ${_fieldErrors.birth_place ? 'is-invalid' : ''}`} 
+														className={`form-control ${fieldErrors.birth_place ? 'is-invalid' : ''}`} 
 														name="birth_place" 
 														value={formData.birth_place} 
 														onChange={handleInputChange} 
 														placeholder="" 
 														required={isAstrologer} 
 													/>
-													{_fieldErrors.birth_place && (
+													{fieldErrors.birth_place && (
 														<div className="invalid-feedback d-block">
-															{_fieldErrors.birth_place}
+															{fieldErrors.birth_place}
 														</div>
 													)}
 												</div>

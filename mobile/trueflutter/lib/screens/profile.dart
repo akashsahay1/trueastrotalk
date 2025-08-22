@@ -116,6 +116,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _loadGooglePhotoUrl() async {
+    try {
+      final photoUrl = await _authService.getGooglePhotoUrl();
+      if (mounted) {
+        setState(() {
+          _googlePhotoUrl = photoUrl;
+        });
+        debugPrint('📱 Loaded Google photo URL: $_googlePhotoUrl');
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to load Google photo URL: $e');
+    }
+  }
+
   Future<void> _loadUserProfile() async {
     setState(() {
       _isLoading = true;
@@ -135,21 +149,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
         debugPrint('   Place of Birth: ${user.placeOfBirth}');
         debugPrint('   Profile Picture: ${user.profilePicture}');
 
-        setState(() async {
-          _currentUser = user;
-          _nameController.text = user.name;
-          _emailController.text = user.email ?? '';
-          _phoneController.text = user.phone ?? '';
-          _birthPlaceController.text = user.placeOfBirth ?? '';
-          _birthTimeController.text = user.timeOfBirth ?? '';
-          _selectedBirthDate = user.dateOfBirth;
-          _profileImageUrl = user.profilePicture;
+        _currentUser = user;
+        _nameController.text = user.name;
+        _emailController.text = user.email ?? '';
+        _phoneController.text = user.phone ?? '';
+        _birthPlaceController.text = user.placeOfBirth ?? '';
+        _birthTimeController.text = user.timeOfBirth ?? '';
+        _selectedBirthDate = user.dateOfBirth;
+        _profileImageUrl = user.profilePicture;
 
-          // Load Google photo URL if user is Google authenticated
-          if (user.authType == AuthType.google) {
-            _googlePhotoUrl = await _authService.getGooglePhotoUrl();
-            debugPrint('📱 Loaded Google photo URL: $_googlePhotoUrl');
-          }
+        // Load Google photo URL if user is Google authenticated
+        if (user.authType == AuthType.google) {
+          _loadGooglePhotoUrl();
+        }
+
+        setState(() {
 
           // Populate astrologer fields if user is astrologer
           if (user.isAstrologer) {

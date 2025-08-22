@@ -98,6 +98,27 @@ export default function Sidebar() {
       ]
     },
     {
+      title: 'Notifications',
+      icon: 'fa-bell',
+      submenu: [
+        {
+          title: 'Send Notification',
+          href: '/admin/notifications/send',
+          active: pathname.startsWith('/admin/notifications/send')
+        },
+        {
+          title: 'Notification History',
+          href: '/admin/notifications/history',
+          active: pathname.startsWith('/admin/notifications/history')
+        },
+        {
+          title: 'User Preferences',
+          href: '/admin/notifications/preferences',
+          active: pathname.startsWith('/admin/notifications/preferences')
+        }
+      ]
+    },
+    {
       title: 'Support',
       icon: 'fa-headset',
       href: '/admin/support',

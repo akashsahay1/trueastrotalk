@@ -7,10 +7,11 @@ const DB_NAME = 'trueastrotalkDB';
 // GET - Get order details
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const orderId = params.id;
+    const resolvedParams = await params;
+    const orderId = resolvedParams.id;
 
     if (!orderId || !ObjectId.isValid(orderId)) {
       return NextResponse.json({
@@ -78,10 +79,11 @@ export async function GET(
 // PUT - Update specific order
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const orderId = params.id;
+    const resolvedParams = await params;
+    const orderId = resolvedParams.id;
     const body = await request.json();
 
     if (!orderId || !ObjectId.isValid(orderId)) {
@@ -140,7 +142,7 @@ export async function PUT(
       updateData.notes = notes;
     }
 
-    const result = await ordersCollection.updateOne(
+    await ordersCollection.updateOne(
       { _id: new ObjectId(orderId) },
       { $set: updateData }
     );
@@ -166,10 +168,11 @@ export async function PUT(
 // DELETE - Cancel order
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const orderId = params.id;
+    const resolvedParams = await params;
+    const orderId = resolvedParams.id;
 
     if (!orderId || !ObjectId.isValid(orderId)) {
       return NextResponse.json({

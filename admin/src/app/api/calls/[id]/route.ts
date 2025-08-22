@@ -7,10 +7,11 @@ const DB_NAME = 'trueastrotalkDB';
 // GET - Get call session details
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const sessionId = params.id;
+    const resolvedParams = await params;
+    const sessionId = resolvedParams.id;
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
     const userType = searchParams.get('userType') || 'user';
@@ -120,10 +121,11 @@ export async function GET(
 // PUT - Update call session (answer/reject/end/rate)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const sessionId = params.id;
+    const resolvedParams = await params;
+    const sessionId = resolvedParams.id;
     const body = await request.json();
     const { action, user_id, user_type, connection_id, rating } = body; 
     // action: 'answer', 'reject', 'end', 'rate', 'ring'
@@ -181,7 +183,7 @@ export async function PUT(
       }, { status: 403 });
     }
 
-    let updateData: Record<string, unknown> = {
+    const updateData: Record<string, unknown> = {
       updated_at: new Date()
     };
 
@@ -306,16 +308,25 @@ export async function PUT(
 
     await client.close();
 
+    const sessionResponse: Record<string, unknown> = {
+      _id: sessionId,
+      status: updateData.status,
+    };
+    
+    if (updateData.duration_minutes) {
+      sessionResponse.duration_minutes = updateData.duration_minutes;
+    }
+    if (updateData.total_amount) {
+      sessionResponse.total_amount = updateData.total_amount;
+    }
+    if (updateData.call_quality_rating) {
+      sessionResponse.call_quality_rating = updateData.call_quality_rating;
+    }
+
     return NextResponse.json({
       success: true,
       message: message,
-      session: {
-        _id: sessionId,
-        status: updateData.status,
-        ...(updateData.duration_minutes && { duration_minutes: updateData.duration_minutes }),
-        ...(updateData.total_amount && { total_amount: updateData.total_amount }),
-        ...(updateData.call_quality_rating && { call_quality_rating: updateData.call_quality_rating })
-      }
+      session: sessionResponse
     });
 
   } catch(error) {
