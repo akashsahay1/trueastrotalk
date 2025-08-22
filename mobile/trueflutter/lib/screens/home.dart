@@ -28,6 +28,7 @@ import '../services/chat/chat_service.dart';
 import '../services/socket/socket_service.dart';
 import '../services/webrtc/webrtc_service.dart';
 import '../services/wallet/wallet_service.dart';
+import '../services/notifications/notification_service.dart';
 import 'incoming_call_screen.dart';
 import 'active_call_screen.dart';
 
@@ -45,6 +46,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   late final SocketService _socketService;
   late final WebRTCService _webrtcService;
   late final WalletService _walletService;
+  late final NotificationService _notificationService;
 
   app_user.User? _currentUser;
   double _walletBalance = 0.0;
@@ -74,9 +76,13 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     _socketService = getIt<SocketService>();
     _webrtcService = getIt<WebRTCService>();
     _walletService = getIt<WalletService>();
+    _notificationService = getIt<NotificationService>();
     
     // Listen to cart changes to update cart icon badge
     _cartService.addListener(_onCartChanged);
+    
+    // Initialize notifications
+    _initializeNotifications();
     
     _loadData();
   }
@@ -91,6 +97,30 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   void _onCartChanged() {
     if (mounted) {
       setState(() {}); // Rebuild to update cart icon badge
+    }
+  }
+
+  /// Initialize notification service with handlers
+  Future<void> _initializeNotifications() async {
+    try {
+      await _notificationService.initialize(
+        onCallNotification: (data) {
+          debugPrint('📞 Call notification received: $data');
+          _handleIncomingCallNotification(data);
+        },
+        onMessageNotification: (data) {
+          debugPrint('💬 Message notification received: $data');
+          _handleIncomingMessageNotification(data);
+        },
+        onNotificationTapped: (data) {
+          debugPrint('👆 Notification tapped: $data');
+          _handleNotificationTapped(data);
+        },
+      );
+      
+      debugPrint('✅ Notification service initialized successfully');
+    } catch (e) {
+      debugPrint('❌ Failed to initialize notifications: $e');
     }
   }
 
@@ -1030,7 +1060,9 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
             onPressed: () async {
               await Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
               // Always refresh user data when returning from profile screen
-              await refreshUserData();
+              if (mounted) {
+                await refreshUserData();
+              }
             },
           ),
         ],
@@ -1106,7 +1138,9 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         'onTap': () async {
           await Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
           // Always refresh user data when returning from profile screen
-          await refreshUserData();
+          if (mounted) {
+            await refreshUserData();
+          }
         },
       },
       {
@@ -1290,12 +1324,14 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
 
     try {
       // Show loading indicator
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Starting chat with ${astrologer.fullName}...'),
-          backgroundColor: AppColors.info,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Starting chat with ${astrologer.fullName}...'),
+            backgroundColor: AppColors.info,
+          ),
+        );
+      }
 
       // Start chat session
       final chatService = getIt<ChatService>();
@@ -2038,7 +2074,12 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     final actions = [
       {'icon': Icons.chat, 'title': 'View Consultations', 'subtitle': 'Manage your consultations', 'onTap': () => setState(() => _selectedBottomNavIndex = 1), 'color': AppColors.primary},
       {'icon': Icons.account_balance_wallet, 'title': 'View Earnings', 'subtitle': 'Check your earnings', 'onTap': () => setState(() => _selectedBottomNavIndex = 2), 'color': AppColors.success},
-      {'icon': Icons.person, 'title': 'Edit Profile', 'subtitle': 'Update your profile', 'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen())).then((_) => refreshUserData()), 'color': AppColors.info},
+      {'icon': Icons.person, 'title': 'Edit Profile', 'subtitle': 'Update your profile', 'onTap': () async {
+        await Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
+        if (mounted) {
+          await refreshUserData();
+        }
+      }, 'color': AppColors.info},
     ];
 
     return Column(
@@ -2163,5 +2204,67 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
 
   void _navigateToAstrologerDetails(Astrologer astrologer) {
     Navigator.push(context, MaterialPageRoute(builder: (context) => AstrologerDetailsScreen(astrologer: astrologer)));
+  }
+
+  /// Handle incoming call notifications
+  void _handleIncomingCallNotification(Map<String, dynamic> data) {
+    if (!mounted) return;
+    
+    // Navigate to incoming call screen
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => IncomingCallScreen(callData: data),
+        fullscreenDialog: true,
+      ),
+    );
+  }
+
+  /// Handle incoming message notifications  
+  void _handleIncomingMessageNotification(Map<String, dynamic> data) {
+    if (!mounted) return;
+    
+    // Show snackbar for new message when app is in foreground
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('New message from ${data['sender_name'] ?? 'Unknown'}'),
+        action: SnackBarAction(
+          label: 'View',
+          onPressed: () {
+            // Navigate to chat screen
+            setState(() {
+              _selectedBottomNavIndex = 2; // Switch to chat tab
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Handle notification taps
+  void _handleNotificationTapped(Map<String, dynamic> data) {
+    if (!mounted) return;
+    
+    final type = data['type'] as String?;
+    
+    switch (type) {
+      case 'incoming_call':
+        _handleIncomingCallNotification(data);
+        break;
+      case 'new_message':
+        // Navigate to chat screen
+        setState(() {
+          _selectedBottomNavIndex = 2; // Switch to chat tab  
+        });
+        break;
+      case 'call_ended':
+      case 'call_missed':
+        // Navigate to call history
+        setState(() {
+          _selectedBottomNavIndex = 1; // Switch to call tab
+        });
+        break;
+      default:
+        debugPrint('Unknown notification type: $type');
+    }
   }
 }

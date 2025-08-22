@@ -19,6 +19,7 @@ import 'webrtc/webrtc_service.dart';
 import 'chat/chat_service.dart';
 import 'call/call_service.dart';
 import 'wallet/wallet_service.dart';
+import 'notifications/notification_service.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -105,5 +106,10 @@ void setupServiceLocator() {
   // Register Wallet service
   getIt.registerSingleton<WalletService>(
     WalletService.instance,
+  );
+
+  // Register Notification service
+  getIt.registerSingleton<NotificationService>(
+    NotificationService(),
   );
 }

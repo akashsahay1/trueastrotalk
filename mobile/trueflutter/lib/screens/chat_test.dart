@@ -70,13 +70,17 @@ class _ChatTestScreenState extends State<ChatTestScreen> {
     try {
       await _socketService.connect();
       await _webrtcService.initialize();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Socket connected successfully!')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Socket connected successfully!')),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Connection failed: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Connection failed: $e')),
+        );
+      }
     }
   }
 
@@ -88,13 +92,17 @@ class _ChatTestScreenState extends State<ChatTestScreen> {
       setState(() {
         _currentSessionId = _sessionIdController.text;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Joined session: ${_sessionIdController.text}')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Joined session: ${_sessionIdController.text}')),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to join session: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to join session: $e')),
+        );
+      }
     }
   }
 
@@ -105,9 +113,11 @@ class _ChatTestScreenState extends State<ChatTestScreen> {
       await _socketService.sendMessage(_currentSessionId!, _messageController.text);
       _messageController.clear();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to send message: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send message: $e')),
+        );
+      }
     }
   }
 
@@ -116,13 +126,17 @@ class _ChatTestScreenState extends State<ChatTestScreen> {
 
     try {
       await _webrtcService.initiateCall(_targetUserController.text, CallType.voice);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Voice call initiated')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Voice call initiated')),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to initiate call: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to initiate call: $e')),
+        );
+      }
     }
   }
 
@@ -131,13 +145,17 @@ class _ChatTestScreenState extends State<ChatTestScreen> {
 
     try {
       await _webrtcService.initiateCall(_targetUserController.text, CallType.video);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Video call initiated')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Video call initiated')),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to initiate call: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to initiate call: $e')),
+        );
+      }
     }
   }
 

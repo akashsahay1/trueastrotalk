@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'firebase_options.dart';
 import 'common/themes/app_theme.dart';
 import 'config/config.dart';
@@ -14,6 +15,7 @@ import 'services/auth/auth_service.dart';
 import 'services/local/local_storage_service.dart';
 import 'services/network/dio_client.dart';
 import 'services/payment/razorpay_service.dart';
+import 'services/notifications/notification_service.dart';
 import 'config/payment_config.dart';
 
 void main() async {
@@ -28,8 +30,11 @@ void main() async {
   // Initialize Firebase
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    
+    // Set background message handler
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   } catch (e) {
-    // Firebase already initialized
+    debugPrint('❌ Firebase initialization failed: $e');
   }
 
   // Setup service locator for dependency injection
