@@ -25,35 +25,63 @@ interface Category {
   name: string;
 }
 
+interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [pagination, setPagination] = useState<Pagination>({ total: 0, page: 1, limit: 20, totalPages: 0 });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   useEffect(() => {
     document.body.className = '';
     fetchProducts();
+  }, [pagination.page, searchTerm, selectedCategory]);
+
+  useEffect(() => {
     fetchCategories();
   }, []);
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('/api/admin/products');
+      setLoading(true);
+      const params = new URLSearchParams({
+        page: pagination.page.toString(),
+        limit: pagination.limit.toString(),
+        ...(searchTerm && { search: searchTerm }),
+        ...(selectedCategory && { category: selectedCategory })
+      });
+      
+      const response = await fetch(`/api/products?${params}`);
       if (response.ok) {
         const data = await response.json();
         setProducts(data.products || []);
+        setPagination({
+          total: data.pagination?.total || 0,
+          page: data.pagination?.page || 1,
+          limit: data.pagination?.limit || 20,
+          totalPages: data.pagination?.totalPages || 0
+        });
       }
     } catch (error) {
       console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('/api/admin/products/categories');
+      const response = await fetch('/api/products?limit=1');
       if (response.ok) {
         const data = await response.json();
         setCategories(data.categories || []);
@@ -63,13 +91,12 @@ export default function ProductsPage() {
     }
   };
 
-
   const handleDelete = async (id: string) => {
     const confirmed = await confirmDialogs.deleteItem('product');
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`/api/admin/products/${id}`, {
+      const response = await fetch(`/api/products?productId=${id}`, {
         method: 'DELETE',
       });
 
@@ -84,13 +111,53 @@ export default function ProductsPage() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedProducts.length === 0) return;
+    
+    const confirmed = await confirmDialogs.deleteItem(`${selectedProducts.length} products`);
+    if (!confirmed) return;
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !selectedCategory || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+    setBulkLoading(true);
+    try {
+      const deletePromises = selectedProducts.map(id => 
+        fetch(`/api/products?productId=${id}`, { method: 'DELETE' })
+      );
+      
+      await Promise.all(deletePromises);
+      setSelectedProducts([]);
+      fetchProducts();
+    } catch (error) {
+      console.error('Error deleting products:', error);
+      errorMessages.deleteFailed('products');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedProducts(products.map(p => p._id));
+    } else {
+      setSelectedProducts([]);
+    }
+  };
+
+  const handleSelectProduct = (productId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedProducts([...selectedProducts, productId]);
+    } else {
+      setSelectedProducts(selectedProducts.filter(id => id !== productId));
+    }
+  };
+
+  const handleSearch = () => {
+    setPagination(prev => ({ ...prev, page: 1 }));
+    fetchProducts();
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPagination(prev => ({ ...prev, page: newPage }));
+  };
 
   if (loading) {
     return (
@@ -155,7 +222,7 @@ export default function ProductsPage() {
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                 <div className="card">
                   <div className="card-header d-flex justify-content-between align-items-center">
-                    <h5 className="mb-0">Product List ({filteredProducts.length} total)</h5>
+                    <h5 className="mb-0">Product List ({pagination.total} Total)</h5>
                     <div>
                       <Link href="/admin/products/categories" className="btn btn-outline-secondary mr-2">
                         <i className="fas fa-tags mr-1"></i>Manage Categories
@@ -169,7 +236,7 @@ export default function ProductsPage() {
                   <div className="card-body">
                     {/* Search and Filter Form */}
                     <div className="row mb-3">
-                      <div className="col-md-6">
+                      <div className="col-md-4">
                         <div className="form-group">
                           <input
                             type="text"
@@ -177,10 +244,11 @@ export default function ProductsPage() {
                             placeholder="Search by product name or description..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                           />
                         </div>
                       </div>
-                      <div className="col-md-4">
+                      <div className="col-md-3">
                         <div className="form-group">
                           <select
                             className="form-control"
@@ -189,8 +257,8 @@ export default function ProductsPage() {
                           >
                             <option value="">All Categories</option>
                             {categories.map(category => (
-                              <option key={category._id} value={category.name}>
-                                {category.name}
+                              <option key={category} value={category}>
+                                {category}
                               </option>
                             ))}
                           </select>
@@ -203,18 +271,42 @@ export default function ProductsPage() {
                           onClick={() => {
                             setSearchTerm('');
                             setSelectedCategory('');
+                            setPagination(prev => ({ ...prev, page: 1 }));
                           }}
                         >
                           Clear
                         </button>
                       </div>
+                      <div className="col-md-3">
+                        {selectedProducts.length > 0 && (
+                          <button 
+                            type="button" 
+                            className="btn btn-danger"
+                            onClick={handleBulkDelete}
+                            disabled={bulkLoading}
+                          >
+                            {bulkLoading ? (
+                              <><i className="fas fa-spinner fa-spin mr-1"></i>Deleting...</>
+                            ) : (
+                              <><i className="fas fa-trash mr-1"></i>Delete Selected ({selectedProducts.length})</>
+                            )}
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Products Table */}
                     <div className="table-responsive">
-                      <table className="table table-striped table-bordered">
+                      <table className="table table-striped table-bordered m-0">
                   <thead>
                     <tr>
+                      <th width="40">
+                        <input
+                          type="checkbox"
+                          checked={selectedProducts.length === products.length && products.length > 0}
+                          onChange={(e) => handleSelectAll(e.target.checked)}
+                        />
+                      </th>
                       <th>Image</th>
                       <th>Name</th>
                       <th>Category</th>
@@ -226,15 +318,22 @@ export default function ProductsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredProducts.length === 0 ? (
+                    {products.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="text-center">
-                          {products.length === 0 ? 'No products found' : 'No products match your filters'}
+                        <td colSpan={9} className="text-center">
+                          {loading ? 'Loading...' : 'No products found'}
                         </td>
                       </tr>
                     ) : (
-                      filteredProducts.map((product) => (
+                      products.map((product) => (
                         <tr key={product._id}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={selectedProducts.includes(product._id)}
+                              onChange={(e) => handleSelectProduct(product._id, e.target.checked)}
+                            />
+                          </td>
                           <td>
                             <Image
                               src={product.image_url || '/uploads/2025/08/product-pic.jpg'}
@@ -298,6 +397,55 @@ export default function ProductsPage() {
           </div>
         </div>
       </div>
+
+            {/* Pagination */}
+            {pagination.totalPages > 1 && (
+              <div className="row mt-4">
+                <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+                  <nav aria-label="Products pagination">
+                    <ul className="pagination justify-content-center">
+                      <li className={`page-item ${pagination.page === 1 ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={() => handlePageChange(pagination.page - 1)}
+                          disabled={pagination.page === 1 || loading}
+                        >
+                          Previous
+                        </button>
+                      </li>
+                      
+                      {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                        const startPage = Math.max(1, pagination.page - 2);
+                        const pageNum = startPage + i;
+                        if (pageNum > pagination.totalPages) return null;
+                        
+                        return (
+                          <li key={pageNum} className={`page-item ${pagination.page === pageNum ? 'active' : ''}`}>
+                            <button 
+                              className="page-link" 
+                              onClick={() => handlePageChange(pageNum)}
+                              disabled={loading}
+                            >
+                              {pageNum}
+                            </button>
+                          </li>
+                        );
+                      })}
+                      
+                      <li className={`page-item ${pagination.page === pagination.totalPages ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={() => handlePageChange(pagination.page + 1)}
+                          disabled={pagination.page === pagination.totalPages || loading}
+                        >
+                          Next
+                        </button>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+              </div>
+            )}
 
           </div>
         </div>
