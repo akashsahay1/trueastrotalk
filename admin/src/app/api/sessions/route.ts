@@ -138,6 +138,64 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function PATCH(request: NextRequest) {
+  try {
+    // Parse request body
+    const body = await request.json();
+    const { sessionId, sessionType, durationMinutes, totalAmount } = body;
+
+    if (!sessionId || !sessionType || durationMinutes === undefined || totalAmount === undefined) {
+      return NextResponse.json({ 
+        error: 'Missing required fields: sessionId, sessionType, durationMinutes, totalAmount' 
+      }, { status: 400 });
+    }
+
+    // Connect to MongoDB
+    const client = new MongoClient(MONGODB_URL);
+    await client.connect();
+    
+    const db = client.db(DB_NAME);
+    const sessionsCollection = db.collection('sessions');
+
+    // Update session billing information
+    const updateQuery = {
+      $set: {
+        duration_minutes: durationMinutes,
+        total_amount: totalAmount,
+        billing_updated_at: new Date()
+      }
+    };
+
+    const result = await sessionsCollection.updateOne(
+      { session_id: sessionId, session_type: sessionType },
+      updateQuery
+    );
+
+    await client.close();
+
+    if (result.matchedCount === 0) {
+      return NextResponse.json({ 
+        error: 'Session not found' 
+      }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Session billing updated successfully',
+      sessionId,
+      durationMinutes,
+      totalAmount
+    });
+
+  } catch(error) {
+    console.error('Error updating session billing:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   try {
     // Verify authentication

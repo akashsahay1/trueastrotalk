@@ -7,7 +7,11 @@ import '../common/themes/text_styles.dart';
 import '../common/constants/dimensions.dart';
 import '../services/socket/socket_service.dart';
 import '../services/webrtc/webrtc_service.dart';
+import '../services/billing/billing_service.dart';
+import '../services/wallet/wallet_service.dart';
 import '../services/service_locator.dart';
+import '../models/astrologer.dart';
+import '../models/call.dart' as call_models;
 
 class ActiveCallScreen extends StatefulWidget {
   final Map<String, dynamic> callData;
@@ -27,6 +31,8 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     with TickerProviderStateMixin {
   late final SocketService _socketService;
   late final WebRTCService _webrtcService;
+  late final BillingService _billingService;
+  late final WalletService _walletService;
   
   Timer? _callTimer;
   Duration _callDuration = Duration.zero;
@@ -47,9 +53,12 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     super.initState();
     _socketService = getIt<SocketService>();
     _webrtcService = getIt<WebRTCService>();
+    _billingService = BillingService.instance;
+    _walletService = WalletService.instance;
     
     _setupAnimations();
     _setupCallListeners();
+    _setupBillingListeners();
     _startCallTimer();
     _startHideControlsTimer();
     
@@ -90,6 +99,30 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     _webrtcService.addListener(_onWebRTCStateChanged);
   }
 
+  void _setupBillingListeners() {
+    // Listen to billing service state changes
+    _billingService.addListener(_onBillingStateChanged);
+    
+    // Set up billing callbacks
+    _billingService.setLowBalanceCallback((remainingMinutes) {
+      if (mounted) {
+        _showLowBalanceWarning(remainingMinutes);
+      }
+    });
+    
+    _billingService.setInsufficientBalanceCallback(() {
+      if (mounted) {
+        _handleInsufficientBalance();
+      }
+    });
+    
+    _billingService.setBillingCompleteCallback((summary) {
+      if (mounted) {
+        debugPrint('💰 Billing completed: ${summary.formattedAmount} for ${summary.formattedDuration}');
+      }
+    });
+  }
+
   void _onWebRTCStateChanged() {
     if (mounted) {
       setState(() {
@@ -97,6 +130,14 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
         _isConnecting = _webrtcService.callState == CallState.connecting;
         _isMuted = _webrtcService.isMuted;
         _isCameraOn = _webrtcService.isCameraOn;
+      });
+    }
+  }
+
+  void _onBillingStateChanged() {
+    if (mounted) {
+      setState(() {
+        // Trigger rebuild to update billing UI
       });
     }
   }
@@ -131,12 +172,15 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
       }
       
       // Simulate connection establishment (in real implementation, this would be based on WebRTC events)
-      Future.delayed(const Duration(seconds: 2), () {
+      Future.delayed(const Duration(seconds: 2), () async {
         if (mounted) {
           setState(() {
             _isConnected = true;
             _isConnecting = false;
           });
+          
+          // Start billing when call is connected
+          await _startBilling();
         }
       });
       
@@ -152,6 +196,7 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     _hideControlsTimer?.cancel();
     _controlsAnimationController.dispose();
     _webrtcService.removeListener(_onWebRTCStateChanged);
+    _billingService.removeListener(_onBillingStateChanged);
     super.dispose();
   }
 
@@ -166,6 +211,7 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
             _buildVideoBackground(),
             _buildCallInfo(),
             _buildConnectionStatus(),
+            _buildBillingInfo(),
             if (_showControls) _buildCallControls(),
           ],
         ),
@@ -515,6 +561,9 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
 
   void _endCall() async {
     try {
+      // Stop billing first
+      await _billingService.stopBilling();
+      
       // Send end call event
       _socketService.emit('end_call', {
         'callId': widget.callData['callId'],
@@ -546,6 +595,150 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     
     // Navigate back
     Navigator.of(context).pop();
+  }
+
+  Future<void> _startBilling() async {
+    try {
+      final astrologerData = widget.callData['astrologer'];
+      if (astrologerData == null) {
+        debugPrint('❌ No astrologer data found for billing');
+        return;
+      }
+      
+      final astrologer = Astrologer.fromJson(astrologerData);
+      final callType = widget.callData['callType'] == 'video' ? call_models.CallType.video : call_models.CallType.voice;
+      final sessionId = widget.callData['sessionId']?.toString() ?? 'unknown';
+      
+      final success = await _billingService.startCallBilling(
+        sessionId: sessionId,
+        astrologer: astrologer,
+        callType: callType,
+      );
+      
+      if (!success) {
+        _handleInsufficientBalance();
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to start billing: $e');
+    }
+  }
+
+  void _showLowBalanceWarning(int remainingMinutes) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('⚠️ Low balance warning: $remainingMinutes minutes remaining'),
+          backgroundColor: AppColors.warning,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
+  }
+
+  void _handleInsufficientBalance() {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('❌ Insufficient balance. Call will end shortly.'),
+          backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      
+      // End call after a short delay
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) {
+          _endCall();
+        }
+      });
+    }
+  }
+
+  Widget _buildBillingInfo() {
+    if (!_billingService.isSessionActive) {
+      return const SizedBox.shrink();
+    }
+
+    final isVideoCall = widget.callData['callType'] == 'video';
+    
+    return Positioned(
+      top: MediaQuery.of(context).padding.top + (isVideoCall ? 220 : 140),
+      left: 0,
+      right: 0,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: Dimensions.paddingLg),
+        padding: const EdgeInsets.symmetric(
+          horizontal: Dimensions.paddingMd,
+          vertical: Dimensions.paddingSm,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Current Bill:',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.white.withValues(alpha: 0.8),
+                  ),
+                ),
+                Text(
+                  _billingService.getFormattedTotalBilled(),
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Wallet Balance:',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.white.withValues(alpha: 0.8),
+                  ),
+                ),
+                Text(
+                  _walletService.formattedBalance,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: _billingService.isLowBalance ? AppColors.warning : AppColors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            if (_billingService.getCurrentRate() != null) ...[
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Rate:',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.white.withValues(alpha: 0.8),
+                    ),
+                  ),
+                  Text(
+                    '₹${_billingService.getCurrentRate()!.toInt()}/min',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   String _formatCallDuration(Duration duration) {

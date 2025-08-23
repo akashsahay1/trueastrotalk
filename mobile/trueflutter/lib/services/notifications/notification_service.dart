@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../api/user_api_service.dart';
+import '../local/local_storage_service.dart';
+import '../service_locator.dart';
 
 /// Service for handling both Firebase push notifications and local notifications
 class NotificationService {
@@ -103,7 +106,7 @@ class NotificationService {
       _firebaseMessaging.onTokenRefresh.listen((token) {
         _fcmToken = token;
         debugPrint('📱 FCM Token refreshed: $token');
-        // TODO: Send updated token to server
+        _updateTokenOnServer(token);
       });
     } catch (e) {
       debugPrint('❌ Failed to get FCM token: $e');
@@ -414,6 +417,26 @@ class NotificationService {
       await openAppSettings();
     } catch (e) {
       debugPrint('❌ Failed to open app settings: $e');
+    }
+  }
+
+  /// Update FCM token on server
+  Future<void> _updateTokenOnServer(String token) async {
+    try {
+      final userApiService = getIt<UserApiService>();
+      final localStorage = getIt<LocalStorageService>();
+      
+      final authToken = await localStorage.getAuthToken();
+      if (authToken == null) {
+        debugPrint('📱 No auth token available, skipping FCM token update');
+        return;
+      }
+      
+      await userApiService.updateFcmToken(authToken, fcmToken: token);
+      debugPrint('📱 Successfully updated FCM token on server');
+    } catch (e) {
+      debugPrint('❌ Failed to update FCM token on server: $e');
+      // Don't throw error - FCM token update is not critical
     }
   }
 }

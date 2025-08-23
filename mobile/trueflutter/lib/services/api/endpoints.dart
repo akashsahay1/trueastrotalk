@@ -22,9 +22,14 @@ class ApiEndpoints {
   static const String calls = '/calls';
   static String callById(String id) => '$calls/$id';
   
+  // Sessions endpoints
+  static const String sessions = '/sessions';
+  static const String updateSessionBilling = '/sessions';
+  
   // Notifications endpoints
   static const String pushNotifications = '/notifications/push';
   static const String emailNotifications = '/notifications/email';
+  static const String updateFcmToken = '/notifications/fcm-token';
   
   // Socket endpoints
   static const String socket = '/socket';

@@ -5,6 +5,8 @@ import '../common/constants/dimensions.dart';
 import '../models/chat.dart';
 import '../services/chat/chat_service.dart';
 import '../services/socket/socket_service.dart';
+import '../services/billing/billing_service.dart';
+import '../services/wallet/wallet_service.dart';
 
 class ChatScreen extends StatefulWidget {
   final ChatSession chatSession;
@@ -21,6 +23,8 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   final ChatService _chatService = ChatService.instance;
   final SocketService _socketService = SocketService.instance;
+  final BillingService _billingService = BillingService.instance;
+  final WalletService _walletService = WalletService.instance;
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _messageFocusNode = FocusNode();
@@ -40,6 +44,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     
     _initializeChat();
     _setupListeners();
+    _setupBillingListeners();
   }
 
   @override
@@ -49,6 +54,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     _scrollController.dispose();
     _messageFocusNode.dispose();
     _chatService.leaveChatSession();
+    _billingService.removeListener(_onBillingStateChanged);
     super.dispose();
   }
 
@@ -60,6 +66,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       // Load messages
       _messages = _chatService.getMessagesForSession(widget.chatSession.id);
       setState(() {});
+      
+      // Start billing for chat session
+      await _startChatBilling();
       
       // Scroll to bottom
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -115,6 +124,84 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     }
   }
 
+  void _setupBillingListeners() {
+    // Listen to billing service state changes
+    _billingService.addListener(_onBillingStateChanged);
+    
+    // Set up billing callbacks
+    _billingService.setLowBalanceCallback((remainingMinutes) {
+      if (mounted) {
+        _showLowBalanceWarning(remainingMinutes);
+      }
+    });
+    
+    _billingService.setInsufficientBalanceCallback(() {
+      if (mounted) {
+        _handleInsufficientBalance();
+      }
+    });
+    
+    _billingService.setBillingCompleteCallback((summary) {
+      if (mounted) {
+        debugPrint('💰 Chat billing completed: ${summary.formattedAmount} for ${summary.formattedDuration}');
+      }
+    });
+  }
+
+  void _onBillingStateChanged() {
+    if (mounted) {
+      setState(() {
+        // Trigger rebuild to update billing UI
+      });
+    }
+  }
+
+  Future<void> _startChatBilling() async {
+    try {
+      final success = await _billingService.startChatBilling(
+        sessionId: widget.chatSession.id,
+        astrologer: widget.chatSession.astrologer,
+      );
+      
+      if (!success) {
+        _handleInsufficientBalance();
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to start chat billing: $e');
+    }
+  }
+
+  void _showLowBalanceWarning(int remainingMinutes) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('⚠️ Low balance warning: $remainingMinutes minutes remaining'),
+          backgroundColor: AppColors.warning,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
+  }
+
+  void _handleInsufficientBalance() {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('❌ Insufficient balance. Chat will end shortly.'),
+          backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      
+      // End chat after a short delay
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -122,6 +209,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       appBar: _buildAppBar(),
       body: Column(
         children: [
+          if (_billingService.isSessionActive) _buildBillingInfo(),
           Expanded(child: _buildMessageList()),
           if (_otherUserTyping) _buildTypingIndicator(),
           _buildMessageInput(),
@@ -718,6 +806,68 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildBillingInfo() {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: Dimensions.paddingMd,
+        vertical: Dimensions.paddingSm,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.1),
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Current Bill: ${_billingService.getFormattedTotalBilled()}',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textPrimaryLight,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              if (_billingService.getCurrentRate() != null)
+                Text(
+                  '₹${_billingService.getCurrentRate()!.toInt()}/min',
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.textSecondaryLight,
+                  ),
+                ),
+            ],
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Balance: ${_walletService.formattedBalance}',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: _billingService.isLowBalance ? AppColors.warning : AppColors.textPrimaryLight,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                _billingService.getFormattedElapsedTime(),
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.textSecondaryLight,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   void _endChat() {
     showDialog(
       context: context,
@@ -730,10 +880,15 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
+            onPressed: () async {
+              final navigator = Navigator.of(context);
+              navigator.pop();
+              // Stop billing first
+              await _billingService.stopBilling();
               _chatService.endChatSession(widget.chatSession.id);
-              Navigator.pop(context);
+              if (mounted) {
+                navigator.pop();
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('End Chat'),

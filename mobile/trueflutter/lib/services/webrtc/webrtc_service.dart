@@ -32,9 +32,8 @@ class WebRTCService extends ChangeNotifier {
   // WebRTC components
   RTCPeerConnection? _peerConnection;
   MediaStream? _localStream;
-  MediaStream? _remoteStream;
-  RTCVideoRenderer _localRenderer = RTCVideoRenderer();
-  RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
+  final RTCVideoRenderer _localRenderer = RTCVideoRenderer();
+  final RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
 
   // Call state
   CallState _callState = CallState.idle;
@@ -397,7 +396,6 @@ class WebRTCService extends ChangeNotifier {
 
       _peerConnection!.onAddStream = (MediaStream stream) {
         debugPrint('📺 Remote stream added');
-        _remoteStream = stream;
         _remoteRenderer.srcObject = stream;
         _remoteStreamController.add(true);
         
@@ -408,7 +406,6 @@ class WebRTCService extends ChangeNotifier {
 
       _peerConnection!.onRemoveStream = (MediaStream stream) {
         debugPrint('📺 Remote stream removed');
-        _remoteStream = null;
         _remoteRenderer.srcObject = null;
         _remoteStreamController.add(false);
       };
@@ -545,25 +542,6 @@ class WebRTCService extends ChangeNotifier {
     }
   }
 
-  /// Create WebRTC offer (for initiator)
-  Future<void> _createOffer() async {
-    try {
-      if (!_isInitiator || _peerConnection == null) return;
-
-      final offer = await _peerConnection!.createOffer();
-      await _peerConnection!.setLocalDescription(offer);
-
-      _socketService.emit('webrtc_offer', {
-        'sessionId': _currentSessionId,
-        'offer': offer.toMap(),
-        'targetUserId': _remoteUserId,
-      });
-
-      debugPrint('📤 WebRTC offer sent');
-    } catch (e) {
-      debugPrint('❌ Failed to create offer: $e');
-    }
-  }
 
   /// Update call state and notify listeners
   void _updateCallState(CallState newState) {
@@ -596,7 +574,6 @@ class WebRTCService extends ChangeNotifier {
       }
 
       // Reset state
-      _remoteStream = null;
       _currentSessionId = null;
       _currentCallId = null;
       _remoteUserId = null;

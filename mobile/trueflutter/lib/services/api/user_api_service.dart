@@ -691,6 +691,72 @@ class UserApiService {
     }
   }
 
+  /// Update FCM token on server
+  Future<Map<String, dynamic>> updateFcmToken(
+    String token, {
+    required String fcmToken,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        ApiEndpoints.updateFcmToken,
+        data: {
+          'fcmToken': fcmToken,
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data;
+      } else {
+        throw Exception('Failed to update FCM token: ${response.data['message']}');
+      }
+    } on DioException catch (e) {
+      final errorMessage = _handleDioException(e);
+      throw Exception(errorMessage);
+    }
+  }
+
+  /// Update session billing information
+  Future<Map<String, dynamic>> updateSessionBilling(
+    String token, {
+    required String sessionId,
+    required String sessionType,
+    required int durationMinutes,
+    required double totalAmount,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        ApiEndpoints.updateSessionBilling,
+        data: {
+          'sessionId': sessionId,
+          'sessionType': sessionType,
+          'durationMinutes': durationMinutes,
+          'totalAmount': totalAmount,
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data;
+      } else {
+        throw Exception('Failed to update session billing: ${response.data['message']}');
+      }
+    } on DioException catch (e) {
+      final errorMessage = _handleDioException(e);
+      throw Exception(errorMessage);
+    }
+  }
+
   // Handle Dio exceptions and convert to user-friendly messages
   String _handleDioException(DioException e) {
     switch (e.type) {
