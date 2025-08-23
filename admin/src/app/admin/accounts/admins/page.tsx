@@ -2,9 +2,10 @@
 
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert';
 
 interface User {
   _id: string;
@@ -26,6 +27,59 @@ interface PaginationInfo {
   totalCount: number;
   hasNextPage: boolean;
   hasPrevPage: boolean;
+}
+
+interface ProfileImageProps {
+  src?: string;
+  alt: string;
+  fallbackText: string;
+}
+
+function ProfileImage({ src, alt, fallbackText }: ProfileImageProps) {
+  const [imageError, setImageError] = useState(false);
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (src) {
+      // Check if it's a media ID (ObjectId format) or a direct URL
+      if (src.match(/^[0-9a-fA-F]{24}$/)) {
+        // It's a media ID, resolve it
+        fetch(`/api/media/resolve?id=${src}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              setResolvedUrl(data.media.full_url);
+            } else {
+              setImageError(true);
+            }
+          })
+          .catch(() => setImageError(true));
+      } else {
+        // It's a direct URL
+        setResolvedUrl(src);
+      }
+    }
+  }, [src]);
+
+  if (!src || imageError || !resolvedUrl) {
+    return (
+      <div className="avatar-xs rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mr-2">
+        {fallbackText}
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={resolvedUrl}
+      alt={alt}
+      className="rounded-circle mr-2"
+      width={40}
+      height={40}
+      style={{ width: '40px', height: '40px', objectFit: 'cover' }}
+      onError={() => setImageError(true)}
+    />
+  );
 }
 
 export default function AdminsPage() {
@@ -58,7 +112,7 @@ export default function AdminsPage() {
     fetchUsers(1);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const fetchUsers = async (page: number, filterParams = filters) => {
+  const fetchUsers = useCallback(async (page: number, filterParams = filters) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -92,7 +146,7 @@ export default function AdminsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
 
 
   const handleFilterChange = (key: string, value: string) => {
@@ -140,37 +194,52 @@ export default function AdminsPage() {
   };
 
 
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
-      setSelectedUsers(users.map(user => user._id));
-    } else {
+  const handleSelectAll = () => {
+    if (selectedUsers.length === users.length) {
       setSelectedUsers([]);
+    } else {
+      setSelectedUsers(users.map(user => user._id));
     }
   };
 
+  const handleSelectUser = (userId: string) => {
+    setSelectedUsers(prev =>
+      prev.includes(userId)
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
   const handleBulkDelete = async () => {
-    if (!confirm(`Are you sure you want to delete ${selectedUsers.length} selected users?`)) {
+    if (selectedUsers.length === 0) {
+      errorMessages.deleteFailed('users - Please select users to delete');
       return;
     }
 
+    const confirmed = await confirmDialogs.deleteMultiple(selectedUsers.length, 'administrators');
+    if (!confirmed) return;
+
     setDeleting('bulk');
     try {
-      const response = await fetch('/api/users/bulk-delete', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userIds: selectedUsers })
-      });
+      const deletePromises = selectedUsers.map(userId =>
+        fetch(`/api/users/${userId}`, { method: 'DELETE' })
+      );
 
-      if (response.ok) {
-        alert('Selected users deleted successfully');
-        setSelectedUsers([]);
-        fetchUsers(pagination.currentPage, filters);
+      const results = await Promise.allSettled(deletePromises);
+      const successful = results.filter(result => result.status === 'fulfilled').length;
+      const failed = results.length - successful;
+
+      if (failed === 0) {
+        successMessages.deleted(`${successful} administrators`);
       } else {
-        alert('Failed to delete selected users');
+        errorMessages.deleteFailed(`${successful} administrators deleted, ${failed} failed`);
       }
+
+      setSelectedUsers([]);
+      fetchUsers(pagination.currentPage, filters);
     } catch (error) {
-      console.error('Error deleting users:', error);
-      alert('An error occurred while deleting users');
+      console.error('Error in bulk delete:', error);
+      errorMessages.deleteFailed('administrators');
     } finally {
       setDeleting(null);
     }
@@ -275,6 +344,15 @@ export default function AdminsPage() {
             <div className="row">
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                 <div className="card">
+                  <div className="card-header d-flex justify-content-between align-items-center">
+                    <h5 className="mb-0">Administrator List ({pagination.totalCount} Total)</h5>
+                    <div>
+                      <Link href="/admin/accounts/add-user?type=admin" className="btn btn-primary">
+                        <i className="fas fa-plus mr-2"></i>Add Administrator
+                      </Link>
+                    </div>
+                  </div>
+            
                   <div className="card-body">
 										<div className='d-flex justify-content-end align-items-center mb-3'>
                       {selectedUsers.length > 0 && (
@@ -294,11 +372,10 @@ export default function AdminsPage() {
                         <i className="fas fa-filter mr-1"></i>
                         Filters {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
                       </button>
-                      <Link href="/admin/accounts/add-user?type=admin" className="btn btn-primary">Add New</Link>
                     </div>
                     {/* Users Table */}
                     <div className="table-responsive">
-                      <table className="table table-striped table-bordered">
+                      <table className="table table-striped table-bordered m-0">
                         <thead>
                           <tr>
                             <th className='text-center'>
@@ -330,23 +407,21 @@ export default function AdminsPage() {
                           ) : users.length > 0 ? (
                             users.map((user, index) => (
                               <tr key={user._id}>
-                                <td className='text-center'>{((pagination.currentPage - 1) * 30) + index + 1}</td>
+                                <td className='text-center'>
+                                  <input 
+                                    type="checkbox" 
+                                    checked={selectedUsers.includes(user._id)}
+                                    onChange={() => handleSelectUser(user._id)}
+                                    className="table-checkbox"
+                                  />
+                                </td>
                                 <td>
                                   <div className="d-flex align-items-center">
-                                    {user.profile_image ? (
-																			<Image
-																				src={user.profile_image} 
-                                        alt={user.full_name}
-                                        className="rounded-circle mr-2"
-																				width={50}
-                              					height={50}
-                                        style={{ width: '40px', height: '40px', objectFit: 'cover' }}
-																			/>
-                                    ) : (
-                                      <div className="avatar-xs rounded-circle bg-danger text-white d-flex align-items-center justify-content-center mr-2">
-                                        {user.full_name.charAt(0)}
-                                      </div>
-                                    )}
+                                    <ProfileImage 
+                                      src={user.profile_image}
+                                      alt={user.full_name}
+                                      fallbackText={user.full_name.charAt(0)}
+                                    />
                                     {user.full_name}
                                   </div>
                                 </td>
@@ -402,62 +477,67 @@ export default function AdminsPage() {
                       </table>
                     </div>
 
-                    {/* Pagination */}
-                    {pagination.totalPages > 1 && (
-                      <nav aria-label="User pagination">
-                        <ul className="pagination justify-content-center">
-                          <li className={`page-item ${!pagination.hasPrevPage ? 'disabled' : ''}`}>
-                            <button 
-                              className="page-link" 
-                              onClick={() => handlePageChange(pagination.currentPage - 1)}
-                              disabled={!pagination.hasPrevPage || loading}
-                            >
-                              Previous
-                            </button>
-                          </li>
-                          
-                          {/* Page numbers */}
-                          {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                            let pageNumber;
-                            if (pagination.totalPages <= 5) {
-                              pageNumber = i + 1;
-                            } else if (pagination.currentPage <= 3) {
-                              pageNumber = i + 1;
-                            } else if (pagination.currentPage >= pagination.totalPages - 2) {
-                              pageNumber = pagination.totalPages - 4 + i;
-                            } else {
-                              pageNumber = pagination.currentPage - 2 + i;
-                            }
-                            
-                            return (
-                              <li key={pageNumber} className={`page-item ${pagination.currentPage === pageNumber ? 'active' : ''}`}>
-                                <button 
-                                  className="page-link" 
-                                  onClick={() => handlePageChange(pageNumber)}
-                                  disabled={loading}
-                                >
-                                  {pageNumber}
-                                </button>
-                              </li>
-                            );
-                          })}
-                          
-                          <li className={`page-item ${!pagination.hasNextPage ? 'disabled' : ''}`}>
-                            <button 
-                              className="page-link" 
-                              onClick={() => handlePageChange(pagination.currentPage + 1)}
-                              disabled={!pagination.hasNextPage || loading}
-                            >
-                              Next
-                            </button>
-                          </li>
-                        </ul>
-                      </nav>
-                    )}
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Pagination */}
+            {pagination.totalPages > 1 && (
+              <div className="row mt-4">
+                <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+                  <nav aria-label="User pagination">
+                    <ul className="pagination justify-content-center">
+                      <li className={`page-item ${!pagination.hasPrevPage ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={() => handlePageChange(pagination.currentPage - 1)}
+                          disabled={!pagination.hasPrevPage || loading}
+                        >
+                          Previous
+                        </button>
+                      </li>
+                      
+                      {/* Page numbers */}
+                      {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                        let pageNumber;
+                        if (pagination.totalPages <= 5) {
+                          pageNumber = i + 1;
+                        } else if (pagination.currentPage <= 3) {
+                          pageNumber = i + 1;
+                        } else if (pagination.currentPage >= pagination.totalPages - 2) {
+                          pageNumber = pagination.totalPages - 4 + i;
+                        } else {
+                          pageNumber = pagination.currentPage - 2 + i;
+                        }
+                        
+                        return (
+                          <li key={pageNumber} className={`page-item ${pagination.currentPage === pageNumber ? 'active' : ''}`}>
+                            <button 
+                              className="page-link" 
+                              onClick={() => handlePageChange(pageNumber)}
+                              disabled={loading}
+                            >
+                              {pageNumber}
+                            </button>
+                          </li>
+                        );
+                      })}
+                      
+                      <li className={`page-item ${!pagination.hasNextPage ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={() => handlePageChange(pagination.currentPage + 1)}
+                          disabled={!pagination.hasNextPage || loading}
+                        >
+                          Next
+                        </button>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

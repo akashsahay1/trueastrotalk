@@ -16,27 +16,51 @@ interface Category {
   updated_at: string;
 }
 
+interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [pagination, setPagination] = useState<Pagination>({ total: 0, page: 1, limit: 20, totalPages: 0 });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   useEffect(() => {
     document.body.className = '';
     fetchCategories();
-  }, []);
+  }, [pagination.page, searchTerm]);
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('/api/admin/products/categories');
+      setLoading(true);
+      const params = new URLSearchParams({
+        page: pagination.page.toString(),
+        limit: pagination.limit.toString(),
+        ...(searchTerm && { search: searchTerm })
+      });
+      
+      const response = await fetch(`/api/admin/products/categories?${params}`);
       if (response.ok) {
         const data = await response.json();
         setCategories(data.categories || []);
+        setPagination({
+          total: data.pagination?.total || data.categories?.length || 0,
+          page: data.pagination?.page || 1,
+          limit: data.pagination?.limit || 20,
+          totalPages: data.pagination?.totalPages || Math.ceil((data.categories?.length || 0) / 20)
+        });
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
 
@@ -61,11 +85,55 @@ export default function CategoriesPage() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedCategories.length === 0) return;
+    
+    const confirmed = await confirmDialogs.deleteItem(`${selectedCategories.length} categories`);
+    if (!confirmed) return;
 
-  const filteredCategories = categories.filter(category =>
-    category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+    setBulkLoading(true);
+    try {
+      const deletePromises = selectedCategories.map(id => 
+        fetch(`/api/admin/products/categories/${id}`, { method: 'DELETE' })
+      );
+      
+      await Promise.all(deletePromises);
+      setSelectedCategories([]);
+      fetchCategories();
+    } catch (error) {
+      console.error('Error deleting categories:', error);
+      errorMessages.deleteFailed('categories');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedCategories(categories.map(c => c._id));
+    } else {
+      setSelectedCategories([]);
+    }
+  };
+
+  const handleSelectCategory = (categoryId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedCategories([...selectedCategories, categoryId]);
+    } else {
+      setSelectedCategories(selectedCategories.filter(id => id !== categoryId));
+    }
+  };
+
+  const handleSearch = () => {
+    setPagination(prev => ({ ...prev, page: 1 }));
+    fetchCategories();
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPagination(prev => ({ ...prev, page: newPage }));
+  };
+
+
 
   if (loading) {
     return (
@@ -115,7 +183,7 @@ export default function CategoriesPage() {
                           <Link href="/admin/dashboard" className="breadcrumb-link">Dashboard</Link>
                         </li>
                         <li className="breadcrumb-item">
-                          <a href="/admin/products" className="breadcrumb-link">Products</a>
+                          <Link href="/admin/products" className="breadcrumb-link">Products</Link>
                         </li>
                         <li className="breadcrumb-item active" aria-current="page">Categories</li>
                       </ol>
@@ -129,7 +197,7 @@ export default function CategoriesPage() {
         <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
           <div className="card">
             <div className="card-header d-flex justify-content-between align-items-center">
-              <h5 className="mb-0">Category List ({filteredCategories.length} total)</h5>
+              <h5 className="mb-0">Category List ({pagination.total} Total)</h5>
               <div>
                 <Link href="/admin/products" className="btn btn-outline-secondary mr-2">
                   <i className="fas fa-arrow-left mr-1"></i>Back to Products
@@ -141,24 +209,64 @@ export default function CategoriesPage() {
             </div>
             
             <div className="card-body">
-              {/* Search */}
+              {/* Search and Filter Form */}
               <div className="row mb-3">
+                <div className="col-md-4">
+                  <div className="form-group">
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Search categories..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                    />
+                  </div>
+                </div>
+                <div className="col-md-2">
+                  <button 
+                    type="button" 
+                    className="btn btn-outline-secondary"
+                    onClick={() => {
+                      setSearchTerm('');
+                      setPagination(prev => ({ ...prev, page: 1 }));
+                    }}
+                  >
+                    Clear
+                  </button>
+                </div>
                 <div className="col-md-6">
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Search categories..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+                  {selectedCategories.length > 0 && (
+                    <div className="text-right">
+                      <button 
+                        type="button" 
+                        className="btn btn-danger"
+                        onClick={handleBulkDelete}
+                        disabled={bulkLoading}
+                      >
+                        {bulkLoading ? (
+                          <><i className="fas fa-spinner fa-spin mr-1"></i>Deleting...</>
+                        ) : (
+                          <><i className="fas fa-trash mr-1"></i>Delete Selected ({selectedCategories.length})</>
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Categories Table */}
               <div className="table-responsive">
-                <table className="table table-striped table-bordered">
+                <table className="table table-striped table-bordered m-0">
                   <thead>
                     <tr>
+                      <th width="40">
+                        <input
+                          type="checkbox"
+                          checked={selectedCategories.length === categories.length && categories.length > 0}
+                          onChange={(e) => handleSelectAll(e.target.checked)}
+                        />
+                      </th>
                       <th>Name</th>
                       <th>Description</th>
                       <th>Products</th>
@@ -168,15 +276,22 @@ export default function CategoriesPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredCategories.length === 0 ? (
+                    {categories.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="text-center">
-                          {categories.length === 0 ? 'No categories found' : 'No categories match your search'}
+                        <td colSpan={7} className="text-center">
+                          {loading ? 'Loading...' : 'No categories found'}
                         </td>
                       </tr>
                     ) : (
-                      filteredCategories.map((category) => (
+                      categories.map((category) => (
                         <tr key={category._id}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={selectedCategories.includes(category._id)}
+                              onChange={(e) => handleSelectCategory(category._id, e.target.checked)}
+                            />
+                          </td>
                           <td>
                             <strong>{category.name}</strong>
                           </td>
@@ -223,6 +338,55 @@ export default function CategoriesPage() {
           </div>
         </div>
       </div>
+
+            {/* Pagination */}
+            {pagination.totalPages > 1 && (
+              <div className="row mt-4">
+                <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+                  <nav aria-label="Categories pagination">
+                    <ul className="pagination justify-content-center">
+                      <li className={`page-item ${pagination.page === 1 ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={() => handlePageChange(pagination.page - 1)}
+                          disabled={pagination.page === 1 || loading}
+                        >
+                          Previous
+                        </button>
+                      </li>
+                      
+                      {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                        const startPage = Math.max(1, pagination.page - 2);
+                        const pageNum = startPage + i;
+                        if (pageNum > pagination.totalPages) return null;
+                        
+                        return (
+                          <li key={pageNum} className={`page-item ${pagination.page === pageNum ? 'active' : ''}`}>
+                            <button 
+                              className="page-link" 
+                              onClick={() => handlePageChange(pageNum)}
+                              disabled={loading}
+                            >
+                              {pageNum}
+                            </button>
+                          </li>
+                        );
+                      })}
+                      
+                      <li className={`page-item ${pagination.page === pagination.totalPages ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={() => handlePageChange(pagination.page + 1)}
+                          disabled={pagination.page === pagination.totalPages || loading}
+                        >
+                          Next
+                        </button>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+              </div>
+            )}
 
           </div>
         </div>
