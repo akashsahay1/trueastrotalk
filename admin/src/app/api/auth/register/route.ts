@@ -64,7 +64,6 @@ export async function POST(request: NextRequest) {
       languages,
       qualifications,
       skills,
-      specializations,
       address,
       city,
       state,
@@ -315,7 +314,6 @@ export async function POST(request: NextRequest) {
       userData.languages = (languages as string).trim();
       userData.skills = skills ? (skills as string).trim() : '';
       userData.qualifications = qualifications || [];
-      userData.specializations = specializations || [];
       userData.call_rate = call_rate ? parseFloat(call_rate as string) : 50;
       userData.chat_rate = chat_rate ? parseFloat(chat_rate as string) : 30;
       userData.video_rate = video_rate ? parseFloat(video_rate as string) : 80;

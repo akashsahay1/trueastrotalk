@@ -155,14 +155,13 @@ button:focus,
   padding: 0.25rem 0.5rem;
 }
 
-/* Navigation improvements */
+/* Navigation improvements - Fixed hover alignment issue */
 .sidebar-dark .nav-link {
-  transition: all 0.2s ease-in-out;
+  transition: background-color 0.2s ease-in-out;
 }
 
 .sidebar-dark .nav-link:hover {
   background-color: rgba(255, 255, 255, 0.1);
-  transform: translateX(5px);
 }
 
 .sidebar-dark .nav-link.active {

@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Set secure HTTP-only cookies
-      response.cookies.set('auth_token', newAccessToken, {
+      response.cookies.set('auth-token', newAccessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',

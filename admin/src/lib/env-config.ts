@@ -1,84 +1,53 @@
 /**
- * Unified Environment Configuration
- * This file automatically detects the environment and provides the correct values
- * No more multiple .env files - just one .env file with all configurations
+ * Environment Configuration
+ * Fail-fast approach - no fallbacks for critical config
  */
 
-const APP_ENVIRONMENT = process.env.APP_ENVIRONMENT || 'local';
-const isLocal = APP_ENVIRONMENT === 'local';
-const isProduction = APP_ENVIRONMENT === 'production';
+function getRequiredEnv(key: string): string {
+  const value = process.env[key];
+  if (!value) {
+    throw new Error(`❌ Missing required environment variable: ${key}`);
+  }
+  return value;
+}
+
+function getOptionalEnv(key: string, fallback: string = ''): string {
+  return process.env[key] || fallback;
+}
 
 // Main environment configuration object
 export const envConfig = {
-  // Environment detection
-  APP_ENVIRONMENT,
-  isLocal,
-  isProduction,
+  // Database - REQUIRED
+  MONGODB_URL: getRequiredEnv('MONGODB_URL'),
+  DB_NAME: getRequiredEnv('DB_NAME'),
 
-  // Database
-  MONGODB_URL: process.env.MONGODB_URL || 'mongodb://localhost:27017',
-  DB_NAME: process.env.DB_NAME || 'trueastrotalkDB',
+  // Authentication & Security - REQUIRED
+  JWT_SECRET: getRequiredEnv('JWT_SECRET'),
+  NEXTAUTH_SECRET: getRequiredEnv('NEXTAUTH_SECRET'),
+  SESSION_SECRET: getRequiredEnv('SESSION_SECRET'),
 
-  // Authentication & Security
-  JWT_SECRET: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
-  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'your-nextauth-secret',
-  SESSION_SECRET: process.env.SESSION_SECRET || 'your-session-secret',
+  // Server - With reasonable defaults
+  PORT: parseInt(getOptionalEnv('PORT', '4000')),
+  SOCKET_PORT: parseInt(getOptionalEnv('SOCKET_PORT', '4001')),
 
-  // URLs (Single place, auto-detects based on environment)
-  NEXTAUTH_URL: isLocal 
-    ? (process.env.NEXTAUTH_URL || 'http://localhost:3000') 
-    : (process.env.NEXTAUTH_URL || 'https://www.trueastrotalk.com'),
-  API_BASE_URL: isLocal 
-    ? (process.env.API_BASE_URL || 'http://localhost:3000/api') 
-    : (process.env.API_BASE_URL || 'https://www.trueastrotalk.com/api'),
+  // File Upload - With reasonable defaults
+  UPLOAD_DIR: getOptionalEnv('UPLOAD_DIR', 'public/uploads'),
+  MAX_FILE_SIZE: parseInt(getOptionalEnv('MAX_FILE_SIZE', '5242880')), // 5MB
 
-  // Server
-  PORT: parseInt(process.env.PORT || '3000'),
+  // Email Configuration - REQUIRED for production
+  SEND_FROM: getRequiredEnv('SEND_FROM'),
+  SENDGRID_API_KEY: getRequiredEnv('SENDGRID_API_KEY'),
 
-  // File Upload
-  UPLOAD_DIR: process.env.UPLOAD_DIR || 'public/uploads',
-  MAX_FILE_SIZE: parseInt(process.env.MAX_FILE_SIZE || '10485760'), // 10MB
+  // Payment - REQUIRED for transactions
+  RAZORPAY_KEY_ID: getRequiredEnv('RAZORPAY_KEY_ID'),
+  RAZORPAY_KEY_SECRET: getRequiredEnv('RAZORPAY_KEY_SECRET'),
 
+  // Firebase - Optional (for push notifications)
+  FIREBASE_SERVER_KEY: getOptionalEnv('FIREBASE_SERVER_KEY'),
 
-  // Email Configuration
-  SMTP: {
-    HOST: process.env.SMTP_HOST || 'smtp.gmail.com',
-    PORT: parseInt(process.env.SMTP_PORT || '587'),
-    USER: process.env.SMTP_USER || '',
-    PASS: process.env.SMTP_PASS || '',
-  },
-
-  // Firebase
-  FIREBASE_SERVER_KEY: process.env.FIREBASE_SERVER_KEY || '',
-
-  // Business Configuration
-  COMMISSION_RATE: parseFloat(process.env.DEFAULT_COMMISSION_RATE || '0.25'),
-  MINIMUM_PAYOUT_THRESHOLD: parseInt(process.env.MINIMUM_PAYOUT_THRESHOLD || '1000'),
-
-  // CORS (Single place, auto-detects based on environment)
-  ALLOWED_ORIGINS: (isLocal 
-    ? (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://127.0.0.1:3000')
-    : (process.env.ALLOWED_ORIGINS || 'https://www.trueastrotalk.com,https://trueastrotalk.com')
-  ).split(','),
-
-  // Logging (Single place, auto-detects based on environment)
-  LOG_LEVEL: isLocal 
-    ? (process.env.LOG_LEVEL || 'debug')
-    : (process.env.LOG_LEVEL || 'info'),
-
-  // Google OAuth
-  GOOGLE: {
-    CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
-    CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
-  },
-
-  // Additional Services
-  TWILIO: {
-    ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID || '',
-    AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN || '',
-  },
-  
-  SENDGRID_API_KEY: process.env.SENDGRID_API_KEY || '',
+  // Business Configuration - With defaults
+  COMMISSION_RATE: parseFloat(getOptionalEnv('DEFAULT_COMMISSION_RATE', '0.25')),
+  MINIMUM_PAYOUT_THRESHOLD: parseInt(getOptionalEnv('MINIMUM_PAYOUT_THRESHOLD', '1000')),
 };
 
 // Helper functions for common operations
@@ -91,48 +60,33 @@ export const envHelpers = {
   },
 
   /**
-   * Get full API URL
-   */
-  getApiUrl: (endpoint: string) => {
-    return `${envConfig.API_BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
-  },
-
-  /**
    * Check if specific service is configured
    */
-  isServiceConfigured: (service: 'smtp' | 'firebase' | 'google' | 'twilio' | 'sendgrid') => {
+  isServiceConfigured: (service: 'firebase' | 'sendgrid' | 'razorpay') => {
     switch (service) {
-      case 'smtp':
-        return !!(envConfig.SMTP.USER && envConfig.SMTP.PASS);
       case 'firebase':
         return !!envConfig.FIREBASE_SERVER_KEY;
-      case 'google':
-        return !!(envConfig.GOOGLE.CLIENT_ID && envConfig.GOOGLE.CLIENT_SECRET);
-      case 'twilio':
-        return !!(envConfig.TWILIO.ACCOUNT_SID && envConfig.TWILIO.AUTH_TOKEN);
       case 'sendgrid':
         return !!envConfig.SENDGRID_API_KEY;
+      case 'razorpay':
+        return !!(envConfig.RAZORPAY_KEY_ID && envConfig.RAZORPAY_KEY_SECRET);
       default:
         return false;
     }
   },
 
   /**
-   * Get environment-specific configuration summary
+   * Get configuration summary
    */
   getConfigSummary: () => {
     return {
-      environment: envConfig.APP_ENVIRONMENT,
-      isLocal: envConfig.isLocal,
-      isProduction: envConfig.isProduction,
       database: envConfig.MONGODB_URL.includes('localhost') ? 'Local MongoDB' : 'Remote MongoDB',
-      baseUrl: envConfig.API_BASE_URL,
+      port: envConfig.PORT,
+      socketPort: envConfig.SOCKET_PORT,
       services: {
-        smtp: envHelpers.isServiceConfigured('smtp'),
         firebase: envHelpers.isServiceConfigured('firebase'),
-        google: envHelpers.isServiceConfigured('google'),
-        twilio: envHelpers.isServiceConfigured('twilio'),
         sendgrid: envHelpers.isServiceConfigured('sendgrid'),
+        razorpay: envHelpers.isServiceConfigured('razorpay'),
       }
     };
   }
@@ -144,14 +98,5 @@ export const {
   DB_NAME,
   JWT_SECRET,
   NEXTAUTH_SECRET,
-  NEXTAUTH_URL,
-  API_BASE_URL,
   PORT
 } = envConfig;
-
-export { APP_ENVIRONMENT };
-
-// Log configuration summary in local environment
-if (isLocal) {
-  console.log('🔧 Environment Configuration:', envHelpers.getConfigSummary());
-}

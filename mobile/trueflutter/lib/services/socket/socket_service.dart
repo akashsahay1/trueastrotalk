@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 import '../../models/chat.dart';
 import '../../models/user.dart';
+import '../../config/config.dart';
 import '../service_locator.dart';
 import '../local/local_storage_service.dart';
 
@@ -61,8 +62,8 @@ class SocketService extends ChangeNotifier {
         throw Exception('User not authenticated');
       }
       
-      // Socket.IO server URL (use provided or default - Socket.IO dedicated port)
-      final socketUrl = serverUrl ?? 'http://localhost:4001';
+      // Socket.IO server URL (use provided or from config)
+      final socketUrl = serverUrl ?? await Config.socketUrl;
       
       debugPrint('🔌 Connecting to Socket.IO server: $socketUrl');
       

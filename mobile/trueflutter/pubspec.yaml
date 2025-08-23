@@ -46,6 +46,7 @@ dependencies:
   http: ^1.1.2
   socket_io_client: ^3.1.2
   crypto: ^3.0.3
+  connectivity_plus: ^5.0.2
   
   # WebRTC for voice/video calls
   flutter_webrtc: ^0.9.46
@@ -98,7 +99,6 @@ dependencies:
   uuid: ^4.2.1
   url_launcher: ^6.1.14
   share_plus: ^7.0.2
-  connectivity_plus: ^4.0.2
 
   # Location - Will add when needed
   # geolocator: ^10.1.0

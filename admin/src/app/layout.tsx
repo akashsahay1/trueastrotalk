@@ -27,6 +27,12 @@ export default function RootLayout({
         <Script src="/assets/libs/jquery/dist/jquery.min.js" strategy="beforeInteractive" />
         <Script src="/assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js" strategy="afterInteractive" />
         
+        {/* Socket.IO Client */}
+        <Script src="https://cdn.socket.io/4.8.1/socket.io.min.js" strategy="afterInteractive" />
+        
+        {/* Socket.IO Test Script */}
+        <Script src="/test-socket.js" strategy="lazyOnload" />
+        
         {/* Required jQuery Plugins for Theme */}
         <Script src="/assets/libs/jquery-sparkline/jquery.sparkline.min.js" strategy="afterInteractive" />
         <Script src="/assets/libs/jquery-slimscroll/jquery.slimscroll.min.js" strategy="afterInteractive" />

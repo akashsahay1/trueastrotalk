@@ -9,9 +9,12 @@ import '../services/socket/socket_service.dart';
 import '../services/webrtc/webrtc_service.dart';
 import '../services/billing/billing_service.dart';
 import '../services/wallet/wallet_service.dart';
+import '../services/network/network_diagnostics_service.dart';
 import '../services/service_locator.dart';
 import '../models/astrologer.dart';
 import '../models/call.dart' as call_models;
+import '../widgets/call_quality_indicator.dart';
+import 'call_quality_settings_screen.dart';
 
 class ActiveCallScreen extends StatefulWidget {
   final Map<String, dynamic> callData;
@@ -33,6 +36,7 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
   late final WebRTCService _webrtcService;
   late final BillingService _billingService;
   late final WalletService _walletService;
+  late final NetworkDiagnosticsService _networkDiagnostics;
   
   Timer? _callTimer;
   Duration _callDuration = Duration.zero;
@@ -44,7 +48,9 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
   bool _isConnecting = true;
   
   late AnimationController _controlsAnimationController;
+  late AnimationController _buttonAnimationController;
   late Animation<double> _controlsOpacityAnimation;
+  late Animation<double> _buttonScaleAnimation;
   bool _showControls = true;
   Timer? _hideControlsTimer;
 
@@ -55,10 +61,12 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     _webrtcService = getIt<WebRTCService>();
     _billingService = BillingService.instance;
     _walletService = WalletService.instance;
+    _networkDiagnostics = NetworkDiagnosticsService.instance;
     
     _setupAnimations();
     _setupCallListeners();
     _setupBillingListeners();
+    _setupNetworkDiagnostics();
     _startCallTimer();
     _startHideControlsTimer();
     
@@ -72,6 +80,11 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
       vsync: this,
     );
     
+    _buttonAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+    
     _controlsOpacityAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -80,7 +93,16 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
       curve: Curves.easeInOut,
     ));
     
+    _buttonScaleAnimation = Tween<double>(
+      begin: 0.8,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _buttonAnimationController,
+      curve: Curves.elasticOut,
+    ));
+    
     _controlsAnimationController.forward();
+    _buttonAnimationController.forward();
   }
 
   void _setupCallListeners() {
@@ -121,6 +143,19 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
         debugPrint('💰 Billing completed: ${summary.formattedAmount} for ${summary.formattedDuration}');
       }
     });
+  }
+
+  void _setupNetworkDiagnostics() {
+    // Listen to network diagnostics changes
+    _networkDiagnostics.addListener(_onNetworkMetricsChanged);
+  }
+
+  void _onNetworkMetricsChanged() {
+    if (mounted) {
+      setState(() {
+        // Trigger rebuild to update network quality UI
+      });
+    }
   }
 
   void _onWebRTCStateChanged() {
@@ -179,6 +214,9 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
             _isConnecting = false;
           });
           
+          // Start network diagnostics monitoring
+          await _networkDiagnostics.startMonitoring(null); // TODO: Get peer connection from WebRTC service
+          
           // Start billing when call is connected
           await _startBilling();
         }
@@ -195,8 +233,11 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     _callTimer?.cancel();
     _hideControlsTimer?.cancel();
     _controlsAnimationController.dispose();
+    _buttonAnimationController.dispose();
     _webrtcService.removeListener(_onWebRTCStateChanged);
     _billingService.removeListener(_onBillingStateChanged);
+    _networkDiagnostics.removeListener(_onNetworkMetricsChanged);
+    _networkDiagnostics.stopMonitoring();
     super.dispose();
   }
 
@@ -212,6 +253,7 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
             _buildCallInfo(),
             _buildConnectionStatus(),
             _buildBillingInfo(),
+            _buildCallQualityIndicator(),
             if (_showControls) _buildCallControls(),
           ],
         ),
@@ -419,6 +461,17 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     );
   }
 
+  Widget _buildCallQualityIndicator() {
+    return Positioned(
+      top: MediaQuery.of(context).padding.top + 80, // Below call info
+      right: 16,
+      child: CallQualityIndicator(
+        metrics: _networkDiagnostics.currentMetrics,
+        isCompact: true,
+      ),
+    );
+  }
+
   Widget _buildCallControls() {
     final isVideoCall = widget.callData['callType'] == 'video';
     
@@ -436,7 +489,7 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
                 left: Dimensions.paddingXl,
                 right: Dimensions.paddingXl,
                 bottom: MediaQuery.of(context).padding.bottom + Dimensions.paddingLg,
-                top: Dimensions.paddingLg,
+                top: Dimensions.paddingXl,
               ),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -444,47 +497,59 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    Colors.black.withValues(alpha: 0.7),
+                    Colors.black.withValues(alpha: 0.8),
                   ],
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Mute button
-                  _buildControlButton(
-                    onPressed: _toggleMute,
-                    icon: _isMuted ? Icons.mic_off : Icons.mic,
-                    backgroundColor: _isMuted ? AppColors.error : AppColors.white.withValues(alpha: 0.2),
-                    iconColor: _isMuted ? AppColors.white : AppColors.white,
+                  // Main control buttons row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Mute button with label
+                      _buildEnhancedControlButton(
+                        onPressed: _toggleMute,
+                        icon: _isMuted ? Icons.mic_off : Icons.mic,
+                        label: _isMuted ? 'Unmute' : 'Mute',
+                        isActive: !_isMuted,
+                        isDestructive: _isMuted,
+                      ),
+                      
+                      // Speaker button (only for voice calls)
+                      if (!isVideoCall)
+                        _buildEnhancedControlButton(
+                          onPressed: _toggleSpeaker,
+                          icon: _isSpeakerOn ? Icons.volume_up : Icons.volume_down,
+                          label: _isSpeakerOn ? 'Speaker' : 'Earpiece',
+                          isActive: _isSpeakerOn,
+                        ),
+                      
+                      // Camera button (only for video calls)
+                      if (isVideoCall)
+                        _buildEnhancedControlButton(
+                          onPressed: _toggleCamera,
+                          icon: _isCameraOn ? Icons.videocam : Icons.videocam_off,
+                          label: _isCameraOn ? 'Camera' : 'No Video',
+                          isActive: _isCameraOn,
+                          isDestructive: !_isCameraOn,
+                        ),
+                      
+                      // Additional controls button (for future features)
+                      _buildEnhancedControlButton(
+                        onPressed: _showAdditionalControls,
+                        icon: Icons.more_horiz,
+                        label: 'More',
+                        isActive: false,
+                      ),
+                    ],
                   ),
                   
-                  // Speaker button (only for voice calls)
-                  if (!isVideoCall)
-                    _buildControlButton(
-                      onPressed: _toggleSpeaker,
-                      icon: _isSpeakerOn ? Icons.volume_up : Icons.volume_down,
-                      backgroundColor: _isSpeakerOn ? AppColors.primary : AppColors.white.withValues(alpha: 0.2),
-                      iconColor: AppColors.white,
-                    ),
+                  const SizedBox(height: Dimensions.paddingLg),
                   
-                  // Camera button (only for video calls)
-                  if (isVideoCall)
-                    _buildControlButton(
-                      onPressed: _toggleCamera,
-                      icon: _isCameraOn ? Icons.videocam : Icons.videocam_off,
-                      backgroundColor: _isCameraOn ? AppColors.white.withValues(alpha: 0.2) : AppColors.error,
-                      iconColor: AppColors.white,
-                    ),
-                  
-                  // End call button
-                  _buildControlButton(
-                    onPressed: _endCall,
-                    icon: Icons.call_end,
-                    backgroundColor: AppColors.error,
-                    iconColor: AppColors.white,
-                    size: 60,
-                  ),
+                  // End call button (prominent)
+                  _buildEndCallButton(),
                 ],
               ),
             ),
@@ -494,38 +559,256 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     );
   }
 
-  Widget _buildControlButton({
+  Widget _buildEnhancedControlButton({
     required VoidCallback onPressed,
     required IconData icon,
-    required Color backgroundColor,
-    required Color iconColor,
-    double size = 50,
+    required String label,
+    bool isActive = false,
+    bool isDestructive = false,
+    double size = 60,
   }) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onPressed();
-        _startHideControlsTimer(); // Reset hide timer
-      },
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: backgroundColor,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 8,
-              spreadRadius: 1,
+    return AnimatedBuilder(
+      animation: _buttonScaleAnimation,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _buttonScaleAnimation.value,
+          child: GestureDetector(
+            onTap: () {
+              HapticFeedback.mediumImpact();
+              onPressed();
+              _startHideControlsTimer(); // Reset hide timer
+              
+              // Button press animation
+              _buttonAnimationController.reverse().then((_) {
+                _buttonAnimationController.forward();
+              });
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Button container
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  width: size,
+                  height: size,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _getButtonColor(isActive, isDestructive),
+                    border: Border.all(
+                      color: AppColors.white.withValues(alpha: 0.3),
+                      width: isActive ? 2 : 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.4),
+                        blurRadius: 12,
+                        spreadRadius: 2,
+                        offset: const Offset(0, 4),
+                      ),
+                      if (isActive)
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          blurRadius: 20,
+                          spreadRadius: 0,
+                        ),
+                    ],
+                  ),
+                  child: Icon(
+                    icon,
+                    color: _getIconColor(isActive, isDestructive),
+                    size: size * 0.35,
+                  ),
+                ),
+                
+                const SizedBox(height: 8),
+                
+                // Button label
+                AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 200),
+                  style: AppTextStyles.caption.copyWith(
+                    color: isDestructive 
+                        ? AppColors.error.withValues(alpha: 0.9)
+                        : AppColors.white.withValues(alpha: 0.9),
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                    fontSize: 11,
+                  ),
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEndCallButton() {
+    return AnimatedBuilder(
+      animation: _buttonScaleAnimation,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _buttonScaleAnimation.value,
+          child: GestureDetector(
+            onTap: () {
+              HapticFeedback.heavyImpact();
+              _endCall();
+            },
+            child: Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.error,
+                    AppColors.error.withValues(alpha: 0.8),
+                  ],
+                ),
+                border: Border.all(
+                  color: AppColors.white.withValues(alpha: 0.2),
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.error.withValues(alpha: 0.4),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 6),
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 15,
+                    spreadRadius: 1,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.call_end,
+                color: AppColors.white,
+                size: 28,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Color _getButtonColor(bool isActive, bool isDestructive) {
+    if (isDestructive) {
+      return AppColors.error.withValues(alpha: 0.9);
+    } else if (isActive) {
+      return AppColors.primary.withValues(alpha: 0.8);
+    } else {
+      return AppColors.white.withValues(alpha: 0.15);
+    }
+  }
+
+  Color _getIconColor(bool isActive, bool isDestructive) {
+    if (isDestructive || isActive) {
+      return AppColors.white;
+    } else {
+      return AppColors.white.withValues(alpha: 0.9);
+    }
+  }
+
+  void _showAdditionalControls() {
+    // Show bottom sheet with additional controls
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _buildAdditionalControlsSheet(),
+    );
+  }
+
+  Widget _buildAdditionalControlsSheet() {
+    return Container(
+      padding: const EdgeInsets.all(Dimensions.paddingLg),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
         ),
-        child: Icon(
-          icon,
-          color: iconColor,
-          size: size * 0.4,
-        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 20,
+            spreadRadius: 5,
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle bar
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: Dimensions.paddingMd),
+            decoration: BoxDecoration(
+              color: AppColors.grey400,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          
+          Text(
+            'Call Settings',
+            style: AppTextStyles.heading4.copyWith(
+              color: AppColors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          
+          const SizedBox(height: Dimensions.paddingLg),
+          
+          // Additional controls can be added here
+          ListTile(
+            leading: Icon(
+              Icons.flip_camera_android,
+              color: AppColors.primary,
+            ),
+            title: Text(
+              'Switch Camera',
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.white),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              // TODO: Implement camera switching
+            },
+          ),
+          
+          ListTile(
+            leading: Icon(
+              Icons.settings,
+              color: AppColors.primary,
+            ),
+            title: Text(
+              'Call Quality',
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.white),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const CallQualitySettingsScreen(),
+                ),
+              );
+            },
+          ),
+          
+          const SizedBox(height: Dimensions.paddingMd),
+        ],
       ),
     );
   }

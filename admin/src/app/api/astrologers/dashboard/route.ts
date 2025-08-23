@@ -273,7 +273,7 @@ export async function GET(request: NextRequest) {
           bio: astrologer.bio || '',
           experience_years: astrologer.experience_years || 0,
           languages: astrologer.languages || '',
-          specializations: astrologer.specializations || [],
+          skills: astrologer.skills || [],
           rating: astrologer.rating || 0,
           total_reviews: astrologer.total_reviews || 0,
           is_online: astrologer.is_online || false,
@@ -391,7 +391,7 @@ export async function PUT(request: NextRequest) {
       call_rate,
       video_rate,
       bio,
-      specializations,
+      skills,
       languages
     } = sanitizedBody;
 
@@ -466,12 +466,12 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // Validate and update specializations
-    if (specializations !== undefined && Array.isArray(specializations)) {
-      const validSpecs = specializations
-        .filter(spec => typeof spec === 'string' && spec.trim().length > 0)
-        .slice(0, 10); // Max 10 specializations
-      updateData.specializations = validSpecs;
+    // Validate and update skills
+    if (skills !== undefined && Array.isArray(skills)) {
+      const validSkills = skills
+        .filter(skill => typeof skill === 'string' && skill.trim().length > 0)
+        .slice(0, 10); // Max 10 skills
+      updateData.skills = validSkills;
     }
 
     // Validate and update languages

@@ -327,31 +327,61 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
       mainAxisSize: MainAxisSize.min,
       children: [
         GestureDetector(
-          onTap: onPressed,
-          child: Container(
-            width: 80,
-            height: 80,
+          onTap: onPressed != null ? () {
+            HapticFeedback.mediumImpact();
+            onPressed();
+          } : null,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 85,
+            height: 85,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
+              gradient: onPressed == null 
+                  ? null
+                  : LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        backgroundColor,
+                        backgroundColor.withValues(alpha: 0.8),
+                      ],
+                    ),
               color: onPressed == null 
                   ? backgroundColor.withValues(alpha: 0.5) 
-                  : backgroundColor,
-              boxShadow: [
+                  : null,
+              border: Border.all(
+                color: AppColors.white.withValues(alpha: 0.3),
+                width: 2,
+              ),
+              boxShadow: onPressed == null ? [] : [
                 BoxShadow(
-                  color: backgroundColor.withValues(alpha: 0.3),
-                  blurRadius: 15,
+                  color: backgroundColor.withValues(alpha: 0.4),
+                  blurRadius: 20,
                   spreadRadius: 2,
+                  offset: const Offset(0, 6),
+                ),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 15,
+                  spreadRadius: 1,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
             child: isLoading
-                ? const CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                      strokeWidth: 2.5,
+                    ),
                   )
                 : Icon(
                     icon,
                     color: AppColors.white,
-                    size: 36,
+                    size: 32,
                   ),
           ),
         ),

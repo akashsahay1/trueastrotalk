@@ -167,7 +167,6 @@ export async function GET(request: NextRequest) {
           languages: dbUser.languages || '',
           skills: dbUser.skills || '',
           qualifications: dbUser.qualifications || [],
-          specializations: dbUser.specializations || [],
           chat_rate: dbUser.chat_rate || 0,
           call_rate: dbUser.call_rate || 0,
           video_rate: dbUser.video_rate || 0,

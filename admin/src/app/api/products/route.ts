@@ -19,8 +19,8 @@ export async function GET(request: NextRequest) {
 
     const productsCollection = await DatabaseService.getCollection('products');
 
-    // Build query
-    const query: Record<string, unknown> = { is_active: true };
+    // Build query - Admin should see all products regardless of active status
+    const query: Record<string, unknown> = {};
 
     if (category) {
       query.category = category;
@@ -60,8 +60,10 @@ export async function GET(request: NextRequest) {
 
     const totalProducts = await productsCollection.countDocuments(query);
 
-    // Get categories for filter
-    const categories = await productsCollection.distinct('category', { is_active: true });
+    // Get categories from admin-managed categories collection
+    const categoriesCollection = await DatabaseService.getCollection('product_categories');
+    const categoriesData = await categoriesCollection.find({ is_active: true }).toArray();
+    const categories = categoriesData.map(cat => cat.name);
 
     // Format products for response
     const formattedProducts = products.map(product => ({
@@ -169,6 +171,20 @@ export async function POST(request: NextRequest) {
     }
 
     const productsCollection = await DatabaseService.getCollection('products');
+    const categoriesCollection = await DatabaseService.getCollection('product_categories');
+
+    // Validate category exists in admin-managed categories
+    const categoryExists = await categoriesCollection.findOne({ 
+      name: category.trim(), 
+      is_active: true 
+    });
+    if (!categoryExists) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid category',
+        message: 'Category must be selected from admin-managed categories'
+      }, { status: 400 });
+    }
 
     // Check if SKU already exists
     if (sku) {
@@ -258,6 +274,22 @@ export async function PUT(request: NextRequest) {
     }
 
     const productsCollection = await DatabaseService.getCollection('products');
+    const categoriesCollection = await DatabaseService.getCollection('product_categories');
+
+    // Validate category if being updated
+    if (updateFields.category !== undefined) {
+      const categoryExists = await categoriesCollection.findOne({ 
+        name: updateFields.category.trim(), 
+        is_active: true 
+      });
+      if (!categoryExists) {
+        return NextResponse.json({
+          success: false,
+          error: 'Invalid category',
+          message: 'Category must be selected from admin-managed categories'
+        }, { status: 400 });
+      }
+    }
 
     // Check if product exists
     const existingProduct = await productsCollection.findOne({ _id: new ObjectId(product_id) });

@@ -188,7 +188,7 @@ export default function NotificationHistoryPage() {
                   <h5 className="card-header">Notification History</h5>
                   <div className="card-body p-0">
                     <div className="table-responsive">
-                      <table className="table table-striped table-bordered">
+                      <table className="table table-striped table-bordered m-0">
                         <thead>
                           <tr>
                             <th>Date</th>

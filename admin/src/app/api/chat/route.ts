@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
             chat_rate: astrologer.chat_rate,
             is_online: astrologer.is_online || false,
             rating: astrologer.rating || 0,
-            specializations: astrologer.specializations || []
+            skills: astrologer.skills || []
           } : null,
           status: session.status,
           rate_per_minute: session.rate_per_minute,
@@ -362,7 +362,7 @@ export async function POST(request: NextRequest) {
           profile_image: astrologer.profile_image || '',
           chat_rate: astrologer.chat_rate,
           rating: astrologer.rating || 0,
-          specializations: astrologer.specializations || []
+          skills: astrologer.skills || []
         }
       }
     }, { status: 201 });

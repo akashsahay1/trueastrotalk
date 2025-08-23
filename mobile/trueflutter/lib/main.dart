@@ -13,6 +13,7 @@ import 'screens/home.dart';
 import 'services/service_locator.dart';
 import 'services/auth/auth_service.dart';
 import 'services/local/local_storage_service.dart';
+import 'services/call/call_quality_settings_service.dart';
 import 'services/network/dio_client.dart';
 import 'services/payment/razorpay_service.dart';
 import 'services/notifications/notification_service.dart';
@@ -43,6 +44,10 @@ void main() async {
   // Initialize local storage
   final localStorage = getIt<LocalStorageService>();
   await localStorage.init();
+
+  // Initialize call quality settings
+  final callQualitySettings = getIt<CallQualitySettings>();
+  await callQualitySettings.loadSettings();
 
   // Initialize payment configuration
   try {

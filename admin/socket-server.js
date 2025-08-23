@@ -51,6 +51,17 @@ async function getDbConnection() {
 io.use(async (socket, next) => {
   try {
     console.log('🔐 Authentication attempt:', socket.handshake.auth);
+    
+    // Check if this is a test connection
+    const isTestConnection = socket.handshake.auth.test === true;
+    if (isTestConnection) {
+      console.log('🧪 Test connection allowed');
+      socket.data.userId = 'test-user';
+      socket.data.userType = 'test';
+      socket.data.isTestConnection = true;
+      return next();
+    }
+    
     const token = socket.handshake.auth.token;
     if (!token) {
       console.log('❌ No token provided');
@@ -96,6 +107,18 @@ io.on('connection', (socket) => {
   
   // Presence handlers
   socket.on('get_online_status', (data) => handleGetOnlineStatus(socket, data));
+  
+  // Test message handler
+  socket.on('test-message', (data) => {
+    console.log('🧪 Received test message:', data);
+    socket.emit('test-response', { 
+      message: 'Test message received successfully!',
+      timestamp: new Date(),
+      socketId: socket.id,
+      data: data
+    });
+  });
+  
   socket.on('disconnect', () => handleDisconnect(socket));
 });
 
@@ -104,6 +127,7 @@ async function handleAuthentication(socket) {
   try {
     const userId = socket.data.userId;
     const userType = socket.data.userType;
+    const isTestConnection = socket.data.isTestConnection;
     
     // Store user connection
     connectedUsers.set(socket.id, {
@@ -111,7 +135,8 @@ async function handleAuthentication(socket) {
       userId,
       userType,
       isOnline: true,
-      lastSeen: new Date()
+      lastSeen: new Date(),
+      isTestConnection
     });
     
     // Update user-socket mapping
@@ -121,48 +146,53 @@ async function handleAuthentication(socket) {
     socket.join(`user_${userId}`);
     
     // Join type-specific room
-    socket.join(userType === 'astrologer' ? 'astrologers' : 'users');
-    
-    // Update online status in database
-    const { client, db } = await getDbConnection();
-    
-    if (userType === 'astrologer') {
-      await db.collection('astrologers').updateOne(
-        { _id: new ObjectId(userId) },
-        { 
-          $set: { 
-            is_online: true, 
-            last_seen: new Date(),
-            socket_id: socket.id 
-          } 
-        }
-      );
+    if (!isTestConnection) {
+      socket.join(userType === 'astrologer' ? 'astrologers' : 'users');
+      
+      // Update online status in database
+      const { client, db } = await getDbConnection();
+      
+      if (userType === 'astrologer') {
+        await db.collection('astrologers').updateOne(
+          { _id: new ObjectId(userId) },
+          { 
+            $set: { 
+              is_online: true, 
+              last_seen: new Date(),
+              socket_id: socket.id 
+            } 
+          }
+        );
+      } else {
+        await db.collection('users').updateOne(
+          { _id: new ObjectId(userId) },
+          { 
+            $set: { 
+              is_online: true, 
+              last_seen: new Date(),
+              socket_id: socket.id 
+            } 
+          }
+        );
+      }
+      
+      await client.close();
+      
+      // Notify others about online status
+      socket.broadcast.emit('user_online', { userId, userType });
     } else {
-      await db.collection('users').updateOne(
-        { _id: new ObjectId(userId) },
-        { 
-          $set: { 
-            is_online: true, 
-            last_seen: new Date(),
-            socket_id: socket.id 
-          } 
-        }
-      );
+      console.log('🧪 Test connection - skipping database updates');
     }
-    
-    await client.close();
     
     socket.emit('authenticated', { 
       success: true, 
       userId, 
       userType,
-      socketId: socket.id 
+      socketId: socket.id,
+      isTestConnection 
     });
     
-    // Notify others about online status
-    socket.broadcast.emit('user_online', { userId, userType });
-    
-    console.log(`✅ User ${userId} (${userType}) authenticated and online`);
+    console.log(`✅ User ${userId} (${userType}) authenticated and online ${isTestConnection ? '(TEST)' : ''}`);
   } catch (error) {
     console.error('❌ Authentication error:', error);
     socket.emit('authentication_error', { error: 'Authentication failed' });

@@ -103,7 +103,9 @@
       "Bash(time curl:*)",
       "Bash(cat:*)",
       "Bash(unzip:*)",
-      "Bash(dart:*)"
+      "Bash(dart:*)",
+      "Bash(./scripts/deploy-socket.sh:*)",
+      "Bash(./scripts/monitor-socket.sh:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

@@ -312,7 +312,7 @@ export default function CustomersPage() {
                     </div>
                     {/* Users Table */}
                     <div className="table-responsive">
-                      <table className="table table-striped table-bordered">
+                      <table className="table table-striped table-bordered m-0">
                         <thead>
                           <tr>
                             <th className='text-center'>
@@ -436,62 +436,67 @@ export default function CustomersPage() {
                       </table>
                     </div>
 
-                    {/* Pagination */}
-                    {pagination.totalPages > 1 && (
-                      <nav aria-label="User pagination">
-                        <ul className="pagination justify-content-center">
-                          <li className={`page-item ${!pagination.hasPrevPage ? 'disabled' : ''}`}>
-                            <button 
-                              className="page-link" 
-                              onClick={() => handlePageChange(pagination.currentPage - 1)}
-                              disabled={!pagination.hasPrevPage || loading}
-                            >
-                              Previous
-                            </button>
-                          </li>
-                          
-                          {/* Page numbers */}
-                          {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                            let pageNumber;
-                            if (pagination.totalPages <= 5) {
-                              pageNumber = i + 1;
-                            } else if (pagination.currentPage <= 3) {
-                              pageNumber = i + 1;
-                            } else if (pagination.currentPage >= pagination.totalPages - 2) {
-                              pageNumber = pagination.totalPages - 4 + i;
-                            } else {
-                              pageNumber = pagination.currentPage - 2 + i;
-                            }
-                            
-                            return (
-                              <li key={pageNumber} className={`page-item ${pagination.currentPage === pageNumber ? 'active' : ''}`}>
-                                <button 
-                                  className="page-link" 
-                                  onClick={() => handlePageChange(pageNumber)}
-                                  disabled={loading}
-                                >
-                                  {pageNumber}
-                                </button>
-                              </li>
-                            );
-                          })}
-                          
-                          <li className={`page-item ${!pagination.hasNextPage ? 'disabled' : ''}`}>
-                            <button 
-                              className="page-link" 
-                              onClick={() => handlePageChange(pagination.currentPage + 1)}
-                              disabled={!pagination.hasNextPage || loading}
-                            >
-                              Next
-                            </button>
-                          </li>
-                        </ul>
-                      </nav>
-                    )}
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Pagination */}
+            {pagination.totalPages > 1 && (
+              <div className="row">
+                <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+                  <nav aria-label="User pagination">
+                    <ul className="pagination justify-content-center">
+                      <li className={`page-item ${!pagination.hasPrevPage ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={() => handlePageChange(pagination.currentPage - 1)}
+                          disabled={!pagination.hasPrevPage || loading}
+                        >
+                          Previous
+                        </button>
+                      </li>
+                      
+                      {/* Page numbers */}
+                      {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                        let pageNumber;
+                        if (pagination.totalPages <= 5) {
+                          pageNumber = i + 1;
+                        } else if (pagination.currentPage <= 3) {
+                          pageNumber = i + 1;
+                        } else if (pagination.currentPage >= pagination.totalPages - 2) {
+                          pageNumber = pagination.totalPages - 4 + i;
+                        } else {
+                          pageNumber = pagination.currentPage - 2 + i;
+                        }
+                        
+                        return (
+                          <li key={pageNumber} className={`page-item ${pagination.currentPage === pageNumber ? 'active' : ''}`}>
+                            <button 
+                              className="page-link" 
+                              onClick={() => handlePageChange(pageNumber)}
+                              disabled={loading}
+                            >
+                              {pageNumber}
+                            </button>
+                          </li>
+                        );
+                      })}
+                      
+                      <li className={`page-item ${!pagination.hasNextPage ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={() => handlePageChange(pagination.currentPage + 1)}
+                          disabled={!pagination.hasNextPage || loading}
+                        >
+                          Next
+                        </button>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

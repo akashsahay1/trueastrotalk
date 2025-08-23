@@ -407,7 +407,7 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
       });
 
       // Set secure HTTP-only cookie
-      response.cookies.set('auth_token', accessToken, {
+      response.cookies.set('auth-token', accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',

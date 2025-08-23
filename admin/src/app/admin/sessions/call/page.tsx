@@ -431,7 +431,7 @@ export default function CallSessionsPage() {
 
                     {/* Sessions Table */}
                     <div className="table-responsive">
-                      <table className="table table-striped table-bordered session-table">
+                      <table className="table table-striped table-bordered session-table m-0">
                         <thead>
                           <tr>
                             <th>

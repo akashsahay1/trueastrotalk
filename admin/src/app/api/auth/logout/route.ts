@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     // Extract token from multiple sources (header, cookies)
     let token = JWTSecurity.extractTokenFromHeader(request);
     if (!token) {
-      token = JWTSecurity.extractTokenFromCookies(request, 'auth_token');
+      token = JWTSecurity.extractTokenFromCookies(request, 'auth-token');
     }
     if (!token) {
       token = JWTSecurity.extractTokenFromCookies(request, 'auth-token'); // Legacy support
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       maxAge: 0 // This expires the cookie immediately
     };
 
-    response.cookies.set('auth_token', '', cookieOptions);
+    response.cookies.set('auth-token', '', cookieOptions);
     response.cookies.set('refresh_token', '', cookieOptions);
     response.cookies.set('auth-token', '', cookieOptions); // Legacy support
 
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       maxAge: 0
     };
 
-    response.cookies.set('auth_token', '', cookieOptions);
+    response.cookies.set('auth-token', '', cookieOptions);
     response.cookies.set('refresh_token', '', cookieOptions);
     response.cookies.set('auth-token', '', cookieOptions);
 

@@ -33,6 +33,12 @@ export async function GET(request: NextRequest) {
     const sessionType = searchParams.get('type'); // call, chat, video
     const status = searchParams.get('status');
     const search = searchParams.get('search') || '';
+    const astrologer = searchParams.get('astrologer') || '';
+    const fromDate = searchParams.get('fromDate') || '';
+    const toDate = searchParams.get('toDate') || '';
+    const minAmount = searchParams.get('minAmount') || '';
+    const maxAmount = searchParams.get('maxAmount') || '';
+    const rating = searchParams.get('rating') || '';
     
     // Calculate skip
     const skip = (page - 1) * limit;
@@ -82,6 +88,43 @@ export async function GET(request: NextRequest) {
         { customer_phone: { $regex: search, $options: 'i' } },
         { session_id: { $regex: search, $options: 'i' } }
       ];
+    }
+
+    // Additional filters
+    if (astrologer) {
+      mongoQuery.astrologer_name = { $regex: astrologer, $options: 'i' };
+    }
+
+    // Date range filter
+    if (fromDate || toDate) {
+      const dateQuery: Record<string, Date> = {};
+      if (fromDate) {
+        dateQuery.$gte = new Date(fromDate);
+      }
+      if (toDate) {
+        // Add one day to include the entire toDate
+        const endDate = new Date(toDate);
+        endDate.setDate(endDate.getDate() + 1);
+        dateQuery.$lt = endDate;
+      }
+      mongoQuery.created_at = dateQuery;
+    }
+
+    // Amount range filter
+    if (minAmount || maxAmount) {
+      const amountQuery: Record<string, number> = {};
+      if (minAmount) {
+        amountQuery.$gte = parseFloat(minAmount);
+      }
+      if (maxAmount) {
+        amountQuery.$lte = parseFloat(maxAmount);
+      }
+      mongoQuery.total_amount = amountQuery;
+    }
+
+    // Rating filter (minimum rating)
+    if (rating) {
+      mongoQuery.customer_rating = { $gte: parseInt(rating) };
     }
 
     // Get total count for pagination

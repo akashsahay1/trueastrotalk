@@ -26,7 +26,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Get the token from cookies
-  const token = request.cookies.get('auth_token')?.value;
+  const token = request.cookies.get('auth-token')?.value;
 
   // Check if it's a public route
   if (publicRoutes.includes(pathname)) {
@@ -39,7 +39,7 @@ export async function middleware(request: NextRequest) {
 				console.error('JWT verification failed:', error);
         // Token is invalid, let them access login page
         const response = NextResponse.next();
-        response.cookies.delete('auth_token');
+        response.cookies.delete('auth-token');
         return response;
       }
     }
@@ -65,7 +65,7 @@ export async function middleware(request: NextRequest) {
 			console.error('JWT verification failed:', error);
       // Token is invalid, redirect to login
       const response = NextResponse.redirect(new URL('/admin/login', request.url));
-      response.cookies.delete('auth_token');
+      response.cookies.delete('auth-token');
       return response;
     }
   }

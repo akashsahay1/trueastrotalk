@@ -16,8 +16,10 @@ import 'payment/razorpay_service.dart';
 import 'email/email_service.dart';
 import 'socket/socket_service.dart';
 import 'webrtc/webrtc_service.dart';
+import 'network/network_diagnostics_service.dart';
 import 'chat/chat_service.dart';
 import 'call/call_service.dart';
+import 'call/call_quality_settings_service.dart';
 import 'wallet/wallet_service.dart';
 import 'notifications/notification_service.dart';
 
@@ -98,6 +100,11 @@ void setupServiceLocator() {
     WebRTCService.instance,
   );
 
+  // Register Network Diagnostics service
+  getIt.registerSingleton<NetworkDiagnosticsService>(
+    NetworkDiagnosticsService.instance,
+  );
+
   // Register Call service
   getIt.registerSingleton<CallService>(
     CallService.instance,
@@ -111,5 +118,10 @@ void setupServiceLocator() {
   // Register Notification service
   getIt.registerSingleton<NotificationService>(
     NotificationService(),
+  );
+
+  // Register Call Quality Settings service
+  getIt.registerSingleton<CallQualitySettings>(
+    CallQualitySettings.instance,
   );
 }

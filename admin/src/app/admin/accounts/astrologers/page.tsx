@@ -20,7 +20,7 @@ interface User {
   is_online: boolean;
   city: string;
   state: string;
-  skills: string[];
+  skills: string[] | string;
   commission_rates: {
     call_rate: number;
     chat_rate: number;
