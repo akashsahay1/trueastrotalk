@@ -192,7 +192,7 @@ export class UploadService {
     await client.connect();
     
     const db = client.db(DB_NAME);
-    const mediaCollection = db.collection('media_files');
+    const mediaCollection = db.collection('media');
 
     const fileData = {
       filename: data.filename,
@@ -224,7 +224,7 @@ export class UploadService {
     await client.connect();
     
     const db = client.db(DB_NAME);
-    const mediaCollection = db.collection('media_files');
+    const mediaCollection = db.collection('media');
 
     const skip = (page - 1) * limit;
     const query = fileType ? { file_type: fileType } : {};
@@ -259,7 +259,7 @@ export class UploadService {
       await client.connect();
       
       const db = client.db(DB_NAME);
-      const mediaCollection = db.collection('media_files');
+      const mediaCollection = db.collection('media');
 
       // Get file info before deletion
       const file = await mediaCollection.findOne({ _id: new ObjectId(fileId) });

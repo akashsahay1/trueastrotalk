@@ -67,19 +67,16 @@ export async function POST(request: NextRequest) {
     await client.connect();
     
     const db = client.db(DB_NAME);
-    const mediaCollection = db.collection('media_files');
+    const mediaCollection = db.collection('media');
 
     const fileData = {
-      filename,
+      file_name: filename,
       original_name: file.name,
       file_path: `/uploads/${year}/${month}/${filename}`,
       file_size: file.size,
       mime_type: file.type,
-      file_type: 'admin_upload', // Admin uploaded file
-      uploaded_by: null, // Could be extended to track admin user
-      associated_record: null, // Could be linked to specific records later
-      is_external: false, // This is an internal upload
-      uploaded_at: new Date(),
+      category: 'image',
+      uploaded_by: null,
       created_at: new Date(),
       updated_at: new Date()
     };

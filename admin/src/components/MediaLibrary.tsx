@@ -6,12 +6,14 @@ import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert
 
 interface MediaFile {
   _id: string;
-  filename: string;
+  file_name: string;
+  filename?: string; // backward compatibility
   original_name: string;
   file_path: string;
   file_size: number;
   mime_type: string;
-  uploaded_at: string;
+  created_at: string;
+  uploaded_at?: string; // backward compatibility
 }
 
 interface MediaLibraryProps {
@@ -55,7 +57,7 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
     const query = searchQuery.toLowerCase().trim();
     return mediaFiles.filter(file => 
       file.original_name.toLowerCase().includes(query) ||
-      file.filename.toLowerCase().includes(query)
+      (file.file_name || file.filename || '').toLowerCase().includes(query)
     );
   }, [mediaFiles, searchQuery]);
 
@@ -292,7 +294,8 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (file: MediaFile) => {
+    const dateString = file.created_at || file.uploaded_at || '';
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -496,12 +499,12 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
                               >
                                 <strong>{file.original_name}</strong>
                                 <br />
-                                <small className="text-muted">{file.filename}</small>
+                                <small className="text-muted">{file.file_name || file.filename}</small>
                               </div>
                             </td>
                             <td>{formatFileSize(file.file_size)}</td>
                             <td>
-                              <small>{formatDate(file.uploaded_at)}</small>
+                              <small>{formatDate(file)}</small>
                             </td>
                             <td className="media-actions-cell">
                               <button
@@ -577,7 +580,7 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
                     
                     <div className="mb-3">
                       <label className="form-label small text-muted mb-1">Uploaded</label>
-                      <p className="mb-0 small">{formatDate(sidebarFile.uploaded_at)}</p>
+                      <p className="mb-0 small">{formatDate(sidebarFile)}</p>
                     </div>
                     
                     <div className="mb-3">

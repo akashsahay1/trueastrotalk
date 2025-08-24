@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     await client.connect();
     
     const db = client.db(DB_NAME);
-    const mediaCollection = db.collection('media_files');
+    const mediaCollection = db.collection('media');
 
     // Build query with filters
     const query: Record<string, unknown> = {};

@@ -25,7 +25,7 @@ export async function DELETE(
     await client.connect();
     
     const db = client.db(DB_NAME);
-    const mediaCollection = db.collection('media_files');
+    const mediaCollection = db.collection('media');
 
     // Get file info before deleting
     const fileInfo = await mediaCollection.findOne({ _id: new ObjectId(id) });
