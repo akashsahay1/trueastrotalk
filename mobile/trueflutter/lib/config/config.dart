@@ -18,14 +18,13 @@ class Config {
   static String? _cachedLocalIP;
 
   static Future<String> _getLocalIP() async {
-    // For development, always use localhost for admin panel integration
-    // The admin panel runs on localhost:3000 with API endpoints
+    // For development, use your Mac's actual IP address so iOS can connect
     if (isDevelopment) {
-      _cachedLocalIP = 'localhost'; // Use localhost for admin panel
+      _cachedLocalIP = '192.168.0.124'; // Your Mac's IP for iOS to connect
       return _cachedLocalIP!;
     }
 
-    // For production, use localhost or production server
+    // For production, use production server
     return 'localhost';
   }
 

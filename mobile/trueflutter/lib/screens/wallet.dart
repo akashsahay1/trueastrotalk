@@ -7,6 +7,8 @@ import '../services/api/user_api_service.dart';
 import '../services/service_locator.dart';
 import '../services/payment/razorpay_service.dart';
 import '../config/config.dart';
+import '../config/payment_config.dart';
+import 'transaction_history.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -454,8 +456,11 @@ class _WalletScreenState extends State<WalletScreen> {
 
   void _showFullHistory() {
     // Navigate to full transaction history page
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Full transaction history coming soon!')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const TransactionHistoryScreen(),
+      ),
     );
   }
 
@@ -481,6 +486,24 @@ class _WalletScreenState extends State<WalletScreen> {
       if (isSimulator) {
         // For testing on simulator, show a mock payment dialog
         _showMockPaymentDialog(amount, token);
+        return;
+      }
+
+      // Initialize payment configuration
+      try {
+        await PaymentConfig.instance.initialize();
+        debugPrint('✅ Payment config initialized successfully');
+      } catch (e) {
+        debugPrint('❌ Failed to initialize payment config: $e');
+        if (mounted) {
+          Navigator.pop(context); // Close loading dialog
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Payment service not available: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
         return;
       }
 
