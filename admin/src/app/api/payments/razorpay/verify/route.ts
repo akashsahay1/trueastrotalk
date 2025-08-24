@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
 
     // Get Razorpay credentials from database
     const settingsCollection = await DatabaseService.getCollection('app_settings');
-    const config = await settingsCollection.findOne({ type: 'payment_gateway' });
+    const config = await settingsCollection.findOne({ type: 'general' });
     
     const configObj = config as Record<string, unknown>;
     const razorpayConfig = configObj?.razorpay as Record<string, unknown>;
