@@ -76,6 +76,7 @@ export async function GET(request: NextRequest) {
       category: product.category,
       subcategory: product.subcategory,
       brand: product.brand,
+      image_url: product.image_url || null,
       images: product.images || [],
       stock_quantity: product.stock_quantity,
       sku: product.sku,

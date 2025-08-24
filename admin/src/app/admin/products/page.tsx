@@ -335,14 +335,38 @@ export default function ProductsPage() {
                             />
                           </td>
                           <td>
-                            <Image
-                              src={product.image_url || '/uploads/2025/08/product-pic.jpg'}
-                              alt={product.name}
-                              width={50}
-                              height={50}
-                              className="img-thumbnail"
-                              style={{ objectFit: 'cover' }}
-                            />
+                            {product.image_url ? (
+                              <img
+                                src={product.image_url}
+                                alt={product.name}
+                                width="50"
+                                height="50"
+                                className="img-thumbnail"
+                                style={{ objectFit: 'cover' }}
+                                onError={(e) => {
+                                  console.error('Failed to load image:', product.image_url);
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <div 
+                                className="img-thumbnail d-flex align-items-center justify-content-center" 
+                                style={{ 
+                                  width: '50px', 
+                                  height: '50px', 
+                                  cursor: 'pointer',
+                                  backgroundColor: '#f8f9fa',
+                                  border: '1px dashed #dee2e6'
+                                }}
+                                onClick={() => {
+                                  // TODO: Open media library modal
+                                  console.log('Open media library for product:', product._id);
+                                }}
+                                title="Click to add image"
+                              >
+                                <i className="fas fa-image text-muted"></i>
+                              </div>
+                            )}
                           </td>
                           <td>
                             <div>

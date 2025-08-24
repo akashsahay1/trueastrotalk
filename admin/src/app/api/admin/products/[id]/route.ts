@@ -6,7 +6,7 @@ const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const DB_NAME = 'trueastrotalkDB';
 
 // Helper function to convert relative image URLs to full URLs
-function getFullImageUrl(imageUrl: string | null | undefined): string | null {
+function getFullImageUrl(imageUrl: string | null | undefined, request: NextRequest): string | null {
   if (!imageUrl || imageUrl.trim() === '') {
     return null;
   }
@@ -16,15 +16,25 @@ function getFullImageUrl(imageUrl: string | null | undefined): string | null {
     return imageUrl;
   }
   
+  // Dynamically get the base URL from the request
+  const url = new URL(request.url);
+  let host = url.host;
+  
+  // Replace 0.0.0.0 with localhost for better compatibility
+  if (host.startsWith('0.0.0.0:')) {
+    host = host.replace('0.0.0.0:', 'localhost:');
+  }
+  
+  // Use the same protocol as the request (http in dev, https in prod)
+  const protocol = url.protocol;
+  const baseUrl = `${protocol}//${host}`;
+  
   // If it's a relative path, construct full URL
   if (imageUrl.startsWith('/')) {
-    // Use production URL by default, fallback to localhost only in local development
-    const baseUrl = envConfig.NEXTAUTH_URL || 'https://www.trueastrotalk.com';
     return `${baseUrl}${imageUrl}`;
   }
   
   // If it doesn't start with /, add / prefix and then construct full URL  
-  const baseUrl = envConfig.NEXTAUTH_URL || 'https://www.trueastrotalk.com';
   return `${baseUrl}/${imageUrl}`;
 }
 
@@ -63,7 +73,7 @@ export async function GET(
     // Transform product to include full image URL
     const productWithFullUrl = {
       ...product,
-      image_url: getFullImageUrl(product.image_url)
+      image_url: getFullImageUrl(product.image_url, request)
     };
 
     return NextResponse.json({

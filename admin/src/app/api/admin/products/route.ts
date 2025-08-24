@@ -11,7 +11,7 @@ async function resolveMediaUrl(request: NextRequest, mediaId: string | ObjectId 
   if (!mediaId) return null;
   
   try {
-    const mediaFile = await db.collection('media_files').findOne({_id: new ObjectId(mediaId)});
+    const mediaFile = await db.collection('media').findOne({_id: new ObjectId(mediaId)});
     if (!mediaFile || !mediaFile.file_path) return null;
     
     // Get the actual host from the request headers
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
         // For internal images, we should update the existing media record
         // to associate it with this product
         const db = client.db(DB_NAME);
-        const mediaCollection = db.collection('media_files');
+        const mediaCollection = db.collection('media');
         
         await mediaCollection.updateOne(
           { file_path: image_url },
