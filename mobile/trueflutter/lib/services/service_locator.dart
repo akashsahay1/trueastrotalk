@@ -19,7 +19,6 @@ import 'webrtc/webrtc_service.dart';
 import 'network/network_diagnostics_service.dart';
 import 'chat/chat_service.dart';
 import 'call/call_service.dart';
-import 'call/call_quality_settings_service.dart';
 import 'wallet/wallet_service.dart';
 import 'notifications/notification_service.dart';
 
@@ -120,8 +119,5 @@ void setupServiceLocator() {
     NotificationService(),
   );
 
-  // Register Call Quality Settings service
-  getIt.registerSingleton<CallQualitySettings>(
-    CallQualitySettings.instance,
-  );
+  // Note: CallQualitySettings will be registered later in main.dart after LocalStorage is initialized
 }

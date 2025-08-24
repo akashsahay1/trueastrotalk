@@ -160,15 +160,20 @@ export async function POST(request: NextRequest) {
     // Validate Google token if provided
     let googleUserInfo = null;
     if (auth_type === 'google' && google_id_token) {
+      console.log(`🔍 Validating Google ID token for registration...`);
       googleUserInfo = await validateGoogleRegistration(google_id_token as string);
       
       if (!googleUserInfo) {
+        console.log(`❌ Google token validation failed`);
         return NextResponse.json({
           success: false,
           error: 'INVALID_GOOGLE_TOKEN',
           message: 'Invalid or expired Google token'
         }, { status: 400 });
       }
+      
+      console.log(`✅ Google token validated successfully`);
+      console.log(`👤 Google user info:`, { email: googleUserInfo.email, name: googleUserInfo.name, hasPicture: !!googleUserInfo.picture });
 
       // Verify email matches Google token
       if (googleUserInfo.email !== cleanEmail) {
@@ -221,12 +226,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Connect to database
+    console.log(`🔗 Connecting to database...`);
     const usersCollection = await DatabaseService.getCollection('users');
+    console.log(`📊 Connected to collection: users`);
 
     // Check if user already exists
+    console.log(`🔍 Checking for existing user with email: ${cleanEmail}`);
     const existingUser = await usersCollection.findOne({
       email_address: cleanEmail
     });
+    console.log(`🔍 Existing user found:`, existingUser ? 'YES' : 'NO');
+    if (existingUser) {
+      console.log(`🔍 Existing user details:`, { id: existingUser._id, email: existingUser.email_address, user_type: existingUser.user_type });
+    }
 
     if (existingUser) {
       return NextResponse.json({
@@ -290,6 +302,7 @@ export async function POST(request: NextRequest) {
       userData.google_id = googleUserInfo.email;
       userData.profile_image = googleUserInfo.picture || '';
       userData.email_verified = true;
+      console.log(`📸 Setting profile_image for Google user: ${userData.profile_image}`);
     }
 
     // Add personal information

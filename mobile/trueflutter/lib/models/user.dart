@@ -125,22 +125,95 @@ class User {
   factory User.fromJson(Map<String, dynamic> json) {
     try {
       debugPrint('🔍 User.fromJson parsing data: ${json.keys.join(', ')}');
-      debugPrint('🖼️ Profile picture fields:');
-      debugPrint('   profile_picture: ${json['profile_picture']}');
-      debugPrint('   profile_image: ${json['profile_image']}');
-      debugPrint('   google_photo_url: ${json['google_photo_url']}');
-      debugPrint('   photoUrl: ${json['photoUrl']}');
+      
+      // Test each field parsing individually to catch exact failure point
+      String testId;
+      String? testPhone;
+      String? testEmail; 
+      String testName;
+      UserRole testRole;
+      AccountStatus testAccountStatus;
+      VerificationStatus testVerificationStatus;
+      AuthType testAuthType;
+      
+      try {
+        testId = json['id']?.toString() ?? '';
+        debugPrint('✅ ID parsing successful: $testId');
+      } catch (e) {
+        debugPrint('❌ ID parsing failed: $e');
+        rethrow;
+      }
+      
+      try {
+        testPhone = json['phone_number']?.toString();
+        debugPrint('✅ Phone parsing successful: $testPhone');
+      } catch (e) {
+        debugPrint('❌ Phone parsing failed: $e');
+        rethrow;
+      }
+      
+      try {
+        testEmail = json['email_address']?.toString() ?? json['email']?.toString();
+        debugPrint('✅ Email parsing successful: $testEmail');
+      } catch (e) {
+        debugPrint('❌ Email parsing failed: $e');
+        rethrow;
+      }
+      
+      try {
+        testName = json['full_name']?.toString() ?? json['name']?.toString() ?? '';
+        debugPrint('✅ Name parsing successful: $testName');
+      } catch (e) {
+        debugPrint('❌ Name parsing failed: $e');
+        rethrow;
+      }
+      
+      try {
+        testRole = UserRoleExtension.fromString(json['user_type']?.toString() ?? json['role']?.toString() ?? 'customer');
+        debugPrint('✅ Role parsing successful: $testRole');
+      } catch (e) {
+        debugPrint('❌ Role parsing failed with user_type: ${json['user_type']}, role: ${json['role']}');
+        debugPrint('❌ Role parsing error: $e');
+        rethrow;
+      }
+      
+      try {
+        testAccountStatus = AccountStatusExtension.fromString(json['account_status']?.toString() ?? 'active');
+        debugPrint('✅ Account status parsing successful: $testAccountStatus');
+      } catch (e) {
+        debugPrint('❌ Account status parsing failed with: ${json['account_status']}');
+        debugPrint('❌ Account status parsing error: $e');
+        rethrow;
+      }
+      
+      try {
+        testVerificationStatus = _parseVerificationStatus(json);
+        debugPrint('✅ Verification status parsing successful: $testVerificationStatus');
+      } catch (e) {
+        debugPrint('❌ Verification status parsing failed with: ${json['verification_status']}');
+        debugPrint('❌ Verification status parsing error: $e');
+        rethrow;
+      }
+      
+      try {
+        testAuthType = AuthTypeExtension.fromString(json['auth_type']?.toString() ?? 'email');
+        debugPrint('✅ Auth type parsing successful: $testAuthType');
+      } catch (e) {
+        debugPrint('❌ Auth type parsing failed with: ${json['auth_type']}');
+        debugPrint('❌ Auth type parsing error: $e');
+        rethrow;
+      }
 
       return User(
-        // Basic user fields
-        id: json['id']?.toString() ?? '',
-        phone: json['phone_number']?.toString(),
-        email: json['email_address']?.toString() ?? json['email']?.toString(),
-        name: json['full_name']?.toString() ?? json['name']?.toString() ?? '',
-        role: UserRoleExtension.fromString(json['user_type']?.toString() ?? json['role']?.toString() ?? 'customer'),
-        accountStatus: AccountStatusExtension.fromString(json['account_status']?.toString() ?? 'active'),
-        verificationStatus: _parseVerificationStatus(json),
-        authType: AuthTypeExtension.fromString(json['auth_type']?.toString() ?? 'email'),
+        // Basic user fields (using tested variables)
+        id: testId,
+        phone: testPhone,
+        email: testEmail,
+        name: testName,
+        role: testRole,
+        accountStatus: testAccountStatus,
+        verificationStatus: testVerificationStatus,
+        authType: testAuthType,
         createdAt: json['created_at'] != null ? DateTime.parse(json['created_at'].toString()) : DateTime.now(),
         updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at'].toString()) : DateTime.now(),
         verifiedAt: json['verified_at'] != null ? DateTime.parse(json['verified_at'].toString()) : null,
@@ -164,12 +237,12 @@ class User {
         // Astrologer-specific fields
         isOnline: _parseBool(json['is_online']),
         bio: json['bio']?.toString(),
-        profilePicture: json['profile_picture']?.toString() ?? json['profile_image']?.toString() ?? json['google_photo_url']?.toString() ?? json['photoUrl']?.toString(),
+        profilePicture: _getProfilePicture(json),
         experienceYears: _parseInt(json['experience_years']),
         languages: _parseStringListOrString(json['languages']),
         skills: _parseStringListOrString(json['skills']),
-        qualifications: _parseStringList(json['qualifications']) ?? _parseStringList(json['specializations']),
-        certifications: _parseStringList(json['certifications']),
+        qualifications: _parseStringListOrString(json['qualifications']) ?? _parseStringListOrString(json['specializations']),
+        certifications: _parseStringListOrString(json['certifications']),
 
         // Consultation rates
         chatRate: _parseDouble(json['chat_rate']),
@@ -503,13 +576,6 @@ class User {
     return null;
   }
 
-  static List<String>? _parseStringList(dynamic value) {
-    if (value == null) return null;
-    if (value is List) {
-      return value.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).toList();
-    }
-    return null;
-  }
 
   static List<String>? _parseStringListOrString(dynamic value) {
     if (value == null) return null;
@@ -533,5 +599,24 @@ class User {
 
     // Default fallback if verification_status is missing
     return VerificationStatus.pending;
+  }
+
+  static String? _getProfilePicture(Map<String, dynamic> json) {
+    // Try different profile picture fields, but skip empty strings
+    final fields = [
+      'profile_picture', 
+      'profile_image', 
+      'google_photo_url', 
+      'photoUrl'
+    ];
+    
+    for (final field in fields) {
+      final value = json[field]?.toString();
+      if (value != null && value.isNotEmpty) {
+        return value;
+      }
+    }
+    
+    return null;
   }
 }

@@ -135,6 +135,11 @@ class Astrologer {
     if (value is List) {
       return value.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).toList();
     }
+    if (value is String) {
+      // Handle comma-separated string
+      if (value.isEmpty) return [];
+      return value.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    }
     return null;
   }
 

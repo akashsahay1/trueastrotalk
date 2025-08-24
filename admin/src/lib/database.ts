@@ -63,6 +63,8 @@ class DatabaseService {
       };
 
       console.log('✅ Database connected successfully');
+      console.log(`📊 Database URL: ${MONGODB_URL}`);
+      console.log(`📊 Database Name: ${DB_NAME}`);
       
       // Handle connection events
       client.on('close', () => {

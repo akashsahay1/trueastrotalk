@@ -567,12 +567,32 @@ class _WalletScreenState extends State<WalletScreen> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.white,
-        title: Text(
-          'Test Payment',
-          style: AppTextStyles.heading6.copyWith(
-            color: AppColors.textPrimaryLight,
-            fontWeight: FontWeight.bold,
-          ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.orange,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Simulator Detected',
+              style: AppTextStyles.heading6.copyWith(
+                color: AppColors.textPrimaryLight,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
         content: SizedBox(
           width: double.maxFinite,
@@ -583,57 +603,130 @@ class _WalletScreenState extends State<WalletScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.orange.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.3),
+                    color: Colors.orange.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.info_outline,
+                          color: Colors.orange,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'DEVELOPMENT MODE',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: Colors.orange,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                     Text(
-                      'Simulator Payment',
+                      'You are running this app on a simulator.',
                       style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.primary,
+                        color: AppColors.textPrimaryLight,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'This is a test payment for development purposes.',
+                      'Razorpay payment gateway cannot be used on simulators. To test real payments:',
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.textSecondaryLight,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '• ',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondaryLight,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            'Use a physical device (iPhone/Android)',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.textSecondaryLight,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '• ',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondaryLight,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            'Ensure backend is accessible from device',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.textSecondaryLight,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Test Amount:',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textPrimaryLight,
+                      ),
+                    ),
+                    Text(
+                      '₹${amount.toStringAsFixed(0)}',
+                      style: AppTextStyles.heading6.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Amount:',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.textPrimaryLight,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    '₹${amount.toStringAsFixed(0)}',
-                    style: AppTextStyles.heading6.copyWith(
-                      color: AppColors.success,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
               Text(
-                'Would you like to simulate a successful payment?',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.textPrimaryLight,
+                'For development testing only:',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondaryLight,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'You can simulate a successful payment to test the wallet recharge flow. This will add test money to your wallet (not real money).',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondaryLight,
                 ),
               ),
             ],
@@ -653,21 +746,22 @@ class _WalletScreenState extends State<WalletScreen> {
               ),
             ),
           ),
-          ElevatedButton(
+          ElevatedButton.icon(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
-              foregroundColor: AppColors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text(
-              'Pay Now',
+            icon: const Icon(Icons.science_outlined, size: 18),
+            label: Text(
+              'Simulate Payment',
               style: AppTextStyles.bodyMedium.copyWith(
                 fontWeight: FontWeight.w600,
                 color: AppColors.white,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: AppColors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
               ),
             ),
           ),
@@ -691,8 +785,18 @@ class _WalletScreenState extends State<WalletScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('₹${amount.toStringAsFixed(0)} added successfully! (Mock Payment)'),
-              backgroundColor: AppColors.success,
+              content: Row(
+                children: [
+                  const Icon(Icons.science_outlined, color: AppColors.white, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text('₹${amount.toStringAsFixed(0)} added (Simulator Test - Not Real Money)'),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
             ),
           );
         }

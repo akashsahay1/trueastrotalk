@@ -27,8 +27,7 @@ class AstrologerDetailsScreen extends StatefulWidget {
   State<AstrologerDetailsScreen> createState() => _AstrologerDetailsScreenState();
 }
 
-class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
   Astrologer? _astrologer;
   bool _isLoading = false;
   bool _isFavorite = false;
@@ -36,7 +35,6 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> with 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
     
     // Set initial astrologer if provided
     _astrologer = widget.astrologer;
@@ -51,7 +49,6 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> with 
 
   @override
   void dispose() {
-    _tabController.dispose();
     super.dispose();
   }
 
@@ -119,7 +116,17 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> with 
       body: CustomScrollView(
         slivers: [
           _buildSliverAppBar(),
-          SliverToBoxAdapter(child: Column(children: [_buildAstrologerHeader(), _buildTabSection()])),
+          SliverToBoxAdapter(
+            child: Column(
+              children: [
+                _buildAstrologerHeader(),
+                _buildAboutCard(),
+                _buildSkillsCard(),
+                _buildReviewsCard(),
+                const SizedBox(height: 100), // Space for bottom action bar
+              ],
+            ),
+          ),
         ],
       ),
       floatingActionButton: _astrologer!.isOnline
@@ -165,19 +172,37 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> with 
             gradient: LinearGradient(colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)], begin: Alignment.topCenter, end: Alignment.bottomCenter),
           ),
           child: SafeArea(
-            child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const SizedBox(height: 60), // Space for app bar
-                  _buildProfileImage(),
-                  const SizedBox(height: Dimensions.spacingMd),
-                  Text(
-                    _astrologer!.fullName,
-                    style: AppTextStyles.heading4.copyWith(color: AppColors.white, fontWeight: FontWeight.bold),
+                  Row(
+                    children: [
+                      _buildProfileImage(),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              _astrologer!.fullName,
+                              style: AppTextStyles.heading4.copyWith(
+                                color: AppColors.white, 
+                                fontWeight: FontWeight.bold,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 8),
+                            _buildOnlineStatus(),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: Dimensions.spacingSm),
-                  _buildOnlineStatus(),
                 ],
               ),
             ),
@@ -292,233 +317,272 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> with 
   Widget _buildAstrologerHeader() {
     return Container(
       margin: const EdgeInsets.all(Dimensions.paddingLg),
-      padding: const EdgeInsets.all(Dimensions.paddingLg),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(Dimensions.radiusLg),
-        boxShadow: [BoxShadow(color: AppColors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.1), width: 1),
       ),
       child: Column(
         children: [
-          // Rating and Experience Row
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatItem(icon: Icons.star, iconColor: AppColors.warning, value: _astrologer!.ratingText, label: '${_astrologer!.totalReviews} Reviews'),
+          // Stats Row with enhanced design
+          Container(
+            padding: const EdgeInsets.all(Dimensions.paddingLg),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primary,
+                  AppColors.primary.withValues(alpha: 0.9),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              Container(width: 1, height: 40, color: AppColors.borderLight),
-              Expanded(
-                child: _buildStatItem(icon: Icons.work_outline, iconColor: AppColors.info, value: '${_astrologer!.experienceYears}+', label: 'Years Experience'),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(Dimensions.radiusLg),
+                topRight: Radius.circular(Dimensions.radiusLg),
               ),
-              Container(width: 1, height: 40, color: AppColors.borderLight),
-              Expanded(
-                child: _buildStatItem(icon: Icons.chat_bubble_outline, iconColor: AppColors.success, value: _astrologer!.totalConsultations.toString(), label: 'Consultations'),
-              ),
-            ],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildEnhancedStatItem(
+                    icon: Icons.star, 
+                    iconColor: Colors.white,
+                    value: _astrologer!.ratingText, 
+                    label: '${_astrologer!.totalReviews} Reviews',
+                    bgColor: Colors.white.withValues(alpha: 0.2),
+                    textColor: Colors.white,
+                  ),
+                ),
+                Container(width: 1, height: 50, color: Colors.white.withValues(alpha: 0.3)),
+                Expanded(
+                  child: _buildEnhancedStatItem(
+                    icon: Icons.work_outline, 
+                    iconColor: Colors.white,
+                    value: '${_astrologer!.experienceYears}+', 
+                    label: 'Years Exp',
+                    bgColor: Colors.white.withValues(alpha: 0.2),
+                    textColor: Colors.white,
+                  ),
+                ),
+                Container(width: 1, height: 50, color: Colors.white.withValues(alpha: 0.3)),
+                Expanded(
+                  child: _buildEnhancedStatItem(
+                    icon: Icons.people_outline, 
+                    iconColor: Colors.white,
+                    value: _astrologer!.totalConsultations.toString(), 
+                    label: 'Sessions',
+                    bgColor: Colors.white.withValues(alpha: 0.2),
+                    textColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: Dimensions.spacingLg),
-          // Pricing Row
-          Row(
-            children: [
-              Expanded(
-                child: _buildPricingCard(title: 'Chat', price: _astrologer!.chatRate, icon: Icons.chat),
+          // Enhanced Pricing Section
+          Container(
+            padding: const EdgeInsets.all(Dimensions.paddingLg),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(Dimensions.radiusLg),
+                bottomRight: Radius.circular(Dimensions.radiusLg),
               ),
-              const SizedBox(width: Dimensions.spacingMd),
-              Expanded(
-                child: _buildPricingCard(title: 'Call', price: _astrologer!.callRate, icon: Icons.call),
-              ),
-              const SizedBox(width: Dimensions.spacingMd),
-              Expanded(
-                child: _buildPricingCard(title: 'Video', price: _astrologer!.videoRate, icon: Icons.videocam),
-              ),
-            ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.monetization_on_outlined, color: AppColors.primary, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Service Pricing',
+                      style: AppTextStyles.bodyLarge.copyWith(
+                        fontWeight: FontWeight.bold, 
+                        color: AppColors.textPrimaryLight,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: Dimensions.spacingMd),
+                Column(
+                  children: [
+                    _buildSimplePricingCard(
+                      title: 'Chat',
+                      price: _astrologer!.chatRate,
+                      icon: Icons.chat_bubble,
+                      isHighlighted: false,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildSimplePricingCard(
+                      title: 'Call',
+                      price: _astrologer!.callRate,
+                      icon: Icons.call,
+                      isHighlighted: true,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildSimplePricingCard(
+                      title: 'Video',
+                      price: _astrologer!.videoRate,
+                      icon: Icons.videocam,
+                      isHighlighted: false,
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatItem({required IconData icon, required Color iconColor, required String value, required String label}) {
-    return Column(
-      children: [
-        Icon(icon, color: iconColor, size: 24),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          style: AppTextStyles.heading6.copyWith(fontWeight: FontWeight.bold, color: AppColors.textPrimaryLight),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryLight),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPricingCard({required String title, required double price, required IconData icon}) {
+  Widget _buildEnhancedStatItem({
+    required IconData icon, 
+    required Color iconColor, 
+    required String value, 
+    required String label,
+    required Color bgColor,
+    required Color textColor,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(Dimensions.paddingMd),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(Dimensions.radiusMd),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       child: Column(
         children: [
-          Icon(icon, color: AppColors.primary, size: 24),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppColors.textPrimaryLight),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            price == 0 ? 'FREE' : '₹${price.toInt()}/min',
-            style: AppTextStyles.bodySmall.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTabSection() {
-    return Column(
-      children: [
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: Dimensions.paddingLg),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(Dimensions.radiusLg),
-            boxShadow: [BoxShadow(color: AppColors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2))],
-          ),
-          child: TabBar(
-            controller: _tabController,
-            indicator: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(Dimensions.radiusLg)),
-            labelColor: AppColors.white,
-            unselectedLabelColor: AppColors.textSecondaryLight,
-            labelStyle: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
-            unselectedLabelStyle: AppTextStyles.bodyMedium,
-            indicatorSize: TabBarIndicatorSize.tab,
-            dividerColor: Colors.transparent,
-            tabs: const [
-              Tab(text: 'About'),
-              Tab(text: 'Skills'),
-              Tab(text: 'Reviews'),
-            ],
-          ),
-        ),
-        const SizedBox(height: Dimensions.spacingLg),
-        SizedBox(
-          height: 300,
-          child: TabBarView(controller: _tabController, children: [_buildAboutTab(), _buildSpecializationsTab(), _buildReviewsTab()]),
-        ),
-        const SizedBox(height: 100), // Space for bottom action bar
-      ],
-    );
-  }
-
-  Widget _buildAboutTab() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: Dimensions.paddingLg, vertical: Dimensions.paddingLg),
-      padding: const EdgeInsets.all(30),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(Dimensions.radiusLg),
-        boxShadow: [BoxShadow(color: AppColors.black.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 2))],
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'About ${_astrologer!.fullName}',
-              style: AppTextStyles.heading6.copyWith(fontWeight: FontWeight.bold, color: AppColors.textPrimaryLight),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
             ),
-            const SizedBox(height: 10),
-            Text(
-              _astrologer!.bio ?? 'Experienced astrologer with ${_astrologer!.experienceYears} years of practice. Specializes in providing accurate readings and guidance to help you navigate life\'s challenges.',
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimaryLight, height: 1.5),
+            child: Icon(icon, color: iconColor, size: 24),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: AppTextStyles.heading5.copyWith(
+              fontWeight: FontWeight.bold, 
+              color: textColor,
+              fontSize: 18,
             ),
-            const SizedBox(height: Dimensions.spacingLg),
-            _buildInfoRow('Languages', _astrologer!.languagesText),
-            const SizedBox(height: Dimensions.spacingMd),
-            _buildInfoRow('Experience', '${_astrologer!.experienceYears} years'),
-            const SizedBox(height: Dimensions.spacingMd),
-            _buildInfoRow('Status', _astrologer!.verificationStatus.name),
-            const SizedBox(height: Dimensions.spacingMd),
-            _buildInfoRow('Phone', _astrologer!.phoneNumber ?? 'Not provided'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 100,
-          child: Text(
+          ),
+          const SizedBox(height: 4),
+          Text(
             label,
-            style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppColors.textSecondaryLight),
+            style: AppTextStyles.bodySmall.copyWith(
+              color: textColor.withValues(alpha: 0.8),
+              fontWeight: FontWeight.w500,
+              fontSize: 11,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-        ),
-        const SizedBox(width: Dimensions.spacingMd),
-        Expanded(
-          child: Text(value, style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimaryLight)),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildSpecializationsTab() {
+  Widget _buildSimplePricingCard({
+    required String title,
+    required double price,
+    required IconData icon,
+    required bool isHighlighted,
+  }) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: Dimensions.paddingLg),
-      padding: const EdgeInsets.all(Dimensions.paddingLg),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(Dimensions.radiusLg),
-        boxShadow: [BoxShadow(color: AppColors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2))],
+        color: isHighlighted ? AppColors.primary : AppColors.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.2), 
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.1),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Specializations',
-              style: AppTextStyles.heading6.copyWith(fontWeight: FontWeight.bold, color: AppColors.textPrimaryLight),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: isHighlighted 
+                  ? Colors.white.withValues(alpha: 0.2)
+                  : AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
             ),
-            const SizedBox(height: Dimensions.spacingMd),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _astrologer!.skills.map((skill) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingMd, vertical: Dimensions.paddingSm),
+            child: Icon(
+              icon, 
+              color: isHighlighted ? Colors.white : AppColors.primary, 
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  title,
+                  style: AppTextStyles.bodyLarge.copyWith(
+                    fontWeight: FontWeight.bold, 
+                    color: isHighlighted ? Colors.white : AppColors.textPrimaryLight,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                    color: isHighlighted 
+                        ? Colors.white.withValues(alpha: 0.9)
+                        : AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
-                    skill,
-                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
+                    price == 0 ? 'FREE' : '₹${price.toInt()}/min',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
                   ),
-                );
-              }).toList(),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildReviewsTab() {
+  Widget _buildAboutCard() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: Dimensions.paddingLg),
+      margin: const EdgeInsets.all(Dimensions.paddingLg),
       padding: const EdgeInsets.all(Dimensions.paddingLg),
       decoration: BoxDecoration(
         color: AppColors.white,
@@ -526,53 +590,254 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> with 
         boxShadow: [BoxShadow(color: AppColors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(Dimensions.paddingMd),
-                decoration: BoxDecoration(color: AppColors.warning.withValues(alpha: 0.1), shape: BoxShape.circle),
-                child: Icon(Icons.star, color: AppColors.warning, size: 32),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.person, color: AppColors.primary, size: 24),
               ),
-              const SizedBox(width: Dimensions.spacingMd),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _astrologer!.ratingText,
-                    style: AppTextStyles.heading4.copyWith(fontWeight: FontWeight.bold, color: AppColors.textPrimaryLight),
-                  ),
-                  Text('${_astrologer!.totalReviews} Reviews', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight)),
-                ],
+              const SizedBox(width: 12),
+              Text(
+                'About ${_astrologer!.fullName}',
+                style: AppTextStyles.heading6.copyWith(fontWeight: FontWeight.bold, color: AppColors.textPrimaryLight),
               ),
             ],
           ),
           const SizedBox(height: Dimensions.spacingLg),
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.rate_review_outlined, size: 48, color: AppColors.textSecondaryLight),
-                  const SizedBox(height: Dimensions.spacingMd),
-                  Text(
-                    'Reviews Coming Soon',
-                    style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600, color: AppColors.textSecondaryLight),
-                  ),
-                  const SizedBox(height: Dimensions.spacingSm),
-                  Text(
-                    'User reviews will be displayed here',
-                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryLight),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+          Text(
+            _astrologer!.bio ?? 'Experienced astrologer with ${_astrologer!.experienceYears} years of practice. Specializes in providing accurate readings and guidance to help you navigate life\'s challenges.',
+            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimaryLight, height: 1.6),
+          ),
+          const SizedBox(height: Dimensions.spacingLg),
+          _buildInfoRow('Languages', _astrologer!.languagesText),
+          const SizedBox(height: Dimensions.spacingMd),
+          _buildInfoRow('Experience', '${_astrologer!.experienceYears} years'),
+          const SizedBox(height: Dimensions.spacingMd),
+          _buildInfoRow('Verification', _astrologer!.verificationStatus.name),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkillsCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: Dimensions.paddingLg, vertical: 8),
+      padding: const EdgeInsets.all(Dimensions.paddingLg),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(Dimensions.radiusLg),
+        boxShadow: [BoxShadow(color: AppColors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.auto_graph, color: AppColors.success, size: 24),
               ),
+              const SizedBox(width: 12),
+              Text(
+                'Skills & Specializations',
+                style: AppTextStyles.heading6.copyWith(fontWeight: FontWeight.bold, color: AppColors.textPrimaryLight),
+              ),
+            ],
+          ),
+          const SizedBox(height: Dimensions.spacingLg),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _astrologer!.skills.map((skill) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.primary.withValues(alpha: 0.1), AppColors.primary.withValues(alpha: 0.05)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  skill,
+                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewsCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: Dimensions.paddingLg, vertical: 8),
+      padding: const EdgeInsets.all(Dimensions.paddingLg),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(Dimensions.radiusLg),
+        boxShadow: [BoxShadow(color: AppColors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.star, color: AppColors.warning, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Reviews & Ratings',
+                style: AppTextStyles.heading6.copyWith(fontWeight: FontWeight.bold, color: AppColors.textPrimaryLight),
+              ),
+            ],
+          ),
+          const SizedBox(height: Dimensions.spacingLg),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(Dimensions.paddingLg),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.warning.withValues(alpha: 0.1), AppColors.warning.withValues(alpha: 0.05)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      _astrologer!.ratingText,
+                      style: AppTextStyles.heading3.copyWith(fontWeight: FontWeight.bold, color: AppColors.warning),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: List.generate(5, (index) {
+                        return Icon(
+                          index < _astrologer!.rating.floor() ? Icons.star : Icons.star_border,
+                          color: AppColors.warning,
+                          size: 16,
+                        );
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: Dimensions.spacingLg),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${_astrologer!.totalReviews} Reviews',
+                      style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600, color: AppColors.textPrimaryLight),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_astrologer!.totalConsultations} Consultations',
+                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        'Verified Astrologer',
+                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.success, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Dimensions.spacingLg),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.grey100,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.borderLight),
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.rate_review_outlined, size: 32, color: AppColors.textSecondaryLight),
+                const SizedBox(height: 8),
+                Text(
+                  'Detailed Reviews Coming Soon',
+                  style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppColors.textSecondaryLight),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'User reviews and feedback will be displayed here',
+                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryLight),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
+
+
+  Widget _buildInfoRow(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.grey50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(
+              label,
+              style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600, color: AppColors.textSecondaryLight),
+            ),
+          ),
+          const SizedBox(width: Dimensions.spacingMd),
+          Expanded(
+            child: Text(
+              value, 
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimaryLight, fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
 
   Widget _buildBottomActionBar() {
     return Container(
@@ -617,7 +882,7 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> with 
                     onPressed: _astrologer!.isOnline ? () => _startChat() : null,
                     icon: const Icon(Icons.chat, size: 20),
                     label: Text(
-                      _astrologer!.chatRate == 0 ? 'FREE CHAT' : 'CHAT ₹${_astrologer!.chatRate.toInt()}/min',
+                      'CHAT',
                       style: AppTextStyles.buttonMedium,
                     ),
                     style: ElevatedButton.styleFrom(
@@ -634,7 +899,7 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> with 
                   child: ElevatedButton.icon(
                     onPressed: _astrologer!.isOnline ? () => _startCall() : null,
                     icon: const Icon(Icons.call, size: 20),
-                    label: Text('CALL ₹${_astrologer!.callRate.toInt()}/min', style: AppTextStyles.buttonMedium),
+                    label: Text('CALL', style: AppTextStyles.buttonMedium),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _astrologer!.isOnline ? AppColors.primary : AppColors.grey400,
                       foregroundColor: AppColors.white,

@@ -46,12 +46,20 @@ class DioClient {
       );
     }
 
-    // Add error handling interceptor
+    // Add error handling interceptor with automatic token refresh
     _dio.interceptors.add(
       InterceptorsWrapper(
         onError: (DioException error, ErrorInterceptorHandler handler) {
           debugPrint('DIO Error: ${error.message}');
           debugPrint('DIO Error Response: ${error.response?.data}');
+          
+          // Handle 401 Unauthorized - token might be expired
+          if (error.response?.statusCode == 401) {
+            debugPrint('🔄 Token may be expired - clearing auth data');
+            // Clear the token to force re-login
+            clearAuthToken();
+          }
+          
           handler.next(error);
         },
       ),

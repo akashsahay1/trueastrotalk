@@ -1,126 +1,126 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../../lib/database';
+import NotificationService, { 
+  NotificationType, 
+  NotificationPriority,
+  NotificationChannel 
+} from '../../../../lib/notifications';
+import { 
+  SecurityMiddleware, 
+  InputSanitizer 
+} from '../../../../lib/security';
 
 // POST - Send push notification
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    console.log(`🔔 Push notification request from IP: ${ip}`);
+
+    // Authenticate user (only admins can send notifications)
+    let authenticatedUser;
+    try {
+      authenticatedUser = await SecurityMiddleware.authenticateRequest(request);
+    } catch {
+      return NextResponse.json({
+        success: false,
+        error: 'AUTHENTICATION_REQUIRED',
+        message: 'Valid authentication token is required'
+      }, { status: 401 });
+    }
+
+    // Only administrators can send push notifications
+    if (authenticatedUser.user_type !== 'administrator') {
+      return NextResponse.json({
+        success: false,
+        error: 'ACCESS_DENIED',
+        message: 'Only administrators can send push notifications'
+      }, { status: 403 });
+    }
+
     const body = await request.json();
+    const sanitizedBody = InputSanitizer.sanitizeMongoQuery(body);
+    
     const { 
       type, 
       recipient_id, 
-      recipient_type, // 'user' or 'astrologer'
+      recipient_type, // 'customer' or 'astrologer'
       title, 
       message, 
       data = {},
-      sound = 'default'
-    } = body;
+      priority = NotificationPriority.NORMAL,
+      image_url,
+      action_url
+    } = sanitizedBody;
 
     if (!type || !recipient_id || !title || !message) {
       return NextResponse.json({
         success: false,
-        error: 'Missing required fields',
+        error: 'MISSING_REQUIRED_FIELDS',
         message: 'Type, recipient ID, title, and message are required'
       }, { status: 400 });
     }
 
-    const notificationsCollection = await DatabaseService.getCollection('notifications');
+    // Validate notification type
+    if (!Object.values(NotificationType).includes(type as NotificationType)) {
+      return NextResponse.json({
+        success: false,
+        error: 'INVALID_NOTIFICATION_TYPE',
+        message: 'Invalid notification type'
+      }, { status: 400 });
+    }
+
     const usersCollection = await DatabaseService.getCollection('users');
 
     // Get recipient details and FCM token
-    let recipient;
-    let fcmToken;
-
-    if (recipient_type === 'user') {
-      recipient = await usersCollection.findOne({ 
-        _id: new ObjectId(recipient_id as string),
-        user_type: 'customer'
-      });
-      fcmToken = recipient?.fcm_token;
-    } else {
-      recipient = await usersCollection.findOne({ 
-        _id: new ObjectId(recipient_id as string),
-        user_type: 'astrologer'
-      });
-      fcmToken = recipient?.fcm_token;
-    }
+    const recipient = await usersCollection.findOne({ 
+      _id: new ObjectId(recipient_id as string),
+      user_type: recipient_type || 'customer'
+    });
 
     if (!recipient) {
       return NextResponse.json({
         success: false,
-        error: 'Recipient not found',
+        error: 'RECIPIENT_NOT_FOUND',
         message: 'Recipient not found'
       }, { status: 404 });
     }
 
-    // Store notification in database
-    const notificationData = {
-      type: type,
-      recipient_id: recipient_id,
-      recipient_type: recipient_type,
-      title: title,
-      message: message,
-      data: data,
-      sound: sound,
-      is_read: false,
-      sent_via_fcm: false,
-      fcm_response: null,
-      created_at: new Date(),
-      read_at: null
-    };
-
-    const result = await notificationsCollection.insertOne(notificationData);
-    const notificationId = result.insertedId.toString();
-
-    // Send FCM notification if FCM token exists
-    let fcmResponse = null;
-    if (fcmToken) {
-      try {
-        // TODO: Implement FCM notification sending
-        fcmResponse = { success: true, messageId: 'placeholder' };
-
-        // Update notification with FCM response
-        await notificationsCollection.updateOne(
-          { _id: result.insertedId },
-          { 
-            $set: { 
-              sent_via_fcm: true,
-              fcm_response: fcmResponse,
-              updated_at: new Date()
-            }
-          }
-        );
-
-      } catch (fcmError) {
-        console.error('FCM notification failed:', fcmError);
-        // Don't fail the request if FCM fails, just log it
-        await notificationsCollection.updateOne(
-          { _id: result.insertedId },
-          { 
-            $set: { 
-              sent_via_fcm: false,
-              fcm_error: fcmError instanceof Error ? fcmError.message : 'FCM Error',
-              updated_at: new Date()
-            }
-          }
-        );
+    // Send notification using NotificationService
+    const success = await NotificationService.sendToUser(
+      {
+        userId: recipient_id,
+        userType: recipient_type || 'customer',
+        fcmToken: recipient.fcm_token,
+        email: recipient.email_address,
+        preferences: recipient.notification_preferences
+      },
+      {
+        type: type as NotificationType,
+        title,
+        body: message,
+        data,
+        imageUrl: image_url,
+        actionUrl: action_url,
+        priority: priority as NotificationPriority,
+        channels: [NotificationChannel.PUSH]
       }
-    }
+    );
 
+    console.log(`✅ Push notification ${success ? 'sent' : 'failed'} for user ${recipient_id}`);
 
     return NextResponse.json({
-      success: true,
-      message: 'Notification sent successfully',
-      notification_id: notificationId,
-      sent_via_fcm: !!fcmToken,
-      fcm_response: fcmResponse
+      success,
+      message: success ? 'Notification sent successfully' : 'Failed to send notification',
+      recipient_id,
+      has_fcm_token: !!recipient.fcm_token
     });
 
   } catch (error) {
     console.error('Push notification send error:', error);
     return NextResponse.json({
       success: false,
-      error: 'Internal server error',
+      error: 'INTERNAL_SERVER_ERROR',
       message: error instanceof Error ? error.message : 'An error occurred while sending notification'
     }, { status: 500 });
   }

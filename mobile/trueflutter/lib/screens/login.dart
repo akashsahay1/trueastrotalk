@@ -165,7 +165,7 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void _onRegister() {
-    Navigator.pushNamed(context, '/register');
+    Navigator.pushNamed(context, '/signup');
   }
 
   void _onJoinAsAstrologer() {
@@ -181,7 +181,9 @@ class _LoginScreenState extends State<LoginScreen>
     setState(() => _isGoogleLoading = true);
     
     try {
+      debugPrint('🚀 Starting Google Sign-In process...');
       final user = await _authService.signInWithGoogle();
+      debugPrint('✅ Google Sign-In successful, user: ${user.email}');
       
       if (mounted) {
         // Navigate based on user role (no success snackbar as per user requirement)
@@ -195,25 +197,52 @@ class _LoginScreenState extends State<LoginScreen>
         }
       }
     } on GoogleSignUpRequiredException catch (googleException) {
+      debugPrint('🎯 Caught GoogleSignUpRequiredException in login screen');
+      debugPrint('   - Name: ${googleException.name}');
+      debugPrint('   - Email: ${googleException.email}');
+      debugPrint('   - Access Token: ${googleException.accessToken}');
+      
       if (mounted) {
+        debugPrint('✅ Google user needs to signup - redirecting to signup with data: ${googleException.email}');
         // Silently navigate to registration screen with prefilled Google data
         Navigator.pushNamed(
           context,
-          '/register',
+          '/signup',
           arguments: {
             'name': googleException.name,
             'email': googleException.email,
             'google_access_token': googleException.accessToken,
+            'google_id_token': googleException.idToken,
             'auth_type': 'google'
           },
         );
+        debugPrint('🚀 Navigation to signup initiated with arguments');
       }
     } catch (e) {
+      debugPrint('🚨 Caught exception in generic catch block: ${e.runtimeType}');
+      debugPrint('🚨 Exception details: $e');
+      
       if (mounted) {
-        _triggerErrorHaptic();
-        // Check if this is actually a GoogleSignUpRequiredException that wasn't caught
+        // Check if this is actually a GoogleSignUpRequiredException that wasn't caught properly
+        if (e is GoogleSignUpRequiredException) {
+          debugPrint('🎯 Found GoogleSignUpRequiredException in generic catch block');
+          // Navigate to signup screen with Google data
+          Navigator.pushNamed(
+            context,
+            '/signup',
+            arguments: {
+              'name': e.name,
+              'email': e.email,
+              'google_access_token': e.accessToken,
+              'google_id_token': e.idToken,
+              'auth_type': 'google'
+            },
+          );
+          return;
+        }
+        
         if (e.toString().contains('Google user needs to complete signup')) {
-          Navigator.pushNamed(context, '/register');
+          Navigator.pushNamed(context, '/signup');
           return;
         }
 
@@ -238,14 +267,18 @@ class _LoginScreenState extends State<LoginScreen>
         // Debug: Log any other errors to help diagnose issues
         debugPrint('🚨 Google Sign-In Error: $e');
 
-        // Show error to user for debugging
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Google Sign-In failed: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-            duration: const Duration(seconds: 5),
-          ),
-        );
+        // Only show error messages for actual technical failures, not user registration flows
+        if (!e.toString().contains('needs to complete signup') && 
+            !e.toString().contains('USER_NOT_REGISTERED')) {
+          _triggerErrorHaptic();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Google Sign-In failed: ${e.toString()}'),
+              backgroundColor: AppColors.error,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
       }
     } finally {
       if (mounted) {
@@ -265,7 +298,7 @@ class _LoginScreenState extends State<LoginScreen>
         leading: IconButton(
           onPressed: () {
             _triggerHaptic();
-            Navigator.pop(context);
+            Navigator.pushReplacementNamed(context, '/welcome');
           },
           icon: const Icon(
             Icons.arrow_back_ios,

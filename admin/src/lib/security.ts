@@ -177,7 +177,7 @@ export const ValidationSchemas = {
     email: Joi.string().email().required().lowercase(),
     phone: Joi.string().pattern(/^[+]?[\d\s\-()]+$/).min(10).max(15).required(),
     password: Joi.string().min(8).required(),
-    user_type: Joi.string().valid('user', 'astrologer').required(),
+    user_type: Joi.string().valid('customer', 'astrologer').required(),
     date_of_birth: Joi.date().max('now').optional(),
     gender: Joi.string().valid('male', 'female', 'other').optional()
   }),
@@ -186,7 +186,7 @@ export const ValidationSchemas = {
   userLogin: Joi.object({
     email: Joi.string().email().required().lowercase(),
     password: Joi.string().required(),
-    user_type: Joi.string().valid('user', 'astrologer').optional()
+    user_type: Joi.string().valid('customer', 'astrologer').optional()
   }),
 
   // Product schema
@@ -215,7 +215,7 @@ export const ValidationSchemas = {
   chatMessage: Joi.object({
     session_id: Joi.string().required(),
     sender_id: Joi.string().required(),
-    sender_type: Joi.string().valid('user', 'astrologer').required(),
+    sender_type: Joi.string().valid('customer', 'astrologer').required(),
     message_type: Joi.string().valid('text', 'image', 'file', 'system').required(),
     content: Joi.string().max(5000).when('message_type', {
       is: 'text',

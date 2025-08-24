@@ -105,7 +105,8 @@
       "Bash(unzip:*)",
       "Bash(dart:*)",
       "Bash(./scripts/deploy-socket.sh:*)",
-      "Bash(./scripts/monitor-socket.sh:*)"
+      "Bash(./scripts/monitor-socket.sh:*)",
+      "Read(//Users/akashsahay/Downloads/**)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

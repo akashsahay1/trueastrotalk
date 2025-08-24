@@ -102,7 +102,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     } on GoogleSignUpRequiredException catch (googleException) {
       if (mounted) {
         // Navigate to signup screen with Google data
-        Navigator.pushNamed(context, '/signup', arguments: {'name': googleException.name, 'email': googleException.email, 'google_access_token': googleException.accessToken, 'auth_type': 'google'});
+        Navigator.pushNamed(context, '/signup', arguments: {'name': googleException.name, 'email': googleException.email, 'google_access_token': googleException.accessToken, 'google_id_token': googleException.idToken, 'auth_type': 'google'});
       }
     } catch (e) {
       if (mounted) {

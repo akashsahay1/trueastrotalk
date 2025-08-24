@@ -295,4 +295,4 @@ coverage/
 !pubspec.yaml
 !tsconfig.json
 !next.config.ts
-!eslint.config.mjs
+!eslint.config.mjsadmin/.env

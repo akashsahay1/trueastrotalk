@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'common/themes/app_theme.dart';
 import 'config/config.dart';
@@ -13,11 +14,11 @@ import 'screens/home.dart';
 import 'services/service_locator.dart';
 import 'services/auth/auth_service.dart';
 import 'services/local/local_storage_service.dart';
+import 'services/cart_service.dart';
 import 'services/call/call_quality_settings_service.dart';
 import 'services/network/dio_client.dart';
 import 'services/payment/razorpay_service.dart';
 import 'services/notifications/notification_service.dart';
-import 'config/payment_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,19 +46,22 @@ void main() async {
   final localStorage = getIt<LocalStorageService>();
   await localStorage.init();
 
-  // Initialize call quality settings
-  final callQualitySettings = getIt<CallQualitySettings>();
-  await callQualitySettings.loadSettings();
+  // Initialize cart service
+  final cartService = getIt<CartService>();
+  await cartService.initialize();
 
-  // Initialize payment configuration
+  // Register and initialize call quality settings after LocalStorage is ready
+  getIt.registerSingleton<CallQualitySettings>(CallQualitySettings.instance);
+  final callQualitySettings = getIt<CallQualitySettings>();
+  await callQualitySettings.loadSettings(localStorage);
+
+  // Initialize payment services (without server config - will load when user logs in)
   try {
-    debugPrint('🔧 Initializing PaymentConfig...');
-    await PaymentConfig.instance.initialize();
     debugPrint('🔧 Initializing RazorpayService...');
     RazorpayService.instance.initialize();
     debugPrint('✅ Payment services initialized successfully');
   } catch (e) {
-    debugPrint('❌ Payment config initialization failed: $e');
+    debugPrint('❌ Payment service initialization failed: $e');
   }
 
   // Set system UI overlay style
@@ -124,18 +128,26 @@ class AuthWrapper extends StatefulWidget {
 class _AuthWrapperState extends State<AuthWrapper> {
   late final AuthService _authService;
   bool _isLoading = true;
+  bool _isOnboardingCompleted = false;
 
   @override
   void initState() {
     super.initState();
     _authService = getIt<AuthService>();
-    _checkAuthState();
+    _checkInitialState();
   }
 
-  Future<void> _checkAuthState() async {
+  Future<void> _checkInitialState() async {
     try {
+      // Check if onboarding has been completed
+      final prefs = await SharedPreferences.getInstance();
+      final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
+      
+      // Initialize auth service
       await _authService.initialize();
+      
       setState(() {
+        _isOnboardingCompleted = onboardingCompleted;
         _isLoading = false;
       });
     } catch (e) {
@@ -156,7 +168,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
       return const HomeScreen();
     }
 
-    // User is not logged in, show welcome screen
+    // User is not logged in
+    if (!_isOnboardingCompleted) {
+      // First time user - show onboarding
+      return const OnboardingScreen();
+    }
+
+    // Returning user who has seen onboarding - show welcome screen
     return const WelcomeScreen();
   }
 }

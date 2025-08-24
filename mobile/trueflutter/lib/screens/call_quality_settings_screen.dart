@@ -217,7 +217,7 @@ class _CallQualitySettingsScreenState extends State<CallQualitySettingsScreen> {
               'Reduces echo and feedback during calls',
               Icons.volume_off,
               _settings.enableEchoCancellation,
-              _settings.setEchoCancellation,
+              (value) => _settings.setEchoCancellation(value),
             ),
             const SizedBox(height: Dimensions.paddingMd),
             _buildSwitchOption(
@@ -225,7 +225,7 @@ class _CallQualitySettingsScreenState extends State<CallQualitySettingsScreen> {
               'Filters out background noise',
               Icons.noise_control_off,
               _settings.enableNoiseSuppression,
-              _settings.setNoiseSuppression,
+              (value) => _settings.setNoiseSuppression(value),
             ),
             const SizedBox(height: Dimensions.paddingMd),
             _buildSwitchOption(
@@ -233,7 +233,7 @@ class _CallQualitySettingsScreenState extends State<CallQualitySettingsScreen> {
               'Automatically adjusts microphone volume',
               Icons.mic_none,
               _settings.enableAutoGainControl,
-              _settings.setAutoGainControl,
+              (value) => _settings.setAutoGainControl(value),
             ),
           ],
         ),
@@ -269,7 +269,7 @@ class _CallQualitySettingsScreenState extends State<CallQualitySettingsScreen> {
               'Reduces delay but may affect quality',
               Icons.speed,
               _settings.enableLowLatencyMode,
-              _settings.setLowLatencyMode,
+              (value) => _settings.setLowLatencyMode(value),
             ),
             const SizedBox(height: Dimensions.paddingMd),
             _buildSwitchOption(
@@ -277,7 +277,7 @@ class _CallQualitySettingsScreenState extends State<CallQualitySettingsScreen> {
               'Automatically adjusts quality based on network',
               Icons.auto_fix_high,
               _settings.enableAdaptiveBitrate,
-              _settings.setAdaptiveBitrate,
+              (value) => _settings.setAdaptiveBitrate(value),
             ),
             const SizedBox(height: Dimensions.paddingMd),
             _buildSliderOption(

@@ -129,7 +129,8 @@ class UserApiService {
         // Handle different response formats
         final responseData = response.data['data'] ?? response.data;
         final userData = responseData['user'] ?? responseData;
-        final token = responseData['token'] ?? '';
+        final token = responseData['access_token'] ?? responseData['token'] ?? '';
+        final refreshToken = responseData['refresh_token'] ?? '';
 
         debugPrint('🔍 Login API Response - User Data:');
         debugPrint('🔍 Raw response: ${response.data}');
@@ -139,8 +140,10 @@ class UserApiService {
         debugPrint('   birth_time: ${userData['birth_time']}');
         debugPrint('   birth_place: ${userData['birth_place']}');
         debugPrint('   profile_image: ${userData['profile_image']}');
+        debugPrint('   Access Token: ${token.length > 10 ? '${token.substring(0, 10)}...' : token}');
+        debugPrint('   Refresh Token: ${refreshToken.length > 10 ? '${refreshToken.substring(0, 10)}...' : refreshToken}');
 
-        return {'user': User.fromJson(userData), 'token': token};
+        return {'user': User.fromJson(userData), 'token': token, 'refresh_token': refreshToken};
       } else {
         debugPrint('🚨 DEBUG: Login failed with status: ${response.statusCode}');
         debugPrint('🚨 DEBUG: Error response: ${response.data}');
@@ -183,7 +186,8 @@ class UserApiService {
   // Get current user profile
   Future<User> getCurrentUser(String token) async {
     try {
-      final response = await _dio.get('/users/profile', options: Options(headers: {'Authorization': 'Bearer $token'}));
+      // Note: Authorization header is now set globally in DioClient
+      final response = await _dio.get('/users/profile');
 
       if (response.statusCode == 200) {
         // Handle different response formats
@@ -237,13 +241,14 @@ class UserApiService {
         });
 
         requestData = formData;
-        requestOptions = Options(headers: {'Authorization': 'Bearer $token'}, contentType: 'multipart/form-data');
+        requestOptions = Options(contentType: 'multipart/form-data');
       } else {
         // Use JSON when no image
         requestData = userData;
-        requestOptions = Options(headers: {'Authorization': 'Bearer $token'});
+        requestOptions = Options();
       }
 
+      // Note: Authorization header is now set globally in DioClient
       final response = await _dio.put('/users/profile', data: requestData, options: requestOptions);
 
       debugPrint('✅ Profile update response: ${response.statusCode}');
@@ -506,10 +511,15 @@ class UserApiService {
       final response = await _dio.get(ApiEndpoints.publicAstrologerOptions);
 
       if (response.statusCode == 200) {
-        final data = response.data['data'] as Map<String, dynamic>;
+        final responseData = response.data;
+        if (responseData == null) {
+          throw Exception('No data received from astrologer options API');
+        }
+        
+        // The API returns data directly, not nested under 'data'
         final options = {
-          'languages': List<String>.from(data['languages'] ?? []),
-          'skills': List<String>.from(data['skills'] ?? [])
+          'languages': List<String>.from(responseData['languages'] ?? []),
+          'skills': List<String>.from(responseData['skills'] ?? [])
         };
         
         // Cache the result
@@ -778,6 +788,12 @@ class UserApiService {
           case 403:
             return 'Account verification pending. Please wait for admin approval.';
           case 404:
+            // Check if this is a USER_NOT_REGISTERED error for Google login flow
+            final errorData = e.response?.data;
+            if (errorData is Map && errorData['error'] == 'USER_NOT_REGISTERED') {
+              // Preserve the original USER_NOT_REGISTERED error for Google signup flow
+              throw Exception('USER_NOT_REGISTERED: ${errorData['message'] ?? 'User not registered'}');
+            }
             return 'User not found. Please check your email.';
           case 409:
             return 'Email already exists. Please use a different email.';

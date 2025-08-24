@@ -241,9 +241,14 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Send notifications
-    // TODO: Implement notification sending with proper NotificationService integration
-    const successCount = targets.length; // Placeholder - assume all successful
+    // Import NotificationService at the top of the function
+    const NotificationService = (await import('../../../lib/notifications')).default;
+    
+    // Send notifications using NotificationService
+    const successCount = await NotificationService.sendBulkNotifications(
+      targets,
+      notificationObj as any
+    );
 
     console.log(`✅ Notification sent to ${successCount}/${targets.length} users`);
 

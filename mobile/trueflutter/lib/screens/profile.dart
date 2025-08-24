@@ -164,21 +164,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
 
         setState(() {
+          // Populate address fields for all users (customers and astrologers)
+          _addressController.text = user.address ?? '';
+          _cityController.text = user.city ?? '';
+          _stateController.text = user.state ?? '';
+          _countryController.text = user.country ?? '';
+          _zipController.text = user.zip ?? '';
+          
+          debugPrint('📍 Loaded address data:');
+          debugPrint('   Address: ${user.address}');
+          debugPrint('   City: ${user.city}');
+          debugPrint('   State: ${user.state}');
+          debugPrint('   Country: ${user.country}');
+          debugPrint('   ZIP: ${user.zip}');
 
-          // Populate astrologer fields if user is astrologer
+          // Populate astrologer-specific fields if user is astrologer
           if (user.isAstrologer) {
             _bioController.text = user.bio ?? '';
             _experienceController.text = user.experienceYears?.toString() ?? '';
             _callRateController.text = user.callRate?.toString() ?? '';
             _chatRateController.text = user.chatRate?.toString() ?? '';
             _videoRateController.text = user.videoRate?.toString() ?? '';
-
-            // Populate address fields
-            _addressController.text = user.address ?? '';
-            _cityController.text = user.city ?? '';
-            _stateController.text = user.state ?? '';
-            _countryController.text = user.country ?? '';
-            _zipController.text = user.zip ?? '';
 
             // Populate multi-select fields
             _selectedLanguages.clear();
@@ -380,11 +386,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final updateData = <String, dynamic>{
         'full_name': _nameController.text.trim(),
         'email_address': _emailController.text.trim(),
-        'phone_number': _phoneController.text.trim(),
-        'date_of_birth': _selectedBirthDate?.toIso8601String(),
-        'time_of_birth': _birthTimeController.text.trim(),
-        'place_of_birth': _birthPlaceController.text.trim(),
       };
+
+      // Add optional fields only if they have values
+      if (_phoneController.text.trim().isNotEmpty) {
+        updateData['phone_number'] = _phoneController.text.trim();
+      }
+      if (_selectedBirthDate != null) {
+        updateData['date_of_birth'] = _selectedBirthDate!.toIso8601String();
+      }
+      if (_birthTimeController.text.trim().isNotEmpty) {
+        updateData['time_of_birth'] = _birthTimeController.text.trim();
+      }
+      if (_birthPlaceController.text.trim().isNotEmpty) {
+        updateData['place_of_birth'] = _birthPlaceController.text.trim();
+      }
+
+      // Add address fields (optional for customers, required for astrologers)
+      if (_addressController.text.trim().isNotEmpty) {
+        updateData['address'] = _addressController.text.trim();
+        debugPrint('📍 Sending address: ${_addressController.text.trim()}');
+      }
+      if (_cityController.text.trim().isNotEmpty) {
+        updateData['city'] = _cityController.text.trim();
+        debugPrint('📍 Sending city: ${_cityController.text.trim()}');
+      }
+      if (_stateController.text.trim().isNotEmpty) {
+        updateData['state'] = _stateController.text.trim();
+        debugPrint('📍 Sending state: ${_stateController.text.trim()}');
+      }
+      if (_countryController.text.trim().isNotEmpty) {
+        updateData['country'] = _countryController.text.trim();
+        debugPrint('📍 Sending country: ${_countryController.text.trim()}');
+      }
+      if (_zipController.text.trim().isNotEmpty) {
+        updateData['zip'] = _zipController.text.trim();
+        debugPrint('📍 Sending zip: ${_zipController.text.trim()}');
+      }
+      
+      debugPrint('📤 Complete update data being sent: $updateData');
 
       // Add astrologer-specific data if user is astrologer
       if (_currentUser?.isAstrologer == true) {
@@ -397,13 +437,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'call_rate': double.tryParse(_callRateController.text.trim()) ?? 0.0,
           'chat_rate': double.tryParse(_chatRateController.text.trim()) ?? 0.0,
           'video_rate': double.tryParse(_videoRateController.text.trim()) ?? 0.0,
-
-          // Additional astrologer fields (address section from signup)
-          'address': _addressController.text.trim(),
-          'city': _cityController.text.trim(),
-          'state': _stateController.text.trim(),
-          'country': _countryController.text.trim(),
-          'zip': _zipController.text.trim(),
         });
       }
 
@@ -416,6 +449,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _selectedProfileImage = null; // Clear selected image after successful upload
       });
 
+      // Refresh user data after successful update
+      await _authService.refreshCurrentUser();
       _showSuccessSnackBar('Profile updated successfully!');
     } catch (e) {
       String errorMessage = 'Failed to update profile';
@@ -447,11 +482,125 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating));
+    _showAnimatedDialog(
+      title: 'Error',
+      message: message,
+      icon: Icons.error_outline,
+      iconColor: AppColors.error,
+    );
   }
 
   void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: AppColors.success, behavior: SnackBarBehavior.floating));
+    _showAnimatedDialog(
+      title: 'Success',
+      message: message,
+      icon: Icons.check_circle_outline,
+      iconColor: AppColors.success,
+    );
+  }
+
+  void _showAnimatedDialog({
+    required String title,
+    required String message,
+    required IconData icon,
+    required Color iconColor,
+  }) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 320),
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: iconColor.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        icon,
+                        size: 48,
+                        color: iconColor,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      title,
+                      style: AppTextStyles.heading6.copyWith(
+                        color: AppColors.textPrimaryLight,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      message,
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textSecondaryLight,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: iconColor,
+                          foregroundColor: AppColors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text('OK'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(
+          opacity: CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeInOut,
+          ),
+          child: ScaleTransition(
+            scale: CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeInOut,
+            ),
+            child: child,
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -605,11 +754,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           keyboardType: TextInputType.phone,
                           inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)],
                           validator: (value) {
-                            if (value?.trim().isEmpty ?? true) {
-                              return 'Phone number is required';
-                            }
-                            if (value!.length < 10) {
-                              return 'Please enter a valid 10-digit phone number';
+                            // Make phone optional for customers, required for astrologers
+                            if (_currentUser?.isAstrologer == true) {
+                              if (value?.trim().isEmpty ?? true) {
+                                return 'Phone number is required for astrologers';
+                              }
+                              if (value!.length < 10) {
+                                return 'Please enter a valid 10-digit phone number';
+                              }
+                            } else if (value != null && value.trim().isNotEmpty) {
+                              // If customer provided a phone, validate it
+                              if (value.length < 10) {
+                                return 'Please enter a valid 10-digit phone number';
+                              }
                             }
                             return null;
                           },
@@ -756,51 +913,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     const SizedBox(height: 20),
 
-                    // Address Information Card (matching signup flow)
+                    // Address Information Card (reordered layout)
                     _buildSectionCard(
                       title: 'Address Information',
                       icon: Icons.location_on,
                       children: [
-                        _buildTextField(
-                          controller: _addressController,
-                          label: 'Address',
-                          icon: Icons.home_outlined,
-                          maxLines: 3,
-                          validator: (value) {
-                            if (_currentUser?.isAstrologer == true && (value?.trim().isEmpty ?? true)) {
-                              return 'Address is required for astrologers';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-
-                        _buildTextField(
-                          controller: _cityController,
-                          label: 'City',
-                          icon: Icons.location_city_outlined,
-                          validator: (value) {
-                            if (_currentUser?.isAstrologer == true && (value?.trim().isEmpty ?? true)) {
-                              return 'City is required for astrologers';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-
-                        _buildTextField(
-                          controller: _stateController,
-                          label: 'State',
-                          icon: Icons.map_outlined,
-                          validator: (value) {
-                            if (_currentUser?.isAstrologer == true && (value?.trim().isEmpty ?? true)) {
-                              return 'State is required for astrologers';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-
+                        // Country and State in one row
                         Row(
                           children: [
                             Expanded(
@@ -810,7 +928,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 icon: Icons.public_outlined,
                                 validator: (value) {
                                   if (_currentUser?.isAstrologer == true && (value?.trim().isEmpty ?? true)) {
-                                    return 'Country is required for astrologers';
+                                    return 'Country is required';
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildTextField(
+                                controller: _stateController,
+                                label: 'State',
+                                icon: Icons.map_outlined,
+                                validator: (value) {
+                                  if (_currentUser?.isAstrologer == true && (value?.trim().isEmpty ?? true)) {
+                                    return 'State is required';
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // City and ZIP in one row
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildTextField(
+                                controller: _cityController,
+                                label: 'City',
+                                icon: Icons.location_city_outlined,
+                                validator: (value) {
+                                  if (_currentUser?.isAstrologer == true && (value?.trim().isEmpty ?? true)) {
+                                    return 'City is required';
                                   }
                                   return null;
                                 },
@@ -821,17 +973,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               child: _buildTextField(
                                 controller: _zipController,
                                 label: 'ZIP/Postal Code',
-                                icon: Icons.local_post_office_outlined,
+                                icon: Icons.pin_drop_outlined,
                                 keyboardType: TextInputType.text,
                                 validator: (value) {
                                   if (_currentUser?.isAstrologer == true && (value?.trim().isEmpty ?? true)) {
-                                    return 'ZIP/Postal code is required for astrologers';
+                                    return 'ZIP code is required';
                                   }
                                   return null;
                                 },
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // Address field in its own row
+                        _buildTextFieldWithoutIcon(
+                          controller: _addressController,
+                          label: 'Address',
+                          maxLines: 3,
+                          validator: (value) {
+                            if (_currentUser?.isAstrologer == true && (value?.trim().isEmpty ?? true)) {
+                              return 'Address is required for astrologers';
+                            }
+                            return null;
+                          },
                         ),
                       ],
                     ),
@@ -1050,6 +1216,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
         hintText: hint ?? (!enabled && controller.text.isEmpty ? 'Not specified' : null),
         hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight, fontStyle: FontStyle.italic),
         prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
+        suffixIcon: suffixIcon != null ? Icon(suffixIcon, color: AppColors.textSecondaryLight, size: 20) : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.borderLight),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.borderLight),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.error, width: 2),
+        ),
+        filled: true,
+        fillColor: enabled ? AppColors.white : AppColors.grey50,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      ),
+    );
+  }
+
+  Widget _buildTextFieldWithoutIcon({required TextEditingController controller, required String label, TextInputType? keyboardType, bool enabled = true, IconData? suffixIcon, String? Function(String?)? validator, List<TextInputFormatter>? inputFormatters, int? maxLines, String? hint}) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      enabled: enabled,
+      validator: validator,
+      inputFormatters: inputFormatters,
+      maxLines: maxLines ?? 1,
+      style: AppTextStyles.bodyMedium.copyWith(color: enabled ? AppColors.textPrimaryLight : AppColors.textSecondaryLight),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight),
+        hintText: hint ?? (!enabled && controller.text.isEmpty ? 'Not specified' : null),
+        hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight, fontStyle: FontStyle.italic),
         suffixIcon: suffixIcon != null ? Icon(suffixIcon, color: AppColors.textSecondaryLight, size: 20) : null,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

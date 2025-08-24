@@ -73,6 +73,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
 
   // Google login data
   String? _googleAccessToken;
+  String? _googleIdToken;
   String? _authType;
   bool _isGoogleLogin = false;
 
@@ -123,17 +124,24 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
 
   void _handleRouteArguments() {
     final arguments = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    debugPrint('📋 Signup screen arguments: $arguments');
+    
     if (arguments != null) {
       final name = arguments['name'] as String?;
       final email = arguments['email'] as String?;
       final googleAccessToken = arguments['google_access_token'] as String?;
+      final googleIdToken = arguments['google_id_token'] as String?;
       final authType = arguments['auth_type'] as String?;
 
-      if (name != null && email != null && googleAccessToken != null && authType == 'google') {
+      debugPrint('📋 Parsed arguments - Name: $name, Email: $email, AuthType: $authType');
+
+      if (name != null && email != null && googleAccessToken != null && googleIdToken != null && authType == 'google') {
+        debugPrint('✅ Setting up Google signup with pre-filled data');
         setState(() {
           _nameController.text = name;
           _emailController.text = email;
           _googleAccessToken = googleAccessToken;
+          _googleIdToken = googleIdToken;
           _authType = authType;
           _isGoogleLogin = true;
           // Start from section 1 (contact) since Google provides name and email
@@ -142,7 +150,11 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
 
         // Navigate to the contact section
         _pageController.animateToPage(1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+      } else {
+        debugPrint('❌ Google signup arguments missing or invalid');
       }
+    } else {
+      debugPrint('📋 No arguments provided to signup screen');
     }
   }
 
@@ -295,6 +307,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
             placeOfBirth: _placeOfBirthController.text.trim().isEmpty ? null : _placeOfBirthController.text.trim(),
             authType: _authType,
             googleAccessToken: _googleAccessToken,
+            googleIdToken: _googleIdToken,
             bio: _bioController.text.trim().isEmpty ? null : _bioController.text.trim(),
             experience: _experienceController.text.trim().isEmpty ? null : _experienceController.text.trim(),
             languages: _selectedLanguages.isEmpty ? null : _selectedLanguages.join(', '),

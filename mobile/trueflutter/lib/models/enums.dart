@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 // User type enumeration (for signup flow)
 enum UserType {
   customer,
@@ -111,7 +113,7 @@ extension UserRoleExtension on UserRole {
   String get value {
     switch (this) {
       case UserRole.customer:
-        return 'customer';
+        return 'customer'; // Server expects 'customer'
       case UserRole.astrologer:
         return 'astrologer';
       case UserRole.admin:
@@ -132,7 +134,8 @@ extension UserRoleExtension on UserRole {
       case 'manager':
         return UserRole.manager;
       default:
-        throw ArgumentError('Invalid user role: $value');
+        debugPrint('⚠️ Unknown user role: $value, defaulting to customer');
+        return UserRole.customer; // Default to customer instead of throwing
     }
   }
 }
@@ -193,7 +196,8 @@ extension AccountStatusExtension on AccountStatus {
       case 'rejected':
         return AccountStatus.rejected;
       default:
-        throw ArgumentError('Invalid account status: $value');
+        debugPrint('⚠️ Unknown account status: $value, defaulting to active');
+        return AccountStatus.active; // Default to active instead of throwing
     }
   }
 }
@@ -230,7 +234,8 @@ extension ConsultationTypeExtension on ConsultationType {
       case 'video':
         return ConsultationType.video;
       default:
-        throw ArgumentError('Invalid consultation type: $value');
+        debugPrint('⚠️ Unknown consultation type: $value, defaulting to chat');
+        return ConsultationType.chat; // Default to chat instead of throwing
     }
   }
 }
