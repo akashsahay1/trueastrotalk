@@ -5,8 +5,10 @@ import '../common/constants/dimensions.dart';
 import '../common/widgets/product_card.dart';
 import '../services/api/products_api_service.dart';
 import '../services/service_locator.dart';
+import '../services/cart_service.dart';
 import '../models/product.dart';
 import 'product_details.dart';
+import 'cart.dart';
 
 class ProductsListScreen extends StatefulWidget {
   const ProductsListScreen({super.key});
@@ -17,6 +19,7 @@ class ProductsListScreen extends StatefulWidget {
 
 class _ProductsListScreenState extends State<ProductsListScreen> {
   late final ProductsApiService _productsApiService;
+  late final CartService _cartService;
   
   List<Product> _products = [];
   List<Product> _filteredProducts = [];
@@ -31,13 +34,22 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   void initState() {
     super.initState();
     _productsApiService = getIt<ProductsApiService>();
+    _cartService = getIt<CartService>();
+    _cartService.addListener(_onCartChanged);
     _loadProducts();
   }
 
   @override
   void dispose() {
+    _cartService.removeListener(_onCartChanged);
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onCartChanged() {
+    if (mounted) {
+      setState(() {}); // Rebuild to update cart icon badge
+    }
   }
 
   Future<void> _loadProducts() async {
@@ -127,6 +139,42 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 _isGridView = !_isGridView;
               });
             },
+          ),
+          // Cart icon with badge
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.shopping_cart_outlined, color: AppColors.white),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const CartScreen()),
+                  );
+                },
+              ),
+              if (_cartService.totalItems > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: AppColors.error,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                    child: Text(
+                      '${_cartService.totalItems}',
+                      style: const TextStyle(
+                        color: AppColors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ],
       ),

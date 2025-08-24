@@ -453,7 +453,7 @@ class UserApiService {
     try {
       final queryParams = {'limit': limit.toString(), 'featured': 'true'};
 
-      final response = await _dio.get(ApiEndpoints.adminProducts, queryParameters: queryParams);
+      final response = await _dio.get(ApiEndpoints.products, queryParameters: queryParams);
 
       if (response.statusCode == 200) {
         final productsData = response.data['products'] as List<dynamic>;
@@ -483,7 +483,7 @@ class UserApiService {
       if (search != null && search.isNotEmpty) queryParams['search'] = search;
       if (inStock != null) queryParams['in_stock'] = inStock.toString();
 
-      final response = await _dio.get(ApiEndpoints.adminProducts, queryParameters: queryParams);
+      final response = await _dio.get(ApiEndpoints.products, queryParameters: queryParams);
 
       if (response.statusCode == 200) {
         final productsData = response.data['products'] as List<dynamic>;

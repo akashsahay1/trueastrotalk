@@ -79,13 +79,13 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     _webrtcService = getIt<WebRTCService>();
     _walletService = getIt<WalletService>();
     _notificationService = getIt<NotificationService>();
-    
+
     // Listen to cart changes to update cart icon badge
     _cartService.addListener(_onCartChanged);
-    
+
     // Initialize notifications
     _initializeNotifications();
-    
+
     _loadData();
   }
 
@@ -119,7 +119,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           _handleNotificationTapped(data);
         },
       );
-      
+
       debugPrint('✅ Notification service initialized successfully');
     } catch (e) {
       debugPrint('❌ Failed to initialize notifications: $e');
@@ -182,10 +182,10 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       if (_currentUser != null) {
         debugPrint('🔌 Initializing Socket.IO connection...');
         await _socketService.connect();
-        
+
         // Setup incoming call listeners
         _setupCallListeners();
-        
+
         debugPrint('✅ Socket.IO connection initialized');
       }
     } catch (e) {
@@ -218,15 +218,9 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   // Show incoming call screen
   void _showIncomingCallDialog(Map<String, dynamic> callData) {
     if (!mounted) return;
-    
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => IncomingCallScreen(callData: callData),
-        fullscreenDialog: true,
-      ),
-    );
-  }
 
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) => IncomingCallScreen(callData: callData), fullscreenDialog: true));
+  }
 
   // Method to refresh astrologer dashboard data
   Future<void> _loadAstrologerDashboard() async {
@@ -374,21 +368,11 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                 top: 8,
                 child: Container(
                   padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    color: AppColors.error,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  constraints: const BoxConstraints(
-                    minWidth: 16,
-                    minHeight: 16,
-                  ),
+                  decoration: BoxDecoration(color: AppColors.error, borderRadius: BorderRadius.circular(10)),
+                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
                   child: Text(
                     '${_cartService.totalItems}',
-                    style: const TextStyle(
-                      color: AppColors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(color: AppColors.white, fontSize: 12, fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -468,7 +452,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.home),
-            title: const Text('Home'),
+            title: const Text('Home', style: TextStyle(fontSize: 14.0)),
             onTap: () {
               Navigator.pop(context);
               setState(() {
@@ -478,7 +462,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.person),
-            title: const Text('Profile'),
+            title: const Text('Profile', style: TextStyle(fontSize: 14.0)),
             onTap: () {
               Navigator.pop(context);
               setState(() {
@@ -488,7 +472,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.account_balance_wallet),
-            title: const Text('Wallet'),
+            title: const Text('Wallet', style: TextStyle(fontSize: 14.0)),
             onTap: () {
               Navigator.pop(context);
               setState(() {
@@ -498,7 +482,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.history),
-            title: const Text('History'),
+            title: const Text('History', style: TextStyle(fontSize: 14.0)),
             onTap: () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryScreen()));
@@ -506,7 +490,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.help),
-            title: const Text('Help'),
+            title: const Text('Help', style: TextStyle(fontSize: 14.0)),
             onTap: () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (context) => const HelpScreen()));
@@ -606,16 +590,11 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingLg),
                 itemCount: _featuredAstrologers.length,
                 separatorBuilder: (context, index) => const SizedBox(height: Dimensions.spacingMd),
-                itemBuilder: (context, index) => AstrologerCallCard(
-                  astrologer: _featuredAstrologers[index],
-                  onTap: () => _navigateToAstrologerDetails(_featuredAstrologers[index]),
-                  onStartCall: () => _startCallWithAstrologer(_featuredAstrologers[index]),
-                ),
+                itemBuilder: (context, index) => AstrologerCallCard(astrologer: _featuredAstrologers[index], onTap: () => _navigateToAstrologerDetails(_featuredAstrologers[index]), onStartCall: () => _startCallWithAstrologer(_featuredAstrologers[index])),
               ),
       ],
     );
   }
-
 
   Widget _buildFeaturedProducts() {
     return Column(
@@ -656,19 +635,13 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                   separatorBuilder: (context, index) => const SizedBox(width: Dimensions.spacingMd),
                   itemBuilder: (context, index) => SizedBox(
                     width: 200,
-                    child: ProductCard(
-                      product: _featuredProducts[index],
-                      onTap: () => _viewProduct(_featuredProducts[index]),
-                      isGridView: true,
-                      isHorizontalScroll: true,
-                    ),
+                    child: ProductCard(product: _featuredProducts[index], onTap: () => _viewProduct(_featuredProducts[index]), isGridView: true, isHorizontalScroll: true),
                   ),
                 ),
               ),
       ],
     );
   }
-
 
   Widget _buildHoroscopeSection() {
     return Padding(
@@ -729,24 +702,13 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
 
   Widget _buildCallScreen() {
     return Scaffold(
-      body: AstrologersCallScreen(
-        userApiService: _userApiService,
-        onAstrologerTap: _navigateToAstrologerDetails,
-        onStartCall: _startCallWithAstrologer,
-      ),
+      body: AstrologersCallScreen(userApiService: _userApiService, onAstrologerTap: _navigateToAstrologerDetails, onStartCall: _startCallWithAstrologer),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const CallListScreen(),
-            ),
-          );
+          Navigator.of(context).push(MaterialPageRoute(builder: (context) => const CallListScreen()));
         },
         icon: const Icon(Icons.history, color: AppColors.white),
-        label: Text(
-          'Call History',
-          style: AppTextStyles.buttonMedium.copyWith(color: AppColors.white),
-        ),
+        label: Text('Call History', style: AppTextStyles.buttonMedium.copyWith(color: AppColors.white)),
         backgroundColor: AppColors.primary,
       ),
     );
@@ -754,24 +716,13 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
 
   Widget _buildChatScreen() {
     return Scaffold(
-      body: AstrologersChatScreen(
-        userApiService: _userApiService,
-        onAstrologerTap: _navigateToAstrologerDetails,
-        onStartChat: _startChatWithAstrologer,
-      ),
+      body: AstrologersChatScreen(userApiService: _userApiService, onAstrologerTap: _navigateToAstrologerDetails, onStartChat: _startChatWithAstrologer),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const ChatListScreen(),
-            ),
-          );
+          Navigator.of(context).push(MaterialPageRoute(builder: (context) => const ChatListScreen()));
         },
         icon: const Icon(Icons.chat_bubble_outline, color: AppColors.white),
-        label: Text(
-          'My Chats',
-          style: AppTextStyles.buttonMedium.copyWith(color: AppColors.white),
-        ),
+        label: Text('My Chats', style: AppTextStyles.buttonMedium.copyWith(color: AppColors.white)),
         backgroundColor: AppColors.primary,
       ),
     );
@@ -993,10 +944,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   }
 
   void _openCart() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const CartScreen()),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (context) => const CartScreen()));
   }
 
   void _viewAllAstrologers() {
@@ -1026,28 +974,21 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
 
   void _startChatWithAstrologer(Astrologer astrologer) async {
     if (!astrologer.isOnline) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${astrologer.fullName} is currently offline'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${astrologer.fullName} is currently offline'), backgroundColor: AppColors.error));
       return;
     }
 
     // Check wallet balance for chat
     final hasSufficientBalance = _walletService.hasSufficientBalanceForChat(astrologer);
-    
+
     if (!hasSufficientBalance) {
       final message = _walletService.getInsufficientChatBalanceMessage(astrologer);
-      
+
       // Show insufficient balance dialog with recharge option
       final shouldRecharge = await _showInsufficientBalanceDialog(message);
       if (shouldRecharge == true && mounted) {
         // Navigate to wallet screen for recharge
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (context) => const WalletScreen()),
-        );
+        Navigator.of(context).push(MaterialPageRoute(builder: (context) => const WalletScreen()));
       }
       return;
     }
@@ -1055,12 +996,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     try {
       // Show loading indicator
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Starting chat with ${astrologer.fullName}...'),
-            backgroundColor: AppColors.info,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Starting chat with ${astrologer.fullName}...'), backgroundColor: AppColors.info));
       }
 
       // Start chat session
@@ -1070,34 +1006,18 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
 
       // Navigate to chat screen
       if (mounted) {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => ChatScreen(
-              chatSession: chatSession,
-            ),
-          ),
-        );
+        Navigator.of(context).push(MaterialPageRoute(builder: (context) => ChatScreen(chatSession: chatSession)));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to start chat: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to start chat: $e'), backgroundColor: AppColors.error));
       }
     }
   }
 
   void _startCallWithAstrologer(Astrologer astrologer) async {
     if (!astrologer.isOnline) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${astrologer.fullName} is currently offline'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${astrologer.fullName} is currently offline'), backgroundColor: AppColors.error));
       return;
     }
 
@@ -1109,29 +1029,22 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       // Check wallet balance for selected call type
       final callTypeStr = callType == CallType.video ? 'video' : 'voice';
       final hasSufficientBalance = _walletService.hasSufficientBalanceForCall(astrologer, callTypeStr);
-      
+
       if (!hasSufficientBalance) {
         final message = _walletService.getInsufficientCallBalanceMessage(astrologer, callTypeStr);
-        
+
         // Show insufficient balance dialog with recharge option
         final shouldRecharge = await _showInsufficientBalanceDialog(message);
         if (shouldRecharge == true && mounted) {
           // Navigate to wallet screen for recharge
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => const WalletScreen()),
-          );
+          Navigator.of(context).push(MaterialPageRoute(builder: (context) => const WalletScreen()));
         }
         return;
       }
 
       // Show loading indicator
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Starting ${callType == CallType.video ? 'video' : 'voice'} call with ${astrologer.fullName}...'),
-            backgroundColor: AppColors.info,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Starting ${callType == CallType.video ? 'video' : 'voice'} call with ${astrologer.fullName}...'), backgroundColor: AppColors.info));
       }
 
       // Initialize WebRTC
@@ -1139,14 +1052,9 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
 
       // Generate session ID for this call
       final sessionId = 'call-${DateTime.now().millisecondsSinceEpoch}';
-      
+
       // Initiate call via Socket.IO
-      _socketService.emit('initiate_call', {
-        'callType': callType == CallType.video ? 'video' : 'voice',
-        'sessionId': sessionId,
-        'astrologerId': astrologer.id,
-        'userId': _currentUser?.id,
-      });
+      _socketService.emit('initiate_call', {'callType': callType == CallType.video ? 'video' : 'voice', 'sessionId': sessionId, 'astrologerId': astrologer.id, 'userId': _currentUser?.id});
 
       // Navigate to active call screen
       debugPrint('📞 Call initiated with ${astrologer.fullName}, sessionId: $sessionId');
@@ -1170,16 +1078,10 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           ),
         );
       }
-
     } catch (e) {
       debugPrint('❌ Failed to start call: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to start call: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to start call: $e'), backgroundColor: AppColors.error));
       }
     }
   }
@@ -1194,25 +1096,11 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(CallType.voice),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.phone),
-                const SizedBox(width: 8),
-                const Text('Voice Call'),
-              ],
-            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.phone), const SizedBox(width: 8), const Text('Voice Call')]),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(CallType.video),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.videocam),
-                const SizedBox(width: 8),
-                const Text('Video Call'),
-              ],
-            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.videocam), const SizedBox(width: 8), const Text('Video Call')]),
           ),
         ],
       ),
@@ -1233,24 +1121,11 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         ),
         content: Text(message),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.white,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.add, size: 16),
-                const SizedBox(width: 4),
-                const Text('Recharge Wallet'),
-              ],
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: AppColors.white),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.add, size: 16), const SizedBox(width: 4), const Text('Recharge Wallet')]),
           ),
         ],
       ),
@@ -1258,17 +1133,11 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   }
 
   void _viewAllProducts() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const ProductsListScreen()),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (context) => const ProductsListScreen()));
   }
 
   void _viewProduct(Product product) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => ProductDetailsScreen(product: product)),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (context) => ProductDetailsScreen(product: product)));
   }
 
   Widget _buildProfileImage() {
@@ -1389,7 +1258,6 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
 
   // Astrologer-specific screens
   Widget _buildAstrologerHomeContent() {
@@ -1588,10 +1456,14 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          ListTile(leading: const Icon(Icons.home), title: const Text('Home'), onTap: () => Navigator.pop(context)),
+          ListTile(
+            leading: const Icon(Icons.home),
+            title: const Text('Home', style: TextStyle(fontSize: 14.0)),
+            onTap: () => Navigator.pop(context),
+          ),
           ListTile(
             leading: const Icon(Icons.chat),
-            title: const Text('Consultations'),
+            title: const Text('Consultations', style: TextStyle(fontSize: 14.0)),
             onTap: () {
               Navigator.pop(context);
               setState(() {
@@ -1601,7 +1473,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.account_balance_wallet),
-            title: const Text('Earnings'),
+            title: const Text('Earnings', style: TextStyle(fontSize: 14.0)),
             onTap: () {
               Navigator.pop(context);
               setState(() {
@@ -1611,7 +1483,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.help),
-            title: const Text('Help'),
+            title: const Text('Help', style: TextStyle(fontSize: 14.0)),
             onTap: () {
               Navigator.pop(context);
               _openHelp();
@@ -1772,12 +1644,18 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     final actions = [
       {'icon': Icons.chat, 'title': 'View Consultations', 'subtitle': 'Manage your consultations', 'onTap': () => setState(() => _selectedBottomNavIndex = 1), 'color': AppColors.primary},
       {'icon': Icons.account_balance_wallet, 'title': 'View Earnings', 'subtitle': 'Check your earnings', 'onTap': () => setState(() => _selectedBottomNavIndex = 2), 'color': AppColors.success},
-      {'icon': Icons.person, 'title': 'Edit Profile', 'subtitle': 'Update your profile', 'onTap': () async {
-        await Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
-        if (mounted) {
-          await refreshUserData();
-        }
-      }, 'color': AppColors.info},
+      {
+        'icon': Icons.person,
+        'title': 'Edit Profile',
+        'subtitle': 'Update your profile',
+        'onTap': () async {
+          await Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
+          if (mounted) {
+            await refreshUserData();
+          }
+        },
+        'color': AppColors.info,
+      },
     ];
 
     return Column(
@@ -1907,20 +1785,15 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   /// Handle incoming call notifications
   void _handleIncomingCallNotification(Map<String, dynamic> data) {
     if (!mounted) return;
-    
+
     // Navigate to incoming call screen
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => IncomingCallScreen(callData: data),
-        fullscreenDialog: true,
-      ),
-    );
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) => IncomingCallScreen(callData: data), fullscreenDialog: true));
   }
 
-  /// Handle incoming message notifications  
+  /// Handle incoming message notifications
   void _handleIncomingMessageNotification(Map<String, dynamic> data) {
     if (!mounted) return;
-    
+
     // Show snackbar for new message when app is in foreground
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -1941,9 +1814,9 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   /// Handle notification taps
   void _handleNotificationTapped(Map<String, dynamic> data) {
     if (!mounted) return;
-    
+
     final type = data['type'] as String?;
-    
+
     switch (type) {
       case 'incoming_call':
         _handleIncomingCallNotification(data);
@@ -1951,7 +1824,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       case 'new_message':
         // Navigate to chat screen
         setState(() {
-          _selectedBottomNavIndex = 2; // Switch to chat tab  
+          _selectedBottomNavIndex = 2; // Switch to chat tab
         });
         break;
       case 'call_ended':

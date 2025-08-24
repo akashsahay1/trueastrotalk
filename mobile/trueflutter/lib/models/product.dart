@@ -69,6 +69,11 @@ class Product {
     return 'In Stock';
   }
   
-  // Backend should provide complete URLs, so we just return the imageUrl as-is
-  String? get fixedImageUrl => imageUrl;
+  // Handle server image URLs - return as-is for now
+  String? get fixedImageUrl {
+    if (imageUrl == null || imageUrl!.isEmpty) return null;
+    
+    // Return the image URL as-is - let the server handle the correct URLs
+    return imageUrl;
+  }
 }

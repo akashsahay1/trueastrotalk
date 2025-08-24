@@ -82,9 +82,6 @@ class ApiEndpoints {
   static const String uploadIdentityDocument = '$upload/identity-document';
   static const String uploadSampleVideo = '$upload/sample-video';
 
-  // Admin endpoints
-  static const String adminProducts = '/admin/products';
-  
   // Public endpoints
   static const String publicAstrologerOptions = '/public/astrologer-options';
 }

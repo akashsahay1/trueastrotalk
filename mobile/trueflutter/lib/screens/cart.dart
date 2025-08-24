@@ -5,6 +5,7 @@ import '../common/constants/dimensions.dart';
 import '../models/cart.dart';
 import '../services/cart_service.dart';
 import '../services/service_locator.dart';
+import 'products_list.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -234,7 +235,12 @@ class _CartScreenState extends State<CartScreen> {
           const SizedBox(height: Dimensions.spacingLg),
           ElevatedButton(
             onPressed: () {
-              Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProductsListScreen(),
+                ),
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
