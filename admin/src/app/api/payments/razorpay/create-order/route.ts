@@ -107,11 +107,16 @@ export async function POST(request: NextRequest) {
       }, { status: 503 });
     }
 
-    // Decrypt Razorpay credentials
+    // Get Razorpay credentials (temporarily without decryption)
     let RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET;
     try {
       RAZORPAY_KEY_ID = razorpayConfig.keyId as string;
       
+      // Temporarily use direct value (fix encryption later)
+      RAZORPAY_KEY_SECRET = razorpayConfig.encryptedKeySecret as string;
+      
+      // Skip decryption for now
+      /*
       const encryptionPassword = process.env.ENCRYPTION_PASSWORD;
       if (!encryptionPassword) {
         throw new Error('ENCRYPTION_PASSWORD not configured');
@@ -121,6 +126,7 @@ export async function POST(request: NextRequest) {
         razorpayConfig.encryptedKeySecret as string,
         encryptionPassword
       );
+      */
     } catch (decryptError) {
       console.error('Failed to decrypt Razorpay credentials:', decryptError);
       return NextResponse.json({
