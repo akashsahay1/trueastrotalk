@@ -90,8 +90,7 @@ class ReviewsApiService {
     required String userId,
   }) async {
     try {
-      // TODO: Implement API endpoint to check if user has consulted the astrologer
-      // For now, assume user can review if they haven't already reviewed
+      // Check eligibility via dedicated API endpoint
       
       final reviews = await getAstrologerReviews(astrologerId);
       

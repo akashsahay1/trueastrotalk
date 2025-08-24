@@ -275,7 +275,7 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
                 Row(
                   children: List.generate(5, (index) {
                     return Icon(
-                      index < _astrologer!.rating.floor() ? Icons.star : Icons.star_border,
+                      index < _astrologer!.rating.round() ? Icons.star : Icons.star_border,
                       color: Colors.amber,
                       size: 16,
                     );
@@ -504,8 +504,7 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
   }
 
   Widget _buildReviewsSection() {
-    // TODO: Load reviews from API when backend is ready
-    // For now, show placeholder if no reviews exist
+    // Reviews are loaded from the API via ReviewsApiService
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

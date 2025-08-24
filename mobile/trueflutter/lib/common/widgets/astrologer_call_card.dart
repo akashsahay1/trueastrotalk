@@ -47,7 +47,7 @@ class AstrologerCallCard extends StatelessWidget {
                       // Rating with stars
                       Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: List.generate(5, (index) => Icon(Icons.star, size: 16, color: index < 4 ? Colors.grey.shade700 : Colors.grey.shade300)),
+                        children: List.generate(5, (index) => Icon(Icons.star, size: 16, color: index < astrologer.rating.round() ? Colors.amber : Colors.grey.shade300)),
                       ),
                       const SizedBox(height: 4),
                       // Orders count

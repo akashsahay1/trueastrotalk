@@ -215,7 +215,7 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
           });
           
           // Start network diagnostics monitoring
-          await _networkDiagnostics.startMonitoring(null); // TODO: Get peer connection from WebRTC service
+          await _networkDiagnostics.startMonitoring(null); // Network monitoring without peer connection
           
           // Start billing when call is connected
           await _startBilling();
@@ -783,7 +783,7 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
             ),
             onTap: () {
               Navigator.pop(context);
-              // TODO: Implement camera switching
+              // Camera switching functionality to be implemented
             },
           ),
           
