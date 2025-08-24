@@ -631,7 +631,7 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
-            'About',
+            'About Me',
             style: AppTextStyles.bodyLarge.copyWith(
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimaryLight,
@@ -666,17 +666,20 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
               ),
               if (shouldShowToggle) ...[
                 const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _isAboutExpanded = !_isAboutExpanded;
-                    });
-                  },
-                  child: Text(
-                    _isAboutExpanded ? 'Less' : 'More',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: Colors.green,
-                      fontWeight: FontWeight.w600,
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _isAboutExpanded = !_isAboutExpanded;
+                      });
+                    },
+                    child: Text(
+                      _isAboutExpanded ? 'Less' : 'More',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -694,7 +697,7 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
       children: [
         // Heading outside the card
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(
             'Skills & Specializations',
             style: AppTextStyles.bodyLarge.copyWith(
@@ -748,55 +751,68 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
   Widget _buildReviewsSection() {
     // TODO: Load reviews from API when backend is ready
     // For now, show placeholder if no reviews exist
-    if (_reviews.isEmpty) {
-      return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Icon(
-              Icons.rate_review_outlined,
-              size: 48,
-              color: AppColors.textSecondaryLight,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'No reviews yet',
-              style: AppTextStyles.bodyLarge.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondaryLight,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Be the first to leave a review!',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textSecondaryLight,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
-
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ..._reviews.map((review) => _buildReviewCard(review)),
-        const SizedBox(height: 16),
-        _buildSeeAllReviewsButton(),
+        // Heading outside the card
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Text(
+            'Reviews & Ratings',
+            style: AppTextStyles.bodyLarge.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimaryLight,
+            ),
+          ),
+        ),
+        if (_reviews.isEmpty)
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withValues(alpha: 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.rate_review_outlined,
+                  size: 48,
+                  color: AppColors.textSecondaryLight,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'No reviews yet',
+                  style: AppTextStyles.bodyLarge.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondaryLight,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Be the first to leave a review!',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textSecondaryLight,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        if (_reviews.isNotEmpty) ...[
+          ..._reviews.map((review) => _buildReviewCard(review)),
+          const SizedBox(height: 16),
+          _buildSeeAllReviewsButton(),
+        ],
       ],
     );
   }
@@ -808,6 +824,7 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
     final comment = review['comment']?.toString() ?? '';
     
     return Container(
+      width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

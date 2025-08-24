@@ -1,9 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/config.dart';
 
 class DioClient {
   static late Dio _dio;
+  static bool _isRefreshing = false;
+  static final List<Function> _pendingRequests = [];
   
   static Dio get instance => _dio;
 
@@ -49,18 +52,83 @@ class DioClient {
     // Add error handling interceptor with automatic token refresh
     _dio.interceptors.add(
       InterceptorsWrapper(
-        onError: (DioException error, ErrorInterceptorHandler handler) {
+        onError: (DioException error, ErrorInterceptorHandler handler) async {
           debugPrint('DIO Error: ${error.message}');
           debugPrint('DIO Error Response: ${error.response?.data}');
           
-          // Handle 401 Unauthorized - token might be expired
+          // Handle 401 Unauthorized - try to refresh token
           if (error.response?.statusCode == 401) {
-            debugPrint('🔄 Token may be expired - clearing auth data');
-            // Clear the token to force re-login
-            clearAuthToken();
+            debugPrint('🔄 Got 401 error - attempting token refresh');
+            
+            // If already refreshing, queue the request
+            if (_isRefreshing) {
+              debugPrint('⏳ Token refresh already in progress, queuing request');
+              return;
+            }
+            
+            _isRefreshing = true;
+            
+            try {
+              // Get refresh token from storage
+              final prefs = await SharedPreferences.getInstance();
+              final refreshToken = prefs.getString('refresh_token');
+              
+              if (refreshToken == null) {
+                debugPrint('❌ No refresh token available - user needs to login');
+                clearAuthToken();
+                handler.next(error);
+                return;
+              }
+              
+              // Attempt to refresh the token
+              final response = await Dio().post(
+                '${Config.baseUrlSync}/api/auth/refresh',
+                data: {'refresh_token': refreshToken},
+              );
+              
+              if (response.statusCode == 200) {
+                final newToken = response.data['token'] as String;
+                debugPrint('✅ Token refreshed successfully');
+                
+                // Update the token in storage and Dio client
+                await prefs.setString('auth_token', newToken);
+                setAuthToken(newToken);
+                
+                // Retry the original request with new token
+                final requestOptions = error.requestOptions;
+                requestOptions.headers['Authorization'] = 'Bearer $newToken';
+                
+                final retryResponse = await _dio.request(
+                  requestOptions.path,
+                  options: Options(
+                    method: requestOptions.method,
+                    headers: requestOptions.headers,
+                  ),
+                  data: requestOptions.data,
+                  queryParameters: requestOptions.queryParameters,
+                );
+                
+                handler.resolve(retryResponse);
+              } else {
+                debugPrint('❌ Token refresh failed with status: ${response.statusCode}');
+                clearAuthToken();
+                handler.next(error);
+              }
+            } catch (refreshError) {
+              debugPrint('❌ Token refresh failed: $refreshError');
+              clearAuthToken();
+              handler.next(error);
+            } finally {
+              _isRefreshing = false;
+              // Process any pending requests
+              for (final request in _pendingRequests) {
+                request();
+              }
+              _pendingRequests.clear();
+            }
+          } else {
+            handler.next(error);
           }
-          
-          handler.next(error);
         },
       ),
     );

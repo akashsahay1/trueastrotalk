@@ -85,7 +85,7 @@ export class JWTSecurity {
    */
   static generateAccessToken(payload: Record<string, unknown>): string {
     return jwt.sign(payload, JWT_SECRET!, {
-      expiresIn: '1h',
+      expiresIn: '24h',
       algorithm: 'HS256',
       issuer: 'trueastrotalk-api',
       audience: 'trueastrotalk-app'
