@@ -6,7 +6,7 @@ import '../models/astrologer.dart';
 import '../services/api/user_api_service.dart';
 import '../services/api/reviews_api_service.dart';
 import '../services/service_locator.dart';
-import '../services/local/local_storage_service.dart';
+import '../services/auth/auth_service.dart';
 import '../services/chat/chat_service.dart';
 import '../services/call/call_service.dart';
 import '../models/call.dart';
@@ -30,7 +30,6 @@ class AstrologerDetailsScreen extends StatefulWidget {
 class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
   Astrologer? _astrologer;
   bool _isLoading = false;
-  bool _isFavorite = false;
   bool _isAboutExpanded = false;
   bool _canAddReview = false;
   bool _hasUserReviewed = false;
@@ -47,13 +46,13 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
     if (_astrologer == null && widget.astrologerId != null) {
       _loadAstrologerData();
     } else if (_astrologer != null) {
-      _loadFavoriteStatus();
       _loadReviews();
     }
   }
 
   @override
   void dispose() {
+    _reviewController.dispose();
     super.dispose();
   }
 
@@ -73,7 +72,6 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
         setState(() {
           _isLoading = false;
         });
-        _loadFavoriteStatus();
         _loadReviews();
       }
     } catch (e) {
@@ -111,10 +109,42 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
           _reviews = [];
         });
       }
+      
+      // Check if user can add a review
+      await _checkReviewEligibility();
     } catch (e) {
       debugPrint('❌ Error loading reviews: $e');
       setState(() {
         _reviews = [];
+      });
+    }
+  }
+
+  Future<void> _checkReviewEligibility() async {
+    try {
+      debugPrint('🔍 Checking review eligibility for astrologer: ${_astrologer!.id}');
+      
+      final reviewsApiService = getIt<ReviewsApiService>();
+      final result = await reviewsApiService.checkReviewEligibility(_astrologer!.id);
+      
+      if (result['success']) {
+        setState(() {
+          _canAddReview = result['canAddReview'] ?? false;
+          _hasUserReviewed = result['hasUserReviewed'] ?? false;
+        });
+        debugPrint('✅ Review eligibility: canAdd=$_canAddReview, hasReviewed=$_hasUserReviewed');
+      } else {
+        debugPrint('❌ Failed to check review eligibility: ${result['error']}');
+        setState(() {
+          _canAddReview = false;
+          _hasUserReviewed = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Error checking review eligibility: $e');
+      setState(() {
+        _canAddReview = false;
+        _hasUserReviewed = false;
       });
     }
   }
@@ -325,297 +355,9 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
     );
   }
 
-  Widget _buildOnlineStatus() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingMd, vertical: Dimensions.paddingSm),
-      decoration: BoxDecoration(
-        color: _astrologer!.isOnline ? AppColors.success.withValues(alpha: 0.2) : AppColors.error.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _astrologer!.isOnline ? AppColors.success : AppColors.error, width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(color: _astrologer!.isOnline ? AppColors.success : AppColors.error, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            _astrologer!.isOnline ? 'Online' : 'Offline',
-            style: AppTextStyles.bodySmall.copyWith(color: _astrologer!.isOnline ? AppColors.success : AppColors.error, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildAstrologerHeader() {
-    return Container(
-      margin: const EdgeInsets.all(Dimensions.paddingLg),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(Dimensions.radiusLg),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.1), width: 1),
-      ),
-      child: Column(
-        children: [
-          // Stats Row with enhanced design
-          Container(
-            padding: const EdgeInsets.all(Dimensions.paddingLg),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.primary,
-                  AppColors.primary.withValues(alpha: 0.9),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(Dimensions.radiusLg),
-                topRight: Radius.circular(Dimensions.radiusLg),
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildEnhancedStatItem(
-                    icon: Icons.star, 
-                    iconColor: Colors.white,
-                    value: _astrologer!.ratingText, 
-                    label: '${_astrologer!.totalReviews} Reviews',
-                    bgColor: Colors.white.withValues(alpha: 0.2),
-                    textColor: Colors.white,
-                  ),
-                ),
-                Container(width: 1, height: 50, color: Colors.white.withValues(alpha: 0.3)),
-                Expanded(
-                  child: _buildEnhancedStatItem(
-                    icon: Icons.work_outline, 
-                    iconColor: Colors.white,
-                    value: '${_astrologer!.experienceYears}+', 
-                    label: 'Years Exp',
-                    bgColor: Colors.white.withValues(alpha: 0.2),
-                    textColor: Colors.white,
-                  ),
-                ),
-                Container(width: 1, height: 50, color: Colors.white.withValues(alpha: 0.3)),
-                Expanded(
-                  child: _buildEnhancedStatItem(
-                    icon: Icons.people_outline, 
-                    iconColor: Colors.white,
-                    value: _astrologer!.totalConsultations.toString(), 
-                    label: 'Sessions',
-                    bgColor: Colors.white.withValues(alpha: 0.2),
-                    textColor: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Enhanced Pricing Section
-          Container(
-            padding: const EdgeInsets.all(Dimensions.paddingLg),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(Dimensions.radiusLg),
-                bottomRight: Radius.circular(Dimensions.radiusLg),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(Icons.monetization_on_outlined, color: AppColors.primary, size: 22),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Service Pricing',
-                      style: AppTextStyles.bodyLarge.copyWith(
-                        fontWeight: FontWeight.bold, 
-                        color: AppColors.textPrimaryLight,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: Dimensions.spacingMd),
-                Column(
-                  children: [
-                    _buildSimplePricingCard(
-                      title: 'Chat',
-                      price: _astrologer!.chatRate,
-                      icon: Icons.chat_bubble,
-                      isHighlighted: false,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildSimplePricingCard(
-                      title: 'Call',
-                      price: _astrologer!.callRate,
-                      icon: Icons.call,
-                      isHighlighted: true,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildSimplePricingCard(
-                      title: 'Video',
-                      price: _astrologer!.videoRate,
-                      icon: Icons.videocam,
-                      isHighlighted: false,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildEnhancedStatItem({
-    required IconData icon, 
-    required Color iconColor, 
-    required String value, 
-    required String label,
-    required Color bgColor,
-    required Color textColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
-            ),
-            child: Icon(icon, color: iconColor, size: 24),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: AppTextStyles.heading5.copyWith(
-              fontWeight: FontWeight.bold, 
-              color: textColor,
-              fontSize: 18,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: AppTextStyles.bodySmall.copyWith(
-              color: textColor.withValues(alpha: 0.8),
-              fontWeight: FontWeight.w500,
-              fontSize: 11,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildSimplePricingCard({
-    required String title,
-    required double price,
-    required IconData icon,
-    required bool isHighlighted,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isHighlighted ? AppColors.primary : AppColors.primary.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.2), 
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.1),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: isHighlighted 
-                  ? Colors.white.withValues(alpha: 0.2)
-                  : AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              icon, 
-              color: isHighlighted ? Colors.white : AppColors.primary, 
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  title,
-                  style: AppTextStyles.bodyLarge.copyWith(
-                    fontWeight: FontWeight.bold, 
-                    color: isHighlighted ? Colors.white : AppColors.textPrimaryLight,
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: isHighlighted 
-                        ? Colors.white.withValues(alpha: 0.9)
-                        : AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    price == 0 ? 'FREE' : '₹${price.toInt()}/min',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildAboutSection() {
     final bioText = _astrologer!.bio ?? 'Experienced astrologer with ${_astrologer!.experienceYears} years of practice. Specializes in providing accurate readings and guidance to help you navigate life\'s challenges.';
@@ -929,6 +671,10 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
     );
   }
 
+  int _selectedRating = 0;
+  final TextEditingController _reviewController = TextEditingController();
+  bool _isSubmittingReview = false;
+
   Widget _buildAddReviewSection() {
     return Container(
       margin: const EdgeInsets.all(16),
@@ -957,257 +703,154 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
           const SizedBox(height: 12),
           // Rating selector
           Row(
-            children: List.generate(5, (index) {
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    // Handle rating selection
-                  });
-                },
-                child: Icon(
-                  Icons.star_border,
-                  color: Colors.amber,
-                  size: 24,
+            children: [
+              Text(
+                'Rating: ',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.textSecondaryLight,
                 ),
-              );
-            }),
+              ),
+              const SizedBox(width: 8),
+              ...List.generate(5, (index) {
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedRating = index + 1;
+                    });
+                  },
+                  child: Icon(
+                    index < _selectedRating ? Icons.star : Icons.star_border,
+                    color: Colors.amber,
+                    size: 28,
+                  ),
+                );
+              }),
+            ],
           ),
           const SizedBox(height: 12),
           // Comment input
           TextField(
+            controller: _reviewController,
             maxLines: 3,
+            maxLength: 500,
             decoration: InputDecoration(
-              hintText: 'Write your review...',
+              hintText: 'Write your review (optional)...',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(color: AppColors.borderLight),
               ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: AppColors.primary, width: 2),
+              ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           // Submit button
-          ElevatedButton(
-            onPressed: () {
-              // Handle review submission
-            },
-            child: const Text('Submit Review'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSkillsCard() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: Dimensions.paddingLg, vertical: 8),
-      padding: const EdgeInsets.all(Dimensions.paddingLg),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(Dimensions.radiusLg),
-        boxShadow: [BoxShadow(color: AppColors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.auto_graph, color: AppColors.success, size: 24),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Skills & Specializations',
-                style: AppTextStyles.heading6.copyWith(fontWeight: FontWeight.bold, color: AppColors.textPrimaryLight),
-              ),
-            ],
-          ),
-          const SizedBox(height: Dimensions.spacingLg),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _astrologer!.skills.map((skill) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.primary.withValues(alpha: 0.1), AppColors.primary.withValues(alpha: 0.05)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
-                ),
-                child: Text(
-                  skill,
-                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReviewsCard() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: Dimensions.paddingLg, vertical: 8),
-      padding: const EdgeInsets.all(Dimensions.paddingLg),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(Dimensions.radiusLg),
-        boxShadow: [BoxShadow(color: AppColors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.warning.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.star, color: AppColors.warning, size: 24),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Reviews & Ratings',
-                style: AppTextStyles.heading6.copyWith(fontWeight: FontWeight.bold, color: AppColors.textPrimaryLight),
-              ),
-            ],
-          ),
-          const SizedBox(height: Dimensions.spacingLg),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(Dimensions.paddingLg),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.warning.withValues(alpha: 0.1), AppColors.warning.withValues(alpha: 0.05)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      _astrologer!.ratingText,
-                      style: AppTextStyles.heading3.copyWith(fontWeight: FontWeight.bold, color: AppColors.warning),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: List.generate(5, (index) {
-                        return Icon(
-                          index < _astrologer!.rating.floor() ? Icons.star : Icons.star_border,
-                          color: AppColors.warning,
-                          size: 16,
-                        );
-                      }),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: Dimensions.spacingLg),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${_astrologer!.totalReviews} Reviews',
-                      style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600, color: AppColors.textPrimaryLight),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${_astrologer!.totalConsultations} Consultations',
-                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.success.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        'Verified Astrologer',
-                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.success, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: Dimensions.spacingLg),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.grey100,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.borderLight),
-            ),
-            child: Column(
-              children: [
-                Icon(Icons.rate_review_outlined, size: 32, color: AppColors.textSecondaryLight),
-                const SizedBox(height: 8),
-                Text(
-                  'Detailed Reviews Coming Soon',
-                  style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppColors.textSecondaryLight),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'User reviews and feedback will be displayed here',
-                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryLight),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-
-  Widget _buildInfoRow(String label, String value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-      decoration: BoxDecoration(
-        color: AppColors.grey50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.borderLight),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
           SizedBox(
-            width: 90,
-            child: Text(
-              label,
-              style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600, color: AppColors.textSecondaryLight),
-            ),
-          ),
-          const SizedBox(width: Dimensions.spacingMd),
-          Expanded(
-            child: Text(
-              value, 
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimaryLight, fontWeight: FontWeight.w500),
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _selectedRating > 0 && !_isSubmittingReview ? _submitReview : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: _isSubmittingReview
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                      ),
+                    )
+                  : const Text('Submit Review'),
             ),
           ),
         ],
       ),
     );
   }
+
+  Future<void> _submitReview() async {
+    if (_selectedRating == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a rating'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSubmittingReview = true;
+    });
+
+    try {
+      final reviewsApiService = getIt<ReviewsApiService>();
+      // Get current user ID from auth service
+      final authService = getIt<AuthService>();
+      final currentUser = authService.currentUser;
+      
+      if (currentUser == null) {
+        throw Exception('User not logged in');
+      }
+
+      final result = await reviewsApiService.addReview(
+        astrologerId: _astrologer!.id,
+        userId: currentUser.id,
+        rating: _selectedRating,
+        comment: _reviewController.text.trim(),
+      );
+
+      if (result['success']) {
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Review submitted successfully!'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+
+        // Reset form
+        setState(() {
+          _selectedRating = 0;
+          _reviewController.clear();
+          _hasUserReviewed = true;
+          _canAddReview = false;
+        });
+
+        // Reload reviews
+        await _loadReviews();
+      } else {
+        throw Exception(result['error'] ?? 'Failed to submit review');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to submit review: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _isSubmittingReview = false;
+      });
+    }
+  }
+
+
+
+
 
 
 
@@ -1339,45 +982,6 @@ Connect now on True AstroTalk! 🌟
     }
   }
 
-  void _toggleFavorite() async {
-    setState(() {
-      _isFavorite = !_isFavorite;
-    });
-    
-    try {
-      // Save favorite status to local storage
-      final localStorage = getIt<LocalStorageService>();
-      await localStorage.saveString('favorite_${_astrologer!.id}', _isFavorite.toString());
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _isFavorite 
-                ? '${_astrologer!.fullName} added to favorites' 
-                : '${_astrologer!.fullName} removed from favorites',
-            ),
-            backgroundColor: _isFavorite ? AppColors.success : AppColors.info,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      // Revert state on error
-      setState(() {
-        _isFavorite = !_isFavorite;
-      });
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update favorites: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
-  }
 
   void _startChat() async {
     if (!_astrologer!.isOnline) {
@@ -1509,19 +1113,4 @@ Connect now on True AstroTalk! 🌟
     );
   }
 
-  Future<void> _loadFavoriteStatus() async {
-    try {
-      // Load favorite status from local storage
-    final localStorage = getIt<LocalStorageService>();
-    final favoriteStatus = localStorage.getString('favorite_${_astrologer!.id}');
-    _isFavorite = favoriteStatus == 'true';
-      // final localStorage = getIt<LocalStorageService>();
-      // final isFavorite = await localStorage.isAstrologerFavorite(_astrologer!.id);
-      // setState(() {
-      //   _isFavorite = isFavorite;
-      // });
-    } catch (e) {
-      debugPrint('Failed to load favorite status: $e');
-    }
-  }
 }

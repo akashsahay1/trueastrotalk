@@ -123,4 +123,41 @@ class ReviewsApiService {
       };
     }
   }
+
+  /// Check review eligibility for current user
+  Future<Map<String, dynamic>> checkReviewEligibility(String astrologerId) async {
+    try {
+      debugPrint('🔍 Checking review eligibility for astrologer: $astrologerId');
+      
+      final response = await _dio.get('/astrologers/reviews/check-eligibility', queryParameters: {
+        'astrologer_id': astrologerId,
+      });
+
+      if (response.statusCode == 200) {
+        final data = response.data as Map<String, dynamic>;
+        
+        if (data['success'] == true) {
+          debugPrint('✅ Review eligibility checked');
+          return {
+            'success': true,
+            'canAddReview': data['canAddReview'] ?? false,
+            'hasUserReviewed': data['hasUserReviewed'] ?? false,
+            'hasConsulted': data['hasConsulted'] ?? false,
+          };
+        } else {
+          throw Exception(data['error'] ?? 'Failed to check review eligibility');
+        }
+      } else {
+        throw Exception('HTTP ${response.statusCode}: Failed to check review eligibility');
+      }
+    } catch (e) {
+      debugPrint('❌ Error checking review eligibility: $e');
+      return {
+        'success': false,
+        'error': e.toString(),
+        'canAddReview': false,
+        'hasUserReviewed': false,
+      };
+    }
+  }
 }
