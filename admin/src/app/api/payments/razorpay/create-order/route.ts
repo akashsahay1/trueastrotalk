@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../../../lib/database';
-import { SecurityMiddleware, InputSanitizer, EncryptionSecurity } from '../../../../../lib/security';
+import { SecurityMiddleware, InputSanitizer } from '../../../../../lib/security';
 
 export async function POST(request: NextRequest) {
   try {
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     
     const configObj = config as Record<string, unknown>;
     const razorpayConfig = configObj?.razorpay as Record<string, unknown>;
-    if (!razorpayConfig?.keyId || !razorpayConfig?.encryptedKeySecret) {
+    if (!razorpayConfig?.keyId || !razorpayConfig?.keySecret) {
       console.error('Missing Razorpay credentials in database configuration');
       return NextResponse.json({
         success: false,
@@ -107,28 +107,13 @@ export async function POST(request: NextRequest) {
       }, { status: 503 });
     }
 
-    // Get Razorpay credentials (temporarily without decryption)
+    // Get Razorpay credentials (stored as plain text in database)
     let RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET;
     try {
       RAZORPAY_KEY_ID = razorpayConfig.keyId as string;
-      
-      // Temporarily use direct value (fix encryption later)
-      RAZORPAY_KEY_SECRET = razorpayConfig.encryptedKeySecret as string;
-      
-      // Skip decryption for now
-      /*
-      const encryptionPassword = process.env.ENCRYPTION_PASSWORD;
-      if (!encryptionPassword) {
-        throw new Error('ENCRYPTION_PASSWORD not configured');
-      }
-      
-      RAZORPAY_KEY_SECRET = EncryptionSecurity.decrypt(
-        razorpayConfig.encryptedKeySecret as string,
-        encryptionPassword
-      );
-      */
-    } catch (decryptError) {
-      console.error('Failed to decrypt Razorpay credentials:', decryptError);
+      RAZORPAY_KEY_SECRET = razorpayConfig.keySecret as string;
+    } catch (credentialError) {
+      console.error('Failed to get Razorpay credentials:', credentialError);
       return NextResponse.json({
         success: false,
         error: 'PAYMENT_SERVICE_ERROR',
