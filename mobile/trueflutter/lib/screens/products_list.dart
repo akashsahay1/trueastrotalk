@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 import '../common/constants/dimensions.dart';
+import '../common/widgets/product_card.dart';
 import '../services/api/products_api_service.dart';
 import '../services/service_locator.dart';
 import '../models/product.dart';
@@ -243,7 +244,11 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
         childAspectRatio: 0.75,
       ),
       itemCount: _filteredProducts.length,
-      itemBuilder: (context, index) => _buildProductGridCard(_filteredProducts[index]),
+      itemBuilder: (context, index) => ProductCard(
+        product: _filteredProducts[index],
+        onTap: () => _navigateToProductDetails(_filteredProducts[index]),
+        isGridView: true,
+      ),
     );
   }
 
@@ -252,213 +257,12 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
       padding: const EdgeInsets.all(Dimensions.paddingLg),
       itemCount: _filteredProducts.length,
       separatorBuilder: (context, index) => const SizedBox(height: Dimensions.spacingMd),
-      itemBuilder: (context, index) => _buildProductListCard(_filteredProducts[index]),
-    );
-  }
-
-  Widget _buildProductGridCard(Product product) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Dimensions.radiusMd)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(Dimensions.radiusMd),
-        onTap: () => _navigateToProductDetails(product),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Product Image
-            Expanded(
-              flex: 3,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(Dimensions.radiusMd),
-                  topRight: Radius.circular(Dimensions.radiusMd),
-                ),
-                child: Container(
-                  width: double.infinity,
-                  color: AppColors.grey100,
-                  child: _buildProductImage(product),
-                ),
-              ),
-            ),
-            
-            // Product Details
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(Dimensions.paddingSm),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      product.name,
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimaryLight,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      product.category,
-                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryLight),
-                    ),
-                    const Spacer(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          product.formattedPrice,
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: product.isInStock ? AppColors.success : AppColors.error,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            product.stockText,
-                            style: AppTextStyles.overline.copyWith(
-                              color: AppColors.white,
-                              fontSize: 8,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+      itemBuilder: (context, index) => ProductCard(
+        product: _filteredProducts[index],
+        onTap: () => _navigateToProductDetails(_filteredProducts[index]),
+        isGridView: false,
       ),
     );
   }
 
-  Widget _buildProductListCard(Product product) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Dimensions.radiusMd)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(Dimensions.radiusMd),
-        onTap: () => _navigateToProductDetails(product),
-        child: Padding(
-          padding: const EdgeInsets.all(Dimensions.paddingMd),
-          child: Row(
-            children: [
-              // Product Image
-              ClipRRect(
-                borderRadius: BorderRadius.circular(Dimensions.radiusSm),
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  color: AppColors.grey100,
-                  child: _buildProductImage(product),
-                ),
-              ),
-              const SizedBox(width: Dimensions.spacingMd),
-              
-              // Product Details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      product.name,
-                      style: AppTextStyles.bodyLarge.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimaryLight,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      product.category,
-                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryLight),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      product.shortDescription,
-                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey600),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          product.formattedPrice,
-                          style: AppTextStyles.bodyLarge.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: product.isInStock ? AppColors.success : AppColors.error,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            product.stockText,
-                            style: AppTextStyles.overline.copyWith(
-                              color: AppColors.white,
-                              fontSize: 9,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProductImage(Product product) {
-    if (product.fixedImageUrl?.isNotEmpty == true) {
-      return Image.network(
-        product.fixedImageUrl!,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          debugPrint('❌ Failed to load product image: $error');
-          return _buildPlaceholderImage();
-        },
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Center(
-            child: CircularProgressIndicator(
-              value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                  : null,
-              strokeWidth: 2,
-            ),
-          );
-        },
-      );
-    }
-    
-    return _buildPlaceholderImage();
-  }
-
-  Widget _buildPlaceholderImage() {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      color: AppColors.grey100,
-      child: const Icon(Icons.image, size: 40, color: AppColors.grey400),
-    );
-  }
 }

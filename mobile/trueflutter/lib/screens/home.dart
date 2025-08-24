@@ -11,6 +11,7 @@ import '../models/astrologer.dart';
 import '../models/product.dart';
 import '../config/config.dart';
 import '../common/widgets/astrologer_call_card.dart';
+import '../common/widgets/product_card.dart';
 import 'profile.dart';
 import 'astrologer_details.dart';
 import 'astrologers_call.dart';
@@ -653,139 +654,21 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingLg),
                   itemCount: _featuredProducts.length,
                   separatorBuilder: (context, index) => const SizedBox(width: Dimensions.spacingMd),
-                  itemBuilder: (context, index) => _buildProductCard(_featuredProducts[index]),
+                  itemBuilder: (context, index) => SizedBox(
+                    width: 200,
+                    child: ProductCard(
+                      product: _featuredProducts[index],
+                      onTap: () => _viewProduct(_featuredProducts[index]),
+                      isGridView: true,
+                      isHorizontalScroll: true,
+                    ),
+                  ),
                 ),
               ),
       ],
     );
   }
 
-  Widget _buildProductCard(Product product) {
-    return Container(
-      width: 200,
-      height: 310, // Reduced from 320 to prevent overflow
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(Dimensions.radiusMd),
-        boxShadow: [BoxShadow(color: AppColors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Product Image
-          ClipRRect(
-            borderRadius: const BorderRadius.only(topLeft: Radius.circular(Dimensions.radiusMd), topRight: Radius.circular(Dimensions.radiusMd)),
-            child: Container(height: 140, width: double.infinity, color: AppColors.grey100, child: _buildProductImage(product)),
-          ),
-          // Product Details - Fixed height to prevent overflow
-          SizedBox(
-            height: 170, // Fixed height for content area
-            child: Padding(
-              padding: const EdgeInsets.all(10), // Reduced from 12
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Product Name - Fixed height
-                  SizedBox(
-                    height: 40, // Fixed height for name
-                    child: Text(
-                      product.name,
-                      style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppColors.textPrimaryLight),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(product.category, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryLight)),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          product.formattedPrice,
-                          style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                        decoration: BoxDecoration(color: product.isInStock ? AppColors.success : AppColors.error, borderRadius: BorderRadius.circular(3)),
-                        child: Text(
-                          product.stockText,
-                          style: AppTextStyles.overline.copyWith(color: AppColors.white, fontSize: 8),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  // Button - Fixed at bottom
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: 30, // Fixed button height
-                        child: ElevatedButton(
-                          onPressed: product.isInStock ? () => _viewProduct(product) : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: product.isInStock ? AppColors.primary : AppColors.grey300,
-                            foregroundColor: product.isInStock ? AppColors.white : AppColors.grey600,
-                            padding: const EdgeInsets.symmetric(vertical: 4),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-                          ),
-                          child: Text(
-                            product.isInStock ? 'View Details' : 'Out of Stock',
-                            style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600, fontSize: 11),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProductImage(Product product) {
-    // Backend provides complete URLs, so we just use them directly
-    if (product.fixedImageUrl?.isNotEmpty == true) {
-      return Image.network(
-        product.fixedImageUrl!,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          debugPrint('❌ Failed to load product image: $error');
-          debugPrint('Image URL was: ${product.fixedImageUrl}');
-          return _buildPlaceholderImage();
-        },
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Center(child: CircularProgressIndicator(value: loadingProgress.expectedTotalBytes != null ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes! : null, strokeWidth: 2));
-        },
-      );
-    }
-
-    return _buildPlaceholderImage();
-  }
-
-  Widget _buildPlaceholderImage() {
-    return Container(
-      height: 140,
-      width: double.infinity,
-      color: AppColors.grey100,
-      child: const Icon(Icons.image, size: 40, color: AppColors.grey400),
-    );
-  }
 
   Widget _buildHoroscopeSection() {
     return Padding(
