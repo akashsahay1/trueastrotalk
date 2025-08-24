@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:convert';
 
 class LocalStorageService {
   late SharedPreferences _prefs;
@@ -73,16 +74,21 @@ class LocalStorageService {
     if (userDataString == null) return null;
     
     try {
-      // Simple parsing - in real implementation you'd use json.decode
-      // For now, return mock user data
-      return {
-        'id': getUserId() ?? 'user123',
-        'name': 'Test User',
-        'email': 'test@example.com',
-      };
+      return json.decode(userDataString) as Map<String, dynamic>;
     } catch (e) {
       return null;
     }
+  }
+
+  // Save user map (convenient method for saving user data as JSON)
+  Future<void> saveUserMap(Map<String, dynamic> userMap) async {
+    final userDataString = json.encode(userMap);
+    await saveUserData(userDataString);
+  }
+
+  // Clear user map
+  Future<void> clearUserMap() async {
+    await _prefs.remove(_userDataKey);
   }
 
   // Clear all user data (logout)

@@ -10,6 +10,7 @@ import '../models/enums.dart';
 import '../models/astrologer.dart';
 import '../models/product.dart';
 import '../config/config.dart';
+import '../common/widgets/astrologer_call_card.dart';
 import 'profile.dart';
 import 'astrologer_details.dart';
 import 'astrologers_call.dart';
@@ -604,170 +605,16 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingLg),
                 itemCount: _featuredAstrologers.length,
                 separatorBuilder: (context, index) => const SizedBox(height: Dimensions.spacingMd),
-                itemBuilder: (context, index) => _buildNewAstrologerCard(_featuredAstrologers[index]),
+                itemBuilder: (context, index) => AstrologerCallCard(
+                  astrologer: _featuredAstrologers[index],
+                  onTap: () => _navigateToAstrologerDetails(_featuredAstrologers[index]),
+                  onStartCall: () => _startCallWithAstrologer(_featuredAstrologers[index]),
+                ),
               ),
       ],
     );
   }
 
-  Widget _buildNewAstrologerCard(Astrologer astrologer) {
-    String truncateTextWithComma(String text) {
-      // Split the string by comma and trim whitespace from each part.
-      List<String> parts = text.split(',').map((e) => e.trim()).toList();
-
-      // If there are at least two parts, return the first two joined by a comma.
-      if (parts.length >= 2) {
-        return '${parts[0]}, ${parts[1]}';
-      }
-      // If there's only one part, return that part.
-      else if (parts.length == 1) {
-        return parts[0];
-      }
-      // If the string is empty or contains no valid parts after splitting, return an empty string.
-      else {
-        return '';
-      }
-    }
-
-    return Card(
-      margin: EdgeInsets.only(bottom: 0),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => _navigateToAstrologerDetails(astrologer),
-        child: Padding(
-          padding: EdgeInsets.all(12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Astrologer image with online indicator
-              GestureDetector(
-                onTap: () => _navigateToAstrologerDetails(astrologer),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Stack(
-                      children: [
-                        _buildAstrologerProfileImage(astrologer),
-                        Positioned(
-                          top: 2,
-                          right: 2,
-                          child: Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: astrologer.isOnline ? AppColors.success : AppColors.error,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: AppColors.white, width: 2),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(astrologer.ratingText, style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18)),
-                        SizedBox(width: 2),
-                        Icon(Icons.star, color: Colors.amber, size: 22),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(width: 20.0),
-              // Astrologer details
-              Expanded(
-                flex: 1,
-                child: GestureDetector(
-                  onTap: () => _navigateToAstrologerDetails(astrologer),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              astrologer.fullName,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.auto_graph, size: 18, color: Colors.grey[700]),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              truncateTextWithComma(astrologer.skillsText),
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.language, size: 18, color: Colors.grey[700]),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              truncateTextWithComma(astrologer.languagesText),
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.work_outline, size: 18, color: Colors.grey[700]),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Experience ${astrologer.experienceYears} years',
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              // Call button only for featured astrologers
-              ElevatedButton.icon(
-                onPressed: astrologer.isOnline ? () => _startCallWithAstrologer(astrologer) : null,
-                icon: const Icon(Icons.call, size: 18),
-                label: Text(astrologer.callRate == 0 ? 'FREE' : '₹${astrologer.callRate.toInt()}/min', style: const TextStyle(fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: astrologer.isOnline ? AppColors.primary : AppColors.grey300,
-                  foregroundColor: AppColors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildFeaturedProducts() {
     return Column(
@@ -1660,38 +1507,6 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildAstrologerProfileImage(Astrologer astrologer) {
-    // Check if we have a valid profile image URL
-    if (astrologer.profileImage != null && astrologer.profileImage!.isNotEmpty) {
-      return CircleAvatar(
-        radius: 30,
-        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-        child: ClipOval(
-          child: Image.network(
-            astrologer.profileImage!,
-            width: 60,
-            height: 60,
-            fit: BoxFit.cover,
-            loadingBuilder: (context, child, loadingProgress) {
-              if (loadingProgress == null) return child;
-              return Icon(Icons.person, size: 30, color: AppColors.primary.withValues(alpha: 0.5));
-            },
-            errorBuilder: (context, error, stackTrace) {
-              // If network image fails, show default avatar
-              return Icon(Icons.person, size: 30, color: AppColors.primary);
-            },
-          ),
-        ),
-      );
-    }
-
-    // Fallback to icon if no profile image
-    return CircleAvatar(
-      radius: 30,
-      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-      child: Icon(Icons.person, size: 30, color: AppColors.primary),
-    );
-  }
 
   // Astrologer-specific screens
   Widget _buildAstrologerHomeContent() {

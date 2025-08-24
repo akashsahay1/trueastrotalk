@@ -4,6 +4,8 @@ import '../models/cart.dart';
 import '../models/product.dart';
 import 'local/local_storage_service.dart';
 import 'api/cart_api_service.dart';
+import 'auth/auth_service.dart';
+import 'service_locator.dart';
 
 class CartService extends ChangeNotifier {
   final LocalStorageService _localStorage;
@@ -14,8 +16,11 @@ class CartService extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   
-  CartService(this._localStorage, this._cartApiService) {
-    _loadCart();
+  CartService(this._localStorage, this._cartApiService);
+  
+  // Initialize cart - call this after LocalStorageService is initialized
+  Future<void> initialize() async {
+    await _loadCart();
   }
 
   // Getters
@@ -44,7 +49,34 @@ class CartService extends ChangeNotifier {
         final result = await _cartApiService.getCart(userId);
         
         if (result['success']) {
-          final List<CartItem> cartItems = result['cart_items'];
+          debugPrint('🛒 API getCart result: $result');
+          final cartItemsData = result['cart_items'];
+          debugPrint('🛒 Raw cart_items from API: $cartItemsData (type: ${cartItemsData.runtimeType})');
+          
+          List<CartItem> cartItems = [];
+          if (cartItemsData != null && cartItemsData is List) {
+            // Check if items are already CartItem objects or raw JSON
+            debugPrint('🛒 Checking first item type: ${cartItemsData.first.runtimeType}');
+            debugPrint('🛒 First item is CartItem: ${cartItemsData.first is CartItem}');
+            
+            if (cartItemsData.isNotEmpty && cartItemsData.first is CartItem) {
+              // Items are already parsed CartItem objects
+              cartItems = cartItemsData.cast<CartItem>();
+              debugPrint('🛒 Using already parsed ${cartItems.length} cart items from API');
+            } else {
+              // Items are raw JSON, need to parse them
+              debugPrint('🛒 Attempting to parse ${cartItemsData.length} items from raw JSON');
+              for (int i = 0; i < cartItemsData.length; i++) {
+                debugPrint('🛒 Item $i type: ${cartItemsData[i].runtimeType}');
+                debugPrint('🛒 Item $i data: ${cartItemsData[i]}');
+              }
+              cartItems = cartItemsData.map((item) => CartItem.fromApiJson(item)).toList();
+              debugPrint('🛒 Successfully parsed ${cartItems.length} cart items from raw JSON');
+            }
+          } else {
+            debugPrint('🛒 No cart items found in API response');
+          }
+          
           _cart = Cart(items: cartItems);
           await _saveCartToLocal(); // Cache locally
         } else {
@@ -58,6 +90,7 @@ class CartService extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Error loading cart: $e');
+      debugPrint('Stack trace: ${StackTrace.current}');
       await _loadCartFromLocal();
       _error = 'Failed to load cart';
     }
@@ -82,11 +115,18 @@ class CartService extends ChangeNotifier {
     }
   }
 
-  // Get current user ID (replace with actual auth service call)
+  // Get current user ID from AuthService
   String? _getUserId() {
-    // Replace with actual auth service integration
-    // For now returning stored user ID or mock fallback
-    return _localStorage.getString('user_id') ?? '507f1f77bcf86cd799439011';
+    try {
+      final authService = getIt<AuthService>();
+      final userId = authService.currentUser?.id;
+      debugPrint('🛒 Getting user ID from AuthService: $userId');
+      return userId;
+    } catch (e) {
+      debugPrint('🛒 Error getting user ID from AuthService: $e');
+      // Fallback to localStorage
+      return _localStorage.getString('user_id');
+    }
   }
 
   // Save cart to local storage (for caching)
@@ -101,10 +141,12 @@ class CartService extends ChangeNotifier {
 
   // Add product to cart
   Future<bool> addToCart(Product product, int quantity) async {
+    debugPrint('🛒 Adding to cart: ${product.name}, quantity: $quantity, inStock: ${product.isInStock}');
     if (quantity <= 0 || !product.isInStock) return false;
 
     _error = null;
     final userId = _getUserId();
+    debugPrint('🛒 User ID: $userId');
 
     if (userId != null) {
       // Add to API cart
@@ -117,14 +159,19 @@ class CartService extends ChangeNotifier {
 
         if (result['success']) {
           // Reload cart from API to get updated data
+          debugPrint('🛒 API success, reloading cart...');
           await _loadCart();
           debugPrint('✅ Added ${product.name} (qty: $quantity) to cart via API');
+          debugPrint('🛒 After reload: Cart has ${_cart.items.length} items, total: ${_cart.totalItems}');
           return true;
         } else {
           _error = result['error'];
+          debugPrint('🛒 API failed, using local cart. Error: ${result['error']}');
           // Fallback to local cart
           final cartItem = CartItem.fromProduct(product, quantity);
+          debugPrint('🛒 Created cart item: ${cartItem.productName}, quantity: ${cartItem.quantity}');
           _cart.addItem(cartItem);
+          debugPrint('🛒 Cart now has ${_cart.items.length} items, total: ${_cart.totalItems}');
           await _saveCartToLocal();
           notifyListeners();
           debugPrint('✅ Added ${product.name} (qty: $quantity) to local cart');
@@ -135,15 +182,20 @@ class CartService extends ChangeNotifier {
         _error = 'Failed to add item to cart';
         // Fallback to local cart
         final cartItem = CartItem.fromProduct(product, quantity);
+        debugPrint('🛒 Exception fallback - Created cart item: ${cartItem.productName}');
         _cart.addItem(cartItem);
+        debugPrint('🛒 Exception fallback - Cart now has ${_cart.items.length} items');
         await _saveCartToLocal();
         notifyListeners();
         return true;
       }
     } else {
       // User not logged in, use local cart
+      debugPrint('🛒 User not logged in, using local cart');
       final cartItem = CartItem.fromProduct(product, quantity);
+      debugPrint('🛒 No user - Created cart item: ${cartItem.productName}');
       _cart.addItem(cartItem);
+      debugPrint('🛒 No user - Cart now has ${_cart.items.length} items');
       await _saveCartToLocal();
       notifyListeners();
       debugPrint('✅ Added ${product.name} (qty: $quantity) to local cart');

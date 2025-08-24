@@ -7,158 +7,167 @@ class AstrologerCallCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onStartCall;
 
-  const AstrologerCallCard({
-    super.key,
-    required this.astrologer,
-    required this.onTap,
-    required this.onStartCall,
-  });
+  const AstrologerCallCard({super.key, required this.astrologer, required this.onTap, required this.onStartCall});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200, width: 1),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          padding: const EdgeInsets.all(15),
+          child: Column(
             children: [
-              // Astrologer image with online indicator
-              Column(
+              Row(
                 children: [
-                  Stack(
+                  // Left section: Profile image and rating
+                  Column(
                     children: [
-                      _buildAstrologerProfileImage(),
-                      Positioned(
-                        top: 2,
-                        right: 2,
-                        child: Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: astrologer.isOnline ? AppColors.success : AppColors.error,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.white, width: 2),
+                      // Profile image with golden border (no online indicator here)
+                      Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.primary, // Golden color
+                            width: 2,
                           ),
                         ),
+                        child: _buildAstrologerProfileImage(),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+                      const SizedBox(height: 12),
+                      // Rating with stars
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: List.generate(5, (index) => Icon(Icons.star, size: 16, color: index < 4 ? Colors.grey.shade700 : Colors.grey.shade300)),
+                      ),
+                      const SizedBox(height: 4),
+                      // Orders count
                       Text(
-                        astrologer.ratingText, 
-                        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16)
+                        '${astrologer.totalConsultations} orders',
+                        style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w500),
                       ),
-                      const SizedBox(width: 2),
-                      const Icon(Icons.star, color: Colors.amber, size: 20),
                     ],
                   ),
-                ],
-              ),
-              const SizedBox(width: 16),
-              // Astrologer details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      astrologer.fullName,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
+                  const SizedBox(width: 20),
+                  // Middle section: Astrologer details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.auto_graph, size: 16, color: Colors.grey),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            _truncateTextWithComma(astrologer.skillsText),
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                        // Name with online status
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                astrologer.fullName,
+                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (astrologer.isOnline)
+                              Container(
+                                margin: const EdgeInsets.only(left: 8),
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: AppColors.white, width: 2),
+                                ),
+                                child: const Icon(Icons.check, color: AppColors.white, size: 12),
+                              ),
+                          ],
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        const Icon(Icons.language, size: 16, color: Colors.grey),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            _truncateTextWithComma(astrologer.languagesText),
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        const Icon(Icons.work_outline, size: 16, color: Colors.grey),
-                        const SizedBox(width: 4),
+                        const SizedBox(height: 6),
+                        // Skills (no icon)
                         Text(
-                          '${astrologer.experienceYears} years exp',
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                          _truncateTextWithComma(astrologer.skillsText),
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 14, fontWeight: FontWeight.w400),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        // Languages and Experience on left, Call button on right (positioned between Experience and Price)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Languages (no icon)
+                                  Text(
+                                    _truncateTextWithComma(astrologer.languagesText),
+                                    style: TextStyle(color: Colors.grey.shade600, fontSize: 14, fontWeight: FontWeight.w400),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  // Experience (no icon)
+                                  Text(
+                                    'Exp- ${astrologer.experienceYears} Years',
+                                    style: TextStyle(color: Colors.grey.shade600, fontSize: 14, fontWeight: FontWeight.w400),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            // Call button positioned between Experience and Price
+                            Container(
+                              margin: const EdgeInsets.only(top: 15),
+                              width: 90,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                border: Border.all(color: AppColors.primary, width: 1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(10),
+                                  onTap: astrologer.isOnline ? onStartCall : null,
+                                  child: Container(
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      'Call',
+                                      style: TextStyle(color: astrologer.isOnline ? AppColors.primary : Colors.grey, fontSize: 16, fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        // Price
+                        RichText(
+                          text: TextSpan(
+                            children: [
+                              const TextSpan(
+                                text: '₹',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: AppColors.primary),
+                              ),
+                              TextSpan(
+                                text: astrologer.callRate.toInt() == 0 ? "FREE" : "${astrologer.callRate.toInt()}",
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary),
+                              ),
+                              if (astrologer.callRate.toInt() != 0)
+                                const TextSpan(
+                                  text: '/min',
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: Colors.grey),
+                                ),
+                            ],
+                          ),
                         ),
                       ],
-                    ),
-                  ],
-                ),
-              ),
-              // Call button with pricing - vertically centered
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 100,
-                    height: 40,
-                    child: ElevatedButton.icon(
-                      onPressed: astrologer.isOnline ? onStartCall : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: astrologer.isOnline ? AppColors.primary : AppColors.grey300,
-                        foregroundColor: AppColors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                        elevation: 0,
-                      ),
-                      icon: const Icon(
-                        Icons.call,
-                        size: 18,
-                        color: AppColors.white,
-                      ),
-                      label: const Text(
-                        'Call',
-                        style: TextStyle(
-                          color: AppColors.white, 
-                          fontWeight: FontWeight.bold, 
-                          fontSize: 14
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  // Pricing below button
-                  Text(
-                    astrologer.callRate.toInt() == 0 
-                        ? "FREE" 
-                        : "₹${astrologer.callRate.toInt()}/min",
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
                     ),
                   ),
                 ],
@@ -171,20 +180,43 @@ class AstrologerCallCard extends StatelessWidget {
   }
 
   Widget _buildAstrologerProfileImage() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: Image.network(
-        astrologer.profileImage ?? '',
-        width: 80,
-        height: 80,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => Container(
-          width: 80,
-          height: 80,
-          color: AppColors.grey200,
-          child: const Icon(Icons.person, color: AppColors.grey400),
+    const double imageSize = 70;
+    // Check if we have a valid profile image URL
+    if (astrologer.profileImage != null && astrologer.profileImage!.isNotEmpty) {
+      return ClipOval(
+        child: SizedBox(
+          width: imageSize,
+          height: imageSize,
+          child: Image.network(
+            astrologer.profileImage!,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(
+                width: imageSize,
+                height: imageSize,
+                color: Colors.grey.shade200,
+                child: Icon(Icons.person, size: 30, color: Colors.grey.shade400),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                width: imageSize,
+                height: imageSize,
+                color: Colors.grey.shade200,
+                child: Icon(Icons.person, size: 30, color: Colors.grey.shade400),
+              );
+            },
+          ),
         ),
-      ),
+      );
+    }
+    // Fallback to icon if no profile image
+    return Container(
+      width: imageSize,
+      height: imageSize,
+      decoration: BoxDecoration(color: Colors.grey.shade200, shape: BoxShape.circle),
+      child: Icon(Icons.person, size: 30, color: Colors.grey.shade400),
     );
   }
 

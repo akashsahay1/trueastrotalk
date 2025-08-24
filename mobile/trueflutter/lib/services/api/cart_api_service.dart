@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../../models/cart.dart';
 import 'endpoints.dart';
 
@@ -16,15 +17,19 @@ class CartApiService {
       );
 
       if (response.statusCode == 200 && response.data['success']) {
-        final List<dynamic> cartItemsJson = response.data['cart_items'] ?? [];
+        // Server returns cart data under 'cart' key with 'items' sub-key
+        final cartData = response.data['cart'];
+        final List<dynamic> cartItemsJson = cartData?['items'] ?? [];
+        
+        // Parse raw JSON data into CartItem objects
         final List<CartItem> cartItems = cartItemsJson
-            .map((json) => CartItem.fromApiJson(json))
+            .map<CartItem>((itemData) => CartItem.fromApiJson(itemData as Map<String, dynamic>))
             .toList();
 
         return {
           'success': true,
           'cart_items': cartItems,
-          'cart_summary': response.data['cart_summary'],
+          'cart_summary': cartData?['totals'],
         };
       } else {
         return {
@@ -54,17 +59,26 @@ class CartApiService {
     required String productId,
     required int quantity,
   }) async {
+    debugPrint('🛒 CartApiService.addToCart called with userId: $userId, productId: $productId, quantity: $quantity');
+    debugPrint('🛒 API endpoint: ${ApiEndpoints.cart}');
+    
     try {
+      final requestData = {
+        'user_id': userId,
+        'product_id': productId,
+        'quantity': quantity,
+      };
+      debugPrint('🛒 API addToCart request data: $requestData');
+      debugPrint('🛒 About to make POST request to ${ApiEndpoints.cart}');
+      
       final response = await _dio.post(
         ApiEndpoints.cart,
-        data: {
-          'user_id': userId,
-          'product_id': productId,
-          'quantity': quantity,
-        },
+        data: requestData,
       );
+      
+      debugPrint('🛒 API addToCart response: ${response.statusCode} - ${response.data}');
 
-      if (response.statusCode == 201 && response.data['success']) {
+      if ((response.statusCode == 200 || response.statusCode == 201) && response.data['success']) {
         return {
           'success': true,
           'message': response.data['message'],
@@ -77,11 +91,14 @@ class CartApiService {
         };
       }
     } on DioException catch (e) {
+      debugPrint('🛒 DioException in addToCart: ${e.type} - ${e.message}');
+      debugPrint('🛒 DioException response: ${e.response?.statusCode} - ${e.response?.data}');
       return {
         'success': false,
         'error': _handleDioError(e),
       };
     } catch (e) {
+      debugPrint('🛒 Unexpected error in addToCart: $e');
       return {
         'success': false,
         'error': 'Unexpected error: $e',
