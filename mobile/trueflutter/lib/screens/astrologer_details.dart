@@ -123,9 +123,22 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
   Future<void> _checkReviewEligibility() async {
     try {
       debugPrint('🔍 Checking review eligibility for astrologer: ${_astrologer!.id}');
+      debugPrint('🔍 Astrologer name: ${_astrologer!.fullName}');
+      
+      // Check if user is logged in
+      final authService = getIt<AuthService>();
+      final currentUser = authService.currentUser;
+      debugPrint('🔍 Current user: ${currentUser?.name} (${currentUser?.email}) - ID: ${currentUser?.id}');
+      
+      if (currentUser == null) {
+        debugPrint('❌ User not logged in');
+        return;
+      }
       
       final reviewsApiService = getIt<ReviewsApiService>();
       final result = await reviewsApiService.checkReviewEligibility(_astrologer!.id);
+      
+      debugPrint('🔍 Review eligibility API result: $result');
       
       if (result['success']) {
         setState(() {
