@@ -163,10 +163,8 @@ export default function EditProductPage() {
           sku: productData.sku || '',
           barcode: productData.barcode || '',
           
-          primary_image: productData.primary_image || productData.image_url || '',
-          image_url: productData.image_url || productData.primary_image || '',
-          images: productData.images || [],
-          image_urls: productData.image_urls || [],
+          primary_image: productData.image_url || '',
+          image_url: productData.image_url || '',
           
           material: productData.material || '',
           weight: productData.weight ? productData.weight.toString() : '',
@@ -688,101 +686,284 @@ export default function EditProductPage() {
 
                       <hr className="my-4" />
 
-                      {/* Images */}
-                      <h6 className="mb-3">Product Images</h6>
-                      <div className="form-group">
-                        <label>Primary Image</label>
-                        <div className="d-flex align-items-start">
-                          {formData.primary_image ? (
-                            <div className="mr-3">
-                              <Image
-                                src={formData.primary_image}
-                                alt="Product"
-                                width={150}
-                                height={150}
-                                className="img-thumbnail"
-                                style={{ objectFit: 'cover' }}
-                              />
-                              <div className="mt-2">
-                                <button
-                                  type="button"
-                                  className="btn btn-sm btn-outline-danger"
-                                  onClick={handleRemovePrimaryImage}
-                                >
-                                  <i className="fas fa-trash"></i> Remove
-                                </button>
+                      {/* Images Section - Modern Design */}
+                      <div className="card border-0 shadow-sm">
+                        <div className="card-header bg-white border-0 pb-0">
+                          <h5 className="card-title mb-0 text-dark">
+                            <i className="fas fa-images text-primary mr-2"></i>
+                            Product Media
+                          </h5>
+                          <small className="text-muted">Upload and manage product images</small>
+                        </div>
+                        <div className="card-body">
+                          {/* Primary Image Section */}
+                          <div className="row mb-4">
+                            <div className="col-md-4">
+                              <h6 className="font-weight-bold text-dark mb-3">
+                                <span className="badge badge-primary badge-sm mr-2">PRIMARY</span>
+                                Main Product Image
+                              </h6>
+                              
+                              <div className="primary-image-container">
+                                {formData.primary_image ? (
+                                  <div className="image-preview-card position-relative">
+                                    <Image
+                                      src={formData.primary_image}
+                                      alt="Primary Product Image"
+                                      width={200}
+                                      height={200}
+                                      className="rounded shadow-sm"
+                                      style={{ 
+                                        objectFit: 'cover', 
+                                        border: '3px solid #007bff',
+                                        transition: 'all 0.3s ease'
+                                      }}
+                                    />
+                                    <div className="image-overlay position-absolute">
+                                      <button
+                                        type="button"
+                                        className="btn btn-danger btn-sm rounded-circle position-absolute"
+                                        onClick={handleRemovePrimaryImage}
+                                        style={{ 
+                                          top: '8px', 
+                                          right: '8px',
+                                          width: '32px',
+                                          height: '32px',
+                                          padding: '0',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center'
+                                        }}
+                                      >
+                                        <i className="fas fa-times" style={{ fontSize: '12px' }}></i>
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div 
+                                    className="image-placeholder d-flex flex-column align-items-center justify-content-center rounded border-2"
+                                    style={{ 
+                                      width: '200px', 
+                                      height: '200px', 
+                                      backgroundColor: '#f8f9fa',
+                                      borderStyle: 'dashed',
+                                      borderColor: '#dee2e6',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.3s ease'
+                                    }}
+                                    onClick={() => {
+                                      setMediaLibraryMode('primary');
+                                      setShowMediaLibrary(true);
+                                    }}
+                                  >
+                                    <i className="fas fa-cloud-upload-alt text-muted mb-2" style={{ fontSize: '32px' }}></i>
+                                    <span className="text-muted font-weight-bold">Upload Image</span>
+                                    <small className="text-muted">Recommended: 800x800px</small>
+                                  </div>
+                                )}
                               </div>
                             </div>
-                          ) : (
-                            <div 
-                              className="border d-flex align-items-center justify-content-center mr-3"
-                              style={{ width: '150px', height: '150px', backgroundColor: '#f8f9fa' }}
-                            >
-                              <i className="fas fa-image text-muted" style={{ fontSize: '32px' }}></i>
+                            
+                            <div className="col-md-8">
+                              <div className="d-flex flex-column h-100 justify-content-center">
+                                <div className="mb-3">
+                                  <button
+                                    type="button"
+                                    className="btn btn-primary btn-lg shadow-sm"
+                                    onClick={() => {
+                                      setMediaLibraryMode('primary');
+                                      setShowMediaLibrary(true);
+                                    }}
+                                    style={{ borderRadius: '8px' }}
+                                  >
+                                    <i className="fas fa-folder-open mr-2"></i>
+                                    {formData.primary_image ? 'Change Primary Image' : 'Select Primary Image'}
+                                  </button>
+                                </div>
+                                
+                                <div className="alert alert-info border-0 shadow-sm" style={{ borderRadius: '8px' }}>
+                                  <i className="fas fa-info-circle mr-2"></i>
+                                  <strong>Image Guidelines:</strong>
+                                  <ul className="mb-0 mt-2 small">
+                                    <li>Use high-quality images (minimum 800x800px)</li>
+                                    <li>Square aspect ratio works best</li>
+                                    <li>This image will be the main product thumbnail</li>
+                                    <li>Supported formats: JPG, PNG, WebP</li>
+                                  </ul>
+                                </div>
+                              </div>
                             </div>
-                          )}
-                          <div>
-                            <button
-                              type="button"
-                              className="btn btn-outline-primary"
-                              onClick={() => {
-                                setMediaLibraryMode('primary');
-                                setShowMediaLibrary(true);
-                              }}
-                            >
-                              <i className="fas fa-folder-open"></i> {formData.primary_image ? 'Change Primary Image' : 'Select Primary Image'}
-                            </button>
-                            <small className="form-text text-muted d-block mt-1">
-                              This will be the main product image
-                            </small>
                           </div>
-                        </div>
-                      </div>
 
-                      <div className="form-group mt-4">
-                        <label>Product Gallery</label>
-                        <div className="d-flex flex-wrap align-items-start">
-                          {formData.images.map((image, index) => (
-                            <div key={index} className="mr-3 mb-3">
-                              <Image
-                                src={image}
-                                alt={`Gallery ${index + 1}`}
-                                width={120}
-                                height={120}
-                                className="img-thumbnail"
-                                style={{ objectFit: 'cover' }}
-                              />
-                              <div className="mt-2 text-center">
-                                <button
-                                  type="button"
-                                  className="btn btn-sm btn-outline-danger"
-                                  onClick={() => handleRemoveGalleryImage(image)}
-                                >
-                                  <i className="fas fa-trash"></i>
-                                </button>
+                          <hr className="my-4" />
+
+                          {/* Gallery Images Section */}
+                          <div className="gallery-section">
+                            <h6 className="font-weight-bold text-dark mb-3">
+                              <span className="badge badge-secondary badge-sm mr-2">GALLERY</span>
+                              Additional Product Images
+                            </h6>
+                            
+                            <div className="gallery-grid">
+                              <div className="row">
+                                {/* Add Image Card */}
+                                <div className="col-lg-2 col-md-3 col-sm-4 col-6 mb-3">
+                                  <div 
+                                    className="add-image-card d-flex flex-column align-items-center justify-content-center rounded border-2 h-100"
+                                    style={{ 
+                                      minHeight: '140px',
+                                      backgroundColor: '#f8f9fa',
+                                      borderStyle: 'dashed',
+                                      borderColor: '#6c757d',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.3s ease'
+                                    }}
+                                    onClick={() => {
+                                      setMediaLibraryMode('gallery');
+                                      setShowMediaLibrary(true);
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.backgroundColor = '#e9ecef';
+                                      e.currentTarget.style.borderColor = '#495057';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.backgroundColor = '#f8f9fa';
+                                      e.currentTarget.style.borderColor = '#6c757d';
+                                    }}
+                                  >
+                                    <i className="fas fa-plus text-muted mb-2" style={{ fontSize: '24px' }}></i>
+                                    <span className="small font-weight-bold text-muted">Add Image</span>
+                                  </div>
+                                </div>
+
+                                {/* Gallery Images - Currently single image only */}
+                                {formData.image_url && (
+                                  <div className="col-lg-2 col-md-3 col-sm-4 col-6 mb-3">
+                                    <div className="gallery-image-card position-relative">
+                                      <Image
+                                        src={formData.image_url}
+                                        alt="Product Image"
+                                        width={140}
+                                        height={140}
+                                        className="rounded shadow-sm w-100"
+                                        style={{ 
+                                          objectFit: 'cover',
+                                          height: '140px',
+                                          border: '2px solid #dee2e6',
+                                          transition: 'all 0.3s ease'
+                                        }}
+                                      />
+                                      <div className="image-overlay-actions position-absolute w-100 h-100 d-flex align-items-center justify-content-center"
+                                           style={{ 
+                                             top: 0, 
+                                             left: 0, 
+                                             backgroundColor: 'rgba(0,0,0,0.7)', 
+                                             opacity: 0,
+                                             transition: 'opacity 0.3s ease',
+                                             borderRadius: '4px'
+                                           }}
+                                           onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                                           onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}
+                                      >
+                                        <button
+                                          type="button"
+                                          className="btn btn-danger btn-sm rounded-circle"
+                                          onClick={() => setFormData({ ...formData, image_url: '', primary_image: '' })}
+                                          style={{ 
+                                            width: '36px',
+                                            height: '36px',
+                                            padding: '0',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                          }}
+                                        >
+                                          <i className="fas fa-trash" style={{ fontSize: '14px' }}></i>
+                                        </button>
+                                      </div>
+                                      <div className="position-absolute bg-dark text-white px-2 py-1 rounded"
+                                           style={{ 
+                                             top: '8px', 
+                                             left: '8px',
+                                             fontSize: '10px',
+                                             fontWeight: 'bold'
+                                           }}>
+                                        #1
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                                {/* This section can be extended for multiple images in the future */}
+                                {false && formData.image_urls?.map((imageUrl, index) => (
+                                  <div key={index} className="col-lg-2 col-md-3 col-sm-4 col-6 mb-3">
+                                    <div className="gallery-image-card position-relative">
+                                      <Image
+                                        src={imageUrl}
+                                        alt={`Gallery Image ${index + 1}`}
+                                        width={140}
+                                        height={140}
+                                        className="rounded shadow-sm w-100"
+                                        style={{ 
+                                          objectFit: 'cover',
+                                          height: '140px',
+                                          border: '2px solid #dee2e6',
+                                          transition: 'all 0.3s ease'
+                                        }}
+                                      />
+                                      <div className="image-overlay-actions position-absolute w-100 h-100 d-flex align-items-center justify-content-center"
+                                           style={{ 
+                                             top: 0, 
+                                             left: 0, 
+                                             backgroundColor: 'rgba(0,0,0,0.7)', 
+                                             opacity: 0,
+                                             transition: 'opacity 0.3s ease',
+                                             borderRadius: '4px'
+                                           }}
+                                           onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                                           onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}
+                                      >
+                                        <button
+                                          type="button"
+                                          className="btn btn-danger btn-sm rounded-circle"
+                                          onClick={() => handleRemoveGalleryImage(imageUrl)}
+                                          style={{ 
+                                            width: '36px',
+                                            height: '36px',
+                                            padding: '0',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                          }}
+                                        >
+                                          <i className="fas fa-trash" style={{ fontSize: '14px' }}></i>
+                                        </button>
+                                      </div>
+                                      <div className="position-absolute bg-dark text-white px-2 py-1 rounded"
+                                           style={{ 
+                                             top: '8px', 
+                                             left: '8px',
+                                             fontSize: '10px',
+                                             fontWeight: 'bold'
+                                           }}>
+                                        #{index + 1}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
                             </div>
-                          ))}
-                          <div>
-                            <button
-                              type="button"
-                              className="btn btn-outline-secondary"
-                              onClick={() => {
-                                setMediaLibraryMode('gallery');
-                                setShowMediaLibrary(true);
-                              }}
-                              style={{ width: '120px', height: '120px' }}
-                            >
-                              <div>
-                                <i className="fas fa-plus mb-2" style={{ fontSize: '24px' }}></i>
-                                <div className="small">Add Image</div>
+                            
+                            {formData.image_url && (
+                              <div className="mt-3 p-3 bg-light rounded">
+                                <small className="text-muted">
+                                  <i className="fas fa-images mr-1"></i>
+                                  <strong>1</strong> image assigned to product
+                                  • Multiple image gallery coming soon
+                                </small>
                               </div>
-                            </button>
+                            )}
                           </div>
                         </div>
-                        <small className="form-text text-muted">
-                          Add multiple images for product gallery
-                        </small>
                       </div>
 
                       <hr className="my-4" />
