@@ -1,0 +1,126 @@
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+
+class ReviewsApiService {
+  final Dio _dio;
+
+  ReviewsApiService(this._dio);
+
+  /// Get reviews for an astrologer
+  Future<Map<String, dynamic>> getAstrologerReviews(String astrologerId) async {
+    try {
+      debugPrint('🔍 Fetching reviews for astrologer: $astrologerId');
+      
+      final response = await _dio.get('/astrologers/reviews', queryParameters: {
+        'astrologer_id': astrologerId,
+      });
+
+      if (response.statusCode == 200) {
+        final data = response.data as Map<String, dynamic>;
+        
+        if (data['success'] == true) {
+          debugPrint('✅ Successfully fetched ${data['total_reviews']} reviews');
+          return {
+            'success': true,
+            'reviews': data['reviews'] ?? [],
+            'total_reviews': data['total_reviews'] ?? 0,
+          };
+        } else {
+          throw Exception(data['error'] ?? 'Failed to fetch reviews');
+        }
+      } else {
+        throw Exception('HTTP ${response.statusCode}: Failed to fetch reviews');
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching astrologer reviews: $e');
+      return {
+        'success': false,
+        'error': e.toString(),
+        'reviews': [],
+        'total_reviews': 0,
+      };
+    }
+  }
+
+  /// Add a review for an astrologer
+  Future<Map<String, dynamic>> addReview({
+    required String astrologerId,
+    required String userId,
+    required int rating,
+    String? comment,
+  }) async {
+    try {
+      debugPrint('⭐ Adding review for astrologer: $astrologerId');
+      
+      final response = await _dio.post('/astrologers/reviews', data: {
+        'astrologer_id': astrologerId,
+        'user_id': userId,
+        'rating': rating,
+        'comment': comment ?? '',
+      });
+
+      if (response.statusCode == 200) {
+        final data = response.data as Map<String, dynamic>;
+        
+        if (data['success'] == true) {
+          debugPrint('✅ Review added successfully');
+          return {
+            'success': true,
+            'review_id': data['review_id'],
+            'message': data['message'] ?? 'Review added successfully',
+          };
+        } else {
+          throw Exception(data['error'] ?? 'Failed to add review');
+        }
+      } else {
+        throw Exception('HTTP ${response.statusCode}: Failed to add review');
+      }
+    } catch (e) {
+      debugPrint('❌ Error adding review: $e');
+      return {
+        'success': false,
+        'error': e.toString(),
+      };
+    }
+  }
+
+  /// Check if user can add a review (has consulted the astrologer)
+  Future<Map<String, dynamic>> canUserReview({
+    required String astrologerId,
+    required String userId,
+  }) async {
+    try {
+      // TODO: Implement API endpoint to check if user has consulted the astrologer
+      // For now, assume user can review if they haven't already reviewed
+      
+      final reviews = await getAstrologerReviews(astrologerId);
+      
+      if (reviews['success']) {
+        final reviewsList = reviews['reviews'] as List;
+        final hasReviewed = reviewsList.any((review) => 
+          review['user']?['email'] != null // This is a placeholder check
+        );
+        
+        return {
+          'success': true,
+          'can_review': !hasReviewed, // For now, allow if user hasn't reviewed
+          'has_reviewed': hasReviewed,
+        };
+      } else {
+        return {
+          'success': true,
+          'can_review': false,
+          'has_reviewed': false,
+        };
+      }
+    } catch (e) {
+      debugPrint('❌ Error checking review eligibility: $e');
+      return {
+        'success': false,
+        'error': e.toString(),
+        'can_review': false,
+        'has_reviewed': false,
+      };
+    }
+  }
+}

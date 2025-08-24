@@ -52,7 +52,7 @@ class AstrologerCallCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       // Orders count
                       Text(
-                        '${astrologer.totalConsultations} orders',
+                        '${astrologer.totalConsultations} sessions',
                         style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w500),
                       ),
                     ],
@@ -69,7 +69,7 @@ class AstrologerCallCard extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 astrologer.fullName,
-                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black),
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),

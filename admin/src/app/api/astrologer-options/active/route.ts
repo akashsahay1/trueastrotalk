@@ -1,22 +1,33 @@
 import { NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb';
+import DatabaseService from '@/lib/database';
 
 // GET - Fetch only active astrologer options grouped by category
 export async function GET() {
   try {
-    const { db } = await connectToDatabase();
+    const optionsCollection = await DatabaseService.getCollection('astrologer_options');
     
-    const options = await db
-      .collection('astrologer_options')
-      .find({ isActive: true })
-      .sort({ category: 1, name: 1 })
+    // Get options in the current format (type + values array)
+    const options = await optionsCollection
+      .find({ type: { $exists: true }, values: { $exists: true } })
       .toArray();
 
-    // Group by category
-    const groupedOptions = {
-      languages: options.filter(opt => opt.category === 'languages').map(opt => opt.name),
-      skills: options.filter(opt => opt.category === 'skills').map(opt => opt.name)
+    // Group by type and extract active values
+    const groupedOptions: { languages: string[]; skills: string[] } = {
+      languages: [],
+      skills: []
     };
+
+    for (const option of options) {
+      if (option.type === 'skills') {
+        groupedOptions.skills = option.values
+          .filter((val: any) => val.isActive !== false)
+          .map((val: any) => typeof val === 'string' ? val : val.name);
+      } else if (option.type === 'languages') {
+        groupedOptions.languages = option.values
+          .filter((val: any) => val.isActive !== false)
+          .map((val: any) => typeof val === 'string' ? val : val.name);
+      }
+    }
 
     return NextResponse.json({
       success: true,

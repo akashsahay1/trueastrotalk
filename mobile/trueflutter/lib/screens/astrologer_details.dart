@@ -3,8 +3,8 @@ import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 import '../common/constants/dimensions.dart';
 import '../models/astrologer.dart';
-import '../models/enums.dart';
 import '../services/api/user_api_service.dart';
+import '../services/api/reviews_api_service.dart';
 import '../services/service_locator.dart';
 import '../services/local/local_storage_service.dart';
 import '../services/chat/chat_service.dart';
@@ -31,6 +31,10 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
   Astrologer? _astrologer;
   bool _isLoading = false;
   bool _isFavorite = false;
+  bool _isAboutExpanded = false;
+  bool _canAddReview = false;
+  bool _hasUserReviewed = false;
+  List<Map<String, dynamic>> _reviews = [];
 
   @override
   void initState() {
@@ -44,6 +48,7 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
       _loadAstrologerData();
     } else if (_astrologer != null) {
       _loadFavoriteStatus();
+      _loadReviews();
     }
   }
 
@@ -69,6 +74,7 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
           _isLoading = false;
         });
         _loadFavoriteStatus();
+        _loadReviews();
       }
     } catch (e) {
       setState(() {
@@ -86,6 +92,33 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
     }
   }
 
+  Future<void> _loadReviews() async {
+    try {
+      debugPrint('🔍 Loading reviews for astrologer: ${_astrologer!.id}');
+      
+      final reviewsApiService = getIt<ReviewsApiService>();
+      final result = await reviewsApiService.getAstrologerReviews(_astrologer!.id);
+      
+      if (result['success']) {
+        final reviewsList = result['reviews'] as List;
+        setState(() {
+          _reviews = reviewsList.cast<Map<String, dynamic>>();
+        });
+        debugPrint('✅ Loaded ${_reviews.length} reviews');
+      } else {
+        debugPrint('❌ Failed to load reviews: ${result['error']}');
+        setState(() {
+          _reviews = [];
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading reviews: $e');
+      setState(() {
+        _reviews = [];
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Show loading spinner if astrologer data is being loaded
@@ -99,9 +132,15 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
             onPressed: () => Navigator.of(context).pop(),
           ),
           title: Text(
-            'Astrologer Details',
+            'Profile',
             style: AppTextStyles.heading6.copyWith(color: AppColors.white),
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.share, color: AppColors.white),
+              onPressed: () {},
+            ),
+          ],
         ),
         body: const Center(
           child: CircularProgressIndicator(
@@ -113,149 +152,147 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
-      body: CustomScrollView(
-        slivers: [
-          _buildSliverAppBar(),
-          SliverToBoxAdapter(
+      appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          'Profile',
+          style: AppTextStyles.heading6.copyWith(color: AppColors.white),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share, color: AppColors.white),
+            onPressed: _shareAstrologer,
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            _buildProfileCard(),
+            _buildAboutSection(),
+            _buildSkillsSection(),
+            _buildReviewsSection(),
+            if (_canAddReview && !_hasUserReviewed)
+              _buildAddReviewSection(),
+            const SizedBox(height: 100), // Space for bottom action bar
+          ],
+        ),
+      ),
+      bottomNavigationBar: _buildBottomActionBar(),
+    );
+  }
+
+  Widget _buildProfileCard() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildProfileImage(),
+          const SizedBox(width: 16),
+          Expanded(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildAstrologerHeader(),
-                _buildAboutCard(),
-                _buildSkillsCard(),
-                _buildReviewsCard(),
-                const SizedBox(height: 100), // Space for bottom action bar
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _astrologer!.fullName,
+                        style: AppTextStyles.heading5.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimaryLight,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.check_circle,
+                      color: Colors.blue,
+                      size: 20,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: List.generate(5, (index) {
+                    return Icon(
+                      index < _astrologer!.rating.floor() ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                      size: 16,
+                    );
+                  }),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${_astrologer!.experienceYears}+ years • ${_astrologer!.languagesText}',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textSecondaryLight,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${_astrologer!.totalConsultations} consultations completed',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textSecondaryLight,
+                  ),
+                ),
               ],
             ),
           ),
         ],
       ),
-      floatingActionButton: _astrologer!.isOnline
-          ? FloatingActionButton.extended(
-              onPressed: _startChat,
-              icon: const Icon(Icons.chat, color: AppColors.white),
-              label: Text(
-                'Quick Chat',
-                style: AppTextStyles.buttonMedium.copyWith(color: AppColors.white),
-              ),
-              backgroundColor: AppColors.success,
-            )
-          : null,
-      bottomNavigationBar: _buildBottomActionBar(),
-    );
-  }
-
-  Widget _buildSliverAppBar() {
-    return SliverAppBar(
-      expandedHeight: 200,
-      pinned: true,
-      backgroundColor: AppColors.primary,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: AppColors.white),
-        onPressed: () => Navigator.of(context).pop(),
-      ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.share, color: AppColors.white),
-          onPressed: _shareAstrologer,
-        ),
-        IconButton(
-          icon: Icon(
-            _isFavorite ? Icons.favorite : Icons.favorite_border,
-            color: AppColors.white,
-          ),
-          onPressed: _toggleFavorite,
-        ),
-      ],
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)], begin: Alignment.topCenter, end: Alignment.bottomCenter),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 60), // Space for app bar
-                  Row(
-                    children: [
-                      _buildProfileImage(),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              _astrologer!.fullName,
-                              style: AppTextStyles.heading4.copyWith(
-                                color: AppColors.white, 
-                                fontWeight: FontWeight.bold,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 8),
-                            _buildOnlineStatus(),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 
   Widget _buildProfileImage() {
-    return Stack(
-      children: [
-        Container(
-          width: 100,
-          height: 100,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.white, width: 3),
-            boxShadow: [BoxShadow(color: AppColors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 5))],
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.2),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
-          child: ClipOval(
-            child: _astrologer!.profileImage != null && _astrologer!.profileImage!.isNotEmpty
-                ? Image.network(
-                    _astrologer!.profileImage!,
-                    width: 100,
-                    height: 100,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return _buildFallbackAvatar();
-                    },
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return _buildLoadingAvatar();
-                    },
-                  )
-                : _buildFallbackAvatar(),
-          ),
-        ),
-        if (_astrologer!.isOnline)
-          Positioned(
-            bottom: 5,
-            right: 5,
-            child: Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                color: AppColors.success,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.white, width: 2),
-              ),
-            ),
-          ),
-      ],
+        ],
+      ),
+      child: ClipOval(
+        child: _astrologer!.profileImage != null && _astrologer!.profileImage!.isNotEmpty
+            ? Image.network(
+                _astrologer!.profileImage!,
+                width: 60,
+                height: 60,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return _buildFallbackAvatar();
+                },
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return _buildLoadingAvatar();
+                },
+              )
+            : _buildFallbackAvatar(),
+      ),
     );
   }
 
@@ -264,8 +301,8 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
     final initials = name.isNotEmpty ? name.split(' ').map((n) => n.isNotEmpty ? n[0] : '').take(2).join().toUpperCase() : 'A';
 
     return Container(
-      width: 100,
-      height: 100,
+      width: 60,
+      height: 60,
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: [AppColors.primary.withValues(alpha: 0.7), AppColors.primary], begin: Alignment.topLeft, end: Alignment.bottomRight),
         shape: BoxShape.circle,
@@ -273,7 +310,7 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
       child: Center(
         child: Text(
           initials,
-          style: AppTextStyles.heading3.copyWith(color: AppColors.white, fontWeight: FontWeight.bold),
+          style: AppTextStyles.heading6.copyWith(color: AppColors.white, fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -281,8 +318,8 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
 
   Widget _buildLoadingAvatar() {
     return Container(
-      width: 100,
-      height: 100,
+      width: 60,
+      height: 60,
       decoration: BoxDecoration(color: AppColors.grey200, shape: BoxShape.circle),
       child: const Center(child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary))),
     );
@@ -580,46 +617,364 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
     );
   }
 
-  Widget _buildAboutCard() {
+  Widget _buildAboutSection() {
+    final bioText = _astrologer!.bio ?? 'Experienced astrologer with ${_astrologer!.experienceYears} years of practice. Specializes in providing accurate readings and guidance to help you navigate life\'s challenges.';
+    final shouldShowToggle = bioText.length > 100;
+    final displayText = _isAboutExpanded || !shouldShowToggle 
+        ? bioText 
+        : '${bioText.substring(0, 100)}...';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Heading outside the card
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            'About',
+            style: AppTextStyles.bodyLarge.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimaryLight,
+            ),
+          ),
+        ),
+        // About card
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.all(16),
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withValues(alpha: 0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                displayText,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.textSecondaryLight,
+                  height: 1.5,
+                ),
+              ),
+              if (shouldShowToggle) ...[
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _isAboutExpanded = !_isAboutExpanded;
+                    });
+                  },
+                  child: Text(
+                    _isAboutExpanded ? 'Less' : 'More',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: Colors.green,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSkillsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Heading outside the card
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            'Skills & Specializations',
+            style: AppTextStyles.bodyLarge.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimaryLight,
+            ),
+          ),
+        ),
+        // Skills card
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.all(16),
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withValues(alpha: 0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _astrologer!.skills.map((skill) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  skill,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReviewsSection() {
+    // TODO: Load reviews from API when backend is ready
+    // For now, show placeholder if no reviews exist
+    if (_reviews.isEmpty) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withValues(alpha: 0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(
+              Icons.rate_review_outlined,
+              size: 48,
+              color: AppColors.textSecondaryLight,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'No reviews yet',
+              style: AppTextStyles.bodyLarge.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondaryLight,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Be the first to leave a review!',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textSecondaryLight,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ..._reviews.map((review) => _buildReviewCard(review)),
+        const SizedBox(height: 16),
+        _buildSeeAllReviewsButton(),
+      ],
+    );
+  }
+
+  Widget _buildReviewCard(Map<String, dynamic> review) {
+    final user = review['user'] as Map<String, dynamic>? ?? {};
+    final userName = user['name']?.toString() ?? 'Anonymous';
+    final rating = review['rating'] as int? ?? 0;
+    final comment = review['comment']?.toString() ?? '';
+    
     return Container(
-      margin: const EdgeInsets.all(Dimensions.paddingLg),
-      padding: const EdgeInsets.all(Dimensions.paddingLg),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(Dimensions.radiusLg),
-        boxShadow: [BoxShadow(color: AppColors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2))],
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [AppColors.primary.withValues(alpha: 0.7), AppColors.primary],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Center(
+              child: Text(
+                userName.isNotEmpty ? userName[0].toUpperCase() : 'A',
+                style: AppTextStyles.bodyLarge.copyWith(
+                  color: AppColors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      userName,
+                      style: AppTextStyles.bodyLarge.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimaryLight,
+                      ),
+                    ),
+                    Icon(
+                      Icons.check_circle,
+                      color: Colors.blue,
+                      size: 18,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: List.generate(5, (index) {
+                    return Icon(
+                      index < rating ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                      size: 16,
+                    );
+                  }),
+                ),
+                if (comment.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    comment,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSeeAllReviewsButton() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: TextButton(
+        onPressed: () {
+          // Navigate to all reviews screen
+        },
+        child: Text(
+          'See all reviews',
+          style: AppTextStyles.bodyLarge.copyWith(
+            color: Colors.green,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddReviewSection() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.person, color: AppColors.primary, size: 24),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'About ${_astrologer!.fullName}',
-                style: AppTextStyles.heading6.copyWith(fontWeight: FontWeight.bold, color: AppColors.textPrimaryLight),
-              ),
-            ],
-          ),
-          const SizedBox(height: Dimensions.spacingLg),
           Text(
-            _astrologer!.bio ?? 'Experienced astrologer with ${_astrologer!.experienceYears} years of practice. Specializes in providing accurate readings and guidance to help you navigate life\'s challenges.',
-            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimaryLight, height: 1.6),
+            'Add Your Review',
+            style: AppTextStyles.bodyLarge.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimaryLight,
+            ),
           ),
-          const SizedBox(height: Dimensions.spacingLg),
-          _buildInfoRow('Languages', _astrologer!.languagesText),
-          const SizedBox(height: Dimensions.spacingMd),
-          _buildInfoRow('Experience', '${_astrologer!.experienceYears} years'),
-          const SizedBox(height: Dimensions.spacingMd),
-          _buildInfoRow('Verification', _astrologer!.verificationStatus.name),
+          const SizedBox(height: 12),
+          // Rating selector
+          Row(
+            children: List.generate(5, (index) {
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    // Handle rating selection
+                  });
+                },
+                child: Icon(
+                  Icons.star_border,
+                  color: Colors.amber,
+                  size: 24,
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 12),
+          // Comment input
+          TextField(
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: 'Write your review...',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: AppColors.borderLight),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Submit button
+          ElevatedButton(
+            onPressed: () {
+              // Handle review submission
+            },
+            child: const Text('Submit Review'),
+          ),
         ],
       ),
     );
@@ -878,34 +1233,51 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton.icon(
+                  child: OutlinedButton.icon(
                     onPressed: _astrologer!.isOnline ? () => _startChat() : null,
-                    icon: const Icon(Icons.chat, size: 20),
-                    label: Text(
-                      'CHAT',
-                      style: AppTextStyles.buttonMedium,
+                    icon: Icon(
+                      Icons.chat, 
+                      size: 20,
+                      color: _astrologer!.isOnline ? Colors.green : AppColors.grey400,
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _astrologer!.isOnline ? AppColors.success : AppColors.grey400,
-                      foregroundColor: AppColors.white,
+                    label: Text(
+                      'Chat',
+                      style: AppTextStyles.buttonMedium.copyWith(
+                        color: _astrologer!.isOnline ? Colors.green : AppColors.grey400,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                        color: _astrologer!.isOnline ? Colors.green : AppColors.grey400,
+                        width: 1.5,
+                      ),
                       minimumSize: const Size(double.infinity, 52),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Dimensions.radiusMd)),
-                      elevation: _astrologer!.isOnline ? 2 : 0,
                     ),
                   ),
                 ),
                 const SizedBox(width: Dimensions.spacingMd),
                 Expanded(
-                  child: ElevatedButton.icon(
+                  child: OutlinedButton.icon(
                     onPressed: _astrologer!.isOnline ? () => _startCall() : null,
-                    icon: const Icon(Icons.call, size: 20),
-                    label: Text('CALL', style: AppTextStyles.buttonMedium),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _astrologer!.isOnline ? AppColors.primary : AppColors.grey400,
-                      foregroundColor: AppColors.white,
+                    icon: Icon(
+                      Icons.call, 
+                      size: 20,
+                      color: _astrologer!.isOnline ? Colors.green : AppColors.grey400,
+                    ),
+                    label: Text(
+                      'Call',
+                      style: AppTextStyles.buttonMedium.copyWith(
+                        color: _astrologer!.isOnline ? Colors.green : AppColors.grey400,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                        color: _astrologer!.isOnline ? Colors.green : AppColors.grey400,
+                        width: 1.5,
+                      ),
                       minimumSize: const Size(double.infinity, 52),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Dimensions.radiusMd)),
-                      elevation: _astrologer!.isOnline ? 2 : 0,
                     ),
                   ),
                 ),

@@ -879,7 +879,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         'subtitle': 'Manage your wallet and transactions',
         'onTap': () {
           setState(() {
-            _selectedBottomNavIndex = 2;
+            _selectedBottomNavIndex = 3;
           });
         },
       },

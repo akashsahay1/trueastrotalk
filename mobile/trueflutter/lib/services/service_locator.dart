@@ -8,6 +8,7 @@ import 'api/addresses_api_service.dart';
 import 'api/chat_api_service.dart';
 import 'api/calls_api_service.dart';
 import 'api/notifications_api_service.dart';
+import 'api/reviews_api_service.dart';
 import 'auth/auth_service.dart';
 import 'network/dio_client.dart';
 import 'local/local_storage_service.dart';
@@ -62,6 +63,10 @@ void setupServiceLocator() {
 
   getIt.registerSingleton<NotificationsApiService>(
     NotificationsApiService(getIt<Dio>()),
+  );
+
+  getIt.registerSingleton<ReviewsApiService>(
+    ReviewsApiService(getIt<Dio>()),
   );
 
   // Register Auth service
