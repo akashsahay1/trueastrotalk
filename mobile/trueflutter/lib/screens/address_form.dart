@@ -10,10 +10,7 @@ import '../services/local/local_storage_service.dart';
 class AddressFormScreen extends StatefulWidget {
   final Address? address; // For editing existing address
 
-  const AddressFormScreen({
-    super.key,
-    this.address,
-  });
+  const AddressFormScreen({super.key, this.address});
 
   @override
   State<AddressFormScreen> createState() => _AddressFormScreenState();
@@ -45,9 +42,9 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
     super.initState();
     _addressesApiService = getIt<AddressesApiService>();
     _localStorage = getIt<LocalStorageService>();
-    
+
     final existingAddress = widget.address;
-    
+
     _fullNameController = TextEditingController(text: existingAddress?.fullName ?? '');
     _phoneController = TextEditingController(text: existingAddress?.phoneNumber ?? '');
     _addressLine1Controller = TextEditingController(text: existingAddress?.addressLine1 ?? '');
@@ -56,7 +53,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
     _stateController = TextEditingController(text: existingAddress?.state ?? '');
     _pincodeController = TextEditingController(text: existingAddress?.pincode ?? '');
     _landmarkController = TextEditingController(text: existingAddress?.landmark ?? '');
-    
+
     _selectedAddressType = existingAddress?.addressType ?? 'home';
     _isDefault = existingAddress?.isDefault ?? false;
   }
@@ -90,16 +87,12 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
         fullName: _fullNameController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
         addressLine1: _addressLine1Controller.text.trim(),
-        addressLine2: _addressLine2Controller.text.trim().isEmpty 
-            ? null 
-            : _addressLine2Controller.text.trim(),
+        addressLine2: _addressLine2Controller.text.trim().isEmpty ? null : _addressLine2Controller.text.trim(),
         city: _cityController.text.trim(),
         state: _stateController.text.trim(),
         country: 'India', // Default to India, can be made configurable
         pincode: _pincodeController.text.trim(),
-        landmark: _landmarkController.text.trim().isEmpty 
-            ? null 
-            : _landmarkController.text.trim(),
+        landmark: _landmarkController.text.trim().isEmpty ? null : _landmarkController.text.trim(),
         isDefault: _isDefault,
         addressType: _selectedAddressType,
         createdAt: widget.address?.createdAt ?? DateTime.now(),
@@ -136,7 +129,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
               addressType: address.addressType,
               isDefault: address.isDefault,
             );
-      
+
       if (!result['success']) {
         throw Exception(result['error'] ?? 'Failed to save address');
       }
@@ -146,12 +139,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to save address: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to save address: $e'), backgroundColor: AppColors.error));
       }
     } finally {
       setState(() {
@@ -165,10 +153,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 243, 245, 249),
       appBar: AppBar(
-        title: Text(
-          widget.address == null ? 'Add Address' : 'Edit Address',
-          style: AppTextStyles.heading4.copyWith(color: AppColors.white),
-        ),
+        title: Text(widget.address == null ? 'Add Address' : 'Edit Address', style: AppTextStyles.heading4.copyWith(color: AppColors.white)),
         backgroundColor: AppColors.primary,
         elevation: 0,
         leading: IconButton(
@@ -216,10 +201,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
           children: [
             Text(
               'Contact Information',
-              style: AppTextStyles.heading6.copyWith(
-                color: AppColors.textPrimaryLight,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppTextStyles.heading6.copyWith(color: AppColors.textPrimaryLight, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: Dimensions.spacingMd),
             TextFormField(
@@ -290,10 +272,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
           children: [
             Text(
               'Address Details',
-              style: AppTextStyles.heading6.copyWith(
-                color: AppColors.textPrimaryLight,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppTextStyles.heading6.copyWith(color: AppColors.textPrimaryLight, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: Dimensions.spacingMd),
             TextFormField(
@@ -460,10 +439,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
           children: [
             Text(
               'Address Type',
-              style: AppTextStyles.heading6.copyWith(
-                color: AppColors.textPrimaryLight,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppTextStyles.heading6.copyWith(color: AppColors.textPrimaryLight, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: Dimensions.spacingMd),
             Row(
@@ -480,33 +456,19 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
                       },
                       borderRadius: BorderRadius.circular(Dimensions.radiusSm),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: Dimensions.paddingMd,
-                          horizontal: Dimensions.paddingSm,
-                        ),
+                        padding: const EdgeInsets.symmetric(vertical: Dimensions.paddingMd, horizontal: Dimensions.paddingSm),
                         decoration: BoxDecoration(
-                          color: isSelected 
-                              ? AppColors.primary.withValues(alpha: 0.1)
-                              : AppColors.grey50,
-                          border: Border.all(
-                            color: isSelected ? AppColors.primary : AppColors.borderLight,
-                            width: isSelected ? 2 : 1,
-                          ),
+                          color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : AppColors.grey50,
+                          border: Border.all(color: isSelected ? AppColors.primary : AppColors.borderLight, width: isSelected ? 2 : 1),
                           borderRadius: BorderRadius.circular(Dimensions.radiusSm),
                         ),
                         child: Column(
                           children: [
-                            Icon(
-                              _getAddressTypeIcon(type),
-                              color: isSelected ? AppColors.primary : AppColors.grey400,
-                            ),
+                            Icon(_getAddressTypeIcon(type), color: isSelected ? AppColors.primary : AppColors.grey400),
                             const SizedBox(height: 4),
                             Text(
                               _getAddressTypeDisplayName(type),
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: isSelected ? AppColors.primary : AppColors.grey600,
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                              ),
+                              style: AppTextStyles.bodySmall.copyWith(color: isSelected ? AppColors.primary : AppColors.grey600, fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal),
                             ),
                           ],
                         ),
@@ -536,18 +498,10 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
                 children: [
                   Text(
                     'Set as Default Address',
-                    style: AppTextStyles.bodyLarge.copyWith(
-                      color: AppColors.textPrimaryLight,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textPrimaryLight, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    'Use this address as your default delivery address',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondaryLight,
-                    ),
-                  ),
+                  Text('Use this address as your default delivery address', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryLight)),
                 ],
               ),
             ),
@@ -558,7 +512,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
                   _isDefault = value;
                 });
               },
-              activeThumbColor: AppColors.primary,
+              activeColor: AppColors.primary,
             ),
           ],
         ),
@@ -571,13 +525,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
       padding: const EdgeInsets.all(Dimensions.paddingLg),
       decoration: const BoxDecoration(
         color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 8,
-            offset: Offset(0, -2),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, -2))],
       ),
       child: SafeArea(
         child: SizedBox(
@@ -588,22 +536,9 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.white,
               padding: const EdgeInsets.symmetric(vertical: Dimensions.paddingMd),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(Dimensions.radiusMd),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Dimensions.radiusMd)),
             ),
-            child: _isSaving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(
-                    widget.address == null ? 'Save Address' : 'Update Address',
-                    style: AppTextStyles.bodyLarge.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+            child: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(widget.address == null ? 'Save Address' : 'Update Address', style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600)),
           ),
         ),
       ),

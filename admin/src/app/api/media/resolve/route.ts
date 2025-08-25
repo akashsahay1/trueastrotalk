@@ -25,25 +25,26 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Validate ObjectId format
-    if (!ObjectId.isValid(mediaId)) {
-      return NextResponse.json({
-        success: false,
-        error: 'Invalid media ID',
-        message: 'The provided media ID is not a valid ObjectId'
-      }, { status: 400 });
-    }
-
     const client = new MongoClient(MONGODB_URL);
     await client.connect();
     
     const db = client.db(DB_NAME);
     const mediaCollection = db.collection('media');
 
-    // Find the media file by ObjectId
-    const mediaFile = await mediaCollection.findOne({ 
-      _id: new ObjectId(mediaId) 
-    });
+    // Find the media file by custom media_id
+    let mediaFile = null;
+    
+    if (mediaId.startsWith('media_')) {
+      // Custom media_id format
+      mediaFile = await mediaCollection.findOne({ media_id: mediaId });
+    } else {
+      await client.close();
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid media ID',
+        message: 'Media ID must be in custom format (media_xxxxx_xxxxx)'
+      }, { status: 400 });
+    }
 
     await client.close();
 
@@ -98,27 +99,24 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Validate all ObjectId formats
-    for (const id of media_ids) {
-      if (!ObjectId.isValid(id)) {
-        return NextResponse.json({
-          success: false,
-          error: 'Invalid media ID',
-          message: `Invalid ObjectId format: ${id}`
-        }, { status: 400 });
-      }
-    }
-
     const client = new MongoClient(MONGODB_URL);
     await client.connect();
     
     const db = client.db(DB_NAME);
     const mediaCollection = db.collection('media');
 
-    // Find all media files by ObjectIds
-    const mediaFiles = await mediaCollection.find({ 
-      _id: { $in: media_ids.map(id => new ObjectId(id)) }
-    }).toArray();
+    // Filter only valid custom media_ids
+    const customMediaIds = media_ids.filter(id => typeof id === 'string' && id.startsWith('media_'));
+    
+    // Find media files by custom media_ids only
+    const mediaFiles = [];
+    
+    if (customMediaIds.length > 0) {
+      const customFiles = await mediaCollection.find({ 
+        media_id: { $in: customMediaIds }
+      }).toArray();
+      mediaFiles.push(...customFiles);
+    }
 
     await client.close();
 

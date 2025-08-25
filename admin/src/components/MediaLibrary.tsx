@@ -6,6 +6,7 @@ import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert
 
 interface MediaFile {
   _id: string;
+  media_id?: string; // Our custom unique ID that persists across exports
   file_name: string;
   filename?: string; // backward compatibility
   original_name: string;
@@ -190,7 +191,11 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`/api/admin/media/${fileId}`, {
+      // Find the file to get its media_id if available
+      const file = mediaFiles.find(f => f._id === fileId);
+      const deleteId = file?.media_id || fileId;
+      
+      const response = await fetch(`/api/admin/media/${deleteId}`, {
         method: 'DELETE',
       });
 
@@ -224,9 +229,12 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
     if (!confirmed) return;
 
     try {
-      const deletePromises = Array.from(selectedFiles).map(fileId =>
-        fetch(`/api/admin/media/${fileId}`, { method: 'DELETE' })
-      );
+      const deletePromises = Array.from(selectedFiles).map(fileId => {
+        // Find the file to get its media_id if available
+        const file = mediaFiles.find(f => f._id === fileId);
+        const deleteId = file?.media_id || fileId;
+        return fetch(`/api/admin/media/${deleteId}`, { method: 'DELETE' });
+      });
 
       await Promise.all(deletePromises);
       fetchMediaFiles();
@@ -248,7 +256,8 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
     } else {
       // In list view, clicking selects
       setSelectedFile(file.file_path);
-      setSelectedMediaId(file._id);
+      // Use custom media_id if available, otherwise fallback to _id
+      setSelectedMediaId(file.media_id || file._id);
     }
   };
 
@@ -280,8 +289,10 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
   const handleSidebarSelect = () => {
     if (sidebarFile) {
       setSelectedFile(sidebarFile.file_path);
-      setSelectedMediaId(sidebarFile._id);
-      onSelect(sidebarFile.file_path, sidebarFile._id);
+      // Use custom media_id if available, otherwise fallback to _id
+      const mediaId = sidebarFile.media_id || sidebarFile._id;
+      setSelectedMediaId(mediaId);
+      onSelect(sidebarFile.file_path, mediaId);
       onClose();
     }
   };

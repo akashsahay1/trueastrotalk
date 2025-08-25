@@ -138,40 +138,25 @@ export class UploadService {
   }
 
   /**
-   * Register external image (like Google profile images) in media library
+   * @deprecated External URLs are no longer supported. All files must be uploaded locally.
+   * This method now returns an error.
    */
   static async registerExternalImage(options: ExternalImageOptions): Promise<UploadResult> {
-    try {
-      const { imageUrl, originalName = 'External Image', fileType = 'external', uploadedBy = null, associatedRecord = null } = options;
+    console.warn('registerExternalImage is deprecated: External URLs are no longer supported');
+    return {
+      success: false,
+      error: 'External URLs are not supported. Please upload the file locally.'
+    };
+  }
 
-      // Save external image to media library
-      const mediaId = await this.saveToMediaLibrary({
-        filename: path.basename(imageUrl),
-        originalName,
-        filePath: imageUrl,
-        fileSize: 0, // Unknown for external images
-        mimeType: 'image/unknown',
-        fileType,
-        uploadedBy,
-        associatedRecord,
-        isExternal: true
-      });
-
-      return {
-        success: true,
-        message: 'External image registered successfully',
-        file_id: mediaId,
-        file_path: imageUrl,
-        filename: path.basename(imageUrl)
-      };
-
-    } catch (error) {
-      console.error('External Image Registration Error:', error);
-      return {
-        success: false,
-        error: 'Failed to register external image'
-      };
-    }
+  /**
+   * Generate a unique media ID that persists across database exports/imports
+   * Format: media_{timestamp}_{random}
+   */
+  private static generateMediaId(): string {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 10);
+    return `media_${timestamp}_${random}`;
   }
 
   /**
@@ -194,7 +179,11 @@ export class UploadService {
     const db = client.db(DB_NAME);
     const mediaCollection = db.collection('media');
 
+    // Generate custom media ID that persists across exports
+    const mediaId = this.generateMediaId();
+
     const fileData = {
+      media_id: mediaId, // Our custom unique ID
       filename: data.filename,
       original_name: data.originalName,
       file_path: data.filePath,
@@ -213,7 +202,8 @@ export class UploadService {
     
     await client.close();
     
-    return result.insertedId.toString();
+    // Return our custom media ID instead of MongoDB's ObjectId
+    return mediaId;
   }
 
   /**

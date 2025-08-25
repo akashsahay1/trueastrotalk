@@ -21,13 +21,27 @@ function getBaseUrl(request: NextRequest): string {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function resolveProfileImage(user: Record<string, unknown>, mediaCollection: any, baseUrl: string): Promise<string> {
   // Priority 1: If user has profile_image_id, resolve from media library
-  if (user.profile_image_id && typeof user.profile_image_id === 'string' && ObjectId.isValid(user.profile_image_id)) {
+  if (user.profile_image_id) {
     try {
-      const mediaFile = await mediaCollection.findOne({ 
-        _id: new ObjectId(user.profile_image_id) 
-      });
+      let mediaFile = null;
       
-      if (mediaFile) {
+      if (typeof user.profile_image_id === 'string') {
+        // Check if it's our custom media_id format
+        if (user.profile_image_id.startsWith('media_')) {
+          mediaFile = await mediaCollection.findOne({ media_id: user.profile_image_id });
+        } else if (user.profile_image_id.length === 24) {
+          // Try legacy ObjectId lookup
+          try {
+            mediaFile = await mediaCollection.findOne({ _id: new ObjectId(user.profile_image_id) });
+          } catch {
+            mediaFile = await mediaCollection.findOne({ media_id: user.profile_image_id });
+          }
+        }
+      } else if (user.profile_image_id instanceof ObjectId) {
+        mediaFile = await mediaCollection.findOne({ _id: user.profile_image_id });
+      }
+      
+      if (mediaFile && mediaFile.file_path) {
         return `${baseUrl}${mediaFile.file_path}`;
       }
     } catch (error) {

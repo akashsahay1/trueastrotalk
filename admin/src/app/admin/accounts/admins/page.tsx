@@ -41,8 +41,8 @@ function ProfileImage({ src, alt, fallbackText }: ProfileImageProps) {
 
   useEffect(() => {
     if (src) {
-      // Check if it's a media ID (ObjectId format) or a direct URL
-      if (src.match(/^[0-9a-fA-F]{24}$/)) {
+      // Check if it's a custom media_id or a direct URL
+      if (src.startsWith('media_')) {
         // It's a media ID, resolve it
         fetch(`/api/media/resolve?id=${src}`)
           .then(response => response.json())

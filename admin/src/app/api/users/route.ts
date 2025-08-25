@@ -18,19 +18,30 @@ async function resolveProfileImage(user: Record<string, unknown>, mediaCollectio
   }
   
   // Priority 2: If user has profile_image_id, resolve from media library
-  if (user.profile_image_id) {
+  if (user.profile_image_id || user.profile_image) {
     try {
-      // Handle both string and ObjectId formats
-      const mediaId = typeof user.profile_image_id === 'string' 
-        ? (ObjectId.isValid(user.profile_image_id) ? new ObjectId(user.profile_image_id) : null)
-        : user.profile_image_id;
-        
-      if (mediaId) {
-        const mediaFile = await mediaCollection.findOne({ _id: mediaId });
-        
-        if (mediaFile) {
-          return `${baseUrl}${mediaFile.file_path}`;
+      const mediaRef = user.profile_image_id || user.profile_image;
+      let mediaFile = null;
+      
+      if (typeof mediaRef === 'string') {
+        // Check if it's our custom media_id format
+        if (mediaRef.startsWith('media_')) {
+          mediaFile = await mediaCollection.findOne({ media_id: mediaRef });
+        } else if (mediaRef.length === 24) {
+          // Try legacy ObjectId lookup first
+          try {
+            mediaFile = await mediaCollection.findOne({ _id: new ObjectId(mediaRef) });
+          } catch {
+            // If ObjectId conversion fails, try as string
+            mediaFile = await mediaCollection.findOne({ media_id: mediaRef });
+          }
         }
+      } else if (mediaRef instanceof ObjectId) {
+        mediaFile = await mediaCollection.findOne({ _id: mediaRef });
+      }
+        
+      if (mediaFile && mediaFile.file_path) {
+        return `${baseUrl}${mediaFile.file_path}`;
       }
     } catch (error) {
       console.error('Error resolving media file:', error);
@@ -147,7 +158,7 @@ export async function GET(request: NextRequest) {
     
     const db = client.db(DB_NAME);
     const usersCollection = db.collection('users');
-    const mediaCollection = db.collection('media_files');
+    const mediaCollection = db.collection('media');
 
     // Get users with pagination
     const [users, totalCount] = await Promise.all([

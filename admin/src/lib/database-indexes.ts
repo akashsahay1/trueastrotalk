@@ -108,13 +108,14 @@ export class DatabaseIndexManager {
         ordersCollection.createIndex({ order_number: 1 }, { unique: true, background: true })
       ]);
 
-      // Media files collection indexes
-      const mediaFilesCollection = await DatabaseService.getCollection('media_files');
+      // Media collection indexes
+      const mediaCollection = await DatabaseService.getCollection('media');
       await Promise.all([
-        mediaFilesCollection.createIndex({ file_type: 1, status: 1 }, { background: true }),
-        mediaFilesCollection.createIndex({ uploaded_by: 1, created_at: -1 }, { background: true }),
-        mediaFilesCollection.createIndex({ created_at: -1 }, { background: true }),
-        mediaFilesCollection.createIndex({ original_filename: 1 }, { background: true })
+        mediaCollection.createIndex({ media_id: 1 }, { unique: true, background: true }),
+        mediaCollection.createIndex({ file_type: 1, status: 1 }, { background: true }),
+        mediaCollection.createIndex({ uploaded_by: 1, created_at: -1 }, { background: true }),
+        mediaCollection.createIndex({ created_at: -1 }, { background: true }),
+        mediaCollection.createIndex({ original_filename: 1 }, { background: true })
       ]);
 
       // Notifications collection indexes

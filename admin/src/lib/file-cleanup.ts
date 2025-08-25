@@ -70,7 +70,7 @@ export async function cleanupUserFiles(userId: string, options: FileCleanupOptio
     await client.connect();
     const db = client.db(DB_NAME);
     const usersCollection = db.collection('users');
-    const mediaCollection = db.collection('media_files');
+    const mediaCollection = db.collection('media');
 
     // Get user data
     const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
@@ -221,8 +221,8 @@ export async function findOrphanedFiles(options: FileCleanupOptions = {}): Promi
       }
     });
 
-    // 2. Files from media_files collection
-    const mediaCollection = db.collection('media_files');
+    // 2. Files from media collection
+    const mediaCollection = db.collection('media');
     const mediaFiles = await mediaCollection.find({
       file_path: { $exists: true, $nin: ['', null] },
       is_external: { $ne: true }

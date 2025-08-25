@@ -11,7 +11,28 @@ async function resolveMediaUrl(request: NextRequest, mediaId: string | ObjectId 
   if (!mediaId) return null;
   
   try {
-    const mediaFile = await db.collection('media').findOne({_id: new ObjectId(mediaId)});
+    let mediaFile;
+    
+    // Check if it's our custom media ID format (media_timestamp_random)
+    if (typeof mediaId === 'string' && mediaId.startsWith('media_')) {
+      mediaFile = await db.collection('media').findOne({ media_id: mediaId });
+    } else if (typeof mediaId === 'string' && mediaId.length === 24) {
+      // Fallback: try as ObjectId for backward compatibility
+      try {
+        mediaFile = await db.collection('media').findOne({ _id: new ObjectId(mediaId) });
+        // If not found by _id, try by media_id (in case it's actually a media_id)
+        if (!mediaFile) {
+          mediaFile = await db.collection('media').findOne({ media_id: mediaId });
+        }
+      } catch {
+        // If ObjectId conversion fails, try as media_id
+        mediaFile = await db.collection('media').findOne({ media_id: mediaId });
+      }
+    } else {
+      // Try to find by _id if it's an ObjectId instance
+      mediaFile = await db.collection('media').findOne({ _id: mediaId });
+    }
+    
     if (!mediaFile || !mediaFile.file_path) return null;
     
     // Get the actual host from the request headers
@@ -28,7 +49,7 @@ async function resolveMediaUrl(request: NextRequest, mediaId: string | ObjectId 
 
 // Helper function to convert relative image URLs to full URLs
 function getFullImageUrl(request: NextRequest, imageUrl: string | null | undefined): string | null {
-  if (!imageUrl || imageUrl.trim() === '') {
+  if (!imageUrl || typeof imageUrl !== 'string' || imageUrl.trim() === '') {
     return null;
   }
   
@@ -86,10 +107,45 @@ export async function GET(request: NextRequest) {
       products.map(async (product) => {
         let imageUrl = null;
         
-        // Try new image_id field first, then fallback to old image_url field
+        // Try multiple fields in order of preference
         if (product.image_id) {
           imageUrl = await resolveMediaUrl(request, product.image_id, client.db(DB_NAME));
-        } else if (product.image_url) {
+        }
+        
+        if (!imageUrl && product.primary_image) {
+          // Check if primary_image is a custom media_id or legacy ObjectId
+          if (typeof product.primary_image === 'string' && product.primary_image.startsWith('media_')) {
+            imageUrl = await resolveMediaUrl(request, product.primary_image, client.db(DB_NAME));
+          } else if (typeof product.primary_image === 'string' && product.primary_image.length === 24) {
+            imageUrl = await resolveMediaUrl(request, product.primary_image, client.db(DB_NAME));
+          } else {
+            imageUrl = getFullImageUrl(request, product.primary_image);
+          }
+        }
+        
+        if (!imageUrl && product.images && Array.isArray(product.images) && product.images.length > 0) {
+          // Use first image from images array
+          const firstImage = product.images[0];
+          if (typeof firstImage === 'string' && firstImage.startsWith('media_')) {
+            imageUrl = await resolveMediaUrl(request, firstImage, client.db(DB_NAME));
+          } else if (typeof firstImage === 'string' && firstImage.length === 24) {
+            imageUrl = await resolveMediaUrl(request, firstImage, client.db(DB_NAME));
+          } else {
+            imageUrl = getFullImageUrl(request, firstImage);
+          }
+        }
+        
+        // Fallback to image_urls if we still don't have an image
+        if (!imageUrl && product.image_urls && Array.isArray(product.image_urls) && product.image_urls.length > 0) {
+          // Use first URL from image_urls array
+          const firstUrl = product.image_urls[0];
+          // image_urls already contains full URLs, just ensure they're properly formatted
+          if (typeof firstUrl === 'string') {
+            imageUrl = firstUrl.startsWith('http') ? firstUrl : getFullImageUrl(request, firstUrl);
+          }
+        }
+        
+        if (!imageUrl && product.image_url) {
           imageUrl = getFullImageUrl(request, product.image_url);
         }
         
@@ -173,37 +229,32 @@ export async function POST(request: NextRequest) {
     const result = await productsCollection.insertOne(productData);
     const productId = result.insertedId.toString();
     
-    // If image_url is provided and it's not already in our media library, register it
+    // If image_url is provided, validate it's from our uploads folder
     if (image_url && image_url.trim() !== '') {
-      // Check if this is an external image (not from our uploads folder)
-      const isExternalImage = !image_url.startsWith('/uploads/');
-      
-      if (isExternalImage) {
-        // Register external image in media library
-        await UploadService.registerExternalImage({
-          imageUrl: image_url,
-          originalName: `Product image for ${name}`,
-          fileType: 'product_image',
-          uploadedBy: undefined, // Could be extended to track admin user
-          associatedRecord: productId
-        });
-      } else {
-        // For internal images, we should update the existing media record
-        // to associate it with this product
-        const db = client.db(DB_NAME);
-        const mediaCollection = db.collection('media');
-        
-        await mediaCollection.updateOne(
-          { file_path: image_url },
-          { 
-            $set: { 
-              file_type: 'product_image',
-              associated_record: productId,
-              updated_at: new Date()
-            }
-          }
-        );
+      // Only accept internal upload paths
+      if (!image_url.startsWith('/uploads/')) {
+        await client.close();
+        return NextResponse.json({
+          success: false,
+          error: 'Invalid image URL',
+          message: 'Only uploaded images are allowed. External URLs are not supported.'
+        }, { status: 400 });
       }
+      
+      // Update the existing media record to associate it with this product
+      const db = client.db(DB_NAME);
+      const mediaCollection = db.collection('media');
+      
+      await mediaCollection.updateOne(
+        { file_path: image_url },
+        { 
+          $set: { 
+            file_type: 'product_image',
+            associated_record: productId,
+            updated_at: new Date()
+          }
+        }
+      );
     }
     
     await client.close();

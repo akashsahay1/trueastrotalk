@@ -1566,7 +1566,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          _isOnlineToggleLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Switch(value: _currentUser?.isOnline ?? false, onChanged: (value) => _toggleOnlineStatus(), activeThumbColor: AppColors.success),
+          _isOnlineToggleLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Switch(value: _currentUser?.isOnline ?? false, onChanged: (value) => _toggleOnlineStatus(), activeColor: AppColors.success),
         ],
       ),
     );

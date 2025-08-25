@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     await client.connect();
     
     const db = client.db(DB_NAME);
-    const mediaCollection = db.collection('media_files');
+    const mediaCollection = db.collection('media');
 
     const fileData = {
       filename: fileName,

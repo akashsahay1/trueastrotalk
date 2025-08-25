@@ -14,21 +14,27 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    if (!ObjectId.isValid(id)) {
-      return NextResponse.json({
-        success: false,
-        error: 'Invalid file ID'
-      }, { status: 400 });
-    }
-
     const client = new MongoClient(MONGODB_URL);
     await client.connect();
     
     const db = client.db(DB_NAME);
     const mediaCollection = db.collection('media');
 
-    // Get file info before deleting
-    const fileInfo = await mediaCollection.findOne({ _id: new ObjectId(id) });
+    // Get file info before deleting - only support custom media_id
+    let fileInfo;
+    let deleteQuery;
+    
+    // Check if it's our custom media ID format
+    if (id.startsWith('media_')) {
+      fileInfo = await mediaCollection.findOne({ media_id: id });
+      deleteQuery = { media_id: id };
+    } else {
+      await client.close();
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid file ID format - must be custom media_id'
+      }, { status: 400 });
+    }
     
     if (!fileInfo) {
       await client.close();
@@ -39,7 +45,7 @@ export async function DELETE(
     }
 
     // Delete file from database
-    const result = await mediaCollection.deleteOne({ _id: new ObjectId(id) });
+    const result = await mediaCollection.deleteOne(deleteQuery);
     
     await client.close();
 

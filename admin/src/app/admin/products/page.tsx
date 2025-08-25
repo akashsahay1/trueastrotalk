@@ -61,7 +61,7 @@ export default function ProductsPage() {
         ...(selectedCategory && { category: selectedCategory })
       });
       
-      const response = await fetch(`/api/products?${params}`);
+      const response = await fetch(`/api/admin/products?${params}`);
       if (response.ok) {
         const data = await response.json();
         setProducts(data.products || []);
@@ -81,10 +81,10 @@ export default function ProductsPage() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('/api/products?limit=1');
+      const response = await fetch('/api/admin/products/categories');
       if (response.ok) {
         const data = await response.json();
-        setCategories(data.categories || []);
+        setCategories(data.categories ? data.categories.map((cat: any) => cat.name) : []);
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -96,7 +96,7 @@ export default function ProductsPage() {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`/api/products?productId=${id}`, {
+      const response = await fetch(`/api/admin/products/${id}`, {
         method: 'DELETE',
       });
 
@@ -120,7 +120,7 @@ export default function ProductsPage() {
     setBulkLoading(true);
     try {
       const deletePromises = selectedProducts.map(id => 
-        fetch(`/api/products?productId=${id}`, { method: 'DELETE' })
+        fetch(`/api/admin/products/${id}`, { method: 'DELETE' })
       );
       
       await Promise.all(deletePromises);
