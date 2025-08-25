@@ -106,7 +106,11 @@
       "Bash(dart:*)",
       "Bash(./scripts/deploy-socket.sh:*)",
       "Bash(./scripts/monitor-socket.sh:*)",
-      "Read(//Users/akashsahay/Downloads/**)"
+      "Read(//Users/akashsahay/Downloads/**)",
+      "Bash(./test_scripts/run_automated_tests.sh:*)",
+      "Bash(/Users/akashsahay/Library/Android/sdk/platform-tools/adb install -r -t ./build/app/outputs/flutter-apk/app-debug.apk)",
+      "Bash(keytool:*)",
+      "Bash(./test_scripts/run_comprehensive_e2e.sh:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

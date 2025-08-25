@@ -405,13 +405,6 @@ export default function CustomersPage() {
                                       <i className="fas fa-edit"></i>
                                     </Link>
                                     <button 
-                                      className="btn btn-outline-info btn-sm"
-                                      title="View Details"
-                                      onClick={() => {/* TODO: Implement view details */}}
-                                    >
-                                      <i className="fas fa-eye"></i>
-                                    </button>
-                                    <button 
                                       className="btn btn-outline-danger btn-sm"
                                       title="Delete User"
                                       onClick={() => handleDelete(user._id)}
