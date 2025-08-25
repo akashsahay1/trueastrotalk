@@ -1,0 +1,11 @@
+ID,Name,Email,Phone,City,Skills,Experience,Call Rate,Chat Rate,Video Rate,Profile Image Type
+1,"Arjun Mittal",astrologer1@testastro.com,+919000000001,Ahmedabad,"Vedic Astrology; Horary Astrology",19,44.0,21.0,20.0,none
+2,"Reyansh Kumar",astrologer2@testastro.com,+919000000002,Kolkata,"Numerology; Horary Astrology; Face Reading",9,54.0,8.0,77.0,app_upload
+3,"Fatima Sharma",astrologer3@testastro.com,+919000000003,Hyderabad,"Palmistry; Vedic Astrology; Vastu Shastra",11,34.0,24.0,44.0,none
+4,"Aarav Mittal",astrologer4@testastro.com,+919000000004,Kolkata,"Numerology; Remedial Astrology; Vedic Astrology; Horary Astrology; Vastu Shastra",11,35.0,9.0,38.0,app_upload
+5,"Aanya Jain",astrologer5@testastro.com,+919000000005,Pune,"Palmistry; Lal Kitab",18,55.0,10.0,40.0,none
+6,"Sai Patel",astrologer6@testastro.com,+919000000006,Mumbai,"Face Reading; Numerology; Tarot Reading; Lal Kitab",6,45.0,14.0,84.0,app_upload
+7,"Fatima Shah",astrologer7@testastro.com,+919000000007,Ahmedabad,"KP Astrology; Remedial Astrology; Lal Kitab; Horary Astrology",2,41.0,14.0,16.0,none
+8,"Ayaan Joshi",astrologer8@testastro.com,+919000000008,Chennai,"Face Reading; KP Astrology; Tarot Reading; Prashna Astrology",14,42.0,20.0,50.0,app_upload
+9,"Aadhya Verma",astrologer9@testastro.com,+919000000009,Mumbai,"KP Astrology; Palmistry; Remedial Astrology; Horary Astrology",13,25.0,33.0,35.0,none
+10,"Vivaan Agarwal",astrologer10@testastro.com,+919000000010,Kolkata,"Numerology; KP Astrology; Gemology; Horary Astrology",2,26.0,7.0,52.0,app_upload

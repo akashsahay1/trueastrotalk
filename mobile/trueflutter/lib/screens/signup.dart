@@ -438,6 +438,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
+                  key: const Key('error_dialog_ok_button'),
                   onPressed: () => Navigator.of(context).pop(),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.error,
@@ -492,6 +493,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
+                  key: const Key('success_dialog_continue_button'),
                   onPressed: () {
                     Navigator.of(context).pop();
                     onConfirm?.call();
@@ -1402,6 +1404,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
           width: double.infinity,
           height: 52,
           child: ElevatedButton(
+            key: const Key('primary_signup_button'),
             onPressed: _isLoading ? null : _nextSection,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,

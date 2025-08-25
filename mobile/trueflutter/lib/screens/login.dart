@@ -5,6 +5,7 @@ import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 import '../services/auth/auth_service.dart';
 import '../services/service_locator.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -173,7 +174,10 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void _onForgotPassword() {
-    Navigator.pushNamed(context, '/forgot-password');
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+    );
   }
 
   Future<void> _onGoogleSignIn() async {

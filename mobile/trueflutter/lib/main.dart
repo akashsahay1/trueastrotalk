@@ -19,6 +19,7 @@ import 'services/call/call_quality_settings_service.dart';
 import 'services/network/dio_client.dart';
 import 'services/payment/razorpay_service.dart';
 import 'services/notifications/notification_service.dart';
+import 'services/deep_link_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -70,6 +71,9 @@ void main() async {
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
 
+  // Initialize deep linking service
+  DeepLinkService().initialize();
+
   runApp(const TrueAstrotalkApp());
 }
 
@@ -81,6 +85,7 @@ class TrueAstrotalkApp extends StatelessWidget {
     return MaterialApp(
       title: Config.appName,
       debugShowCheckedModeBanner: false,
+      navigatorKey: navigatorKey, // Global navigator key for deep linking
 
       // Theme configuration
       theme: AppTheme.lightTheme,

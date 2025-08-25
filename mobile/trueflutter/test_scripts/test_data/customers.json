@@ -1,0 +1,992 @@
+[
+  {
+    "id": 1,
+    "user_type": "user",
+    "full_name": "Anaya Mittal",
+    "email": "customer1@testuser.com",
+    "phone": "+918000000001",
+    "password": "TestUser123",
+    "city": "Hyderabad",
+    "state": "Karnataka",
+    "country": "India",
+    "date_of_birth": "10/09/1963",
+    "time_of_birth": "4:53 AM",
+    "place_of_birth": "Kolkata",
+    "gender": "Female",
+    "marital_status": "Married",
+    "profile_image_type": "app_upload",
+    "google_profile_url": null,
+    "created_timestamp": 1756107480592,
+    "test_scenarios": [
+      {
+        "scenario": "User Registration",
+        "steps": [
+          "Open app and choose user signup",
+          "Fill personal information",
+          "Set profile image (Gmail/App upload/None based on type)",
+          "Provide birth details for astrology",
+          "Accept terms and complete registration",
+          "Verify account if required"
+        ],
+        "expected": "Successfully registered and can access app"
+      },
+      {
+        "scenario": "Profile Login and Setup",
+        "steps": [
+          "Login with credentials",
+          "Complete profile information",
+          "Add birth details (time, place)",
+          "Set preferences and interests",
+          "Explore app features"
+        ],
+        "expected": "Profile setup completed"
+      },
+      {
+        "scenario": "Browse and Select Astrologers",
+        "steps": [
+          "Browse available astrologers",
+          "Filter by skills, languages, rates",
+          "View astrologer profiles",
+          "Check reviews and ratings",
+          "Select astrologer for consultation"
+        ],
+        "expected": "Successfully found suitable astrologer"
+      },
+      {
+        "scenario": "Wallet Management",
+        "steps": [
+          "Check wallet balance",
+          "Add money to wallet",
+          "Complete payment process",
+          "Verify balance update",
+          "View transaction history"
+        ],
+        "expected": "Wallet operations successful"
+      },
+      {
+        "scenario": "Chat Consultation",
+        "steps": [
+          "Select astrologer for chat",
+          "Initiate chat session",
+          "Conduct chat consultation",
+          "End session",
+          "Provide rating and review"
+        ],
+        "expected": "Chat consultation completed successfully"
+      },
+      {
+        "scenario": "Voice Call Consultation",
+        "steps": [
+          "Select astrologer for call",
+          "Initiate voice call",
+          "Conduct voice consultation",
+          "End call",
+          "Submit feedback and rating"
+        ],
+        "expected": "Voice consultation completed successfully"
+      },
+      {
+        "scenario": "History and Reviews",
+        "steps": [
+          "View consultation history",
+          "Check past sessions details",
+          "Review submitted ratings",
+          "Manage favorite astrologers",
+          "Check spending history"
+        ],
+        "expected": "History and review features working"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "user_type": "user",
+    "full_name": "Anaya Goyal",
+    "email": "customer2@testuser.com",
+    "phone": "+918000000002",
+    "password": "TestUser223",
+    "city": "Kolkata",
+    "state": "Karnataka",
+    "country": "India",
+    "date_of_birth": "31/08/2000",
+    "time_of_birth": "6:59 AM",
+    "place_of_birth": "Lucknow",
+    "gender": "Male",
+    "marital_status": "Married",
+    "profile_image_type": "none",
+    "google_profile_url": null,
+    "created_timestamp": 1756107480592,
+    "test_scenarios": [
+      {
+        "scenario": "User Registration",
+        "steps": [
+          "Open app and choose user signup",
+          "Fill personal information",
+          "Set profile image (Gmail/App upload/None based on type)",
+          "Provide birth details for astrology",
+          "Accept terms and complete registration",
+          "Verify account if required"
+        ],
+        "expected": "Successfully registered and can access app"
+      },
+      {
+        "scenario": "Profile Login and Setup",
+        "steps": [
+          "Login with credentials",
+          "Complete profile information",
+          "Add birth details (time, place)",
+          "Set preferences and interests",
+          "Explore app features"
+        ],
+        "expected": "Profile setup completed"
+      },
+      {
+        "scenario": "Browse and Select Astrologers",
+        "steps": [
+          "Browse available astrologers",
+          "Filter by skills, languages, rates",
+          "View astrologer profiles",
+          "Check reviews and ratings",
+          "Select astrologer for consultation"
+        ],
+        "expected": "Successfully found suitable astrologer"
+      },
+      {
+        "scenario": "Wallet Management",
+        "steps": [
+          "Check wallet balance",
+          "Add money to wallet",
+          "Complete payment process",
+          "Verify balance update",
+          "View transaction history"
+        ],
+        "expected": "Wallet operations successful"
+      },
+      {
+        "scenario": "Chat Consultation",
+        "steps": [
+          "Select astrologer for chat",
+          "Initiate chat session",
+          "Conduct chat consultation",
+          "End session",
+          "Provide rating and review"
+        ],
+        "expected": "Chat consultation completed successfully"
+      },
+      {
+        "scenario": "Voice Call Consultation",
+        "steps": [
+          "Select astrologer for call",
+          "Initiate voice call",
+          "Conduct voice consultation",
+          "End call",
+          "Submit feedback and rating"
+        ],
+        "expected": "Voice consultation completed successfully"
+      },
+      {
+        "scenario": "History and Reviews",
+        "steps": [
+          "View consultation history",
+          "Check past sessions details",
+          "Review submitted ratings",
+          "Manage favorite astrologers",
+          "Check spending history"
+        ],
+        "expected": "History and review features working"
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "user_type": "user",
+    "full_name": "Aanya Shah",
+    "email": "customer3@testuser.com",
+    "phone": "+918000000003",
+    "password": "TestUser323",
+    "city": "Hyderabad",
+    "state": "Karnataka",
+    "country": "India",
+    "date_of_birth": "07/09/1973",
+    "time_of_birth": "6:43 PM",
+    "place_of_birth": "Lucknow",
+    "gender": "Male",
+    "marital_status": "Married",
+    "profile_image_type": "gmail_profile",
+    "google_profile_url": "https://lh3.googleusercontent.com/a/test-profile-3.jpg",
+    "created_timestamp": 1756107480592,
+    "test_scenarios": [
+      {
+        "scenario": "User Registration",
+        "steps": [
+          "Open app and choose user signup",
+          "Fill personal information",
+          "Set profile image (Gmail/App upload/None based on type)",
+          "Provide birth details for astrology",
+          "Accept terms and complete registration",
+          "Verify account if required"
+        ],
+        "expected": "Successfully registered and can access app"
+      },
+      {
+        "scenario": "Profile Login and Setup",
+        "steps": [
+          "Login with credentials",
+          "Complete profile information",
+          "Add birth details (time, place)",
+          "Set preferences and interests",
+          "Explore app features"
+        ],
+        "expected": "Profile setup completed"
+      },
+      {
+        "scenario": "Browse and Select Astrologers",
+        "steps": [
+          "Browse available astrologers",
+          "Filter by skills, languages, rates",
+          "View astrologer profiles",
+          "Check reviews and ratings",
+          "Select astrologer for consultation"
+        ],
+        "expected": "Successfully found suitable astrologer"
+      },
+      {
+        "scenario": "Wallet Management",
+        "steps": [
+          "Check wallet balance",
+          "Add money to wallet",
+          "Complete payment process",
+          "Verify balance update",
+          "View transaction history"
+        ],
+        "expected": "Wallet operations successful"
+      },
+      {
+        "scenario": "Chat Consultation",
+        "steps": [
+          "Select astrologer for chat",
+          "Initiate chat session",
+          "Conduct chat consultation",
+          "End session",
+          "Provide rating and review"
+        ],
+        "expected": "Chat consultation completed successfully"
+      },
+      {
+        "scenario": "Voice Call Consultation",
+        "steps": [
+          "Select astrologer for call",
+          "Initiate voice call",
+          "Conduct voice consultation",
+          "End call",
+          "Submit feedback and rating"
+        ],
+        "expected": "Voice consultation completed successfully"
+      },
+      {
+        "scenario": "History and Reviews",
+        "steps": [
+          "View consultation history",
+          "Check past sessions details",
+          "Review submitted ratings",
+          "Manage favorite astrologers",
+          "Check spending history"
+        ],
+        "expected": "History and review features working"
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "user_type": "user",
+    "full_name": "Fatima Patel",
+    "email": "customer4@testuser.com",
+    "phone": "+918000000004",
+    "password": "TestUser423",
+    "city": "Pune",
+    "state": "Karnataka",
+    "country": "India",
+    "date_of_birth": "31/08/2000",
+    "time_of_birth": "8:03 PM",
+    "place_of_birth": "Chennai",
+    "gender": "Male",
+    "marital_status": "Married",
+    "profile_image_type": "app_upload",
+    "google_profile_url": null,
+    "created_timestamp": 1756107480593,
+    "test_scenarios": [
+      {
+        "scenario": "User Registration",
+        "steps": [
+          "Open app and choose user signup",
+          "Fill personal information",
+          "Set profile image (Gmail/App upload/None based on type)",
+          "Provide birth details for astrology",
+          "Accept terms and complete registration",
+          "Verify account if required"
+        ],
+        "expected": "Successfully registered and can access app"
+      },
+      {
+        "scenario": "Profile Login and Setup",
+        "steps": [
+          "Login with credentials",
+          "Complete profile information",
+          "Add birth details (time, place)",
+          "Set preferences and interests",
+          "Explore app features"
+        ],
+        "expected": "Profile setup completed"
+      },
+      {
+        "scenario": "Browse and Select Astrologers",
+        "steps": [
+          "Browse available astrologers",
+          "Filter by skills, languages, rates",
+          "View astrologer profiles",
+          "Check reviews and ratings",
+          "Select astrologer for consultation"
+        ],
+        "expected": "Successfully found suitable astrologer"
+      },
+      {
+        "scenario": "Wallet Management",
+        "steps": [
+          "Check wallet balance",
+          "Add money to wallet",
+          "Complete payment process",
+          "Verify balance update",
+          "View transaction history"
+        ],
+        "expected": "Wallet operations successful"
+      },
+      {
+        "scenario": "Chat Consultation",
+        "steps": [
+          "Select astrologer for chat",
+          "Initiate chat session",
+          "Conduct chat consultation",
+          "End session",
+          "Provide rating and review"
+        ],
+        "expected": "Chat consultation completed successfully"
+      },
+      {
+        "scenario": "Voice Call Consultation",
+        "steps": [
+          "Select astrologer for call",
+          "Initiate voice call",
+          "Conduct voice consultation",
+          "End call",
+          "Submit feedback and rating"
+        ],
+        "expected": "Voice consultation completed successfully"
+      },
+      {
+        "scenario": "History and Reviews",
+        "steps": [
+          "View consultation history",
+          "Check past sessions details",
+          "Review submitted ratings",
+          "Manage favorite astrologers",
+          "Check spending history"
+        ],
+        "expected": "History and review features working"
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "user_type": "user",
+    "full_name": "Diya Tiwari",
+    "email": "customer5@testuser.com",
+    "phone": "+918000000005",
+    "password": "TestUser523",
+    "city": "Jaipur",
+    "state": "Karnataka",
+    "country": "India",
+    "date_of_birth": "31/08/2003",
+    "time_of_birth": "4:19 AM",
+    "place_of_birth": "Chennai",
+    "gender": "Male",
+    "marital_status": "Divorced",
+    "profile_image_type": "none",
+    "google_profile_url": null,
+    "created_timestamp": 1756107480593,
+    "test_scenarios": [
+      {
+        "scenario": "User Registration",
+        "steps": [
+          "Open app and choose user signup",
+          "Fill personal information",
+          "Set profile image (Gmail/App upload/None based on type)",
+          "Provide birth details for astrology",
+          "Accept terms and complete registration",
+          "Verify account if required"
+        ],
+        "expected": "Successfully registered and can access app"
+      },
+      {
+        "scenario": "Profile Login and Setup",
+        "steps": [
+          "Login with credentials",
+          "Complete profile information",
+          "Add birth details (time, place)",
+          "Set preferences and interests",
+          "Explore app features"
+        ],
+        "expected": "Profile setup completed"
+      },
+      {
+        "scenario": "Browse and Select Astrologers",
+        "steps": [
+          "Browse available astrologers",
+          "Filter by skills, languages, rates",
+          "View astrologer profiles",
+          "Check reviews and ratings",
+          "Select astrologer for consultation"
+        ],
+        "expected": "Successfully found suitable astrologer"
+      },
+      {
+        "scenario": "Wallet Management",
+        "steps": [
+          "Check wallet balance",
+          "Add money to wallet",
+          "Complete payment process",
+          "Verify balance update",
+          "View transaction history"
+        ],
+        "expected": "Wallet operations successful"
+      },
+      {
+        "scenario": "Chat Consultation",
+        "steps": [
+          "Select astrologer for chat",
+          "Initiate chat session",
+          "Conduct chat consultation",
+          "End session",
+          "Provide rating and review"
+        ],
+        "expected": "Chat consultation completed successfully"
+      },
+      {
+        "scenario": "Voice Call Consultation",
+        "steps": [
+          "Select astrologer for call",
+          "Initiate voice call",
+          "Conduct voice consultation",
+          "End call",
+          "Submit feedback and rating"
+        ],
+        "expected": "Voice consultation completed successfully"
+      },
+      {
+        "scenario": "History and Reviews",
+        "steps": [
+          "View consultation history",
+          "Check past sessions details",
+          "Review submitted ratings",
+          "Manage favorite astrologers",
+          "Check spending history"
+        ],
+        "expected": "History and review features working"
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "user_type": "user",
+    "full_name": "Inaya Gupta",
+    "email": "customer6@testuser.com",
+    "phone": "+918000000006",
+    "password": "TestUser623",
+    "city": "Pune",
+    "state": "Karnataka",
+    "country": "India",
+    "date_of_birth": "10/09/1963",
+    "time_of_birth": "7:35 AM",
+    "place_of_birth": "Kolkata",
+    "gender": "Male",
+    "marital_status": "Married",
+    "profile_image_type": "gmail_profile",
+    "google_profile_url": "https://lh3.googleusercontent.com/a/test-profile-6.jpg",
+    "created_timestamp": 1756107480593,
+    "test_scenarios": [
+      {
+        "scenario": "User Registration",
+        "steps": [
+          "Open app and choose user signup",
+          "Fill personal information",
+          "Set profile image (Gmail/App upload/None based on type)",
+          "Provide birth details for astrology",
+          "Accept terms and complete registration",
+          "Verify account if required"
+        ],
+        "expected": "Successfully registered and can access app"
+      },
+      {
+        "scenario": "Profile Login and Setup",
+        "steps": [
+          "Login with credentials",
+          "Complete profile information",
+          "Add birth details (time, place)",
+          "Set preferences and interests",
+          "Explore app features"
+        ],
+        "expected": "Profile setup completed"
+      },
+      {
+        "scenario": "Browse and Select Astrologers",
+        "steps": [
+          "Browse available astrologers",
+          "Filter by skills, languages, rates",
+          "View astrologer profiles",
+          "Check reviews and ratings",
+          "Select astrologer for consultation"
+        ],
+        "expected": "Successfully found suitable astrologer"
+      },
+      {
+        "scenario": "Wallet Management",
+        "steps": [
+          "Check wallet balance",
+          "Add money to wallet",
+          "Complete payment process",
+          "Verify balance update",
+          "View transaction history"
+        ],
+        "expected": "Wallet operations successful"
+      },
+      {
+        "scenario": "Chat Consultation",
+        "steps": [
+          "Select astrologer for chat",
+          "Initiate chat session",
+          "Conduct chat consultation",
+          "End session",
+          "Provide rating and review"
+        ],
+        "expected": "Chat consultation completed successfully"
+      },
+      {
+        "scenario": "Voice Call Consultation",
+        "steps": [
+          "Select astrologer for call",
+          "Initiate voice call",
+          "Conduct voice consultation",
+          "End call",
+          "Submit feedback and rating"
+        ],
+        "expected": "Voice consultation completed successfully"
+      },
+      {
+        "scenario": "History and Reviews",
+        "steps": [
+          "View consultation history",
+          "Check past sessions details",
+          "Review submitted ratings",
+          "Manage favorite astrologers",
+          "Check spending history"
+        ],
+        "expected": "History and review features working"
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "user_type": "user",
+    "full_name": "Krishna Mehta",
+    "email": "customer7@testuser.com",
+    "phone": "+918000000007",
+    "password": "TestUser723",
+    "city": "Kolkata",
+    "state": "Karnataka",
+    "country": "India",
+    "date_of_birth": "06/09/1976",
+    "time_of_birth": "2:15 AM",
+    "place_of_birth": "Chennai",
+    "gender": "Female",
+    "marital_status": "Single",
+    "profile_image_type": "app_upload",
+    "google_profile_url": null,
+    "created_timestamp": 1756107480593,
+    "test_scenarios": [
+      {
+        "scenario": "User Registration",
+        "steps": [
+          "Open app and choose user signup",
+          "Fill personal information",
+          "Set profile image (Gmail/App upload/None based on type)",
+          "Provide birth details for astrology",
+          "Accept terms and complete registration",
+          "Verify account if required"
+        ],
+        "expected": "Successfully registered and can access app"
+      },
+      {
+        "scenario": "Profile Login and Setup",
+        "steps": [
+          "Login with credentials",
+          "Complete profile information",
+          "Add birth details (time, place)",
+          "Set preferences and interests",
+          "Explore app features"
+        ],
+        "expected": "Profile setup completed"
+      },
+      {
+        "scenario": "Browse and Select Astrologers",
+        "steps": [
+          "Browse available astrologers",
+          "Filter by skills, languages, rates",
+          "View astrologer profiles",
+          "Check reviews and ratings",
+          "Select astrologer for consultation"
+        ],
+        "expected": "Successfully found suitable astrologer"
+      },
+      {
+        "scenario": "Wallet Management",
+        "steps": [
+          "Check wallet balance",
+          "Add money to wallet",
+          "Complete payment process",
+          "Verify balance update",
+          "View transaction history"
+        ],
+        "expected": "Wallet operations successful"
+      },
+      {
+        "scenario": "Chat Consultation",
+        "steps": [
+          "Select astrologer for chat",
+          "Initiate chat session",
+          "Conduct chat consultation",
+          "End session",
+          "Provide rating and review"
+        ],
+        "expected": "Chat consultation completed successfully"
+      },
+      {
+        "scenario": "Voice Call Consultation",
+        "steps": [
+          "Select astrologer for call",
+          "Initiate voice call",
+          "Conduct voice consultation",
+          "End call",
+          "Submit feedback and rating"
+        ],
+        "expected": "Voice consultation completed successfully"
+      },
+      {
+        "scenario": "History and Reviews",
+        "steps": [
+          "View consultation history",
+          "Check past sessions details",
+          "Review submitted ratings",
+          "Manage favorite astrologers",
+          "Check spending history"
+        ],
+        "expected": "History and review features working"
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "user_type": "user",
+    "full_name": "Arjun Patel",
+    "email": "customer8@testuser.com",
+    "phone": "+918000000008",
+    "password": "TestUser823",
+    "city": "Bangalore",
+    "state": "Karnataka",
+    "country": "India",
+    "date_of_birth": "03/09/1989",
+    "time_of_birth": "8:25 PM",
+    "place_of_birth": "Mumbai",
+    "gender": "Female",
+    "marital_status": "Single",
+    "profile_image_type": "none",
+    "google_profile_url": null,
+    "created_timestamp": 1756107480593,
+    "test_scenarios": [
+      {
+        "scenario": "User Registration",
+        "steps": [
+          "Open app and choose user signup",
+          "Fill personal information",
+          "Set profile image (Gmail/App upload/None based on type)",
+          "Provide birth details for astrology",
+          "Accept terms and complete registration",
+          "Verify account if required"
+        ],
+        "expected": "Successfully registered and can access app"
+      },
+      {
+        "scenario": "Profile Login and Setup",
+        "steps": [
+          "Login with credentials",
+          "Complete profile information",
+          "Add birth details (time, place)",
+          "Set preferences and interests",
+          "Explore app features"
+        ],
+        "expected": "Profile setup completed"
+      },
+      {
+        "scenario": "Browse and Select Astrologers",
+        "steps": [
+          "Browse available astrologers",
+          "Filter by skills, languages, rates",
+          "View astrologer profiles",
+          "Check reviews and ratings",
+          "Select astrologer for consultation"
+        ],
+        "expected": "Successfully found suitable astrologer"
+      },
+      {
+        "scenario": "Wallet Management",
+        "steps": [
+          "Check wallet balance",
+          "Add money to wallet",
+          "Complete payment process",
+          "Verify balance update",
+          "View transaction history"
+        ],
+        "expected": "Wallet operations successful"
+      },
+      {
+        "scenario": "Chat Consultation",
+        "steps": [
+          "Select astrologer for chat",
+          "Initiate chat session",
+          "Conduct chat consultation",
+          "End session",
+          "Provide rating and review"
+        ],
+        "expected": "Chat consultation completed successfully"
+      },
+      {
+        "scenario": "Voice Call Consultation",
+        "steps": [
+          "Select astrologer for call",
+          "Initiate voice call",
+          "Conduct voice consultation",
+          "End call",
+          "Submit feedback and rating"
+        ],
+        "expected": "Voice consultation completed successfully"
+      },
+      {
+        "scenario": "History and Reviews",
+        "steps": [
+          "View consultation history",
+          "Check past sessions details",
+          "Review submitted ratings",
+          "Manage favorite astrologers",
+          "Check spending history"
+        ],
+        "expected": "History and review features working"
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "user_type": "user",
+    "full_name": "Aditya Bansal",
+    "email": "customer9@testuser.com",
+    "phone": "+918000000009",
+    "password": "TestUser923",
+    "city": "Bangalore",
+    "state": "Karnataka",
+    "country": "India",
+    "date_of_birth": "05/09/1981",
+    "time_of_birth": "11:07 PM",
+    "place_of_birth": "Lucknow",
+    "gender": "Female",
+    "marital_status": "Married",
+    "profile_image_type": "gmail_profile",
+    "google_profile_url": "https://lh3.googleusercontent.com/a/test-profile-9.jpg",
+    "created_timestamp": 1756107480593,
+    "test_scenarios": [
+      {
+        "scenario": "User Registration",
+        "steps": [
+          "Open app and choose user signup",
+          "Fill personal information",
+          "Set profile image (Gmail/App upload/None based on type)",
+          "Provide birth details for astrology",
+          "Accept terms and complete registration",
+          "Verify account if required"
+        ],
+        "expected": "Successfully registered and can access app"
+      },
+      {
+        "scenario": "Profile Login and Setup",
+        "steps": [
+          "Login with credentials",
+          "Complete profile information",
+          "Add birth details (time, place)",
+          "Set preferences and interests",
+          "Explore app features"
+        ],
+        "expected": "Profile setup completed"
+      },
+      {
+        "scenario": "Browse and Select Astrologers",
+        "steps": [
+          "Browse available astrologers",
+          "Filter by skills, languages, rates",
+          "View astrologer profiles",
+          "Check reviews and ratings",
+          "Select astrologer for consultation"
+        ],
+        "expected": "Successfully found suitable astrologer"
+      },
+      {
+        "scenario": "Wallet Management",
+        "steps": [
+          "Check wallet balance",
+          "Add money to wallet",
+          "Complete payment process",
+          "Verify balance update",
+          "View transaction history"
+        ],
+        "expected": "Wallet operations successful"
+      },
+      {
+        "scenario": "Chat Consultation",
+        "steps": [
+          "Select astrologer for chat",
+          "Initiate chat session",
+          "Conduct chat consultation",
+          "End session",
+          "Provide rating and review"
+        ],
+        "expected": "Chat consultation completed successfully"
+      },
+      {
+        "scenario": "Voice Call Consultation",
+        "steps": [
+          "Select astrologer for call",
+          "Initiate voice call",
+          "Conduct voice consultation",
+          "End call",
+          "Submit feedback and rating"
+        ],
+        "expected": "Voice consultation completed successfully"
+      },
+      {
+        "scenario": "History and Reviews",
+        "steps": [
+          "View consultation history",
+          "Check past sessions details",
+          "Review submitted ratings",
+          "Manage favorite astrologers",
+          "Check spending history"
+        ],
+        "expected": "History and review features working"
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "user_type": "user",
+    "full_name": "Fatima Verma",
+    "email": "customer10@testuser.com",
+    "phone": "+918000000010",
+    "password": "TestUser1023",
+    "city": "Kolkata",
+    "state": "Karnataka",
+    "country": "India",
+    "date_of_birth": "01/09/1997",
+    "time_of_birth": "1:17 PM",
+    "place_of_birth": "Lucknow",
+    "gender": "Female",
+    "marital_status": "Single",
+    "profile_image_type": "app_upload",
+    "google_profile_url": null,
+    "created_timestamp": 1756107480593,
+    "test_scenarios": [
+      {
+        "scenario": "User Registration",
+        "steps": [
+          "Open app and choose user signup",
+          "Fill personal information",
+          "Set profile image (Gmail/App upload/None based on type)",
+          "Provide birth details for astrology",
+          "Accept terms and complete registration",
+          "Verify account if required"
+        ],
+        "expected": "Successfully registered and can access app"
+      },
+      {
+        "scenario": "Profile Login and Setup",
+        "steps": [
+          "Login with credentials",
+          "Complete profile information",
+          "Add birth details (time, place)",
+          "Set preferences and interests",
+          "Explore app features"
+        ],
+        "expected": "Profile setup completed"
+      },
+      {
+        "scenario": "Browse and Select Astrologers",
+        "steps": [
+          "Browse available astrologers",
+          "Filter by skills, languages, rates",
+          "View astrologer profiles",
+          "Check reviews and ratings",
+          "Select astrologer for consultation"
+        ],
+        "expected": "Successfully found suitable astrologer"
+      },
+      {
+        "scenario": "Wallet Management",
+        "steps": [
+          "Check wallet balance",
+          "Add money to wallet",
+          "Complete payment process",
+          "Verify balance update",
+          "View transaction history"
+        ],
+        "expected": "Wallet operations successful"
+      },
+      {
+        "scenario": "Chat Consultation",
+        "steps": [
+          "Select astrologer for chat",
+          "Initiate chat session",
+          "Conduct chat consultation",
+          "End session",
+          "Provide rating and review"
+        ],
+        "expected": "Chat consultation completed successfully"
+      },
+      {
+        "scenario": "Voice Call Consultation",
+        "steps": [
+          "Select astrologer for call",
+          "Initiate voice call",
+          "Conduct voice consultation",
+          "End call",
+          "Submit feedback and rating"
+        ],
+        "expected": "Voice consultation completed successfully"
+      },
+      {
+        "scenario": "History and Reviews",
+        "steps": [
+          "View consultation history",
+          "Check past sessions details",
+          "Review submitted ratings",
+          "Manage favorite astrologers",
+          "Check spending history"
+        ],
+        "expected": "History and review features working"
+      }
+    ]
+  }
+]

@@ -1,0 +1,95 @@
+[
+  {
+    "title": "Complete User Journey - Astrologer Perspective",
+    "description": "Full workflow from astrologer registration to earning money",
+    "participants": [
+      "Astrologer 1"
+    ],
+    "steps": [
+      "Register as astrologer with profile image",
+      "Complete professional profile",
+      "Get admin approval",
+      "Login and set online status",
+      "Configure rates and availability",
+      "Receive first consultation request",
+      "Complete consultation successfully",
+      "Check earnings and wallet",
+      "Manage profile and settings"
+    ],
+    "success_criteria": [
+      "Registration successful",
+      "Profile approved by admin",
+      "Can receive consultations",
+      "Earnings reflected correctly",
+      "Profile management working"
+    ]
+  },
+  {
+    "title": "Complete User Journey - Customer Perspective",
+    "description": "Full workflow from customer registration to consultation",
+    "participants": [
+      "Customer 1",
+      "Astrologer 2"
+    ],
+    "steps": [
+      "Register as customer (with Gmail profile)",
+      "Complete personal profile",
+      "Add money to wallet",
+      "Browse and select astrologer",
+      "Initiate chat consultation",
+      "Complete consultation session",
+      "Provide rating and review",
+      "Check consultation history"
+    ],
+    "success_criteria": [
+      "Registration with Gmail profile successful",
+      "Wallet operations working",
+      "Can find and contact astrologers",
+      "Consultation completed successfully",
+      "History tracking working"
+    ]
+  },
+  {
+    "title": "Multi-User Interaction Test",
+    "description": "Test interactions between multiple users",
+    "participants": [
+      "5 Customers",
+      "3 Astrologers"
+    ],
+    "steps": [
+      "All users register and complete profiles",
+      "Customers add money to wallets",
+      "Astrologers go online",
+      "Multiple simultaneous chat sessions",
+      "Multiple simultaneous call sessions",
+      "Cross-rating and reviews",
+      "Check all earnings and transactions"
+    ],
+    "success_criteria": [
+      "All registrations successful",
+      "Simultaneous sessions work",
+      "No payment conflicts",
+      "All earnings calculated correctly"
+    ]
+  },
+  {
+    "title": "Profile Image Testing",
+    "description": "Test different profile image scenarios",
+    "participants": [
+      "Various users"
+    ],
+    "steps": [
+      "Test app-based image uploads",
+      "Test Gmail profile image integration",
+      "Test profile image updates",
+      "Test image display across app",
+      "Test image optimization"
+    ],
+    "success_criteria": [
+      "App uploads work correctly",
+      "Gmail profiles display properly",
+      "Images optimized correctly",
+      "No broken image links"
+    ]
+  }
+]

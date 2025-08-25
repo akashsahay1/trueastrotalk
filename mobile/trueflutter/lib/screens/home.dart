@@ -16,6 +16,8 @@ import 'profile.dart';
 import 'astrologer_details.dart';
 import 'astrologers_call.dart';
 import 'astrologers_chat.dart';
+import 'astrologer_consultations_screen.dart';
+import 'astrologer_earnings_screen.dart';
 import 'wallet.dart';
 import 'history.dart';
 import 'help.dart';
@@ -1324,85 +1326,11 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildConsultationsScreen() {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Consultations', style: TextStyle(color: AppColors.white)),
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.help_outline, color: AppColors.white),
-            onPressed: _openHelp,
-            tooltip: 'Help',
-          ),
-        ],
-      ),
-      body: const Center(
-        child: Padding(
-          padding: EdgeInsets.all(20),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.chat, size: 64, color: AppColors.info),
-              SizedBox(height: 16),
-              Text(
-                'Consultations',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.info),
-              ),
-              SizedBox(height: 8),
-              Text('Coming Soon', style: TextStyle(fontSize: 16, color: AppColors.textSecondary)),
-              SizedBox(height: 16),
-              Text(
-                'Manage your consultations, chat with clients, and track your consultation history.',
-                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    return const AstrologerConsultationsScreen();
   }
 
   Widget _buildEarningsScreen() {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Earnings', style: TextStyle(color: AppColors.white)),
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.help_outline, color: AppColors.white),
-            onPressed: _openHelp,
-            tooltip: 'Help',
-          ),
-        ],
-      ),
-      body: const Center(
-        child: Padding(
-          padding: EdgeInsets.all(20),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.account_balance_wallet, size: 64, color: AppColors.success),
-              SizedBox(height: 16),
-              Text(
-                'Earnings',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.success),
-              ),
-              SizedBox(height: 8),
-              Text('Coming Soon', style: TextStyle(fontSize: 16, color: AppColors.textSecondary)),
-              SizedBox(height: 16),
-              Text(
-                'Track your earnings, view payment history, and manage your financial information.',
-                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    return const AstrologerEarningsScreen();
   }
 
   Widget _buildAstrologerDrawer() {

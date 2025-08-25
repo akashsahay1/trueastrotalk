@@ -1,0 +1,11 @@
+ID,Name,Email,Phone,City,Gender,Marital Status,Profile Image Type,Has Gmail Profile
+1,"Sai Kumar",customer1@testuser.com,+918000000001,Delhi,Female,Single,app_upload,No
+2,"Kavya Gupta",customer2@testuser.com,+918000000002,Bangalore,Female,Single,none,No
+3,"Ayaan Gupta",customer3@testuser.com,+918000000003,Hyderabad,Female,Divorced,gmail_profile,Yes
+4,"Diya Singh",customer4@testuser.com,+918000000004,Mumbai,Male,Married,app_upload,No
+5,"Arjun Bansal",customer5@testuser.com,+918000000005,Mumbai,Male,Married,none,No
+6,"Priya Tiwari",customer6@testuser.com,+918000000006,Mumbai,Male,Single,gmail_profile,Yes
+7,"Fatima Shah",customer7@testuser.com,+918000000007,Hyderabad,Female,Single,app_upload,No
+8,"Reyansh Bansal",customer8@testuser.com,+918000000008,Pune,Male,Single,none,No
+9,"Diya Bansal",customer9@testuser.com,+918000000009,Hyderabad,Male,Married,gmail_profile,Yes
+10,"Reyansh Goyal",customer10@testuser.com,+918000000010,Kolkata,Male,Divorced,app_upload,No

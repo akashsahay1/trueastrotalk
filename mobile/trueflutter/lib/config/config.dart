@@ -68,10 +68,10 @@ class Config {
     return 'http://$ip:4000';
   }
 
-  // Request timeouts
-  static const Duration connectTimeout = Duration(seconds: 30);
-  static const Duration receiveTimeout = Duration(seconds: 30);
-  static const Duration sendTimeout = Duration(seconds: 30);
+  // Request timeouts (increased for E2E testing and slower networks)
+  static const Duration connectTimeout = Duration(seconds: 60);
+  static const Duration receiveTimeout = Duration(seconds: 60);
+  static const Duration sendTimeout = Duration(seconds: 60);
 
   // App constants
   static const Duration splashScreenDuration = Duration(seconds: 3);

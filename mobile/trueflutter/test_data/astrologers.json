@@ -1,0 +1,1012 @@
+[
+  {
+    "id": 1,
+    "user_type": "astrologer",
+    "full_name": "Aadhya Singh",
+    "email": "astrologer1@testastro.com",
+    "phone": "+919000000001",
+    "password": "TestAstro123",
+    "city": "Delhi",
+    "state": "Maharashtra",
+    "country": "India",
+    "date_of_birth": "04/09/1987",
+    "experience_years": 16,
+    "bio": "Experienced Vastu Shastra practitioner with 12 years of expertise in guiding people through life's challenges.",
+    "skills": [
+      "Face Reading",
+      "Horary Astrology"
+    ],
+    "languages": [
+      "Punjabi"
+    ],
+    "call_rate": 57.0,
+    "chat_rate": 26.0,
+    "video_rate": 20.0,
+    "qualification": "Master in Astrology, Certified Vedic Astrologer",
+    "specialization": "Gemology",
+    "profile_image_type": "none",
+    "created_timestamp": 1756108526654,
+    "test_scenarios": [
+      {
+        "scenario": "Complete Registration",
+        "steps": [
+          "Open app and navigate to astrologer signup",
+          "Fill all required fields including professional details",
+          "Upload profile image (50% of users)",
+          "Accept terms and conditions",
+          "Submit registration",
+          "Verify email if required",
+          "Wait for admin approval"
+        ],
+        "expected": "Successfully registered and account pending approval"
+      },
+      {
+        "scenario": "Profile Login and Setup",
+        "steps": [
+          "Login with generated credentials",
+          "Complete profile information",
+          "Set consultation rates",
+          "Configure availability schedule",
+          "Upload required documents",
+          "Set online status"
+        ],
+        "expected": "Profile completed and ready to receive consultations"
+      },
+      {
+        "scenario": "Handle Consultation Requests",
+        "steps": [
+          "Receive chat consultation request",
+          "Accept consultation",
+          "Conduct chat session",
+          "End session and submit feedback",
+          "Check earnings update"
+        ],
+        "expected": "Consultation completed and payment received"
+      },
+      {
+        "scenario": "Call Session Management",
+        "steps": [
+          "Receive voice call request",
+          "Accept incoming call",
+          "Conduct voice consultation",
+          "End call session",
+          "Verify payment and earnings"
+        ],
+        "expected": "Call session completed successfully"
+      },
+      {
+        "scenario": "Wallet and Earnings",
+        "steps": [
+          "Check current wallet balance",
+          "View transaction history",
+          "Request payout/withdrawal",
+          "Track earnings over time",
+          "Review payment details"
+        ],
+        "expected": "Wallet operations working correctly"
+      },
+      {
+        "scenario": "Profile Management",
+        "steps": [
+          "Update profile information",
+          "Change profile picture",
+          "Modify consultation rates",
+          "Update availability schedule",
+          "Edit skills and languages"
+        ],
+        "expected": "Profile updated successfully"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "user_type": "astrologer",
+    "full_name": "Fatima Bansal",
+    "email": "astrologer2@testastro.com",
+    "phone": "+919000000002",
+    "password": "TestAstro223",
+    "city": "Pune",
+    "state": "Maharashtra",
+    "country": "India",
+    "date_of_birth": "06/09/1978",
+    "experience_years": 17,
+    "bio": "Experienced Vedic Astrology practitioner with 10 years of expertise in guiding people through life's challenges.",
+    "skills": [
+      "Palmistry",
+      "Tarot Reading",
+      "Gemology"
+    ],
+    "languages": [
+      "Telugu"
+    ],
+    "call_rate": 24.0,
+    "chat_rate": 10.0,
+    "video_rate": 52.0,
+    "qualification": "Master in Astrology, Certified Vedic Astrologer",
+    "specialization": "Remedial Astrology",
+    "profile_image_type": "app_upload",
+    "created_timestamp": 1756108526659,
+    "test_scenarios": [
+      {
+        "scenario": "Complete Registration",
+        "steps": [
+          "Open app and navigate to astrologer signup",
+          "Fill all required fields including professional details",
+          "Upload profile image (50% of users)",
+          "Accept terms and conditions",
+          "Submit registration",
+          "Verify email if required",
+          "Wait for admin approval"
+        ],
+        "expected": "Successfully registered and account pending approval"
+      },
+      {
+        "scenario": "Profile Login and Setup",
+        "steps": [
+          "Login with generated credentials",
+          "Complete profile information",
+          "Set consultation rates",
+          "Configure availability schedule",
+          "Upload required documents",
+          "Set online status"
+        ],
+        "expected": "Profile completed and ready to receive consultations"
+      },
+      {
+        "scenario": "Handle Consultation Requests",
+        "steps": [
+          "Receive chat consultation request",
+          "Accept consultation",
+          "Conduct chat session",
+          "End session and submit feedback",
+          "Check earnings update"
+        ],
+        "expected": "Consultation completed and payment received"
+      },
+      {
+        "scenario": "Call Session Management",
+        "steps": [
+          "Receive voice call request",
+          "Accept incoming call",
+          "Conduct voice consultation",
+          "End call session",
+          "Verify payment and earnings"
+        ],
+        "expected": "Call session completed successfully"
+      },
+      {
+        "scenario": "Wallet and Earnings",
+        "steps": [
+          "Check current wallet balance",
+          "View transaction history",
+          "Request payout/withdrawal",
+          "Track earnings over time",
+          "Review payment details"
+        ],
+        "expected": "Wallet operations working correctly"
+      },
+      {
+        "scenario": "Profile Management",
+        "steps": [
+          "Update profile information",
+          "Change profile picture",
+          "Modify consultation rates",
+          "Update availability schedule",
+          "Edit skills and languages"
+        ],
+        "expected": "Profile updated successfully"
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "user_type": "astrologer",
+    "full_name": "Priya Singh",
+    "email": "astrologer3@testastro.com",
+    "phone": "+919000000003",
+    "password": "TestAstro323",
+    "city": "Pune",
+    "state": "Maharashtra",
+    "country": "India",
+    "date_of_birth": "04/09/1985",
+    "experience_years": 19,
+    "bio": "Experienced Prashna Astrology practitioner with 17 years of expertise in guiding people through life's challenges.",
+    "skills": [
+      "Prashna Astrology",
+      "Gemology",
+      "Palmistry"
+    ],
+    "languages": [
+      "English",
+      "Hindi",
+      "Telugu"
+    ],
+    "call_rate": 29.0,
+    "chat_rate": 31.0,
+    "video_rate": 76.0,
+    "qualification": "Master in Astrology, Certified Vedic Astrologer",
+    "specialization": "Vedic Astrology",
+    "profile_image_type": "none",
+    "created_timestamp": 1756108526660,
+    "test_scenarios": [
+      {
+        "scenario": "Complete Registration",
+        "steps": [
+          "Open app and navigate to astrologer signup",
+          "Fill all required fields including professional details",
+          "Upload profile image (50% of users)",
+          "Accept terms and conditions",
+          "Submit registration",
+          "Verify email if required",
+          "Wait for admin approval"
+        ],
+        "expected": "Successfully registered and account pending approval"
+      },
+      {
+        "scenario": "Profile Login and Setup",
+        "steps": [
+          "Login with generated credentials",
+          "Complete profile information",
+          "Set consultation rates",
+          "Configure availability schedule",
+          "Upload required documents",
+          "Set online status"
+        ],
+        "expected": "Profile completed and ready to receive consultations"
+      },
+      {
+        "scenario": "Handle Consultation Requests",
+        "steps": [
+          "Receive chat consultation request",
+          "Accept consultation",
+          "Conduct chat session",
+          "End session and submit feedback",
+          "Check earnings update"
+        ],
+        "expected": "Consultation completed and payment received"
+      },
+      {
+        "scenario": "Call Session Management",
+        "steps": [
+          "Receive voice call request",
+          "Accept incoming call",
+          "Conduct voice consultation",
+          "End call session",
+          "Verify payment and earnings"
+        ],
+        "expected": "Call session completed successfully"
+      },
+      {
+        "scenario": "Wallet and Earnings",
+        "steps": [
+          "Check current wallet balance",
+          "View transaction history",
+          "Request payout/withdrawal",
+          "Track earnings over time",
+          "Review payment details"
+        ],
+        "expected": "Wallet operations working correctly"
+      },
+      {
+        "scenario": "Profile Management",
+        "steps": [
+          "Update profile information",
+          "Change profile picture",
+          "Modify consultation rates",
+          "Update availability schedule",
+          "Edit skills and languages"
+        ],
+        "expected": "Profile updated successfully"
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "user_type": "astrologer",
+    "full_name": "Inaya Shah",
+    "email": "astrologer4@testastro.com",
+    "phone": "+919000000004",
+    "password": "TestAstro423",
+    "city": "Jaipur",
+    "state": "Maharashtra",
+    "country": "India",
+    "date_of_birth": "04/09/1985",
+    "experience_years": 5,
+    "bio": "Experienced Lal Kitab practitioner with 4 years of expertise in guiding people through life's challenges.",
+    "skills": [
+      "Vedic Astrology",
+      "Prashna Astrology",
+      "KP Astrology",
+      "Horary Astrology"
+    ],
+    "languages": [
+      "Telugu"
+    ],
+    "call_rate": 11.0,
+    "chat_rate": 17.0,
+    "video_rate": 39.0,
+    "qualification": "Master in Astrology, Certified Vedic Astrologer",
+    "specialization": "Gemology",
+    "profile_image_type": "app_upload",
+    "created_timestamp": 1756108526660,
+    "test_scenarios": [
+      {
+        "scenario": "Complete Registration",
+        "steps": [
+          "Open app and navigate to astrologer signup",
+          "Fill all required fields including professional details",
+          "Upload profile image (50% of users)",
+          "Accept terms and conditions",
+          "Submit registration",
+          "Verify email if required",
+          "Wait for admin approval"
+        ],
+        "expected": "Successfully registered and account pending approval"
+      },
+      {
+        "scenario": "Profile Login and Setup",
+        "steps": [
+          "Login with generated credentials",
+          "Complete profile information",
+          "Set consultation rates",
+          "Configure availability schedule",
+          "Upload required documents",
+          "Set online status"
+        ],
+        "expected": "Profile completed and ready to receive consultations"
+      },
+      {
+        "scenario": "Handle Consultation Requests",
+        "steps": [
+          "Receive chat consultation request",
+          "Accept consultation",
+          "Conduct chat session",
+          "End session and submit feedback",
+          "Check earnings update"
+        ],
+        "expected": "Consultation completed and payment received"
+      },
+      {
+        "scenario": "Call Session Management",
+        "steps": [
+          "Receive voice call request",
+          "Accept incoming call",
+          "Conduct voice consultation",
+          "End call session",
+          "Verify payment and earnings"
+        ],
+        "expected": "Call session completed successfully"
+      },
+      {
+        "scenario": "Wallet and Earnings",
+        "steps": [
+          "Check current wallet balance",
+          "View transaction history",
+          "Request payout/withdrawal",
+          "Track earnings over time",
+          "Review payment details"
+        ],
+        "expected": "Wallet operations working correctly"
+      },
+      {
+        "scenario": "Profile Management",
+        "steps": [
+          "Update profile information",
+          "Change profile picture",
+          "Modify consultation rates",
+          "Update availability schedule",
+          "Edit skills and languages"
+        ],
+        "expected": "Profile updated successfully"
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "user_type": "astrologer",
+    "full_name": "Vivaan Bansal",
+    "email": "astrologer5@testastro.com",
+    "phone": "+919000000005",
+    "password": "TestAstro523",
+    "city": "Ahmedabad",
+    "state": "Maharashtra",
+    "country": "India",
+    "date_of_birth": "07/09/1974",
+    "experience_years": 4,
+    "bio": "Experienced Gemology practitioner with 13 years of expertise in guiding people through life's challenges.",
+    "skills": [
+      "Gemology",
+      "Tarot Reading",
+      "Face Reading",
+      "KP Astrology",
+      "Vastu Shastra"
+    ],
+    "languages": [
+      "Gujarati",
+      "Tamil",
+      "Malayalam"
+    ],
+    "call_rate": 28.0,
+    "chat_rate": 20.0,
+    "video_rate": 34.0,
+    "qualification": "Master in Astrology, Certified Vedic Astrologer",
+    "specialization": "Horary Astrology",
+    "profile_image_type": "none",
+    "created_timestamp": 1756108526660,
+    "test_scenarios": [
+      {
+        "scenario": "Complete Registration",
+        "steps": [
+          "Open app and navigate to astrologer signup",
+          "Fill all required fields including professional details",
+          "Upload profile image (50% of users)",
+          "Accept terms and conditions",
+          "Submit registration",
+          "Verify email if required",
+          "Wait for admin approval"
+        ],
+        "expected": "Successfully registered and account pending approval"
+      },
+      {
+        "scenario": "Profile Login and Setup",
+        "steps": [
+          "Login with generated credentials",
+          "Complete profile information",
+          "Set consultation rates",
+          "Configure availability schedule",
+          "Upload required documents",
+          "Set online status"
+        ],
+        "expected": "Profile completed and ready to receive consultations"
+      },
+      {
+        "scenario": "Handle Consultation Requests",
+        "steps": [
+          "Receive chat consultation request",
+          "Accept consultation",
+          "Conduct chat session",
+          "End session and submit feedback",
+          "Check earnings update"
+        ],
+        "expected": "Consultation completed and payment received"
+      },
+      {
+        "scenario": "Call Session Management",
+        "steps": [
+          "Receive voice call request",
+          "Accept incoming call",
+          "Conduct voice consultation",
+          "End call session",
+          "Verify payment and earnings"
+        ],
+        "expected": "Call session completed successfully"
+      },
+      {
+        "scenario": "Wallet and Earnings",
+        "steps": [
+          "Check current wallet balance",
+          "View transaction history",
+          "Request payout/withdrawal",
+          "Track earnings over time",
+          "Review payment details"
+        ],
+        "expected": "Wallet operations working correctly"
+      },
+      {
+        "scenario": "Profile Management",
+        "steps": [
+          "Update profile information",
+          "Change profile picture",
+          "Modify consultation rates",
+          "Update availability schedule",
+          "Edit skills and languages"
+        ],
+        "expected": "Profile updated successfully"
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "user_type": "astrologer",
+    "full_name": "Anaya Joshi",
+    "email": "astrologer6@testastro.com",
+    "phone": "+919000000006",
+    "password": "TestAstro623",
+    "city": "Chennai",
+    "state": "Maharashtra",
+    "country": "India",
+    "date_of_birth": "05/09/1983",
+    "experience_years": 17,
+    "bio": "Experienced Remedial Astrology practitioner with 1 years of expertise in guiding people through life's challenges.",
+    "skills": [
+      "Remedial Astrology",
+      "Lal Kitab"
+    ],
+    "languages": [
+      "Hindi",
+      "English",
+      "Tamil"
+    ],
+    "call_rate": 10.0,
+    "chat_rate": 13.0,
+    "video_rate": 32.0,
+    "qualification": "Master in Astrology, Certified Vedic Astrologer",
+    "specialization": "Vedic Astrology",
+    "profile_image_type": "app_upload",
+    "created_timestamp": 1756108526660,
+    "test_scenarios": [
+      {
+        "scenario": "Complete Registration",
+        "steps": [
+          "Open app and navigate to astrologer signup",
+          "Fill all required fields including professional details",
+          "Upload profile image (50% of users)",
+          "Accept terms and conditions",
+          "Submit registration",
+          "Verify email if required",
+          "Wait for admin approval"
+        ],
+        "expected": "Successfully registered and account pending approval"
+      },
+      {
+        "scenario": "Profile Login and Setup",
+        "steps": [
+          "Login with generated credentials",
+          "Complete profile information",
+          "Set consultation rates",
+          "Configure availability schedule",
+          "Upload required documents",
+          "Set online status"
+        ],
+        "expected": "Profile completed and ready to receive consultations"
+      },
+      {
+        "scenario": "Handle Consultation Requests",
+        "steps": [
+          "Receive chat consultation request",
+          "Accept consultation",
+          "Conduct chat session",
+          "End session and submit feedback",
+          "Check earnings update"
+        ],
+        "expected": "Consultation completed and payment received"
+      },
+      {
+        "scenario": "Call Session Management",
+        "steps": [
+          "Receive voice call request",
+          "Accept incoming call",
+          "Conduct voice consultation",
+          "End call session",
+          "Verify payment and earnings"
+        ],
+        "expected": "Call session completed successfully"
+      },
+      {
+        "scenario": "Wallet and Earnings",
+        "steps": [
+          "Check current wallet balance",
+          "View transaction history",
+          "Request payout/withdrawal",
+          "Track earnings over time",
+          "Review payment details"
+        ],
+        "expected": "Wallet operations working correctly"
+      },
+      {
+        "scenario": "Profile Management",
+        "steps": [
+          "Update profile information",
+          "Change profile picture",
+          "Modify consultation rates",
+          "Update availability schedule",
+          "Edit skills and languages"
+        ],
+        "expected": "Profile updated successfully"
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "user_type": "astrologer",
+    "full_name": "Vivaan Singh",
+    "email": "astrologer7@testastro.com",
+    "phone": "+919000000007",
+    "password": "TestAstro723",
+    "city": "Bangalore",
+    "state": "Maharashtra",
+    "country": "India",
+    "date_of_birth": "05/09/1981",
+    "experience_years": 12,
+    "bio": "Experienced Prashna Astrology practitioner with 5 years of expertise in guiding people through life's challenges.",
+    "skills": [
+      "Tarot Reading",
+      "Numerology"
+    ],
+    "languages": [
+      "Malayalam",
+      "Urdu",
+      "Hindi"
+    ],
+    "call_rate": 29.0,
+    "chat_rate": 24.0,
+    "video_rate": 62.0,
+    "qualification": "Master in Astrology, Certified Vedic Astrologer",
+    "specialization": "KP Astrology",
+    "profile_image_type": "none",
+    "created_timestamp": 1756108526660,
+    "test_scenarios": [
+      {
+        "scenario": "Complete Registration",
+        "steps": [
+          "Open app and navigate to astrologer signup",
+          "Fill all required fields including professional details",
+          "Upload profile image (50% of users)",
+          "Accept terms and conditions",
+          "Submit registration",
+          "Verify email if required",
+          "Wait for admin approval"
+        ],
+        "expected": "Successfully registered and account pending approval"
+      },
+      {
+        "scenario": "Profile Login and Setup",
+        "steps": [
+          "Login with generated credentials",
+          "Complete profile information",
+          "Set consultation rates",
+          "Configure availability schedule",
+          "Upload required documents",
+          "Set online status"
+        ],
+        "expected": "Profile completed and ready to receive consultations"
+      },
+      {
+        "scenario": "Handle Consultation Requests",
+        "steps": [
+          "Receive chat consultation request",
+          "Accept consultation",
+          "Conduct chat session",
+          "End session and submit feedback",
+          "Check earnings update"
+        ],
+        "expected": "Consultation completed and payment received"
+      },
+      {
+        "scenario": "Call Session Management",
+        "steps": [
+          "Receive voice call request",
+          "Accept incoming call",
+          "Conduct voice consultation",
+          "End call session",
+          "Verify payment and earnings"
+        ],
+        "expected": "Call session completed successfully"
+      },
+      {
+        "scenario": "Wallet and Earnings",
+        "steps": [
+          "Check current wallet balance",
+          "View transaction history",
+          "Request payout/withdrawal",
+          "Track earnings over time",
+          "Review payment details"
+        ],
+        "expected": "Wallet operations working correctly"
+      },
+      {
+        "scenario": "Profile Management",
+        "steps": [
+          "Update profile information",
+          "Change profile picture",
+          "Modify consultation rates",
+          "Update availability schedule",
+          "Edit skills and languages"
+        ],
+        "expected": "Profile updated successfully"
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "user_type": "astrologer",
+    "full_name": "Myra Kumar",
+    "email": "astrologer8@testastro.com",
+    "phone": "+919000000008",
+    "password": "TestAstro823",
+    "city": "Bangalore",
+    "state": "Maharashtra",
+    "country": "India",
+    "date_of_birth": "01/09/1999",
+    "experience_years": 15,
+    "bio": "Experienced Gemology practitioner with 1 years of expertise in guiding people through life's challenges.",
+    "skills": [
+      "Horary Astrology",
+      "Gemology",
+      "Palmistry"
+    ],
+    "languages": [
+      "Bengali",
+      "Urdu",
+      "Punjabi"
+    ],
+    "call_rate": 24.0,
+    "chat_rate": 10.0,
+    "video_rate": 83.0,
+    "qualification": "Master in Astrology, Certified Vedic Astrologer",
+    "specialization": "Vastu Shastra",
+    "profile_image_type": "app_upload",
+    "created_timestamp": 1756108526660,
+    "test_scenarios": [
+      {
+        "scenario": "Complete Registration",
+        "steps": [
+          "Open app and navigate to astrologer signup",
+          "Fill all required fields including professional details",
+          "Upload profile image (50% of users)",
+          "Accept terms and conditions",
+          "Submit registration",
+          "Verify email if required",
+          "Wait for admin approval"
+        ],
+        "expected": "Successfully registered and account pending approval"
+      },
+      {
+        "scenario": "Profile Login and Setup",
+        "steps": [
+          "Login with generated credentials",
+          "Complete profile information",
+          "Set consultation rates",
+          "Configure availability schedule",
+          "Upload required documents",
+          "Set online status"
+        ],
+        "expected": "Profile completed and ready to receive consultations"
+      },
+      {
+        "scenario": "Handle Consultation Requests",
+        "steps": [
+          "Receive chat consultation request",
+          "Accept consultation",
+          "Conduct chat session",
+          "End session and submit feedback",
+          "Check earnings update"
+        ],
+        "expected": "Consultation completed and payment received"
+      },
+      {
+        "scenario": "Call Session Management",
+        "steps": [
+          "Receive voice call request",
+          "Accept incoming call",
+          "Conduct voice consultation",
+          "End call session",
+          "Verify payment and earnings"
+        ],
+        "expected": "Call session completed successfully"
+      },
+      {
+        "scenario": "Wallet and Earnings",
+        "steps": [
+          "Check current wallet balance",
+          "View transaction history",
+          "Request payout/withdrawal",
+          "Track earnings over time",
+          "Review payment details"
+        ],
+        "expected": "Wallet operations working correctly"
+      },
+      {
+        "scenario": "Profile Management",
+        "steps": [
+          "Update profile information",
+          "Change profile picture",
+          "Modify consultation rates",
+          "Update availability schedule",
+          "Edit skills and languages"
+        ],
+        "expected": "Profile updated successfully"
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "user_type": "astrologer",
+    "full_name": "Kavya Patel",
+    "email": "astrologer9@testastro.com",
+    "phone": "+919000000009",
+    "password": "TestAstro923",
+    "city": "Jaipur",
+    "state": "Maharashtra",
+    "country": "India",
+    "date_of_birth": "07/09/1975",
+    "experience_years": 3,
+    "bio": "Experienced Lal Kitab practitioner with 16 years of expertise in guiding people through life's challenges.",
+    "skills": [
+      "Tarot Reading",
+      "KP Astrology"
+    ],
+    "languages": [
+      "Tamil",
+      "Gujarati"
+    ],
+    "call_rate": 51.0,
+    "chat_rate": 27.0,
+    "video_rate": 63.0,
+    "qualification": "Master in Astrology, Certified Vedic Astrologer",
+    "specialization": "KP Astrology",
+    "profile_image_type": "none",
+    "created_timestamp": 1756108526660,
+    "test_scenarios": [
+      {
+        "scenario": "Complete Registration",
+        "steps": [
+          "Open app and navigate to astrologer signup",
+          "Fill all required fields including professional details",
+          "Upload profile image (50% of users)",
+          "Accept terms and conditions",
+          "Submit registration",
+          "Verify email if required",
+          "Wait for admin approval"
+        ],
+        "expected": "Successfully registered and account pending approval"
+      },
+      {
+        "scenario": "Profile Login and Setup",
+        "steps": [
+          "Login with generated credentials",
+          "Complete profile information",
+          "Set consultation rates",
+          "Configure availability schedule",
+          "Upload required documents",
+          "Set online status"
+        ],
+        "expected": "Profile completed and ready to receive consultations"
+      },
+      {
+        "scenario": "Handle Consultation Requests",
+        "steps": [
+          "Receive chat consultation request",
+          "Accept consultation",
+          "Conduct chat session",
+          "End session and submit feedback",
+          "Check earnings update"
+        ],
+        "expected": "Consultation completed and payment received"
+      },
+      {
+        "scenario": "Call Session Management",
+        "steps": [
+          "Receive voice call request",
+          "Accept incoming call",
+          "Conduct voice consultation",
+          "End call session",
+          "Verify payment and earnings"
+        ],
+        "expected": "Call session completed successfully"
+      },
+      {
+        "scenario": "Wallet and Earnings",
+        "steps": [
+          "Check current wallet balance",
+          "View transaction history",
+          "Request payout/withdrawal",
+          "Track earnings over time",
+          "Review payment details"
+        ],
+        "expected": "Wallet operations working correctly"
+      },
+      {
+        "scenario": "Profile Management",
+        "steps": [
+          "Update profile information",
+          "Change profile picture",
+          "Modify consultation rates",
+          "Update availability schedule",
+          "Edit skills and languages"
+        ],
+        "expected": "Profile updated successfully"
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "user_type": "astrologer",
+    "full_name": "Vivaan Jain",
+    "email": "astrologer10@testastro.com",
+    "phone": "+919000000010",
+    "password": "TestAstro1023",
+    "city": "Mumbai",
+    "state": "Maharashtra",
+    "country": "India",
+    "date_of_birth": "03/09/1988",
+    "experience_years": 7,
+    "bio": "Experienced Palmistry practitioner with 8 years of expertise in guiding people through life's challenges.",
+    "skills": [
+      "Numerology",
+      "Prashna Astrology",
+      "Horary Astrology"
+    ],
+    "languages": [
+      "Bengali"
+    ],
+    "call_rate": 51.0,
+    "chat_rate": 13.0,
+    "video_rate": 59.0,
+    "qualification": "Master in Astrology, Certified Vedic Astrologer",
+    "specialization": "KP Astrology",
+    "profile_image_type": "app_upload",
+    "created_timestamp": 1756108526660,
+    "test_scenarios": [
+      {
+        "scenario": "Complete Registration",
+        "steps": [
+          "Open app and navigate to astrologer signup",
+          "Fill all required fields including professional details",
+          "Upload profile image (50% of users)",
+          "Accept terms and conditions",
+          "Submit registration",
+          "Verify email if required",
+          "Wait for admin approval"
+        ],
+        "expected": "Successfully registered and account pending approval"
+      },
+      {
+        "scenario": "Profile Login and Setup",
+        "steps": [
+          "Login with generated credentials",
+          "Complete profile information",
+          "Set consultation rates",
+          "Configure availability schedule",
+          "Upload required documents",
+          "Set online status"
+        ],
+        "expected": "Profile completed and ready to receive consultations"
+      },
+      {
+        "scenario": "Handle Consultation Requests",
+        "steps": [
+          "Receive chat consultation request",
+          "Accept consultation",
+          "Conduct chat session",
+          "End session and submit feedback",
+          "Check earnings update"
+        ],
+        "expected": "Consultation completed and payment received"
+      },
+      {
+        "scenario": "Call Session Management",
+        "steps": [
+          "Receive voice call request",
+          "Accept incoming call",
+          "Conduct voice consultation",
+          "End call session",
+          "Verify payment and earnings"
+        ],
+        "expected": "Call session completed successfully"
+      },
+      {
+        "scenario": "Wallet and Earnings",
+        "steps": [
+          "Check current wallet balance",
+          "View transaction history",
+          "Request payout/withdrawal",
+          "Track earnings over time",
+          "Review payment details"
+        ],
+        "expected": "Wallet operations working correctly"
+      },
+      {
+        "scenario": "Profile Management",
+        "steps": [
+          "Update profile information",
+          "Change profile picture",
+          "Modify consultation rates",
+          "Update availability schedule",
+          "Edit skills and languages"
+        ],
+        "expected": "Profile updated successfully"
+      }
+    ]
+  }
+]

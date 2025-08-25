@@ -1,0 +1,11 @@
+ID,Name,Email,Phone,City,Skills,Experience,Call Rate,Chat Rate,Video Rate,Profile Image Type
+1,"Aadhya Singh",astrologer1@testastro.com,+919000000001,Delhi,"Face Reading; Horary Astrology",16,57.0,26.0,20.0,none
+2,"Fatima Bansal",astrologer2@testastro.com,+919000000002,Pune,"Palmistry; Tarot Reading; Gemology",17,24.0,10.0,52.0,app_upload
+3,"Priya Singh",astrologer3@testastro.com,+919000000003,Pune,"Prashna Astrology; Gemology; Palmistry",19,29.0,31.0,76.0,none
+4,"Inaya Shah",astrologer4@testastro.com,+919000000004,Jaipur,"Vedic Astrology; Prashna Astrology; KP Astrology; Horary Astrology",5,11.0,17.0,39.0,app_upload
+5,"Vivaan Bansal",astrologer5@testastro.com,+919000000005,Ahmedabad,"Gemology; Tarot Reading; Face Reading; KP Astrology; Vastu Shastra",4,28.0,20.0,34.0,none
+6,"Anaya Joshi",astrologer6@testastro.com,+919000000006,Chennai,"Remedial Astrology; Lal Kitab",17,10.0,13.0,32.0,app_upload
+7,"Vivaan Singh",astrologer7@testastro.com,+919000000007,Bangalore,"Tarot Reading; Numerology",12,29.0,24.0,62.0,none
+8,"Myra Kumar",astrologer8@testastro.com,+919000000008,Bangalore,"Horary Astrology; Gemology; Palmistry",15,24.0,10.0,83.0,app_upload
+9,"Kavya Patel",astrologer9@testastro.com,+919000000009,Jaipur,"Tarot Reading; KP Astrology",3,51.0,27.0,63.0,none
+10,"Vivaan Jain",astrologer10@testastro.com,+919000000010,Mumbai,"Numerology; Prashna Astrology; Horary Astrology",7,51.0,13.0,59.0,app_upload
