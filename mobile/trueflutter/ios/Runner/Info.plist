@@ -77,5 +77,13 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access for video calling</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app needs microphone access for voice and video calling</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs photo library access to upload images</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>This app needs permission to save images to your photo library</string>
 </dict>
 </plist>
