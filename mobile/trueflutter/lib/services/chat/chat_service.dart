@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../../models/chat.dart';
 import '../api/chat_api_service.dart';
+import '../auth/auth_service.dart';
 import '../socket/socket_service.dart';
 import '../service_locator.dart';
 
@@ -307,11 +308,15 @@ class ChatService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Get current user ID from local storage or auth service
+  /// Get current user ID from auth service
   String? _getCurrentUserId() {
-    // Get from local storage or auth service
-    // For now, return a mock user ID (replace with actual implementation)
-    return 'user123'; // Replace with auth service integration
+    try {
+      final authService = getIt<AuthService>();
+      return authService.currentUser?.id;
+    } catch (e) {
+      debugPrint('❌ Error getting current user ID: $e');
+      return null;
+    }
   }
 
   /// Cleanup
