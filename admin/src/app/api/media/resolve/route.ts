@@ -31,18 +31,30 @@ export async function GET(request: NextRequest) {
     const db = client.db(DB_NAME);
     const mediaCollection = db.collection('media');
 
-    // Find the media file by custom media_id
+    // Find the media file by custom media_id or ObjectId
     let mediaFile = null;
     
     if (mediaId.startsWith('media_')) {
       // Custom media_id format
       mediaFile = await mediaCollection.findOne({ media_id: mediaId });
+    } else if (mediaId.match(/^[a-fA-F0-9]{24}$/)) {
+      // ObjectId format (24 character hex string)
+      try {
+        mediaFile = await mediaCollection.findOne({ _id: new ObjectId(mediaId) });
+      } catch (error) {
+        await client.close();
+        return NextResponse.json({
+          success: false,
+          error: 'Invalid ObjectId format',
+          message: 'The provided ObjectId is not valid'
+        }, { status: 400 });
+      }
     } else {
       await client.close();
       return NextResponse.json({
         success: false,
         error: 'Invalid media ID',
-        message: 'Media ID must be in custom format (media_xxxxx_xxxxx)'
+        message: 'Media ID must be in custom format (media_xxxxx_xxxxx) or valid ObjectId'
       }, { status: 400 });
     }
 

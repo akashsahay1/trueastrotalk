@@ -30,41 +30,45 @@ interface PaginationInfo {
 }
 
 interface ProfileImageProps {
-  src?: string;
-  alt: string;
-  fallbackText: string;
+  user: {
+    profile_image_id?: string;
+    profile_image?: string;
+    user_type: string;
+    full_name: string;
+  };
 }
 
-function ProfileImage({ src, alt, fallbackText }: ProfileImageProps) {
+function ProfileImage({ user }: ProfileImageProps) {
   const [imageError, setImageError] = useState(false);
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (src) {
-      // Check if it's a custom media_id or a direct URL
-      if (src.startsWith('media_')) {
-        // It's a media ID, resolve it
-        fetch(`/api/media/resolve?id=${src}`)
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              setResolvedUrl(data.media.full_url);
-            } else {
-              setImageError(true);
-            }
-          })
-          .catch(() => setImageError(true));
-      } else {
-        // It's a direct URL
-        setResolvedUrl(src);
-      }
+    // Priority logic based on user type and available image sources
+    if (user.profile_image_id) {
+      // User has media_id (from admin panel or mobile app upload) - resolve via media API
+      fetch(`/api/media/resolve?id=${user.profile_image_id}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            setResolvedUrl(data.media.full_url);
+          } else {
+            setImageError(true);
+          }
+        })
+        .catch(() => setImageError(true));
+    } else if (user.user_type === 'customer' && user.profile_image) {
+      // Customer with network image (Google OAuth or external URL)
+      setResolvedUrl(user.profile_image);
+    } else {
+      // No image available - show fallback
+      setImageError(true);
     }
-  }, [src]);
+  }, [user.profile_image_id, user.profile_image, user.user_type]);
 
-  if (!src || imageError || !resolvedUrl) {
+  if (imageError || !resolvedUrl) {
     return (
       <div className="avatar-xs rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mr-2">
-        {fallbackText}
+        {user.full_name.charAt(0)}
       </div>
     );
   }
@@ -72,7 +76,7 @@ function ProfileImage({ src, alt, fallbackText }: ProfileImageProps) {
   return (
     <Image
       src={resolvedUrl}
-      alt={alt}
+      alt={user.full_name}
       className="rounded-circle mr-2"
       width={40}
       height={40}
@@ -418,9 +422,7 @@ export default function AdminsPage() {
                                 <td>
                                   <div className="d-flex align-items-center">
                                     <ProfileImage 
-                                      src={user.profile_image}
-                                      alt={user.full_name}
-                                      fallbackText={user.full_name.charAt(0)}
+                                      user={user}
                                     />
                                     {user.full_name}
                                   </div>

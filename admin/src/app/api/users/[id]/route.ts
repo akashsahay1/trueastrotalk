@@ -194,6 +194,18 @@ export async function PUT(
           { status: 400 }
         );
       }
+
+      // Database-level validation: Ensure rates are under 50
+      const callRate = parseFloat(commission_rates.call_rate);
+      const chatRate = parseFloat(commission_rates.chat_rate);
+      const videoRate = parseFloat(commission_rates.video_rate);
+
+      if (callRate >= 50 || chatRate >= 50 || videoRate >= 50) {
+        return NextResponse.json(
+          { error: 'All rates must be under ₹50 per minute for astrologers' },
+          { status: 400 }
+        );
+      }
     }
 
     await client.connect();

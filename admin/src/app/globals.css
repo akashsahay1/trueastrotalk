@@ -156,6 +156,10 @@ button:focus,
 }
 
 /* Navigation improvements - Fixed hover alignment issue */
+.sidebar-dark .nav-item {
+  margin-bottom: 10px;
+}
+
 .sidebar-dark .nav-link {
   transition: background-color 0.2s ease-in-out;
 }
@@ -168,7 +172,13 @@ button:focus,
   background-color: var(--primary-color);
   color: white;
   border-radius: 0 25px 25px 0;
-  margin-right: 15px;
+}
+
+/* Ensure consistent icon width in sidebar navigation */
+.sidebar-dark .nav-link i.fas {
+  width: 1.25rem;
+  text-align: center;
+  margin-right: 0.5rem;
 }
 
 /* Page header improvements */

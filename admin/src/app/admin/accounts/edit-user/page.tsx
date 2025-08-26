@@ -386,10 +386,19 @@ function EditUserContent() {
       if (!formData.birth_time) {
         customErrors.birth_time = 'Birth time is required for astrologers';
       } else {
-        // Validate time format - accepts formats like "07:30 AM", "7:30 PM", "14:30"
-        const timeRegex = /^(0?[1-9]|1[0-2]|2[0-3]):([0-5][0-9])(\s?(AM|PM|am|pm))?$|^([01]?[0-9]|2[0-3]):([0-5][0-9])$/;
-        if (!timeRegex.test(formData.birth_time.trim())) {
-          customErrors.birth_time = 'Please enter a valid time (e.g., 07:30 AM or 14:30)';
+        // Validate time format - now expects dropdown selection
+        const validTimeFormats = [
+          '12:00 AM', '12:30 AM', '01:00 AM', '01:30 AM', '02:00 AM', '02:30 AM',
+          '03:00 AM', '03:30 AM', '04:00 AM', '04:30 AM', '05:00 AM', '05:30 AM',
+          '06:00 AM', '06:30 AM', '07:00 AM', '07:30 AM', '08:00 AM', '08:30 AM',
+          '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
+          '12:00 PM', '12:30 PM', '01:00 PM', '01:30 PM', '02:00 PM', '02:30 PM',
+          '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM', '05:00 PM', '05:30 PM',
+          '06:00 PM', '06:30 PM', '07:00 PM', '07:30 PM', '08:00 PM', '08:30 PM',
+          '09:00 PM', '09:30 PM', '10:00 PM', '10:30 PM', '11:00 PM', '11:30 PM'
+        ];
+        if (!validTimeFormats.includes(formData.birth_time.trim())) {
+          customErrors.birth_time = 'Please select a valid time from the dropdown';
         }
       }
 
@@ -412,16 +421,16 @@ function EditUserContent() {
         customErrors.experience_years = 'Experience must be between 0 and 50 years';
       }
 
-      // Commission rates validation
+      // Basic commission rates validation
       const validateRate = (rate: number, fieldName: string, displayName: string) => {
-        if (rate < 0 || rate > 100) {
-          customErrors[fieldName] = `${displayName} must be between 0% and 100%`;
+        if (rate < 0) {
+          customErrors[fieldName] = `${displayName} must be a positive number`;
         }
       };
 
-      validateRate(formData.commission_rates.call_rate, 'call_rate', 'Call commission rate');
-      validateRate(formData.commission_rates.chat_rate, 'chat_rate', 'Chat commission rate');
-      validateRate(formData.commission_rates.video_rate, 'video_rate', 'Video commission rate');
+      validateRate(formData.commission_rates.call_rate, 'call_rate', 'Call rate');
+      validateRate(formData.commission_rates.chat_rate, 'chat_rate', 'Chat rate');
+      validateRate(formData.commission_rates.video_rate, 'video_rate', 'Video rate');
 
       if (formData.languages.length === 0) {
         customErrors.languages = 'At least one language is required for astrologers';
@@ -768,15 +777,63 @@ function EditUserContent() {
 													</div>
 													<div className="col-4 mb-4">
 														<label className="label">Birth Time {isAstrologer && <span className="text-danger">*</span>}</label>
-														<input 
-															type="text" 
+														<select 
 															className={`form-control ${fieldErrors.birth_time ? 'is-invalid' : ''}`} 
 															name="birth_time" 
 															value={formData.birth_time} 
 															onChange={handleInputChange} 
-															placeholder="07:30 AM"
-															required={isAstrologer} 
-														/>
+															required={isAstrologer}
+														>
+															<option value="">Select time</option>
+															<option value="12:00 AM">12:00 AM</option>
+															<option value="12:30 AM">12:30 AM</option>
+															<option value="01:00 AM">01:00 AM</option>
+															<option value="01:30 AM">01:30 AM</option>
+															<option value="02:00 AM">02:00 AM</option>
+															<option value="02:30 AM">02:30 AM</option>
+															<option value="03:00 AM">03:00 AM</option>
+															<option value="03:30 AM">03:30 AM</option>
+															<option value="04:00 AM">04:00 AM</option>
+															<option value="04:30 AM">04:30 AM</option>
+															<option value="05:00 AM">05:00 AM</option>
+															<option value="05:30 AM">05:30 AM</option>
+															<option value="06:00 AM">06:00 AM</option>
+															<option value="06:30 AM">06:30 AM</option>
+															<option value="07:00 AM">07:00 AM</option>
+															<option value="07:30 AM">07:30 AM</option>
+															<option value="08:00 AM">08:00 AM</option>
+															<option value="08:30 AM">08:30 AM</option>
+															<option value="09:00 AM">09:00 AM</option>
+															<option value="09:30 AM">09:30 AM</option>
+															<option value="10:00 AM">10:00 AM</option>
+															<option value="10:30 AM">10:30 AM</option>
+															<option value="11:00 AM">11:00 AM</option>
+															<option value="11:30 AM">11:30 AM</option>
+															<option value="12:00 PM">12:00 PM</option>
+															<option value="12:30 PM">12:30 PM</option>
+															<option value="01:00 PM">01:00 PM</option>
+															<option value="01:30 PM">01:30 PM</option>
+															<option value="02:00 PM">02:00 PM</option>
+															<option value="02:30 PM">02:30 PM</option>
+															<option value="03:00 PM">03:00 PM</option>
+															<option value="03:30 PM">03:30 PM</option>
+															<option value="04:00 PM">04:00 PM</option>
+															<option value="04:30 PM">04:30 PM</option>
+															<option value="05:00 PM">05:00 PM</option>
+															<option value="05:30 PM">05:30 PM</option>
+															<option value="06:00 PM">06:00 PM</option>
+															<option value="06:30 PM">06:30 PM</option>
+															<option value="07:00 PM">07:00 PM</option>
+															<option value="07:30 PM">07:30 PM</option>
+															<option value="08:00 PM">08:00 PM</option>
+															<option value="08:30 PM">08:30 PM</option>
+															<option value="09:00 PM">09:00 PM</option>
+															<option value="09:30 PM">09:30 PM</option>
+															<option value="10:00 PM">10:00 PM</option>
+															<option value="10:30 PM">10:30 PM</option>
+															<option value="11:00 PM">11:00 PM</option>
+															<option value="11:30 PM">11:30 PM</option>
+														</select>
 														{fieldErrors.birth_time && (
 															<div className="invalid-feedback d-block">
 																{fieldErrors.birth_time}
@@ -1006,7 +1063,7 @@ function EditUserContent() {
 															</div>
 															<div className="col-4 mb-4">
 																<label className="label">Call Rate (₹/min) <span className="text-danger">*</span></label>
-																<input type="number" className={`form-control ${fieldErrors.call_rate ? 'is-invalid' : ''}`} name="commission_rates.call_rate" value={formData.commission_rates.call_rate} onChange={handleInputChange} placeholder="" min="0" max="100" required={isAstrologer} />
+																<input type="number" className={`form-control ${fieldErrors.call_rate ? 'is-invalid' : ''}`} name="commission_rates.call_rate" value={formData.commission_rates.call_rate} onChange={handleInputChange} placeholder="" min="0" required={isAstrologer} />
 																{fieldErrors.call_rate && (
 																	<div className="invalid-feedback d-block">
 																		{fieldErrors.call_rate}
@@ -1015,7 +1072,7 @@ function EditUserContent() {
 															</div>
 															<div className="col-4 mb-4">
 																<label className="label">Chat Rate (₹/min) <span className="text-danger">*</span></label>
-																<input type="number" className={`form-control ${fieldErrors.chat_rate ? 'is-invalid' : ''}`} name="commission_rates.chat_rate" value={formData.commission_rates.chat_rate} onChange={handleInputChange} placeholder="" min="0" max="100" required={isAstrologer} />
+																<input type="number" className={`form-control ${fieldErrors.chat_rate ? 'is-invalid' : ''}`} name="commission_rates.chat_rate" value={formData.commission_rates.chat_rate} onChange={handleInputChange} placeholder="" min="0" required={isAstrologer} />
 																{fieldErrors.chat_rate && (
 																	<div className="invalid-feedback d-block">
 																		{fieldErrors.chat_rate}
@@ -1024,7 +1081,7 @@ function EditUserContent() {
 															</div>
 															<div className="col-4 mb-4">
 																<label className="label">Video Rate (₹/min) <span className="text-danger">*</span></label>
-																<input type="number" className={`form-control ${fieldErrors.video_rate ? 'is-invalid' : ''}`} name="commission_rates.video_rate" value={formData.commission_rates.video_rate} onChange={handleInputChange} placeholder="" min="0" max="100" required={isAstrologer} />
+																<input type="number" className={`form-control ${fieldErrors.video_rate ? 'is-invalid' : ''}`} name="commission_rates.video_rate" value={formData.commission_rates.video_rate} onChange={handleInputChange} placeholder="" min="0" required={isAstrologer} />
 																{fieldErrors.video_rate && (
 																	<div className="invalid-feedback d-block">
 																		{fieldErrors.video_rate}
