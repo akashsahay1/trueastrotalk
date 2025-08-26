@@ -512,7 +512,7 @@ class _AddressFormScreenState extends State<AddressFormScreen> {
                   _isDefault = value;
                 });
               },
-              activeColor: AppColors.primary,
+              activeThumbColor: AppColors.primary,
             ),
           ],
         ),

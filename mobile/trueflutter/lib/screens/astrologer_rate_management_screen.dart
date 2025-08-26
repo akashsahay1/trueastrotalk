@@ -15,15 +15,7 @@ class ConsultationRate {
   bool isEnabled;
   String description;
 
-  ConsultationRate({
-    required this.type,
-    required this.displayName,
-    required this.icon,
-    required this.currentRate,
-    this.pendingRate,
-    required this.isEnabled,
-    required this.description,
-  });
+  ConsultationRate({required this.type, required this.displayName, required this.icon, required this.currentRate, this.pendingRate, required this.isEnabled, required this.description});
 }
 
 class AstrologerRateManagementScreen extends StatefulWidget {
@@ -67,49 +59,21 @@ class _AstrologerRateManagementScreenState extends State<AstrologerRateManagemen
     try {
       // Load current rates from API (simulated for now)
       await Future.delayed(const Duration(milliseconds: 800));
-      
+
       _rates = [
-        ConsultationRate(
-          type: 'chat',
-          displayName: 'Chat Consultation',
-          icon: Icons.chat_bubble_outline,
-          currentRate: 5.0,
-          isEnabled: true,
-          description: 'Text-based consultation per minute',
-        ),
-        ConsultationRate(
-          type: 'voice_call',
-          displayName: 'Voice Call',
-          icon: Icons.call,
-          currentRate: 8.0,
-          isEnabled: true,
-          description: 'Voice call consultation per minute',
-        ),
-        ConsultationRate(
-          type: 'video_call',
-          displayName: 'Video Call',
-          icon: Icons.videocam,
-          currentRate: 12.0,
-          isEnabled: true,
-          description: 'Video call consultation per minute',
-        ),
+        ConsultationRate(type: 'chat', displayName: 'Chat Consultation', icon: Icons.chat_bubble_outline, currentRate: 5.0, isEnabled: true, description: 'Text-based consultation per minute'),
+        ConsultationRate(type: 'voice_call', displayName: 'Voice Call', icon: Icons.call, currentRate: 8.0, isEnabled: true, description: 'Voice call consultation per minute'),
+        ConsultationRate(type: 'video_call', displayName: 'Video Call', icon: Icons.videocam, currentRate: 12.0, isEnabled: true, description: 'Video call consultation per minute'),
       ];
 
       // Initialize controllers
       for (final rate in _rates) {
-        _controllers[rate.type] = TextEditingController(
-          text: rate.currentRate.toStringAsFixed(2),
-        );
+        _controllers[rate.type] = TextEditingController(text: rate.currentRate.toStringAsFixed(2));
       }
     } catch (e) {
       debugPrint('Error loading rates: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to load current rates'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to load current rates'), backgroundColor: AppColors.error));
       }
     }
 
@@ -139,12 +103,7 @@ class _AstrologerRateManagementScreenState extends State<AstrologerRateManagemen
 
       if (rateUpdates.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No changes to update'),
-              backgroundColor: AppColors.info,
-            ),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No changes to update'), backgroundColor: AppColors.info));
         }
         setState(() => _isUpdating = false);
         return;
@@ -152,7 +111,7 @@ class _AstrologerRateManagementScreenState extends State<AstrologerRateManagemen
 
       // Simulate API call
       await Future.delayed(const Duration(seconds: 2));
-      
+
       // Update local state
       setState(() {
         for (final rate in _rates) {
@@ -163,22 +122,12 @@ class _AstrologerRateManagementScreenState extends State<AstrologerRateManagemen
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Rates updated successfully'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rates updated successfully'), backgroundColor: AppColors.success));
       }
     } catch (e) {
       debugPrint('Error updating rates: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error));
       }
     }
 
@@ -194,12 +143,7 @@ class _AstrologerRateManagementScreenState extends State<AstrologerRateManagemen
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.white,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadCurrentRates,
-          ),
-        ],
+        actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: _loadCurrentRates)],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -216,9 +160,7 @@ class _AstrologerRateManagementScreenState extends State<AstrologerRateManagemen
                       decoration: BoxDecoration(
                         color: AppColors.info.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppColors.info.withValues(alpha: 0.3),
-                        ),
+                        border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,21 +169,11 @@ class _AstrologerRateManagementScreenState extends State<AstrologerRateManagemen
                             children: [
                               Icon(Icons.info_outline, color: AppColors.info),
                               const SizedBox(width: 8),
-                              Text(
-                                'Rate Management',
-                                style: AppTextStyles.bodyMedium.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                              Text('Rate Management', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
                             ],
                           ),
                           const SizedBox(height: 8),
-                          Text(
-                            'Set your consultation rates per minute. Changes will take effect immediately.',
-                            style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
+                          Text('Set your consultation rates per minute. Changes will take effect immediately.', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary)),
                         ],
                       ),
                     ),
@@ -267,36 +199,18 @@ class _AstrologerRateManagementScreenState extends State<AstrologerRateManagemen
                           backgroundColor: AppColors.primary,
                           foregroundColor: AppColors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         child: _isUpdating
                             ? const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        AppColors.white,
-                                      ),
-                                    ),
-                                  ),
+                                  SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.white))),
                                   SizedBox(width: 12),
                                   Text('Updating Rates...'),
                                 ],
                               )
-                            : const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.save),
-                                  SizedBox(width: 8),
-                                  Text('Update Rates'),
-                                ],
-                              ),
+                            : const Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.save), SizedBox(width: 8), Text('Update Rates')]),
                       ),
                     ),
 
@@ -309,9 +223,7 @@ class _AstrologerRateManagementScreenState extends State<AstrologerRateManagemen
                         onPressed: _isUpdating ? null : _resetRates,
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         child: const Text('Reset to Current Values'),
                       ),
@@ -330,13 +242,7 @@ class _AstrologerRateManagementScreenState extends State<AstrologerRateManagemen
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,33 +252,16 @@ class _AstrologerRateManagementScreenState extends State<AstrologerRateManagemen
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  rate.icon,
-                  color: AppColors.primary,
-                  size: 24,
-                ),
+                decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                child: Icon(rate.icon, color: AppColors.primary, size: 24),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      rate.displayName,
-                      style: AppTextStyles.bodyLarge.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      rate.description,
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
+                    Text(rate.displayName, style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600)),
+                    Text(rate.description, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary)),
                   ],
                 ),
               ),
@@ -383,7 +272,7 @@ class _AstrologerRateManagementScreenState extends State<AstrologerRateManagemen
                     rate.isEnabled = value;
                   });
                 },
-                activeColor: AppColors.primary,
+                activeThumbColor: AppColors.primary,
               ),
             ],
           ),
@@ -397,19 +286,11 @@ class _AstrologerRateManagementScreenState extends State<AstrologerRateManagemen
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Current Rate',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
+                    Text('Current Rate', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary)),
                     const SizedBox(height: 4),
                     Text(
                       '₹${rate.currentRate.toStringAsFixed(2)}/min',
-                      style: AppTextStyles.heading5.copyWith(
-                        color: AppColors.success,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: AppTextStyles.heading5.copyWith(color: AppColors.success, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -419,30 +300,18 @@ class _AstrologerRateManagementScreenState extends State<AstrologerRateManagemen
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'New Rate',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
+                    Text('New Rate', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary)),
                     const SizedBox(height: 4),
                     TextFormField(
                       controller: _controllers[rate.type],
                       enabled: rate.isEnabled,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: InputDecoration(
                         hintText: 'Enter rate',
                         prefixText: '₹',
                         suffixText: '/min',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
                       validator: (value) {
                         if (!rate.isEnabled) return null;
@@ -476,24 +345,13 @@ class _AstrologerRateManagementScreenState extends State<AstrologerRateManagemen
               decoration: BoxDecoration(
                 color: AppColors.warning.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: AppColors.warning.withValues(alpha: 0.3),
-                ),
+                border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.schedule,
-                    color: AppColors.warning,
-                    size: 16,
-                  ),
+                  Icon(Icons.schedule, color: AppColors.warning, size: 16),
                   const SizedBox(width: 8),
-                  Text(
-                    'Pending: ₹${rate.pendingRate!.toStringAsFixed(2)}/min',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.warning,
-                    ),
-                  ),
+                  Text('Pending: ₹${rate.pendingRate!.toStringAsFixed(2)}/min', style: AppTextStyles.bodySmall.copyWith(color: AppColors.warning)),
                 ],
               ),
             ),
@@ -509,13 +367,7 @@ class _AstrologerRateManagementScreenState extends State<AstrologerRateManagemen
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -524,35 +376,15 @@ class _AstrologerRateManagementScreenState extends State<AstrologerRateManagemen
             children: [
               Icon(Icons.lightbulb_outline, color: AppColors.warning),
               const SizedBox(width: 8),
-              Text(
-                'Pricing Recommendations',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              Text('Pricing Recommendations', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
             ],
           ),
           const SizedBox(height: 12),
-          _buildRecommendationItem(
-            '💬',
-            'Chat consultations are typically 20-40% lower than voice calls',
-          ),
-          _buildRecommendationItem(
-            '📞',
-            'Voice calls offer better connection and usually priced higher than chat',
-          ),
-          _buildRecommendationItem(
-            '📹',
-            'Video calls are premium service, price 50-80% higher than voice',
-          ),
-          _buildRecommendationItem(
-            '⭐',
-            'Higher ratings justify premium pricing - build your reputation first',
-          ),
-          _buildRecommendationItem(
-            '📊',
-            'Monitor competitor rates and adjust accordingly for better bookings',
-          ),
+          _buildRecommendationItem('💬', 'Chat consultations are typically 20-40% lower than voice calls'),
+          _buildRecommendationItem('📞', 'Voice calls offer better connection and usually priced higher than chat'),
+          _buildRecommendationItem('📹', 'Video calls are premium service, price 50-80% higher than voice'),
+          _buildRecommendationItem('⭐', 'Higher ratings justify premium pricing - build your reputation first'),
+          _buildRecommendationItem('📊', 'Monitor competitor rates and adjust accordingly for better bookings'),
         ],
       ),
     );
@@ -567,12 +399,7 @@ class _AstrologerRateManagementScreenState extends State<AstrologerRateManagemen
           Text(emoji, style: const TextStyle(fontSize: 16)),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              text,
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
+            child: Text(text, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary)),
           ),
         ],
       ),
@@ -583,11 +410,6 @@ class _AstrologerRateManagementScreenState extends State<AstrologerRateManagemen
     for (final rate in _rates) {
       _controllers[rate.type]?.text = rate.currentRate.toStringAsFixed(2);
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Values reset to current rates'),
-        backgroundColor: AppColors.info,
-      ),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Values reset to current rates'), backgroundColor: AppColors.info));
   }
 }
