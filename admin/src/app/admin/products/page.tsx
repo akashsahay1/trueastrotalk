@@ -13,7 +13,7 @@ interface Product {
   description: string;
   price: number;
   category: string;
-  image_url?: string;
+  featured_image?: string;
   stock_quantity: number;
   is_active: boolean;
   created_at: string;
@@ -335,16 +335,16 @@ export default function ProductsPage() {
                             />
                           </td>
                           <td>
-                            {product.image_url ? (
+                            {product.featured_image ? (
                               <img
-                                src={product.image_url}
+                                src={product.featured_image}
                                 alt={product.name}
                                 width="50"
                                 height="50"
                                 className="img-thumbnail"
                                 style={{ objectFit: 'cover' }}
                                 onError={(e) => {
-                                  console.error('Failed to load image:', product.image_url);
+                                  console.error('Failed to load image:', product.featured_image);
                                   (e.target as HTMLImageElement).style.display = 'none';
                                 }}
                               />

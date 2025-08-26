@@ -47,31 +47,6 @@ async function resolveMediaUrl(request: NextRequest, mediaId: string | ObjectId 
   }
 }
 
-// Helper function to convert relative image URLs to full URLs
-function getFullImageUrl(request: NextRequest, imageUrl: string | null | undefined): string | null {
-  if (!imageUrl || typeof imageUrl !== 'string' || imageUrl.trim() === '') {
-    return null;
-  }
-  
-  // If it's already a full URL (starts with http/https), return as is
-  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-    return imageUrl;
-  }
-  
-  // Get the actual host from the request headers
-  const host = request.headers.get('host') || 'www.trueastrotalk.com';
-  const protocol = request.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
-  const baseUrl = `${protocol}://${host}`;
-  
-  // If it's a relative path, construct full URL
-  if (imageUrl.startsWith('/')) {
-    return `${baseUrl}${imageUrl}`;
-  }
-  
-  // If it doesn't start with /, add / prefix and then construct full URL  
-  return `${baseUrl}/${imageUrl}`;
-}
-
 // GET - Fetch all products
 export async function GET(request: NextRequest) {
   try {
@@ -105,55 +80,26 @@ export async function GET(request: NextRequest) {
     // Transform products to include full image URLs
     const productsWithFullUrls = await Promise.all(
       products.map(async (product) => {
-        let imageUrl = null;
+        // Resolve featured image from image_id (media_id)
+        const imageUrl = product.image_id ? 
+          await resolveMediaUrl(request, product.image_id, client.db(DB_NAME)) : null;
         
-        // Try multiple fields in order of preference
-        if (product.image_id) {
-          imageUrl = await resolveMediaUrl(request, product.image_id, client.db(DB_NAME));
-        }
-        
-        if (!imageUrl && product.primary_image) {
-          // Check if primary_image is a custom media_id or legacy ObjectId
-          if (typeof product.primary_image === 'string' && product.primary_image.startsWith('media_')) {
-            imageUrl = await resolveMediaUrl(request, product.primary_image, client.db(DB_NAME));
-          } else if (typeof product.primary_image === 'string' && product.primary_image.length === 24) {
-            imageUrl = await resolveMediaUrl(request, product.primary_image, client.db(DB_NAME));
-          } else {
-            imageUrl = getFullImageUrl(request, product.primary_image);
+        // Resolve gallery images from images array (array of media_ids)
+        const galleryImages = [];
+        if (product.images && Array.isArray(product.images)) {
+          for (const mediaId of product.images) {
+            const url = await resolveMediaUrl(request, mediaId, client.db(DB_NAME));
+            if (url) galleryImages.push(url);
           }
-        }
-        
-        if (!imageUrl && product.images && Array.isArray(product.images) && product.images.length > 0) {
-          // Use first image from images array
-          const firstImage = product.images[0];
-          if (typeof firstImage === 'string' && firstImage.startsWith('media_')) {
-            imageUrl = await resolveMediaUrl(request, firstImage, client.db(DB_NAME));
-          } else if (typeof firstImage === 'string' && firstImage.length === 24) {
-            imageUrl = await resolveMediaUrl(request, firstImage, client.db(DB_NAME));
-          } else {
-            imageUrl = getFullImageUrl(request, firstImage);
-          }
-        }
-        
-        // Fallback to image_urls if we still don't have an image
-        if (!imageUrl && product.image_urls && Array.isArray(product.image_urls) && product.image_urls.length > 0) {
-          // Use first URL from image_urls array
-          const firstUrl = product.image_urls[0];
-          // image_urls already contains full URLs, just ensure they're properly formatted
-          if (typeof firstUrl === 'string') {
-            imageUrl = firstUrl.startsWith('http') ? firstUrl : getFullImageUrl(request, firstUrl);
-          }
-        }
-        
-        if (!imageUrl && product.image_url) {
-          imageUrl = getFullImageUrl(request, product.image_url);
         }
         
         return {
           ...product,
-          image_url: imageUrl,
-          // Remove old fields to keep response clean
-          image_id: undefined
+          featured_image: imageUrl, // Resolved featured image URL
+          gallery_images: galleryImages, // Resolved gallery image URLs
+          // Keep the media_ids for reference
+          image_id: product.image_id,
+          images: product.images || []
         };
       })
     );
@@ -185,7 +131,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, description, price, category, stock_quantity, is_active, image_url } = body;
+    const { name, description, price, category, stock_quantity, is_active, image_id } = body;
 
     // Validate required fields
     if (!name || !price || !category || stock_quantity === undefined) {
@@ -221,7 +167,7 @@ export async function POST(request: NextRequest) {
       category,
       stock_quantity: parseInt(stock_quantity),
       is_active: is_active !== undefined ? is_active : true,
-      image_url: image_url || '',
+      image_id: image_id || null,
       created_at: new Date(),
       updated_at: new Date()
     };
@@ -229,30 +175,37 @@ export async function POST(request: NextRequest) {
     const result = await productsCollection.insertOne(productData);
     const productId = result.insertedId.toString();
     
-    // If image_url is provided, validate it's from our uploads folder
-    if (image_url && image_url.trim() !== '') {
-      // Only accept internal upload paths
-      if (!image_url.startsWith('/uploads/')) {
+    // If image_id is provided, validate it exists in media collection
+    if (image_id && image_id.trim() !== '') {
+      const mediaCollection = db.collection('media');
+      
+      let mediaExists = null;
+      if (image_id.startsWith('media_')) {
+        // Check for media_id format
+        mediaExists = await mediaCollection.findOne({ media_id: image_id });
+      } else if (ObjectId.isValid(image_id)) {
+        // Check for ObjectId format
+        mediaExists = await mediaCollection.findOne({ _id: new ObjectId(image_id) });
+      }
+      
+      if (!mediaExists) {
         await client.close();
         return NextResponse.json({
           success: false,
-          error: 'Invalid image URL',
-          message: 'Only uploaded images are allowed. External URLs are not supported.'
+          error: 'Invalid image ID',
+          message: 'The provided image ID does not exist in media library.'
         }, { status: 400 });
       }
       
-      // Update the existing media record to associate it with this product
-      const db = client.db(DB_NAME);
-      const mediaCollection = db.collection('media');
-      
+      // Update the media record to associate it with this product
       await mediaCollection.updateOne(
-        { file_path: image_url },
+        image_id.startsWith('media_') ? { media_id: image_id } : { _id: new ObjectId(image_id) },
         { 
           $set: { 
             file_type: 'product_image',
             associated_record: productId,
             updated_at: new Date()
-          }
+          } 
         }
       );
     }

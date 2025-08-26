@@ -2,6 +2,47 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../lib/database';
 
+// Helper function to resolve media ID to full URL
+async function resolveMediaUrl(request: NextRequest, mediaId: string | ObjectId | null | undefined): Promise<string | null> {
+  if (!mediaId) return null;
+  
+  try {
+    const mediaCollection = await DatabaseService.getCollection('media');
+    let mediaFile;
+    
+    // Check if it's our custom media ID format (media_timestamp_random)
+    if (typeof mediaId === 'string' && mediaId.startsWith('media_')) {
+      mediaFile = await mediaCollection.findOne({ media_id: mediaId });
+    } else if (typeof mediaId === 'string' && mediaId.length === 24) {
+      // Try as ObjectId for backward compatibility
+      try {
+        mediaFile = await mediaCollection.findOne({ _id: new ObjectId(mediaId) });
+        // If not found by _id, try by media_id
+        if (!mediaFile) {
+          mediaFile = await mediaCollection.findOne({ media_id: mediaId });
+        }
+      } catch {
+        // If ObjectId conversion fails, try as media_id
+        mediaFile = await mediaCollection.findOne({ media_id: mediaId });
+      }
+    } else if (mediaId instanceof ObjectId) {
+      mediaFile = await mediaCollection.findOne({ _id: mediaId });
+    }
+    
+    if (!mediaFile || !mediaFile.file_path) return null;
+    
+    // Get the actual host from the request headers
+    const host = request.headers.get('host') || 'www.trueastrotalk.com';
+    const protocol = request.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
+    const baseUrl = `${protocol}://${host}`;
+    
+    return `${baseUrl}${mediaFile.file_path}`;
+  } catch (error) {
+    console.error('Error resolving media URL:', error);
+    return null;
+  }
+}
+
 // GET - Get all products with filtering and pagination
 export async function GET(request: NextRequest) {
   try {
@@ -65,31 +106,50 @@ export async function GET(request: NextRequest) {
     const categoriesData = await categoriesCollection.find({ is_active: true }).toArray();
     const categories = categoriesData.map(cat => cat.name);
 
-    // Format products for response
-    const formattedProducts = products.map(product => ({
-      _id: product._id.toString(),
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      original_price: product.original_price,
-      discount_percentage: product.discount_percentage,
-      category: product.category,
-      subcategory: product.subcategory,
-      brand: product.brand,
-      image_url: product.image_url || null,
-      images: product.images || [],
-      stock_quantity: product.stock_quantity,
-      sku: product.sku,
-      weight: product.weight,
-      dimensions: product.dimensions,
-      tags: product.tags || [],
-      rating: product.rating || 0,
-      review_count: product.review_count || 0,
-      is_featured: product.is_featured || false,
-      is_bestseller: product.is_bestseller || false,
-      created_at: product.created_at,
-      updated_at: product.updated_at
-    }));
+    // Format products for response with resolved media URLs
+    const formattedProducts = await Promise.all(
+      products.map(async product => {
+        // Resolve featured image from image_id (media_id)
+        let imageUrl = null;
+        if (product.image_id) {
+          imageUrl = await resolveMediaUrl(request, product.image_id);
+        }
+        
+        // Resolve gallery images from images array (array of media_ids)
+        const resolvedImages = [];
+        if (product.images && Array.isArray(product.images)) {
+          for (const mediaId of product.images) {
+            const url = await resolveMediaUrl(request, mediaId);
+            if (url) resolvedImages.push(url);
+          }
+        }
+        
+        return {
+          _id: product._id.toString(),
+          name: product.name,
+          description: product.description,
+          price: product.price,
+          original_price: product.original_price,
+          discount_percentage: product.discount_percentage,
+          category: product.category,
+          subcategory: product.subcategory,
+          brand: product.brand,
+          featured_image: imageUrl, // Resolved featured image URL
+          gallery_images: resolvedImages, // Resolved gallery image URLs  
+          stock_quantity: product.stock_quantity,
+          sku: product.sku,
+          weight: product.weight,
+          dimensions: product.dimensions,
+          tags: product.tags || [],
+          rating: product.rating || 0,
+          review_count: product.review_count || 0,
+          is_featured: product.is_featured || false,
+          is_bestseller: product.is_bestseller || false,
+          created_at: product.created_at,
+          updated_at: product.updated_at
+        };
+      })
+    );
 
     return NextResponse.json({
       success: true,
@@ -134,7 +194,8 @@ export async function POST(request: NextRequest) {
       category,
       subcategory,
       brand,
-      images = [],
+      image_id, // Featured image media_id
+      images = [], // Gallery images array of media_ids
       stock_quantity,
       sku,
       weight,
@@ -217,7 +278,8 @@ export async function POST(request: NextRequest) {
       category: category.trim(),
       subcategory: subcategory ? subcategory.trim() : null,
       brand: brand ? brand.trim() : null,
-      images: Array.isArray(images) ? images : [],
+      image_id: image_id || null, // Featured image media_id
+      images: Array.isArray(images) ? images : [], // Gallery images media_ids
       stock_quantity: parseInt(stock_quantity),
       sku: generatedSku,
       weight: weight ? parseFloat(weight) : null,
@@ -325,7 +387,8 @@ export async function PUT(request: NextRequest) {
     if (updateFields.category !== undefined) updateData.category = updateFields.category.trim();
     if (updateFields.subcategory !== undefined) updateData.subcategory = updateFields.subcategory ? updateFields.subcategory.trim() : null;
     if (updateFields.brand !== undefined) updateData.brand = updateFields.brand ? updateFields.brand.trim() : null;
-    if (updateFields.images !== undefined) updateData.images = Array.isArray(updateFields.images) ? updateFields.images : [];
+    if (updateFields.image_id !== undefined) updateData.image_id = updateFields.image_id || null; // Featured image media_id
+    if (updateFields.images !== undefined) updateData.images = Array.isArray(updateFields.images) ? updateFields.images : []; // Gallery images media_ids
     if (updateFields.stock_quantity !== undefined) {
       const newStock = parseInt(updateFields.stock_quantity);
       if (newStock < 0) {

@@ -5,6 +5,7 @@ class Product {
   final double price;
   final String category;
   final String? imageUrl;
+  final List<String> images;
   final int stockQuantity;
   final bool isActive;
   final DateTime createdAt;
@@ -17,6 +18,7 @@ class Product {
     required this.price,
     required this.category,
     this.imageUrl,
+    this.images = const [],
     required this.stockQuantity,
     required this.isActive,
     required this.createdAt,
@@ -24,13 +26,25 @@ class Product {
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
+    // Get images array - prefer gallery_images over legacy images field
+    final List<String> imagesList = (json['gallery_images'] as List<dynamic>?)?.map((e) => e.toString()).where((url) => url.isNotEmpty).toList() 
+        ?? (json['images'] as List<dynamic>?)?.map((e) => e.toString()).where((url) => url.isNotEmpty).toList() 
+        ?? [];
+    
+    // Use featured_image if available, otherwise use first image from gallery_images array
+    String? primaryImageUrl = json['featured_image'] ?? json['image_url']; // fallback to old field for compatibility
+    if ((primaryImageUrl == null || primaryImageUrl.isEmpty) && imagesList.isNotEmpty) {
+      primaryImageUrl = imagesList.first;
+    }
+    
     return Product(
       id: json['_id'] ?? '',
       name: json['name'] ?? '',
       description: json['description'] ?? '',
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
       category: json['category'] ?? '',
-      imageUrl: json['image_url'],
+      imageUrl: primaryImageUrl,
+      images: imagesList,
       stockQuantity: json['stock_quantity'] ?? 0,
       isActive: json['is_active'] ?? false,
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
@@ -45,7 +59,8 @@ class Product {
       'description': description,
       'price': price,
       'category': category,
-      'image_url': imageUrl,
+      'featured_image': imageUrl,
+      'images': images,
       'stock_quantity': stockQuantity,
       'is_active': isActive,
       'created_at': createdAt.toIso8601String(),
