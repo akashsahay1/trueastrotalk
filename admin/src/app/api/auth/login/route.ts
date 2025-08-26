@@ -442,7 +442,6 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
             auth_type: user.auth_type || 'email',
             profile_image: user.profile_image || '',
             wallet_balance: user.wallet_balance || 0,
-            is_verified: user.is_verified || false,
             is_online: true,
             gender: user.gender || '',
             date_of_birth: user.date_of_birth || '',

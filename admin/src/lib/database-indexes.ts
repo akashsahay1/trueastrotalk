@@ -29,7 +29,7 @@ export class DatabaseIndexManager {
         usersCollection.createIndex({ 
           user_type: 1, 
           account_status: 1, 
-          is_verified: 1, 
+          verification_status: 1, 
           profile_image_id: 1 
         }, { 
           background: true,

@@ -44,7 +44,7 @@ function validateAndSanitizeAstrologer(data) {
     // Account status fields (same as API defaults)
     account_status: data.account_status || 'active',
     is_online: data.is_online !== undefined ? data.is_online : false,
-    verification_status: data.verification_status || 'pending',
+    verification_status: data.verification_status || 'verified',
     verification_status_message: data.verification_status_message || '',
     verified_at: data.verification_status === 'verified' ? (data.verified_at || new Date()) : null,
     verified_by: data.verification_status === 'verified' ? (data.verified_by || 'admin') : null,

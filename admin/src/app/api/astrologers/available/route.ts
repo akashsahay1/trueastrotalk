@@ -59,14 +59,14 @@ export async function GET(request: NextRequest) {
     // const sortBy = searchParams.get('sort_by') || 'rating'; // rating, experience, rate
 
     const usersCollection = await DatabaseService.getCollection('users');
-    const mediaCollection = await DatabaseService.getCollection('media_files');
+    const mediaCollection = await DatabaseService.getCollection('media');
     // const chatSessionsCollection = await DatabaseService.getCollection('chat_sessions');
 
     // Build query for available astrologers - only verified ones with complete profiles
     const query: Record<string, unknown> = {
       user_type: 'astrologer', // Only use standardized user_type field
       account_status: 'active',
-      is_verified: true,
+      verification_status: 'verified', // Use verification_status instead of is_verified
       // All users now have profile_image_id, so no need for complex $or query
       profile_image_id: { $exists: true, $ne: null }
     };
