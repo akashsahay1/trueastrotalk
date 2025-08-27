@@ -1056,39 +1056,74 @@ Connect now on True AstroTalk! 🌟
     final callType = await _showCallTypeDialog();
     if (callType == null) return;
 
+    // Show loading state immediately after dialog closes
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Starting ${callType.displayName.toLowerCase()} call...'),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.info,
+          duration: const Duration(seconds: 10), // Longer duration for loading
+        ),
+      );
+    }
+
     try {
-      // Show loading indicator
+      // Defer heavy work to prevent UI freezing
+      await Future.microtask(() async {
+        final callService = getIt<CallService>();
+        await callService.initialize(); // Ensure call service is initialized
+        await callService.startCallSession(_astrologer!.id, callType);
+      });
+      
+      // Success feedback
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Starting ${callType.displayName.toLowerCase()} call with ${_astrologer!.fullName}...'),
-            backgroundColor: AppColors.info,
-          ),
-        );
-      }
-
-      // Start call session
-      final callService = getIt<CallService>();
-      await callService.initialize(); // Ensure call service is initialized
-      await callService.startCallSession(_astrologer!.id, callType);
-
-      // Navigate to call screen - implement when call UI is ready
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${callType.displayName} call initiated! Call screen coming soon.'),
+            content: Text('${callType.displayName} call initiated successfully!'),
             backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 2),
           ),
         );
       }
+      
     } catch (e) {
+      debugPrint('❌ Call initiation failed: $e');
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to start call: $e'),
+            content: Text('Failed to start call: ${e.toString()}'),
             backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 3),
           ),
         );
+      }
+    } finally {
+      // Always hide loading state
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
