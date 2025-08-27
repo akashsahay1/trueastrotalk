@@ -18,9 +18,15 @@ class CallService extends ChangeNotifier {
   List<CallSession> _callSessions = [];
   CallSession? _activeCallSession;
   
+  // Call screen tracking
+  bool _isCallScreenActive = false;
+  Map<String, dynamic>? _activeCallData;
+  
   // Getters
   List<CallSession> get callSessions => List.unmodifiable(_callSessions);
   CallSession? get activeCallSession => _activeCallSession;
+  bool get isCallScreenActive => _isCallScreenActive;
+  Map<String, dynamic>? get activeCallData => _activeCallData;
 
   /// Initialize call service
   Future<void> initialize() async {
@@ -211,10 +217,14 @@ class CallService extends ChangeNotifier {
         _callSessions.insert(0, session);
         _activeCallSession = session;
         
+        // Get user name - should always be available for valid users
+        final userName = _getCurrentUserName();
+        
         // Emit call request via socket
         _socketService.emit('initiate_call', {
           'sessionId': session.id,
           'callerId': userId,
+          'callerName': userName,
           'callerType': 'user',
           'callType': callType.name.toLowerCase(),
         });
@@ -345,6 +355,25 @@ class CallService extends ChangeNotifier {
     // Navigator.push(context, MaterialPageRoute(builder: (_) => IncomingCallScreen(callSession)));
   }
 
+  /// Set active call screen data
+  void setCallScreenActive(Map<String, dynamic> callData) {
+    _isCallScreenActive = true;
+    _activeCallData = callData;
+    notifyListeners();
+    debugPrint('📱 Call screen set as active');
+  }
+
+  /// Clear active call screen data
+  void clearCallScreenActive() {
+    _isCallScreenActive = false;
+    _activeCallData = null;
+    notifyListeners();
+    debugPrint('📱 Call screen cleared');
+  }
+
+  /// Check if there's an active call to return to
+  bool get hasActiveCallToReturn => _isCallScreenActive && _activeCallData != null;
+
   /// Get current user ID from auth service
   String? _getCurrentUserId() {
     try {
@@ -355,11 +384,24 @@ class CallService extends ChangeNotifier {
       return null;
     }
   }
+  
+  /// Get current user name from auth service
+  String? _getCurrentUserName() {
+    try {
+      final authService = getIt<AuthService>();
+      return authService.currentUser?.name;
+    } catch (e) {
+      debugPrint('❌ Error getting current user name: $e');
+      return null;
+    }
+  }
 
   /// Cleanup
   @override
   void dispose() {
     _activeCallSession = null;
+    _isCallScreenActive = false;
+    _activeCallData = null;
     super.dispose();
   }
 }

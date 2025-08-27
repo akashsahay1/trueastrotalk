@@ -5,6 +5,7 @@ import '../common/themes/text_styles.dart';
 import '../common/constants/dimensions.dart';
 import '../services/socket/socket_service.dart';
 import '../services/webrtc/webrtc_service.dart';
+import '../services/audio/ringtone_service.dart';
 import '../services/service_locator.dart';
 import 'active_call_screen.dart';
 
@@ -24,6 +25,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     with TickerProviderStateMixin {
   late final SocketService _socketService;
   late final WebRTCService _webrtcService;
+  late final RingtoneService _ringtoneService;
   
   late AnimationController _pulseController;
   late AnimationController _slideController;
@@ -38,6 +40,15 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     super.initState();
     _socketService = getIt<SocketService>();
     _webrtcService = getIt<WebRTCService>();
+    _ringtoneService = getIt<RingtoneService>();
+    
+    // Debug the callData we received
+    debugPrint('📱 IncomingCallScreen callData: ${widget.callData}');
+    debugPrint('📱 IncomingCallScreen callData type: ${widget.callData.runtimeType}');
+    debugPrint('📱 IncomingCallScreen callData fields:');
+    widget.callData.forEach((key, value) {
+      debugPrint('   - $key: "$value" (${value.runtimeType})');
+    });
     
     // Setup animations
     _pulseController = AnimationController(
@@ -72,6 +83,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     // Provide haptic feedback
     HapticFeedback.heavyImpact();
     
+    // Start ringtone
+    _ringtoneService.startRingtone();
+    
     // Setup call timeout (auto-reject after 30 seconds)
     Future.delayed(const Duration(seconds: 30), () {
       if (mounted && !_isAnswering && !_isRejecting) {
@@ -82,6 +96,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
   @override
   void dispose() {
+    _ringtoneService.stopRingtone();
     _pulseController.dispose();
     _slideController.dispose();
     super.dispose();
@@ -210,7 +225,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         
         // Caller name
         Text(
-          widget.callData['callerName'] ?? 'Unknown Caller',
+          widget.callData['callerName'] ?? 'Incoming Call...',
           style: AppTextStyles.heading3.copyWith(
             color: AppColors.white,
             fontWeight: FontWeight.w600,
@@ -405,6 +420,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     });
     
     try {
+      // Stop ringtone
+      _ringtoneService.stopRingtone();
+      
       // Provide haptic feedback
       HapticFeedback.mediumImpact();
       
@@ -435,6 +453,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     });
     
     try {
+      // Stop ringtone
+      _ringtoneService.stopRingtone();
+      
       // Provide haptic feedback
       HapticFeedback.mediumImpact();
       

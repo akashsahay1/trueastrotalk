@@ -6,15 +6,18 @@ import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 import '../common/constants/dimensions.dart';
 import '../services/socket/socket_service.dart';
-import '../services/webrtc/webrtc_service.dart';
+import '../services/webrtc/webrtc_service.dart' as webrtc;
 import '../services/billing/billing_service.dart';
 import '../services/wallet/wallet_service.dart';
 import '../services/network/network_diagnostics_service.dart';
+import '../services/call/call_service.dart';
+import '../services/auth/auth_service.dart';
 import '../services/service_locator.dart';
 import '../models/astrologer.dart';
 import '../models/call.dart' as call_models;
 import '../widgets/call_quality_indicator.dart';
 import 'call_quality_settings_screen.dart';
+import 'astrologer_details.dart';
 
 
 class ActiveCallScreen extends StatefulWidget {
@@ -34,10 +37,12 @@ class ActiveCallScreen extends StatefulWidget {
 class _ActiveCallScreenState extends State<ActiveCallScreen>
     with TickerProviderStateMixin {
   late final SocketService _socketService;
-  late final WebRTCService _webrtcService;
+  late final webrtc.WebRTCService _webrtcService;
   late final BillingService _billingService;
   late final WalletService _walletService;
   late final NetworkDiagnosticsService _networkDiagnostics;
+  late final CallService _callService;
+  late final AuthService _authService;
   
   Timer? _callTimer;
   Duration _callDuration = Duration.zero;
@@ -59,20 +64,31 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
   void initState() {
     super.initState();
     _socketService = getIt<SocketService>();
-    _webrtcService = getIt<WebRTCService>();
+    _webrtcService = getIt<webrtc.WebRTCService>();
     _billingService = BillingService.instance;
     _walletService = WalletService.instance;
     _networkDiagnostics = NetworkDiagnosticsService.instance;
+    _callService = getIt<CallService>();
+    _authService = getIt<AuthService>();
     
     _setupAnimations();
     _setupCallListeners();
     _setupBillingListeners();
     _setupNetworkDiagnostics();
-    _startCallTimer();
+    // Don't start call timer immediately - wait for call to be connected
     _startHideControlsTimer();
     
-    // Initialize call connection
-    _initializeCall();
+    // Register this call screen with CallService
+    _callService.setCallScreenActive(widget.callData);
+    
+    // Initialize call connection with significant delay to ensure UI is fully rendered
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Add additional delay to let UI settle completely
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted) {
+        _initializeCall();
+      }
+    });
   }
 
   void _setupAnimations() {
@@ -109,13 +125,33 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
   void _setupCallListeners() {
     // Listen for call events
     _socketService.on('call_ended', (data) {
+      debugPrint('📡 Received call_ended event: $data');
       if (data['sessionId'] == widget.callData['sessionId']) {
-        _handleCallEnded('Call ended by ${data['endedBy'] == widget.callData['callerId'] ? 'caller' : 'receiver'}');
+        final endedBy = data['endedBy'];
+        final currentUserId = widget.callData['callerId'];
+        final isEndedByCurrentUser = endedBy == currentUserId;
+        final reason = isEndedByCurrentUser 
+            ? 'Call ended by you' 
+            : 'Call ended by other party';
+        
+        debugPrint('🔚 Processing call_ended: $reason');
+        _handleCallEnded(reason);
+      } else {
+        debugPrint('⚠️ Ignoring call_ended for different session: ${data['sessionId']} != ${widget.callData['sessionId']}');
       }
     });
     
     _socketService.on('call_error', (data) {
       _handleCallEnded('Call failed: ${data['error']}');
+    });
+    
+    // Listen for call answered event to start timer
+    _socketService.on('call_answered', (data) {
+      debugPrint('🎯 Received call_answered event: $data');
+      if (data['sessionId'] == widget.callData['sessionId'] && _callTimer == null) {
+        debugPrint('🕒 Starting timer from call_answered socket event');
+        _startCallTimer();
+      }
     });
     
     // Listen to WebRTC service state changes
@@ -161,12 +197,23 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
 
   void _onWebRTCStateChanged() {
     if (mounted) {
+      final wasConnected = _isConnected;
+      final wasConnecting = _isConnecting;
       setState(() {
         _isConnected = _webrtcService.isCallActive;
-        _isConnecting = _webrtcService.callState == CallState.connecting;
+        _isConnecting = _webrtcService.callState == webrtc.CallState.connecting;
         _isMuted = _webrtcService.isMuted;
         _isCameraOn = _webrtcService.isCameraOn;
       });
+      
+      debugPrint('📊 WebRTC State: connecting=$_isConnecting, connected=$_isConnected, callState=${_webrtcService.callState}');
+      
+      // Start call timer when call is answered (connecting) or connected
+      final shouldStartTimer = (_isConnected || _isConnecting) && !wasConnected && !wasConnecting && _callTimer == null;
+      if (shouldStartTimer) {
+        debugPrint('🕒 Call answered/connected - starting call timer');
+        _startCallTimer();
+      }
     }
   }
 
@@ -189,40 +236,49 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
   }
 
   void _startHideControlsTimer() {
+    // Controls are now always visible - no auto-hide timer
     _hideControlsTimer?.cancel();
-    _hideControlsTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted && _showControls) {
-        _toggleControls();
-      }
-    });
   }
 
   Future<void> _initializeCall() async {
     try {
-      if (!widget.isIncoming) {
-        // For outgoing calls, start the WebRTC connection
-        await _webrtcService.initiateCall(
-          widget.callData['receiverId'] ?? widget.callData['astrologerId'],
-          widget.callData['callType'] == 'video' ? CallType.video : CallType.voice,
-        );
+      // Show immediate UI feedback
+      if (mounted) {
+        setState(() {
+          _isConnecting = true;
+        });
       }
       
-      // Listen to WebRTC connection state changes
+      // Initialize WebRTC completely in background without blocking UI
+      _initializeWebRTCAsync();
+      
+      // Listen to WebRTC connection state changes (setup immediately)
       _webrtcService.callStateStream.listen((callState) {
         if (mounted) {
           setState(() {
-            _isConnecting = callState == CallState.connecting || callState == CallState.initiating || callState == CallState.ringing;
-            _isConnected = callState == CallState.connected;
+            _isConnecting = callState == webrtc.CallState.connecting || callState == webrtc.CallState.initiating || callState == webrtc.CallState.ringing;
+            _isConnected = callState == webrtc.CallState.connected;
           });
           
-          // Start billing and monitoring when call is connected
-          if (callState == CallState.connected && !_billingService.isSessionActive) {
+          // Start billing, timer and monitoring when call is connected
+          if (callState == webrtc.CallState.connected && !_billingService.isSessionActive) {
             _startBilling();
+            // Also start the call timer if not already started
+            if (_callTimer == null) {
+              debugPrint('🕒 Starting timer from webrtc.CallState.connected');
+              _startCallTimer();
+            }
             _networkDiagnostics.startMonitoring(null);
           }
           
+          // Start timer when call is connecting or connected
+          if ((callState == webrtc.CallState.connecting || callState == webrtc.CallState.connected) && _callTimer == null) {
+            debugPrint('🕒 Starting timer from callStateStream: $callState');
+            _startCallTimer();
+          }
+          
           // Handle call end states
-          if (callState == CallState.ended || callState == CallState.failed || callState == CallState.rejected) {
+          if (callState == webrtc.CallState.ended || callState == webrtc.CallState.failed || callState == webrtc.CallState.rejected) {
             _handleCallEnded('Call ${callState.name}');
           }
         }
@@ -234,16 +290,98 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     }
   }
 
+
+  /// Async WebRTC initialization that doesn't block UI
+  void _initializeWebRTCAsync() {
+    // Run WebRTC initialization in a separate isolate-like background task
+    Future(() async {
+      try {
+        // Add a small delay to let UI render first
+        await Future.delayed(const Duration(milliseconds: 100));
+        
+        if (!mounted) return;
+        
+        debugPrint('🚀 Starting background WebRTC initialization...');
+        
+        // Initialize WebRTC service
+        await _webrtcService.initialize();
+        
+        if (!mounted) return;
+        
+        // Check if this is an incoming or outgoing call
+        if (widget.isIncoming) {
+          debugPrint('📞 Background: Answering incoming call');
+          final sessionId = widget.callData['sessionId'];
+          final callerId = widget.callData['callerId'];
+          final callerName = widget.callData['callerName'];
+          final callType = widget.callData['callType'] == 'video' ? webrtc.CallType.video : webrtc.CallType.voice;
+          debugPrint('🔥 ActiveCall: Setting incoming call data - sessionId: $sessionId, callerId: $callerId');
+          await _webrtcService.setIncomingCallData(sessionId, callerId, callerName, callType);
+          await _webrtcService.answerCall();
+        } else {
+          debugPrint('📞 Background: Initiating outgoing call');
+          final callType = widget.callData['callType'] == 'video' ? webrtc.CallType.video : webrtc.CallType.voice;
+          final targetUserId = widget.callData['receiverId'];
+          final sessionId = widget.callData['sessionId'];
+          debugPrint('🔥 ActiveCall: Passing sessionId to WebRTC: $sessionId');
+          await _webrtcService.initiateCall(targetUserId, callType, sessionId: sessionId);
+        }
+        
+        debugPrint('✅ Background WebRTC initialization completed');
+        
+      } catch (e) {
+        debugPrint('❌ Background WebRTC initialization failed: $e');
+        if (mounted) {
+          // Show error but don't immediately end call - let user try again
+          Future.microtask(() {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('WebRTC setup failed: $e'),
+                  backgroundColor: AppColors.error,
+                  action: SnackBarAction(
+                    label: 'Retry',
+                    onPressed: () => _initializeWebRTCAsync(),
+                  ),
+                ),
+              );
+            }
+          });
+        }
+      }
+    });
+  }
+
+  
+  
+
+
   @override
   void dispose() {
+    // Clear call screen from CallService
+    _callService.clearCallScreenActive();
+    
+    // Cleanup timers
     _callTimer?.cancel();
     _hideControlsTimer?.cancel();
+    
+    // Cleanup animations
     _controlsAnimationController.dispose();
     _buttonAnimationController.dispose();
+    
+    // Cleanup services
     _webrtcService.removeListener(_onWebRTCStateChanged);
     _billingService.removeListener(_onBillingStateChanged);
     _networkDiagnostics.removeListener(_onNetworkMetricsChanged);
     _networkDiagnostics.stopMonitoring();
+    
+    // Cleanup WebRTC resources
+    try {
+      _webrtcService.endCall();
+    } catch (e) {
+      debugPrint('⚠️ Error cleaning up WebRTC: $e');
+    }
+    
     super.dispose();
   }
 
@@ -290,7 +428,21 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     return Stack(
       children: [
         // Remote video (full screen)
-        RTCVideoView(_webrtcService.remoteRenderer, mirror: false),
+        RTCVideoView(
+          _webrtcService.remoteRenderer,
+          mirror: false,
+          objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+          placeholderBuilder: (context) => Container(
+            color: Colors.black,
+            child: const Center(
+              child: Icon(
+                Icons.videocam_off,
+                size: 64,
+                color: Colors.white54,
+              ),
+            ),
+          ),
+        ),
         
         // Local video (picture-in-picture)
         if (_isCameraOn)
@@ -306,7 +458,21 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: RTCVideoView(_webrtcService.localRenderer, mirror: true),
+                child: RTCVideoView(
+                  _webrtcService.localRenderer,
+                  mirror: true,
+                  objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                  placeholderBuilder: (context) => Container(
+                    color: Colors.black87,
+                    child: const Center(
+                      child: Icon(
+                        Icons.person,
+                        size: 40,
+                        color: Colors.white54,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -356,9 +522,29 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
             
             // Caller/Receiver name
             Text(
-              widget.callData['callerName'] ?? 
-              widget.callData['receiverName'] ?? 
-              'Unknown',
+              () {
+                final callerName = widget.callData['callerName'];
+                final receiverName = widget.callData['receiverName'];
+                final webrtcRemoteName = _webrtcService.remoteUserName;
+                
+                debugPrint('📱 ActiveCallScreen name display logic:');
+                debugPrint('   - callData[callerName]: "$callerName"');
+                debugPrint('   - callData[receiverName]: "$receiverName"');
+                debugPrint('   - webrtcService.remoteUserName: "$webrtcRemoteName"');
+                debugPrint('   - isIncoming: ${widget.isIncoming}');
+                
+                // For incoming calls, show caller name
+                // For outgoing calls, show receiver name  
+                if (widget.isIncoming) {
+                  final displayName = callerName ?? webrtcRemoteName;
+                  debugPrint('   - Displaying (incoming): "$displayName"');
+                  return displayName ?? 'Connecting...';
+                } else {
+                  final displayName = receiverName ?? webrtcRemoteName;
+                  debugPrint('   - Displaying (outgoing): "$displayName"');
+                  return displayName ?? 'Connecting...';
+                }
+              }(),
               style: AppTextStyles.heading3.copyWith(
                 color: AppColors.white,
                 fontWeight: FontWeight.w600,
@@ -850,18 +1036,29 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
 
   void _endCall() async {
     try {
-      // Stop billing first
-      await _billingService.stopBilling();
+      debugPrint('🔚 Starting call end process...');
       
-      // Send end call event
+      // Send end call event first to notify other party
+      debugPrint('📤 Sending end_call event...');
       _socketService.emit('end_call', {
         'callId': widget.callData['callId'],
         'sessionId': widget.callData['sessionId'],
+        'endedBy': widget.callData['callerId'], // Add who ended the call
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
       });
       
+      // Small delay to allow socket event to be sent
+      await Future.delayed(const Duration(milliseconds: 200));
+      
+      // Stop billing
+      debugPrint('💰 Stopping billing...');
+      await _billingService.stopBilling();
+      
       // End WebRTC call
+      debugPrint('📞 Ending WebRTC call...');
       await _webrtcService.endCall();
       
+      debugPrint('✅ Call end process completed');
       _handleCallEnded('Call ended');
       
     } catch (e) {
@@ -870,20 +1067,62 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     }
   }
 
-  void _handleCallEnded(String reason) {
+  void _handleCallEnded(String reason) async {
     if (!mounted) return;
     
-    // Show end call reason
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(reason),
-        backgroundColor: AppColors.info,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    debugPrint('📴 Handling call ended: $reason');
     
-    // Navigate back
-    Navigator.of(context).pop();
+    // Stop billing and get final summary
+    final billingWasActive = _billingService.isSessionActive;
+    final totalBilled = _billingService.totalBilled;
+    final formattedBilled = _billingService.getFormattedTotalBilled();
+    final callDuration = _formatCallDuration(_callDuration);
+    
+    try {
+      await _billingService.stopBilling();
+    } catch (e) {
+      debugPrint('❌ Error stopping billing: $e');
+    }
+    
+    // Stop call timer
+    _callTimer?.cancel();
+    _callTimer = null;
+    
+    // Show appropriate dialog based on user type and billing status
+    final currentUser = _authService.currentUser;
+    final isAstrologer = currentUser != null && currentUser.isAstrologer;
+    
+    debugPrint('💰 Dialog decision: billingWasActive=$billingWasActive, totalBilled=$totalBilled, isAstrologer=$isAstrologer');
+    
+    if (billingWasActive || (isAstrologer && _callDuration.inSeconds > 0)) {
+      // Show dialog if billing was active OR if this is an astrologer with call duration
+      if (isAstrologer) {
+        debugPrint('💰 Showing earnings dialog for astrologer');
+        await _showEarningsDialog(formattedBilled, callDuration, reason);
+      } else {
+        debugPrint('💰 Showing billing dialog for customer');
+        await _showBillingAlertDialog(formattedBilled, callDuration, reason);
+      }
+      // Dialog will handle navigation when dismissed
+    } else {
+      // Show end call reason if no billing dialog was shown
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(reason),
+            backgroundColor: AppColors.info,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      
+      // Navigate back after a short delay only if no billing dialog
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      });
+    }
   }
 
   Future<void> _startBilling() async {
@@ -1030,6 +1269,404 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     );
   }
 
+  /// Show billing alert dialog with call summary
+  Future<void> _showBillingAlertDialog(String totalBilled, String callDuration, String reason) async {
+    if (!mounted) return;
+    
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // User must tap OK
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.backgroundDark,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(Dimensions.radiusLg),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.account_balance_wallet,
+                color: AppColors.primary,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Call Summary',
+                  style: AppTextStyles.heading4.copyWith(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Call ended reason
+                Container(
+                  padding: const EdgeInsets.all(Dimensions.paddingMd),
+                  decoration: BoxDecoration(
+                    color: AppColors.backgroundLight,
+                    borderRadius: BorderRadius.circular(Dimensions.radiusMd),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: AppColors.info,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          reason,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: Dimensions.paddingLg),
+                
+                // Call duration
+                _buildBillingSummaryRow(
+                  'Call Duration:',
+                  callDuration,
+                  Icons.access_time,
+                ),
+                
+                const SizedBox(height: Dimensions.paddingMd),
+                
+                // Amount debited
+                _buildBillingSummaryRow(
+                  'Amount Debited:',
+                  totalBilled,
+                  Icons.currency_rupee,
+                  valueColor: AppColors.error,
+                ),
+                
+                const SizedBox(height: Dimensions.paddingMd),
+                
+                // Updated wallet balance
+                _buildBillingSummaryRow(
+                  'Wallet Balance:',
+                  _walletService.formattedBalance,
+                  Icons.account_balance_wallet,
+                  valueColor: _walletService.currentBalance < 50 ? AppColors.warning : AppColors.success,
+                ),
+                
+                const SizedBox(height: Dimensions.paddingLg),
+                
+                // Thank you message
+                Container(
+                  padding: const EdgeInsets.all(Dimensions.paddingMd),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(Dimensions.radiusMd),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.favorite,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Thank you for using True AstroTalk!',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop(); // Close dialog
+                
+                // Small delay to ensure dialog is fully closed before navigation
+                await Future.delayed(const Duration(milliseconds: 100));
+                
+                // Navigate to astrologer details screen for reviews/ratings
+                if (mounted) {
+                  _navigateToAstrologerDetails();
+                }
+              },
+              style: TextButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Dimensions.paddingXl,
+                  vertical: Dimensions.paddingMd,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.radiusMd),
+                ),
+              ),
+              child: Text(
+                'OK',
+                style: AppTextStyles.buttonMedium.copyWith(
+                  color: AppColors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Show earnings dialog for astrologers
+  Future<void> _showEarningsDialog(String totalEarned, String callDuration, String reason) async {
+    if (!mounted) return;
+    
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // User must tap OK
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.backgroundDark,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(Dimensions.radiusLg),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.monetization_on,
+                color: Colors.green,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Earnings Summary',
+                  style: AppTextStyles.heading4.copyWith(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Call ended reason
+                Container(
+                  padding: const EdgeInsets.all(Dimensions.paddingMd),
+                  decoration: BoxDecoration(
+                    color: AppColors.info.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(Dimensions.radiusMd),
+                    border: Border.all(
+                      color: AppColors.info.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: AppColors.info,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          reason,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: Dimensions.paddingLg),
+                
+                // Earnings details
+                Container(
+                  padding: const EdgeInsets.all(Dimensions.paddingLg),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(Dimensions.radiusMd),
+                    border: Border.all(
+                      color: Colors.green.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Consultation Earnings',
+                        style: AppTextStyles.bodyLarge.copyWith(
+                          color: AppColors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Duration:',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          Text(
+                            callDuration,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Total Earned:',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          Text(
+                            totalEarned,
+                            style: AppTextStyles.heading4.copyWith(
+                              color: Colors.green,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: Dimensions.paddingLg),
+                
+                // Thank you message
+                Container(
+                  padding: const EdgeInsets.all(Dimensions.paddingMd),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(Dimensions.radiusMd),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.star,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Great consultation! Your earnings have been updated.',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                Navigator.of(context).pop(); // Navigate back to previous screen
+              },
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: AppColors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Dimensions.paddingXl,
+                  vertical: Dimensions.paddingMd,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.radiusMd),
+                ),
+              ),
+              child: Text(
+                'OK',
+                style: AppTextStyles.buttonMedium.copyWith(
+                  color: AppColors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Helper method to build billing summary rows
+  Widget _buildBillingSummaryRow(
+    String label,
+    String value,
+    IconData icon, {
+    Color? valueColor,
+  }) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          color: AppColors.white.withValues(alpha: 0.7),
+          size: 18,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.white.withValues(alpha: 0.8),
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: valueColor ?? AppColors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
   String _formatCallDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     final hours = twoDigits(duration.inHours);
@@ -1040,6 +1677,63 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
       return '$hours:$minutes:$seconds';
     } else {
       return '$minutes:$seconds';
+    }
+  }
+
+  /// Navigate to astrologer details screen for reviews/ratings
+  void _navigateToAstrologerDetails() {
+    if (!mounted) {
+      debugPrint('❌ Widget not mounted, cannot navigate');
+      return;
+    }
+    
+    try {
+      debugPrint('🔄 Attempting to navigate to astrologer details...');
+      
+      final astrologerData = widget.callData['astrologer'];
+      if (astrologerData == null) {
+        debugPrint('❌ No astrologer data found for navigation');
+        // If no astrologer data, navigate back to previous screen safely
+        _safeNavigateBack();
+        return;
+      }
+      
+      final astrologer = Astrologer.fromJson(astrologerData);
+      debugPrint('✅ Astrologer data found: ${astrologer.fullName}');
+      
+      // Replace current screen with astrologer details screen
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => AstrologerDetailsScreen(
+            astrologer: astrologer,
+          ),
+        ),
+      ).then((_) {
+        debugPrint('✅ Navigation to astrologer details completed');
+      }).catchError((error) {
+        debugPrint('❌ Navigation error: $error');
+        _safeNavigateBack();
+      });
+      
+    } catch (e) {
+      debugPrint('❌ Failed to navigate to astrologer details: $e');
+      _safeNavigateBack();
+    }
+  }
+
+  /// Safely navigate back to previous screen
+  void _safeNavigateBack() {
+    if (!mounted) return;
+    
+    try {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+        debugPrint('✅ Navigated back to previous screen');
+      } else {
+        debugPrint('⚠️ Cannot pop, navigation stack might be empty');
+      }
+    } catch (e) {
+      debugPrint('❌ Error during safe navigation back: $e');
     }
   }
 }

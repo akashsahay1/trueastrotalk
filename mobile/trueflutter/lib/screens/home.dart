@@ -30,9 +30,10 @@ import 'call_list.dart';
 import '../services/cart_service.dart';
 import '../services/chat/chat_service.dart';
 import '../services/socket/socket_service.dart';
-import '../services/webrtc/webrtc_service.dart';
 import '../services/wallet/wallet_service.dart';
 import '../services/notifications/notification_service.dart';
+import '../services/call/call_service.dart';
+import '../models/call.dart';
 import 'incoming_call_screen.dart';
 import 'active_call_screen.dart';
 
@@ -48,9 +49,9 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   late final UserApiService _userApiService;
   late final CartService _cartService;
   late final SocketService _socketService;
-  late final WebRTCService _webrtcService;
   late final WalletService _walletService;
   late final NotificationService _notificationService;
+  late final CallService _callService;
 
   app_user.User? _currentUser;
   double _walletBalance = 0.0;
@@ -78,9 +79,9 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     _userApiService = getIt<UserApiService>();
     _cartService = getIt<CartService>();
     _socketService = getIt<SocketService>();
-    _webrtcService = getIt<WebRTCService>();
     _walletService = getIt<WalletService>();
     _notificationService = getIt<NotificationService>();
+    _callService = getIt<CallService>();
 
     // Listen to cart changes to update cart icon badge
     _cartService.addListener(_onCartChanged);
@@ -199,13 +200,38 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   void _setupCallListeners() {
     // Listen for incoming calls
     _socketService.on('incoming_call', (data) {
-      debugPrint('📞 Incoming call received: $data');
+      debugPrint('📞 RAW Incoming call data received: $data');
+      debugPrint('📞 Incoming call data type: ${data.runtimeType}');
+      
+      // Debug each field specifically
+      if (data is Map) {
+        debugPrint('📞 Incoming call fields:');
+        data.forEach((key, value) {
+          debugPrint('   - $key: "$value" (${value.runtimeType})');
+        });
+        
+        final callerName = data['callerName'];
+        final callerId = data['callerId'];
+        final sessionId = data['sessionId'];
+        final callType = data['callType'];
+        
+        debugPrint('📞 Key fields extracted:');
+        debugPrint('   - callerName: "$callerName"');
+        debugPrint('   - callerId: "$callerId"');
+        debugPrint('   - sessionId: "$sessionId"');
+        debugPrint('   - callType: "$callType"');
+      }
+      
       _showIncomingCallDialog(data);
     });
 
     // Listen for call status changes
     _socketService.on('call_answered', (data) {
       debugPrint('✅ Call answered: $data');
+      // Notify any active call screen to start timer
+      if (_callService.isCallScreenActive) {
+        debugPrint('🕒 Notifying call screen about answered call');
+      }
     });
 
     _socketService.on('call_rejected', (data) {
@@ -705,13 +731,29 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   Widget _buildCallScreen() {
     return Scaffold(
       body: AstrologersCallScreen(userApiService: _userApiService, onAstrologerTap: _navigateToAstrologerDetails, onStartCall: _startCallWithAstrologer),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.of(context).push(MaterialPageRoute(builder: (context) => const CallListScreen()));
+      floatingActionButton: ListenableBuilder(
+        listenable: _callService,
+        builder: (context, _) {
+          if (_callService.hasActiveCallToReturn) {
+            // Show "Return to Call" button when there's an active call
+            return FloatingActionButton.extended(
+              onPressed: _returnToActiveCall,
+              icon: const Icon(Icons.phone, color: AppColors.white),
+              label: Text('Return to Call', style: AppTextStyles.buttonMedium.copyWith(color: AppColors.white)),
+              backgroundColor: AppColors.success,
+            );
+          } else {
+            // Show "Call History" button when no active call
+            return FloatingActionButton.extended(
+              onPressed: () {
+                Navigator.of(context).push(MaterialPageRoute(builder: (context) => const CallListScreen()));
+              },
+              icon: const Icon(Icons.history, color: AppColors.white),
+              label: Text('Call History', style: AppTextStyles.buttonMedium.copyWith(color: AppColors.white)),
+              backgroundColor: AppColors.primary,
+            );
+          }
         },
-        icon: const Icon(Icons.history, color: AppColors.white),
-        label: Text('Call History', style: AppTextStyles.buttonMedium.copyWith(color: AppColors.white)),
-        backgroundColor: AppColors.primary,
       ),
     );
   }
@@ -719,13 +761,29 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   Widget _buildChatScreen() {
     return Scaffold(
       body: AstrologersChatScreen(userApiService: _userApiService, onAstrologerTap: _navigateToAstrologerDetails, onStartChat: _startChatWithAstrologer),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.of(context).push(MaterialPageRoute(builder: (context) => const ChatListScreen()));
+      floatingActionButton: ListenableBuilder(
+        listenable: _callService,
+        builder: (context, _) {
+          if (_callService.hasActiveCallToReturn) {
+            // Show "Return to Call" button when there's an active call
+            return FloatingActionButton.extended(
+              onPressed: _returnToActiveCall,
+              icon: const Icon(Icons.phone, color: AppColors.white),
+              label: Text('Return to Call', style: AppTextStyles.buttonMedium.copyWith(color: AppColors.white)),
+              backgroundColor: AppColors.success,
+            );
+          } else {
+            // Show "My Chats" button when no active call
+            return FloatingActionButton.extended(
+              onPressed: () {
+                Navigator.of(context).push(MaterialPageRoute(builder: (context) => const ChatListScreen()));
+              },
+              icon: const Icon(Icons.chat_bubble_outline, color: AppColors.white),
+              label: Text('My Chats', style: AppTextStyles.buttonMedium.copyWith(color: AppColors.white)),
+              backgroundColor: AppColors.primary,
+            );
+          }
         },
-        icon: const Icon(Icons.chat_bubble_outline, color: AppColors.white),
-        label: Text('My Chats', style: AppTextStyles.buttonMedium.copyWith(color: AppColors.white)),
-        backgroundColor: AppColors.primary,
       ),
     );
   }
@@ -1073,18 +1131,30 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         );
       }
 
+      // Basic validation - user should always be available at this point
+      if (_currentUser == null) {
+        throw Exception('User not authenticated. Please log in again.');
+      }
+
       // Generate session ID for this call
       final sessionId = 'call-${DateTime.now().millisecondsSinceEpoch}';
 
-      // Initiate call via Socket.IO (no WebRTC initialization here)
+      // Debug log the caller information
+      debugPrint('📞 Initiating call with caller info:');
+      debugPrint('   - userId: ${_currentUser!.id}');
+      debugPrint('   - callerName: "${_currentUser!.name}"');
+      debugPrint('   - astrologerId: ${astrologer.id}');
+      
+      // Initiate call via Socket.IO only (WebRTC will be handled in ActiveCallScreen)
       _socketService.emit('initiate_call', {
         'callType': callType == CallType.video ? 'video' : 'voice', 
         'sessionId': sessionId, 
         'astrologerId': astrologer.id, 
-        'userId': _currentUser?.id
+        'userId': _currentUser!.id,
+        'callerName': _currentUser!.name,
+        'callerType': 'customer'
       });
 
-      // Navigate to active call screen immediately (let it handle WebRTC)
       debugPrint('📞 Call initiated with ${astrologer.fullName}, sessionId: $sessionId');
 
       if (mounted) {
@@ -1099,7 +1169,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                 'receiverName': astrologer.fullName,
                 'receiverProfileImage': astrologer.profileImage,
                 'callerId': _currentUser?.id,
-                'callerName': _currentUser?.fullName ?? _currentUser?.name ?? 'You', // Better fallback
+                'callerName': _currentUser?.name ?? 'You', // Better fallback
                 'astrologer': astrologer.toJson(), // Pass full astrologer data
               },
               isIncoming: false,
@@ -1119,6 +1189,20 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           ),
         );
       }
+    }
+  }
+
+  void _returnToActiveCall() {
+    final activeCallData = _callService.activeCallData;
+    if (activeCallData != null && mounted) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => ActiveCallScreen(
+            callData: activeCallData,
+            isIncoming: false,
+          ),
+        ),
+      );
     }
   }
 
