@@ -1400,16 +1400,19 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
           ),
           actions: [
             TextButton(
-              onPressed: () async {
+              onPressed: () {
+                debugPrint('💰 Customer tapped OK on billing dialog');
                 Navigator.of(context).pop(); // Close dialog
                 
-                // Small delay to ensure dialog is fully closed before navigation
-                await Future.delayed(const Duration(milliseconds: 100));
-                
-                // Navigate to astrologer details screen for reviews/ratings
-                if (mounted) {
-                  _navigateToAstrologerDetails();
-                }
+                // Use WidgetsBinding to ensure navigation happens after dialog is closed
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    debugPrint('💰 Post-frame: Attempting navigation...');
+                    _navigateToAstrologerDetailsImmediate();
+                  } else {
+                    debugPrint('❌ Post-frame: Widget not mounted, cannot navigate');
+                  }
+                });
               },
               style: TextButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -1680,6 +1683,43 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     }
   }
 
+  /// Navigate to astrologer details screen immediately (for post-frame callback)
+  void _navigateToAstrologerDetailsImmediate() {
+    if (!mounted) {
+      debugPrint('❌ Widget not mounted, cannot navigate');
+      return;
+    }
+    
+    try {
+      debugPrint('🔄 Immediate navigation to astrologer details...');
+      
+      final astrologerData = widget.callData['astrologer'];
+      if (astrologerData == null) {
+        debugPrint('❌ No astrologer data found for navigation');
+        // Navigate back to home instead
+        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+        return;
+      }
+      
+      final astrologer = Astrologer.fromJson(astrologerData);
+      debugPrint('✅ Astrologer data found: ${astrologer.fullName}');
+      
+      // Simple navigation - pop current screen and push astrologer details
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => AstrologerDetailsScreen(
+            astrologer: astrologer,
+          ),
+        ),
+      );
+      
+    } catch (e) {
+      debugPrint('❌ Failed immediate navigation: $e');
+      // Fallback - go to home
+      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+    }
+  }
+
   /// Navigate to astrologer details screen for reviews/ratings
   void _navigateToAstrologerDetails() {
     if (!mounted) {
@@ -1701,18 +1741,23 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
       final astrologer = Astrologer.fromJson(astrologerData);
       debugPrint('✅ Astrologer data found: ${astrologer.fullName}');
       
-      // Replace current screen with astrologer details screen
-      Navigator.of(context).pushReplacement(
+      // Navigate to astrologer details screen
+      // Use pushAndRemoveUntil to clear the call screen from stack
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
           builder: (context) => AstrologerDetailsScreen(
             astrologer: astrologer,
           ),
         ),
+        (route) => route.settings.name == '/home' || route.isFirst,
       ).then((_) {
         debugPrint('✅ Navigation to astrologer details completed');
       }).catchError((error) {
         debugPrint('❌ Navigation error: $error');
-        _safeNavigateBack();
+        // If navigation fails, try simple pop
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
       });
       
     } catch (e) {
