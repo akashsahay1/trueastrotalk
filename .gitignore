@@ -18,6 +18,9 @@ desktop.ini
 *~
 .project
 .metadata
+
+# Claude Code settings
+.claude/
 .settings/
 *.sublime-project
 *.sublime-workspace
