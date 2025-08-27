@@ -1062,67 +1062,29 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         return;
       }
 
-      // Show loading overlay that can handle blocking operations
-      bool isShowingLoader = true;
-      
-      // Show loading overlay
+      // Show brief loading message
       if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return WillPopScope(
-              onWillPop: () async => false,
-              child: Material(
-                type: MaterialType.transparency,
-                child: Container(
-                  color: Colors.black54,
-                  child: Center(
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const CircularProgressIndicator(),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Starting ${callType == CallType.video ? 'video' : 'voice'} call...',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Please allow camera and microphone access',
-                              style: TextStyle(fontSize: 12, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Connecting to ${astrologer.fullName}...'),
+            backgroundColor: AppColors.info,
+            duration: const Duration(seconds: 1),
+          ),
         );
-      }
-
-      // Initialize WebRTC
-      await _webrtcService.initialize();
-      
-      // Hide loading overlay
-      if (mounted && isShowingLoader) {
-        Navigator.of(context).pop();
-        isShowingLoader = false;
       }
 
       // Generate session ID for this call
       final sessionId = 'call-${DateTime.now().millisecondsSinceEpoch}';
 
-      // Initiate call via Socket.IO
-      _socketService.emit('initiate_call', {'callType': callType == CallType.video ? 'video' : 'voice', 'sessionId': sessionId, 'astrologerId': astrologer.id, 'userId': _currentUser?.id});
+      // Initiate call via Socket.IO (no WebRTC initialization here)
+      _socketService.emit('initiate_call', {
+        'callType': callType == CallType.video ? 'video' : 'voice', 
+        'sessionId': sessionId, 
+        'astrologerId': astrologer.id, 
+        'userId': _currentUser?.id
+      });
 
-      // Navigate to active call screen
+      // Navigate to active call screen immediately (let it handle WebRTC)
       debugPrint('📞 Call initiated with ${astrologer.fullName}, sessionId: $sessionId');
 
       if (mounted) {
@@ -1137,7 +1099,8 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                 'receiverName': astrologer.fullName,
                 'receiverProfileImage': astrologer.profileImage,
                 'callerId': _currentUser?.id,
-                'callerName': _currentUser?.name,
+                'callerName': _currentUser?.fullName ?? _currentUser?.name ?? 'You', // Better fallback
+                'astrologer': astrologer.toJson(), // Pass full astrologer data
               },
               isIncoming: false,
             ),
@@ -1147,12 +1110,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     } catch (e) {
       debugPrint('❌ Failed to start call: $e');
       
-      // Hide loading overlay if still showing
       if (mounted) {
-        try {
-          Navigator.of(context).pop(); // Remove loading dialog
-        } catch (_) {} // Ignore if dialog already closed
-        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to start call: ${e.toString().replaceAll('Exception: ', '')}'), 
