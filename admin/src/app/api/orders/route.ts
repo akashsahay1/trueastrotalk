@@ -3,6 +3,45 @@ import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../lib/database';
 import '../../../lib/security';
 
+// Helper function to resolve media URL from media collection
+async function resolveMediaUrl(request: NextRequest, mediaId: string | ObjectId | null | undefined): Promise<string | null> {
+  if (!mediaId) return null;
+  
+  try {
+    const mediaCollection = await DatabaseService.getCollection('media');
+    let mediaFile;
+    
+    // Check if it's our custom media ID format (media_timestamp_random)
+    if (typeof mediaId === 'string' && mediaId.startsWith('media_')) {
+      mediaFile = await mediaCollection.findOne({ media_id: mediaId });
+    } else if (typeof mediaId === 'string' && mediaId.length === 24) {
+      // Try as ObjectId for backward compatibility
+      try {
+        mediaFile = await mediaCollection.findOne({ _id: new ObjectId(mediaId) });
+        // If not found by _id, try by media_id
+        if (!mediaFile) {
+          mediaFile = await mediaCollection.findOne({ media_id: mediaId });
+        }
+      } catch {
+        // If ObjectId conversion fails, try as media_id
+        mediaFile = await mediaCollection.findOne({ media_id: mediaId });
+      }
+    } else if (mediaId instanceof ObjectId) {
+      mediaFile = await mediaCollection.findOne({ _id: mediaId });
+    }
+
+    if (mediaFile && mediaFile.url) {
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://trueastrotalk.com';
+      return `${baseUrl}${mediaFile.url}`;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error resolving media URL:', error);
+    return null;
+  }
+}
+
 // Generate secure order number
 function generateOrderNumber(): string {
   const timestamp = Date.now().toString();
@@ -153,13 +192,24 @@ export async function POST(request: NextRequest) {
       const itemTotal = Number(product.price) * Number(item.quantity);
       subtotal += itemTotal;
 
+      // Resolve product image from image_id (media_id)
+      let imageUrl = null;
+      if (product.image_id) {
+        imageUrl = await resolveMediaUrl(request, product.image_id);
+        console.log(`🖼️ Order creation: Product ${product.name} image resolved: ${product.image_id} -> ${imageUrl}`);
+      } else {
+        console.log(`🖼️ Order creation: Product ${product.name} has no image_id`);
+      }
+
       validatedItems.push({
         product_id: item.product_id,
         product_name: product.name,
-        product_image: product.image_url,
-        price: Number(product.price),
+        product_image: imageUrl, // Use resolved media URL
+        product_price: Number(product.price), // Frontend expects product_price
+        price: Number(product.price), // Keep price for compatibility
         quantity: Number(item.quantity),
-        total: itemTotal,
+        total_price: itemTotal, // Frontend expects total_price
+        total: itemTotal, // Keep total for compatibility
         category: product.category
       });
     }
@@ -218,16 +268,22 @@ export async function POST(request: NextRequest) {
     await cartCollection.deleteMany({ user_id: user_id });
 
 
+    // Return the complete order object for the frontend
+    const completeOrder = {
+      _id: orderId,
+      ...orderData,
+      // Convert Date objects to ISO strings for frontend compatibility
+      created_at: (orderData.created_at as Date).toISOString(),
+      updated_at: (orderData.updated_at as Date).toISOString(),
+      shipped_at: orderData.shipped_at ? (orderData.shipped_at as Date).toISOString() : null,
+      delivered_at: orderData.delivered_at ? (orderData.delivered_at as Date).toISOString() : null
+    };
+
     return NextResponse.json({
       success: true,
       message: 'Order created successfully',
-      order: {
-        order_id: orderId,
-        order_number: orderData.order_number,
-        total_amount: orderData.total_amount,
-        status: orderData.status,
-        payment_status: orderData.payment_status
-      }
+      order: completeOrder,
+      order_id: orderId
     }, { status: 201 });
 
   } catch(error) {

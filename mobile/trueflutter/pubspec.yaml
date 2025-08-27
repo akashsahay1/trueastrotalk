@@ -76,6 +76,9 @@ dependencies:
   cached_network_image: ^3.3.0
   image_picker: ^0.8.9
   # file_picker: ^6.1.1  # Will add later when needed
+  
+  # Animations
+  confetti: ^0.7.0
 
   # Permissions & Device
   permission_handler: ^12.0.1

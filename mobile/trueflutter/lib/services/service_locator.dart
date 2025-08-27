@@ -77,7 +77,7 @@ void setupServiceLocator() {
 
   // Register Cart service
   getIt.registerSingleton<CartService>(
-    CartService(getIt<LocalStorageService>(), getIt<CartApiService>()),
+    CartService(getIt<LocalStorageService>(), getIt<CartApiService>(), getIt<ProductsApiService>()),
   );
 
   // Register Razorpay service

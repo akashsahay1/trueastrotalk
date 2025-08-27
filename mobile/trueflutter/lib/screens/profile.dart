@@ -1576,8 +1576,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Google Profile Photo', style: AppTextStyles.heading6),
-          content: Text('Your profile photo is managed by your Google account. To change it, please update your Google account profile picture.', style: AppTextStyles.bodyMedium),
+          backgroundColor: AppColors.white,
+          surfaceTintColor: AppColors.white,
+          title: Text(
+            'Google Profile Photo', 
+            style: AppTextStyles.heading6.copyWith(color: AppColors.textPrimaryLight),
+          ),
+          content: Text(
+            'Your profile photo is managed by your Google account. To change it, please update your Google account profile picture.', 
+            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),

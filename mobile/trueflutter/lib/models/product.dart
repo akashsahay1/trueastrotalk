@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class Product {
   final String id;
   final String name;
@@ -86,7 +88,18 @@ class Product {
   
   // Handle server image URLs - return as-is for now
   String? get fixedImageUrl {
-    if (imageUrl == null || imageUrl!.isEmpty) return null;
+    if (imageUrl == null || imageUrl!.isEmpty) {
+      debugPrint('🖼️ Product $name: imageUrl is null or empty');
+      debugPrint('🖼️ Product $name: images array = $images');
+      // Try to use first image from images array if available
+      if (images.isNotEmpty) {
+        debugPrint('🖼️ Product $name: Using first image from array: ${images.first}');
+        return images.first;
+      }
+      return null;
+    }
+    
+    debugPrint('🖼️ Product $name: imageUrl = $imageUrl');
     
     // Return the image URL as-is - let the server handle the correct URLs
     return imageUrl;

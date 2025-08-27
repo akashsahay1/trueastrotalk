@@ -421,13 +421,22 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                 right: 8,
                 top: 8,
                 child: Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(color: AppColors.error, borderRadius: BorderRadius.circular(10)),
-                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                  child: Text(
-                    '${_cartService.totalItems}',
-                    style: const TextStyle(color: AppColors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: AppColors.error,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${_cartService.totalItems}',
+                      style: const TextStyle(
+                        color: AppColors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
               ),
@@ -555,8 +564,8 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFF6B46C1),
-            const Color(0xFF9333EA),
+            AppColors.primary,
+            AppColors.primary.withValues(alpha: 0.8),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -564,7 +573,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(Dimensions.radiusLg),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF6B46C1).withValues(alpha: 0.3),
+            color: AppColors.primary.withValues(alpha: 0.3),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -634,9 +643,10 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       margin: const EdgeInsets.all(Dimensions.paddingLg),
       padding: const EdgeInsets.all(Dimensions.paddingLg),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-        borderRadius: BorderRadius.circular(Dimensions.radiusLg),
-        boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 5))],
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200, width: 1),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -647,18 +657,18 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Wallet Balance', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.white.withValues(alpha: 0.8))),
+                  Text('Wallet Balance', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight)),
                   const SizedBox(height: Dimensions.spacingSm),
                   Text(
                     _isLoadingWallet ? 'Loading...' : '₹${_walletBalance.toStringAsFixed(2)}',
-                    style: AppTextStyles.heading3.copyWith(color: AppColors.white, fontWeight: FontWeight.bold),
+                    style: AppTextStyles.heading3.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
               Container(
                 padding: const EdgeInsets.all(Dimensions.paddingMd),
-                decoration: BoxDecoration(color: AppColors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
-                child: const Icon(Icons.account_balance_wallet, color: AppColors.white, size: 28),
+                decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), shape: BoxShape.circle),
+                child: Icon(Icons.account_balance_wallet, color: AppColors.primary, size: 28),
               ),
             ],
           ),
@@ -667,11 +677,11 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _openWalletRecharge,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Recharge Wallet'),
+              icon: const Icon(Icons.account_balance_wallet, size: 18),
+              label: const Text('View Wallet'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.white,
-                foregroundColor: AppColors.primary,
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Dimensions.radiusMd)),
               ),
@@ -1311,16 +1321,38 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     return showDialog<CallType>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Select Call Type'),
-        content: const Text('Choose the type of call you want to make:'),
+        backgroundColor: AppColors.white,
+        surfaceTintColor: AppColors.white,
+        title: Text(
+          'Select Call Type',
+          style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimaryLight),
+        ),
+        content: Text(
+          'Choose the type of call you want to make:',
+          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(CallType.voice),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.phone), const SizedBox(width: 8), const Text('Voice Call')]),
+            child: Row(
+              mainAxisSize: MainAxisSize.min, 
+              children: [
+                Icon(Icons.phone, color: AppColors.primary), 
+                const SizedBox(width: 8), 
+                Text('Voice Call', style: TextStyle(color: AppColors.primary)),
+              ],
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(CallType.video),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.videocam), const SizedBox(width: 8), const Text('Video Call')]),
+            child: Row(
+              mainAxisSize: MainAxisSize.min, 
+              children: [
+                Icon(Icons.videocam, color: AppColors.primary), 
+                const SizedBox(width: 8), 
+                Text('Video Call', style: TextStyle(color: AppColors.primary)),
+              ],
+            ),
           ),
         ],
       ),

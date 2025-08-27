@@ -6,6 +6,7 @@ import '../models/cart.dart';
 import '../services/cart_service.dart';
 import '../services/service_locator.dart';
 import 'products_list.dart';
+import 'checkout_screen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -24,6 +25,18 @@ class _CartScreenState extends State<CartScreen> {
     _cartService = getIt<CartService>();
     // Listen to cart changes
     _cartService.addListener(_onCartChanged);
+    
+    // Debug existing cart items
+    debugPrint('🛒 Current cart items:');
+    for (final item in _cartService.items) {
+      debugPrint('🛒 Item: ${item.productName}, image: ${item.productImage}');
+      if (item.productImage == null || item.productImage!.isEmpty) {
+        debugPrint('🛒 ⚠️ Cart item ${item.productName} has no image URL!');
+      }
+    }
+    
+    // Show option to clear cart if items have missing images
+    _checkForMissingImages();
   }
 
   @override
@@ -65,12 +78,23 @@ class _CartScreenState extends State<CartScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Remove Item'),
-        content: const Text('Are you sure you want to remove this item from your cart?'),
+        backgroundColor: AppColors.white,
+        surfaceTintColor: AppColors.white,
+        title: Text(
+          'Remove Item',
+          style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimaryLight),
+        ),
+        content: Text(
+          'Are you sure you want to remove this item from your cart?',
+          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondaryLight),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -108,12 +132,23 @@ class _CartScreenState extends State<CartScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Clear Cart'),
-        content: const Text('Are you sure you want to remove all items from your cart?'),
+        backgroundColor: AppColors.white,
+        surfaceTintColor: AppColors.white,
+        title: Text(
+          'Clear Cart',
+          style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimaryLight),
+        ),
+        content: Text(
+          'Are you sure you want to remove all items from your cart?',
+          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondaryLight),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -160,13 +195,11 @@ class _CartScreenState extends State<CartScreen> {
       return;
     }
 
-    Navigator.pushNamed(
+    Navigator.push(
       context,
-      '/checkout',
-      arguments: {
-        'cart': _cartService.cart,
-        'source': 'cart',
-      },
+      MaterialPageRoute(
+        builder: (context) => CheckoutScreen(cart: _cartService.cart),
+      ),
     );
   }
 
@@ -261,79 +294,136 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Widget _buildCartItemCard(CartItem item) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Dimensions.radiusMd)),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(Dimensions.paddingMd),
-        child: Row(
+        padding: const EdgeInsets.all(16),
+        child: Column(
           children: [
-            // Product Image
-            ClipRRect(
-              borderRadius: BorderRadius.circular(Dimensions.radiusSm),
-              child: Container(
-                width: 80,
-                height: 80,
-                color: AppColors.grey100,
-                child: _buildProductImage(item),
-              ),
-            ),
-            const SizedBox(width: Dimensions.spacingMd),
-            
-            // Product Details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.productName,
-                    style: AppTextStyles.bodyLarge.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimaryLight,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Product Image
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: AppColors.grey100,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                    child: _buildProductImage(item),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    item.category,
-                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryLight),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                ),
+                const SizedBox(width: 16),
+                
+                // Product Details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Row(
                         children: [
-                          Text(
-                            item.formattedUnitPrice,
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: AppColors.grey600,
+                          Expanded(
+                            child: Text(
+                              item.productName,
+                              style: AppTextStyles.bodyLarge.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimaryLight,
+                                fontSize: 16,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          Text(
-                            item.formattedTotalPrice,
-                            style: AppTextStyles.bodyLarge.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.error.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: InkWell(
+                              onTap: () => _removeFromCart(item.productId),
+                              child: Icon(
+                                Icons.delete_outline,
+                                color: AppColors.error,
+                                size: 20,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                      // Quantity Controls
-                      _buildQuantityControls(item),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          item.category,
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.primary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        item.formattedUnitPrice,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.grey600,
+                          fontSize: 13,
+                        ),
+                      ),
                     ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            
-            // Remove Button
-            IconButton(
-              onPressed: () => _removeFromCart(item.productId),
-              icon: const Icon(Icons.delete_outline, color: AppColors.error),
-              tooltip: 'Remove from cart',
+            const SizedBox(height: 16),
+            // Bottom section with quantity controls and total price
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Quantity Controls
+                _buildQuantityControls(item),
+                // Total Price
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Total',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.grey600,
+                        fontSize: 12,
+                      ),
+                    ),
+                    Text(
+                      item.formattedTotalPrice,
+                      style: AppTextStyles.heading6.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),
@@ -342,23 +432,33 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Widget _buildProductImage(CartItem item) {
-    if (item.productImage?.isNotEmpty == true) {
-      return Image.network(
-        item.productImage!,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return _buildPlaceholderImage();
-        },
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return const Center(
-            child: CircularProgressIndicator(strokeWidth: 2),
-          );
-        },
-      );
+    debugPrint('🖼️ Cart image URL: ${item.productImage}');
+    
+    // If cart item doesn't have an image, show placeholder
+    if (item.productImage == null || item.productImage!.isEmpty) {
+      debugPrint('🖼️ No image URL for cart item ${item.productName}, showing placeholder');
+      return _buildPlaceholderImage();
     }
     
-    return _buildPlaceholderImage();
+    return Image.network(
+      item.productImage!,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        debugPrint('❌ Failed to load cart image: $error for URL: ${item.productImage}');
+        return _buildPlaceholderImage();
+      },
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Center(
+          child: CircularProgressIndicator(
+            value: loadingProgress.expectedTotalBytes != null 
+                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes! 
+                : null,
+            strokeWidth: 2,
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildPlaceholderImage() {
@@ -370,38 +470,44 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
+  void _checkForMissingImages() {
+    // No longer needed - CartService now automatically enriches items with missing images
+    // This method can be removed in future cleanup
+    debugPrint('🛒 Cart items will be automatically enriched with missing data by CartService');
+  }
+
+
   Widget _buildQuantityControls(CartItem item) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildQuantityButton(
-          icon: Icons.remove,
-          onPressed: item.quantity > 1 
-              ? () => _updateQuantity(item.productId, item.quantity - 1)
-              : null,
-        ),
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: Dimensions.spacingSm),
-          padding: const EdgeInsets.symmetric(
-            horizontal: Dimensions.paddingSm,
-            vertical: 4,
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.borderLight),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildQuantityButton(
+            icon: Icons.remove,
+            onPressed: item.quantity > 1 
+                ? () => _updateQuantity(item.productId, item.quantity - 1)
+                : null,
           ),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.borderLight),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(
-            item.quantity.toString(),
-            style: AppTextStyles.bodyMedium.copyWith(
-              fontWeight: FontWeight.w600,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              item.quantity.toString(),
+              style: AppTextStyles.bodyMedium.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
             ),
           ),
-        ),
-        _buildQuantityButton(
-          icon: Icons.add,
-          onPressed: () => _updateQuantity(item.productId, item.quantity + 1),
-        ),
-      ],
+          _buildQuantityButton(
+            icon: Icons.add,
+            onPressed: () => _updateQuantity(item.productId, item.quantity + 1),
+          ),
+        ],
+      ),
     );
   }
 
@@ -409,20 +515,24 @@ class _CartScreenState extends State<CartScreen> {
     required IconData icon,
     required VoidCallback? onPressed,
   }) {
-    return SizedBox(
-      width: 32,
-      height: 32,
-      child: ElevatedButton(
-        onPressed: _isUpdating ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: onPressed != null ? AppColors.primary : AppColors.grey300,
-          foregroundColor: AppColors.white,
-          padding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _isUpdating ? null : onPressed,
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: onPressed != null ? Colors.transparent : AppColors.grey100,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Icon(
+            icon,
+            size: 18,
+            color: onPressed != null ? AppColors.primary : AppColors.grey400,
           ),
         ),
-        child: Icon(icon, size: 16),
       ),
     );
   }

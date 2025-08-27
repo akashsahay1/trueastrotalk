@@ -42,13 +42,16 @@ class RazorpayService {
     required String orderId,
     required String userEmail,
     required String userContact,
+    String? customerName,
+    String? description,
   }) {
     return PaymentConfig.instance.getRazorpayOptions(
       amount: amount,
       orderId: orderId,
-      customerName: 'Customer', // You can pass actual name if needed
+      customerName: customerName ?? 'Customer',
       customerEmail: userEmail,
       customerPhone: userContact,
+      description: description,
     );
   }
 

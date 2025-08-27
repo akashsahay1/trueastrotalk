@@ -2,6 +2,47 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../../lib/database';
 
+// Helper function to resolve media ID to full URL
+async function resolveMediaUrl(request: NextRequest, mediaId: string | ObjectId | null | undefined): Promise<string | null> {
+  if (!mediaId) return null;
+  
+  try {
+    const mediaCollection = await DatabaseService.getCollection('media');
+    let mediaFile;
+    
+    // Check if it's our custom media ID format (media_timestamp_random)
+    if (typeof mediaId === 'string' && mediaId.startsWith('media_')) {
+      mediaFile = await mediaCollection.findOne({ media_id: mediaId });
+    } else if (typeof mediaId === 'string' && mediaId.length === 24) {
+      // Try as ObjectId for backward compatibility
+      try {
+        mediaFile = await mediaCollection.findOne({ _id: new ObjectId(mediaId) });
+        // If not found by _id, try by media_id
+        if (!mediaFile) {
+          mediaFile = await mediaCollection.findOne({ media_id: mediaId });
+        }
+      } catch {
+        // If ObjectId conversion fails, try as media_id
+        mediaFile = await mediaCollection.findOne({ media_id: mediaId });
+      }
+    } else if (mediaId instanceof ObjectId) {
+      mediaFile = await mediaCollection.findOne({ _id: mediaId });
+    }
+    
+    if (!mediaFile || !mediaFile.file_path) return null;
+    
+    // Get the actual host from the request headers
+    const host = request.headers.get('host') || 'www.trueastrotalk.com';
+    const protocol = request.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
+    const baseUrl = `${protocol}://${host}`;
+    
+    return `${baseUrl}${mediaFile.file_path}`;
+  } catch (error) {
+    console.error('Error resolving media URL:', error);
+    return null;
+  }
+}
+
 // GET - Get single product details
 export async function GET(
   request: NextRequest,
@@ -53,6 +94,42 @@ export async function GET(
       .limit(6)
       .toArray();
 
+    // Resolve featured image from image_id (media_id)
+    let imageUrl = null;
+    if (product.image_id) {
+      imageUrl = await resolveMediaUrl(request, product.image_id);
+    }
+    
+    // Resolve gallery images from images array (array of media_ids)
+    const resolvedImages = [];
+    if (product.images && Array.isArray(product.images)) {
+      for (const mediaId of product.images) {
+        const url = await resolveMediaUrl(request, mediaId);
+        if (url) resolvedImages.push(url);
+      }
+    }
+
+    // Resolve related products images
+    const resolvedRelatedProducts = await Promise.all(
+      relatedProducts.map(async related => {
+        let relatedImageUrl = null;
+        if (related.image_id) {
+          relatedImageUrl = await resolveMediaUrl(request, related.image_id);
+        }
+        
+        return {
+          _id: related._id.toString(),
+          name: related.name,
+          price: related.price,
+          original_price: related.original_price,
+          discount_percentage: related.discount_percentage,
+          featured_image: relatedImageUrl,
+          rating: related.rating || 0,
+          review_count: related.review_count || 0
+        };
+      })
+    );
+
     // Format product for response
     const formattedProduct = {
       _id: product._id.toString(),
@@ -64,7 +141,9 @@ export async function GET(
       category: product.category,
       subcategory: product.subcategory,
       brand: product.brand,
-      images: product.images || [],
+      featured_image: imageUrl, // Resolved featured image URL
+      gallery_images: resolvedImages, // Resolved gallery image URLs
+      images: resolvedImages, // Keep backward compatibility
       stock_quantity: product.stock_quantity,
       sku: product.sku,
       weight: product.weight,
@@ -84,16 +163,7 @@ export async function GET(
         comment: review.comment,
         created_at: review.created_at
       })),
-      related_products: relatedProducts.map(related => ({
-        _id: related._id.toString(),
-        name: related.name,
-        price: related.price,
-        original_price: related.original_price,
-        discount_percentage: related.discount_percentage,
-        images: Array.isArray(related.images) ? related.images.slice(0, 1) : [],
-        rating: related.rating || 0,
-        review_count: related.review_count || 0
-      }))
+      related_products: resolvedRelatedProducts
     };
 
     return NextResponse.json({
@@ -226,7 +296,7 @@ export async function PUT(
 
 // DELETE - Delete specific product
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {

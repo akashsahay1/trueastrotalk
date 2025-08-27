@@ -9,6 +9,7 @@ import '../api/user_api_service.dart';
 import '../network/dio_client.dart';
 import '../local/local_storage_service.dart';
 import '../service_locator.dart';
+import '../../config/payment_config.dart';
 
 class AuthResult {
   final bool success;
@@ -551,6 +552,16 @@ class AuthService {
       debugPrint('🔐 Saved refresh token: ${refreshToken.length > 10 ? '${refreshToken.substring(0, 10)}...' : refreshToken}');
     }
     await _saveUserData(user);
+    
+    // Initialize PaymentConfig after successful login
+    try {
+      debugPrint('🔧 Initializing PaymentConfig...');
+      await PaymentConfig.instance.initialize();
+      debugPrint('✅ PaymentConfig initialized successfully');
+    } catch (e) {
+      debugPrint('⚠️ PaymentConfig initialization failed: $e');
+      // Don't throw error - payment config is not critical for basic app functionality
+    }
   }
 
   Future<void> _saveUserData(app_user.User user) async {
@@ -575,6 +586,10 @@ class AuthService {
     await _localStorage.removeAuthToken();
     await _localStorage.clearUserMap();
     await _clearGooglePhotoUrl();
+    
+    // Clear PaymentConfig credentials
+    PaymentConfig.instance.clearCredentials();
+    debugPrint('🔧 PaymentConfig credentials cleared');
   }
 
   bool get needsProfileCompletion {

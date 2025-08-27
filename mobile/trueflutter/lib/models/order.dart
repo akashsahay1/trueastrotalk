@@ -21,6 +21,7 @@ enum PaymentStatus {
 
 enum PaymentMethod {
   razorpay,
+  wallet,
   cod, // Cash on Delivery
 }
 
@@ -243,6 +244,8 @@ class Order {
     switch (method?.toLowerCase()) {
       case 'razorpay':
         return PaymentMethod.razorpay;
+      case 'wallet':
+        return PaymentMethod.wallet;
       case 'cod':
         return PaymentMethod.cod;
       default:
@@ -295,6 +298,8 @@ class Order {
     switch (paymentMethod) {
       case PaymentMethod.razorpay:
         return 'Online Payment';
+      case PaymentMethod.wallet:
+        return 'Wallet Payment';
       case PaymentMethod.cod:
         return 'Cash on Delivery';
     }

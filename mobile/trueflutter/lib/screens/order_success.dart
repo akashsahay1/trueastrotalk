@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:confetti/confetti.dart';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 import '../common/constants/dimensions.dart';
 import '../models/order.dart';
 
-class OrderSuccessScreen extends StatelessWidget {
+class OrderSuccessScreen extends StatefulWidget {
   final Order order;
 
   const OrderSuccessScreen({
@@ -13,42 +14,95 @@ class OrderSuccessScreen extends StatelessWidget {
   });
 
   @override
+  State<OrderSuccessScreen> createState() => _OrderSuccessScreenState();
+}
+
+class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
+  late ConfettiController _confettiController;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiController = ConfettiController(duration: const Duration(seconds: 2));
+    
+    // Start confetti animation after a short delay
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        _confettiController.play();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
         title: Text('Order Placed', style: AppTextStyles.heading4.copyWith(color: AppColors.white)),
-        backgroundColor: AppColors.success,
+        backgroundColor: AppColors.primary,
         elevation: 0,
         automaticallyImplyLeading: false,
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(Dimensions.paddingLg),
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      const SizedBox(height: Dimensions.spacingXl),
-                      _buildSuccessIcon(),
-                      const SizedBox(height: Dimensions.spacingLg),
-                      _buildSuccessMessage(),
-                      const SizedBox(height: Dimensions.spacingXl),
-                      _buildOrderSummaryCard(),
-                      const SizedBox(height: Dimensions.spacingLg),
-                      _buildDeliveryInfoCard(),
-                      const SizedBox(height: Dimensions.spacingLg),
-                      _buildPaymentInfoCard(),
-                    ],
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(Dimensions.paddingLg),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          const SizedBox(height: Dimensions.spacingXl),
+                          _buildSuccessIcon(),
+                          const SizedBox(height: Dimensions.spacingLg),
+                          _buildSuccessMessage(),
+                          const SizedBox(height: Dimensions.spacingXl),
+                          _buildOrderSummaryCard(),
+                          const SizedBox(height: Dimensions.spacingLg),
+                          _buildDeliveryInfoCard(),
+                          const SizedBox(height: Dimensions.spacingLg),
+                          _buildPaymentInfoCard(),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                  _buildActionButtons(context),
+                ],
               ),
-              _buildActionButtons(context),
-            ],
+            ),
           ),
-        ),
+          
+          // Confetti animation
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirection: 3.14159 / 2, // downwards
+              blastDirectionality: BlastDirectionality.explosive,
+              particleDrag: 0.05,
+              emissionFrequency: 0.05,
+              numberOfParticles: 50,
+              gravity: 0.05,
+              shouldLoop: false,
+              colors: const [
+                AppColors.primary,
+                AppColors.secondary,
+                AppColors.accent,
+                Colors.pink,
+                Colors.orange,
+                Colors.purple,
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -88,7 +142,7 @@ class OrderSuccessScreen extends StatelessWidget {
           ),
           textAlign: TextAlign.center,
         ),
-        if (order.orderNumber != null) ...[
+        if (widget.order.orderNumber != null) ...[
           const SizedBox(height: Dimensions.spacingMd),
           Container(
             padding: const EdgeInsets.symmetric(
@@ -100,7 +154,7 @@ class OrderSuccessScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(Dimensions.radiusSm),
             ),
             child: Text(
-              'Order #${order.orderNumber}',
+              'Order #${widget.order.orderNumber}',
               style: AppTextStyles.bodyLarge.copyWith(
                 color: AppColors.primary,
                 fontWeight: FontWeight.bold,
@@ -140,10 +194,10 @@ class OrderSuccessScreen extends StatelessWidget {
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: order.items.length,
+              itemCount: widget.order.items.length,
               separatorBuilder: (context, index) => const Divider(),
               itemBuilder: (context, index) {
-                final item = order.items[index];
+                final item = widget.order.items[index];
                 return Row(
                   children: [
                     ClipRRect(
@@ -156,13 +210,27 @@ class OrderSuccessScreen extends StatelessWidget {
                             ? Image.network(
                                 item.productImage!,
                                 fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => const Icon(
-                                  Icons.image,
-                                  size: 20,
-                                  color: AppColors.grey400,
-                                ),
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return const Center(
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  );
+                                },
+                                errorBuilder: (context, error, stackTrace) {
+                                  debugPrint('🖼️ Order Success: Failed to load image ${item.productImage}: $error');
+                                  return const Icon(
+                                    Icons.image,
+                                    size: 20,
+                                    color: AppColors.grey400,
+                                  );
+                                },
                               )
-                            : const Icon(Icons.image, size: 20, color: AppColors.grey400),
+                            : Builder(
+                                builder: (context) {
+                                  debugPrint('🖼️ Order Success: Product ${item.productName} has no image (${item.productImage})');
+                                  return const Icon(Icons.image, size: 20, color: AppColors.grey400);
+                                }
+                              ),
                       ),
                     ),
                     const SizedBox(width: Dimensions.spacingMd),
@@ -204,13 +272,13 @@ class OrderSuccessScreen extends StatelessWidget {
             const Divider(),
             
             // Price breakdown
-            _buildPriceRow('Subtotal', order.formattedSubtotal),
-            _buildPriceRow('Shipping', order.formattedShipping),
-            _buildPriceRow('Tax (GST)', order.formattedTax),
+            _buildPriceRow('Subtotal', widget.order.formattedSubtotal),
+            _buildPriceRow('Shipping', widget.order.formattedShipping),
+            _buildPriceRow('Tax (GST)', widget.order.formattedTax),
             
             const Divider(),
             
-            _buildPriceRow('Total', order.formattedTotal, isTotal: true),
+            _buildPriceRow('Total', widget.order.formattedTotal, isTotal: true),
           ],
         ),
       ),
@@ -241,10 +309,10 @@ class OrderSuccessScreen extends StatelessWidget {
             ),
             const SizedBox(height: Dimensions.spacingMd),
             
-            _buildInfoRow('Delivery Address', order.shippingAddress.shortAddress),
-            _buildInfoRow('Expected Delivery', order.formattedDeliveryDate),
-            if (order.trackingNumber != null)
-              _buildInfoRow('Tracking Number', order.trackingNumber!),
+            _buildInfoRow('Delivery Address', widget.order.shippingAddress.shortAddress),
+            _buildInfoRow('Expected Delivery', widget.order.formattedDeliveryDate),
+            if (widget.order.trackingNumber != null)
+              _buildInfoRow('Tracking Number', widget.order.trackingNumber!),
           ],
         ),
       ),
@@ -275,10 +343,10 @@ class OrderSuccessScreen extends StatelessWidget {
             ),
             const SizedBox(height: Dimensions.spacingMd),
             
-            _buildInfoRow('Payment Method', order.paymentMethodDisplayName),
-            _buildInfoRow('Payment Status', order.paymentStatusDisplayName),
-            if (order.paymentId != null)
-              _buildInfoRow('Payment ID', order.paymentId!),
+            _buildInfoRow('Payment Method', widget.order.paymentMethodDisplayName),
+            _buildInfoRow('Payment Status', widget.order.paymentStatusDisplayName),
+            if (widget.order.paymentId != null)
+              _buildInfoRow('Payment ID', widget.order.paymentId!),
           ],
         ),
       ),

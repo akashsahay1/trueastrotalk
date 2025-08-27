@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import '../../models/order.dart';
 import '../../models/address.dart';
 import 'endpoints.dart';
@@ -82,13 +83,23 @@ class OrdersApiService {
       );
 
       if (response.statusCode == 201 && response.data['success']) {
-        final Order order = Order.fromJson(response.data['order']);
-        return {
-          'success': true,
-          'order': order,
-          'order_id': response.data['order_id'],
-          'message': response.data['message'],
-        };
+        try {
+          final orderData = response.data['order'];
+          if (orderData == null) {
+            throw Exception('Order data is null in response');
+          }
+          final Order order = Order.fromJson(orderData);
+          return {
+            'success': true,
+            'order': order,
+            'order_id': response.data['order_id'],
+            'message': response.data['message'],
+          };
+        } catch (e) {
+          debugPrint('❌ Error parsing order response: $e');
+          debugPrint('❌ Response data: ${response.data}');
+          rethrow;
+        }
       } else {
         return {
           'success': false,

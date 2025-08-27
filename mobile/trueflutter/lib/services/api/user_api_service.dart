@@ -367,12 +367,14 @@ class UserApiService {
   }
 
   // Create Razorpay order
-  Future<Map<String, dynamic>> createRazorpayOrder(String token, {required double amount, String? currency, String? receipt}) async {
+  Future<Map<String, dynamic>> createRazorpayOrder(String token, {required double amount, String? currency, String? receipt, String? purpose, String? orderType}) async {
     try {
       final requestData = {
         'amount': amount,
         'currency': currency ?? 'INR',
         if (receipt != null) 'receipt': receipt,
+        'purpose': purpose ?? 'wallet_recharge',
+        'order_type': orderType ?? 'wallet',
       };
 
       final response = await _dio.post(

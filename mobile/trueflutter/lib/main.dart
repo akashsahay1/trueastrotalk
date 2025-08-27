@@ -11,6 +11,7 @@ import 'screens/welcome.dart';
 import 'screens/login.dart';
 import 'screens/signup.dart';
 import 'screens/home.dart';
+import 'screens/orders_list.dart';
 import 'services/service_locator.dart';
 import 'services/auth/auth_service.dart';
 import 'services/local/local_storage_service.dart';
@@ -106,6 +107,7 @@ class TrueAstrotalkApp extends StatelessWidget {
         '/astrologer/dashboard': (context) => const HomeScreen(),
         '/astrologer/pending': (context) => const Scaffold(body: Center(child: Text('Astrologer Account Pending Approval'))),
         '/forgot-password': (context) => const Scaffold(body: Center(child: Text('Forgot Password - Coming Soon'))),
+        '/orders': (context) => const OrdersListScreen(),
       },
 
       // Builder for global configurations

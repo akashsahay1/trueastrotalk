@@ -87,6 +87,7 @@ class PaymentConfig {
     required String customerName,
     required String customerEmail,
     required String customerPhone,
+    String? description,
   }) {
     if (_razorpayKeyId?.isEmpty ?? true) {
       throw Exception('Razorpay not configured. Call initialize() first.');
@@ -97,7 +98,7 @@ class PaymentConfig {
       'amount': (amount * 100).toInt(), // Amount in paise
       'name': 'TrueAstroTalk',
       'order_id': orderId,
-      'description': 'Wallet Recharge',
+      'description': description ?? 'Payment',
       'timeout': 300, // 5 minutes
       'prefill': {
         'contact': customerPhone,

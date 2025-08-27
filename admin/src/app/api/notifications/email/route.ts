@@ -1,23 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient } from 'mongodb';
-import nodemailer from 'nodemailer';
+import * as sgMail from '@sendgrid/mail';
 
 const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const DB_NAME = 'trueastrotalkDB';
 
-// Email configuration
-const EMAIL_CONFIG = {
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false, // true for 465, false for other ports
-  auth: {
-    user: process.env.SMTP_USER || 'noreply@trueastrotalk.com',
-    pass: process.env.SMTP_PASS || 'your-app-password'
-  }
-};
+// SendGrid configuration
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@trueastrotalk.com';
 
-// Create transporter
-const transporter = nodemailer.createTransport(EMAIL_CONFIG);
+// Initialize SendGrid
+if (SENDGRID_API_KEY) {
+  sgMail.setApiKey(SENDGRID_API_KEY);
+  console.log('✅ SendGrid initialized successfully');
+} else {
+  console.warn('⚠️ SENDGRID_API_KEY not configured - emails will fail');
+}
 
 // Email templates
 const getEmailTemplate = (type: string, data: Record<string, unknown>) => {
@@ -165,8 +163,9 @@ const getEmailTemplate = (type: string, data: Record<string, unknown>) => {
 
 // POST - Send email notification
 export async function POST(request: NextRequest) {
+  let body: any;
   try {
-    const body = await request.json();
+    body = await request.json();
     const { type, recipient_email, recipient_name, data } = body;
 
     if (!type || !recipient_email) {
@@ -183,15 +182,20 @@ export async function POST(request: NextRequest) {
       ...data
     });
 
-    // Send email
+    // Check if SendGrid is configured
+    if (!SENDGRID_API_KEY) {
+      throw new Error('SendGrid API key not configured');
+    }
+
+    // Send email via SendGrid
     const mailOptions = {
-      from: `"True AstroTalk" <${EMAIL_CONFIG.auth.user}>`,
+      from: `"True AstroTalk" <${FROM_EMAIL}>`,
       to: recipient_email,
       subject: emailContent.subject,
       html: emailContent.html
     };
 
-    const info = await transporter.sendMail(mailOptions);
+    const info = await sgMail.send(mailOptions);
 
     // Log email to database
     const client = new MongoClient(MONGODB_URL);
@@ -206,7 +210,7 @@ export async function POST(request: NextRequest) {
       recipient_name: recipient_name,
       subject: emailContent.subject,
       status: 'sent',
-      message_id: info.messageId,
+      message_id: Array.isArray(info) && info[0] ? info[0].headers?.['x-message-id'] || 'sendgrid-sent' : 'sendgrid-sent',
       data: data,
       sent_at: new Date()
     };
@@ -216,8 +220,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Email sent successfully',
-      message_id: info.messageId
+      message: 'Email sent successfully via SendGrid',
+      message_id: Array.isArray(info) && info[0] ? info[0].headers?.['x-message-id'] || 'sendgrid-sent' : 'sendgrid-sent'
     });
 
   } catch (error) {
@@ -231,15 +235,14 @@ export async function POST(request: NextRequest) {
       const db = client.db(DB_NAME);
       const emailLogsCollection = db.collection('email_logs');
 
-      const body = await request.json();
       const emailLog = {
-        type: body.type,
-        recipient_email: body.recipient_email,
-        recipient_name: body.recipient_name,
-        subject: `Failed: ${body.type}`,
+        type: body?.type || 'unknown',
+        recipient_email: body?.recipient_email || 'unknown',
+        recipient_name: body?.recipient_name || 'unknown',
+        subject: `Failed: ${body?.type || 'unknown'}`,
         status: 'failed',
         error: error instanceof Error ? error.message : 'Unknown error',
-        data: body.data,
+        data: body?.data || {},
         sent_at: new Date()
       };
 

@@ -4,19 +4,21 @@ import '../models/cart.dart';
 import '../models/product.dart';
 import 'local/local_storage_service.dart';
 import 'api/cart_api_service.dart';
+import 'api/products_api_service.dart';
 import 'auth/auth_service.dart';
 import 'service_locator.dart';
 
 class CartService extends ChangeNotifier {
   final LocalStorageService _localStorage;
   final CartApiService _cartApiService;
+  final ProductsApiService _productsApiService;
   static const String _cartKey = 'shopping_cart';
   
   Cart _cart = Cart.empty();
   bool _isLoading = false;
   String? _error;
   
-  CartService(this._localStorage, this._cartApiService);
+  CartService(this._localStorage, this._cartApiService, this._productsApiService);
   
   // Initialize cart - call this after LocalStorageService is initialized
   Future<void> initialize() async {
@@ -63,6 +65,28 @@ class CartService extends ChangeNotifier {
               // Items are already parsed CartItem objects
               cartItems = cartItemsData.cast<CartItem>();
               debugPrint('🛒 Using already parsed ${cartItems.length} cart items from API');
+              
+              // Check if any items are missing image data and enrich if needed
+              debugPrint('🛒 Checking items for image enrichment:');
+              for (int i = 0; i < cartItems.length; i++) {
+                final item = cartItems[i];
+                debugPrint('🛒   Pre-check Item ${i + 1}: ${item.productName} -> productImage: "${item.productImage}" (null: ${item.productImage == null}, empty: ${item.productImage?.isEmpty ?? false})');
+              }
+              
+              final itemsNeedingEnrichment = cartItems.where((item) => 
+                item.productImage == null || (item.productImage != null && item.productImage!.isEmpty)).toList();
+              
+              if (itemsNeedingEnrichment.isNotEmpty) {
+                debugPrint('🛒 Found ${itemsNeedingEnrichment.length} items needing image enrichment');
+                cartItems = await _enrichCartItemsWithProductData(cartItems);
+                debugPrint('🛒 After enrichment, verifying images:');
+                for (int i = 0; i < cartItems.length; i++) {
+                  final item = cartItems[i];
+                  debugPrint('🛒   Item ${i + 1}: ${item.productName} -> ${item.productImage ?? "NO IMAGE"}');
+                }
+              } else {
+                debugPrint('🛒 No items need image enrichment');
+              }
             } else {
               // Items are raw JSON, need to parse them
               debugPrint('🛒 Attempting to parse ${cartItemsData.length} items from raw JSON');
@@ -72,6 +96,9 @@ class CartService extends ChangeNotifier {
               }
               cartItems = cartItemsData.map((item) => CartItem.fromApiJson(item)).toList();
               debugPrint('🛒 Successfully parsed ${cartItems.length} cart items from raw JSON');
+              
+              // Enrich cart items with missing product data
+              cartItems = await _enrichCartItemsWithProductData(cartItems);
             }
           } else {
             debugPrint('🛒 No cart items found in API response');
@@ -161,7 +188,12 @@ class CartService extends ChangeNotifier {
           // Reload cart from API to get updated data
           debugPrint('🛒 API success, reloading cart...');
           await _loadCart();
+          
+          // Debug: Check if the added item has image
+          final addedItem = _cart.getItem(product.id);
           debugPrint('✅ Added ${product.name} (qty: $quantity) to cart via API');
+          debugPrint('🛒 Added item image URL: ${addedItem?.productImage}');
+          debugPrint('🛒 Original product image URL: ${product.fixedImageUrl}');
           debugPrint('🛒 After reload: Cart has ${_cart.items.length} items, total: ${_cart.totalItems}');
           return true;
         } else {
@@ -475,5 +507,45 @@ class CartService extends ChangeNotifier {
       _error = 'Failed to sync cart with server';
       return false;
     }
+  }
+
+  // Enrich cart items with missing product data (especially images)
+  Future<List<CartItem>> _enrichCartItemsWithProductData(List<CartItem> cartItems) async {
+    final enrichedItems = <CartItem>[];
+    
+    for (final item in cartItems) {
+      // If cart item already has image data, keep it as is
+      if (item.productImage != null && item.productImage!.isNotEmpty) {
+        enrichedItems.add(item);
+        continue;
+      }
+      
+      debugPrint('🛒 Enriching cart item ${item.productName} (ID: ${item.productId}) with product data');
+      
+      try {
+        // Fetch full product details
+        final result = await _productsApiService.getProduct(item.productId);
+        
+        if (result['success'] && result['product'] != null) {
+          final Product product = result['product'];
+          
+          // Create enriched cart item with product image
+          final enrichedItem = item.copyWith(
+            productImage: product.fixedImageUrl,
+          );
+          
+          debugPrint('🛒 ✅ Enriched ${item.productName} with image: ${product.fixedImageUrl}');
+          enrichedItems.add(enrichedItem);
+        } else {
+          debugPrint('🛒 ❌ Failed to fetch product data for ${item.productId}: ${result['error']}');
+          enrichedItems.add(item); // Keep original item
+        }
+      } catch (e) {
+        debugPrint('🛒 ❌ Error enriching cart item ${item.productId}: $e');
+        enrichedItems.add(item); // Keep original item
+      }
+    }
+    
+    return enrichedItems;
   }
 }
