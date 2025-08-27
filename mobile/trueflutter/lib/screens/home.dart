@@ -1114,20 +1114,56 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
         title: Row(
           children: [
             Icon(Icons.account_balance_wallet, color: AppColors.error),
             const SizedBox(width: 8),
-            const Text('Insufficient Balance'),
+            const Text(
+              'Insufficient Balance',
+              style: TextStyle(
+                color: Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
-        content: Text(message),
+        content: Text(
+          message,
+          style: TextStyle(
+            color: Colors.black87,
+            fontSize: 14,
+          ),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false), 
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: AppColors.white),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.add, size: 16), const SizedBox(width: 4), const Text('Recharge Wallet')]),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary, 
+              foregroundColor: AppColors.white,
+              elevation: 2,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min, 
+              children: [
+                const Icon(Icons.add, size: 16), 
+                const SizedBox(width: 4), 
+                const Text(
+                  'Recharge Wallet',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

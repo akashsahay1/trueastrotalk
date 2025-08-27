@@ -110,7 +110,8 @@
       "Bash(./test_scripts/run_automated_tests.sh:*)",
       "Bash(/Users/akashsahay/Library/Android/sdk/platform-tools/adb install -r -t ./build/app/outputs/flutter-apk/app-debug.apk)",
       "Bash(keytool:*)",
-      "Bash(./test_scripts/run_comprehensive_e2e.sh:*)"
+      "Bash(./test_scripts/run_comprehensive_e2e.sh:*)",
+      "Bash(__NEW_LINE__ - Set explicit background color to white for AlertDialog)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
