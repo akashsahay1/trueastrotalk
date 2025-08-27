@@ -34,7 +34,7 @@ class WalletService extends ChangeNotifier {
       }
 
       final response = await _userApiService.getWalletBalance(token);
-      _currentBalance = (response['balance'] ?? 0.0).toDouble();
+      _currentBalance = (response['wallet_balance'] ?? 0.0).toDouble();
     } catch (e) {
       debugPrint('❌ Failed to load wallet balance: $e');
       _currentBalance = 0.0;
