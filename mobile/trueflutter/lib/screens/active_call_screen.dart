@@ -207,19 +207,24 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
         );
       }
       
-      // Simulate connection establishment (in real implementation, this would be based on WebRTC events)
-      Future.delayed(const Duration(seconds: 2), () async {
+      // Listen to WebRTC connection state changes
+      _webrtcService.callStateStream.listen((callState) {
         if (mounted) {
           setState(() {
-            _isConnected = true;
-            _isConnecting = false;
+            _isConnecting = callState == CallState.connecting || callState == CallState.initiating || callState == CallState.ringing;
+            _isConnected = callState == CallState.connected;
           });
           
-          // Start network diagnostics monitoring
-          await _networkDiagnostics.startMonitoring(null); // Network monitoring without peer connection
+          // Start billing and monitoring when call is connected
+          if (callState == CallState.connected && !_billingService.isSessionActive) {
+            _startBilling();
+            _networkDiagnostics.startMonitoring(null);
+          }
           
-          // Start billing when call is connected
-          await _startBilling();
+          // Handle call end states
+          if (callState == CallState.ended || callState == CallState.failed || callState == CallState.rejected) {
+            _handleCallEnded('Call ${callState.name}');
+          }
         }
       });
       

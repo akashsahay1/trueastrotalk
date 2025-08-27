@@ -975,8 +975,17 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   }
 
   void _startChatWithAstrologer(Astrologer astrologer) async {
-    if (!astrologer.isOnline) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${astrologer.fullName} is currently offline'), backgroundColor: AppColors.error));
+    // Check if astrologer is online and available for chats
+    if (!astrologer.isOnline || !astrologer.isAvailable) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${astrologer.fullName} is currently ${!astrologer.isOnline ? 'offline' : 'unavailable'}. Please try again later.'),
+            backgroundColor: AppColors.warning,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
       return;
     }
 
@@ -1018,8 +1027,17 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   }
 
   void _startCallWithAstrologer(Astrologer astrologer) async {
-    if (!astrologer.isOnline) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${astrologer.fullName} is currently offline'), backgroundColor: AppColors.error));
+    // Check if astrologer is online and available for calls
+    if (!astrologer.isOnline || !astrologer.isAvailable) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${astrologer.fullName} is currently ${!astrologer.isOnline ? 'offline' : 'unavailable'}. Please try again later.'),
+            backgroundColor: AppColors.warning,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
       return;
     }
 

@@ -22,6 +22,11 @@ class SocketService extends ChangeNotifier {
   String? _currentChatSessionId;
   User? _currentUser;
   
+  // Activity tracking
+  Timer? _heartbeatTimer;
+  DateTime _lastActivity = DateTime.now();
+  static const int _heartbeatIntervalSeconds = 30; // Send heartbeat every 30 seconds
+  
   // Stream controllers for real-time data
   final StreamController<ChatMessage> _messageStreamController = 
       StreamController<ChatMessage>.broadcast();
@@ -101,6 +106,7 @@ class SocketService extends ChangeNotifier {
       _isConnected = true;
       _isConnecting = false;
       _connectionStreamController.add(true);
+      _startHeartbeat();
       notifyListeners();
     });
     
@@ -108,6 +114,7 @@ class SocketService extends ChangeNotifier {
       debugPrint('🔌 Socket disconnected');
       _isConnected = false;
       _isConnecting = false;
+      _stopHeartbeat();
       _connectionStreamController.add(false);
       notifyListeners();
     });
@@ -309,6 +316,7 @@ class SocketService extends ChangeNotifier {
   Future<void> disconnect() async {
     debugPrint('🔌 Disconnecting socket');
     
+    _stopHeartbeat();
     await leaveChatSession();
     
     _socket?.disconnect();
@@ -323,9 +331,39 @@ class SocketService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Start heartbeat to maintain connection and track activity
+  void _startHeartbeat() {
+    _stopHeartbeat(); // Stop any existing timer
+    
+    _heartbeatTimer = Timer.periodic(Duration(seconds: _heartbeatIntervalSeconds), (timer) {
+      if (_isConnected && _socket != null) {
+        _lastActivity = DateTime.now();
+        _socket!.emit('heartbeat', {
+          'timestamp': _lastActivity.millisecondsSinceEpoch,
+          'userId': _currentUser?.id,
+        });
+        debugPrint('💓 Heartbeat sent');
+      } else {
+        _stopHeartbeat();
+      }
+    });
+  }
+
+  /// Stop heartbeat timer
+  void _stopHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
+  }
+
+  /// Update activity timestamp (call this when user performs any action)
+  void updateActivity() {
+    _lastActivity = DateTime.now();
+  }
+
   /// Cleanup resources
   @override
   void dispose() {
+    _stopHeartbeat();
     disconnect();
     _messageStreamController.close();
     _sessionUpdateStreamController.close();
