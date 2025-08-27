@@ -1097,20 +1097,50 @@ Connect now on True AstroTalk! 🌟
     return showDialog<CallType>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Choose Call Type'),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        title: const Text(
+          'Choose Call Type',
+          style: TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
               leading: const Icon(Icons.call, color: AppColors.primary),
-              title: Text('Voice Call'),
-              subtitle: Text('₹${_astrologer!.callRate.toInt()}/min'),
+              title: const Text(
+                'Voice Call',
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              subtitle: Text(
+                '₹${_astrologer!.callRate.toInt()}/min',
+                style: TextStyle(
+                  color: Colors.grey[700],
+                ),
+              ),
               onTap: () => Navigator.pop(context, CallType.voice),
             ),
             ListTile(
               leading: const Icon(Icons.videocam, color: AppColors.primary),
-              title: Text('Video Call'),
-              subtitle: Text('₹${_astrologer!.videoRate.toInt()}/min'),
+              title: const Text(
+                'Video Call',
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              subtitle: Text(
+                '₹${_astrologer!.videoRate.toInt()}/min',
+                style: TextStyle(
+                  color: Colors.grey[700],
+                ),
+              ),
               onTap: () => Navigator.pop(context, CallType.video),
             ),
           ],
@@ -1118,7 +1148,10 @@ Connect now on True AstroTalk! 🌟
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
           ),
         ],
       ),
