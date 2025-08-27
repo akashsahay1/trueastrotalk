@@ -1064,11 +1064,33 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
 
       // Show loading indicator
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Starting ${callType == CallType.video ? 'video' : 'voice'} call with ${astrologer.fullName}...'), backgroundColor: AppColors.info));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Starting ${callType == CallType.video ? 'video' : 'voice'} call...'),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.info,
+          duration: const Duration(seconds: 10),
+        ));
       }
 
-      // Initialize WebRTC
-      await _webrtcService.initialize();
+      // Defer heavy WebRTC work to prevent UI freezing
+      await Future.microtask(() async {
+        // Initialize WebRTC first
+        await _webrtcService.initialize();
+      });
 
       // Generate session ID for this call
       final sessionId = 'call-${DateTime.now().millisecondsSinceEpoch}';
@@ -1101,7 +1123,14 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     } catch (e) {
       debugPrint('❌ Failed to start call: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to start call: $e'), backgroundColor: AppColors.error));
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to start call: ${e.toString().replaceAll('Exception: ', '')}'), 
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 3),
+          ),
+        );
       }
     }
   }
