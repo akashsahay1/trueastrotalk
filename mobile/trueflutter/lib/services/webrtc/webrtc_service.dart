@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../socket/socket_service.dart';
 import '../service_locator.dart';
 
@@ -442,6 +443,9 @@ class WebRTCService extends ChangeNotifier {
   /// Create local media stream
   Future<void> _createLocalStream() async {
     try {
+      // Request permissions first
+      await _requestMediaPermissions();
+      
       final mediaConstraints = <String, dynamic>{
         'audio': true,
         'video': _callType == CallType.video ? {
@@ -467,6 +471,30 @@ class WebRTCService extends ChangeNotifier {
     } catch (e) {
       debugPrint('❌ Failed to create local stream: $e');
       throw Exception('Failed to access camera/microphone: $e');
+    }
+  }
+
+  /// Request media permissions
+  Future<void> _requestMediaPermissions() async {
+    try {
+      // Always request microphone permission
+      final microphoneStatus = await Permission.microphone.request();
+      if (microphoneStatus != PermissionStatus.granted) {
+        throw Exception('Microphone permission denied');
+      }
+
+      // Request camera permission only for video calls
+      if (_callType == CallType.video) {
+        final cameraStatus = await Permission.camera.request();
+        if (cameraStatus != PermissionStatus.granted) {
+          throw Exception('Camera permission denied');
+        }
+      }
+
+      debugPrint('✅ Media permissions granted');
+    } catch (e) {
+      debugPrint('❌ Failed to request media permissions: $e');
+      rethrow;
     }
   }
 
