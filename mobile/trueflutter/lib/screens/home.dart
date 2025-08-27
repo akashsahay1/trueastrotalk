@@ -161,6 +161,24 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _onRefresh() async {
+    try {
+      // Reload user-specific data based on user type
+      if (_currentUser?.isAstrologer == true) {
+        await _loadAstrologerDashboard();
+      } else {
+        // Reload all customer data in parallel
+        await Future.wait([
+          _loadWalletBalance(),
+          _loadFeaturedAstrologers(),
+          _loadFeaturedProducts(),
+        ]);
+      }
+    } catch (e) {
+      debugPrint('❌ Error refreshing data: $e');
+    }
+  }
+
   Future<void> _loadUserData() async {
     try {
       _currentUser = _authService.currentUser;
@@ -323,7 +341,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 206, 206, 206),
-      body: SafeArea(child: _buildSelectedScreen()),
+      body: _buildSelectedScreen(),
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
@@ -346,21 +364,33 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHomeContent() {
-    return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 243, 245, 249),
-      appBar: _buildNewAppBar(),
-      drawer: _buildDrawer(),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildWalletBalanceCard(),
-            _buildFeaturedAstrologers(),
-            const SizedBox(height: Dimensions.spacingMd),
-            _buildFeaturedProducts(),
-            const SizedBox(height: Dimensions.spacingLg),
-            _buildHoroscopeSection(),
-            const SizedBox(height: Dimensions.spacingXl),
-          ],
+    return Container(
+      color: AppColors.primary,
+      child: SafeArea(
+        top: false,
+        child: Scaffold(
+          backgroundColor: const Color.fromARGB(255, 243, 245, 249),
+          appBar: _buildNewAppBar(),
+          drawer: _buildDrawer(),
+          body: RefreshIndicator(
+            onRefresh: _onRefresh,
+            color: AppColors.primary,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                children: [
+                  _buildWelcomeCard(),
+                  _buildWalletBalanceCard(),
+                  _buildFeaturedAstrologers(),
+                  const SizedBox(height: Dimensions.spacingMd),
+                  _buildFeaturedProducts(),
+                  const SizedBox(height: Dimensions.spacingLg),
+                  _buildHoroscopeSection(),
+                  const SizedBox(height: Dimensions.spacingXl),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -379,10 +409,6 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       title: Text('True Astrotalk', style: AppTextStyles.heading4.copyWith(color: AppColors.white)),
       centerTitle: false,
       actions: [
-        IconButton(
-          icon: const Icon(Icons.notifications_outlined, color: AppColors.white),
-          onPressed: _openNotifications,
-        ),
         // Cart icon with badge
         Stack(
           children: [
@@ -407,21 +433,11 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
               ),
           ],
         ),
-        Container(
-          margin: const EdgeInsets.only(right: 8),
-          child: TextButton.icon(
-            onPressed: _openWalletRecharge,
-            icon: const Icon(Icons.account_balance_wallet, color: AppColors.white, size: 18),
-            label: Text(
-              _isLoadingWallet ? '...' : '₹${_walletBalance.toStringAsFixed(0)}',
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.white, fontWeight: FontWeight.w600),
-            ),
-            style: TextButton.styleFrom(
-              backgroundColor: AppColors.white.withValues(alpha: 0.2),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            ),
-          ),
+        IconButton(
+          icon: const Icon(Icons.account_balance_wallet, color: AppColors.white),
+          onPressed: () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const WalletScreen()));
+          },
         ),
       ],
     );
@@ -527,6 +543,90 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildWelcomeCard() {
+    final greeting = _getGreeting();
+    final firstName = _currentUser?.name.split(' ').first ?? 'User';
+    
+    return Container(
+      margin: const EdgeInsets.fromLTRB(Dimensions.paddingLg, Dimensions.paddingLg, Dimensions.paddingLg, 0),
+      padding: const EdgeInsets.all(Dimensions.paddingLg),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF6B46C1),
+            const Color(0xFF9333EA),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(Dimensions.radiusLg),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6B46C1).withValues(alpha: 0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  greeting,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.white.withValues(alpha: 0.9),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Welcome back, $firstName!',
+                  style: AppTextStyles.heading5.copyWith(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Discover your destiny with expert astrologers',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.white.withValues(alpha: 0.8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.white.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.star,
+              color: AppColors.white,
+              size: 32,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good Morning';
+    } else if (hour < 17) {
+      return 'Good Afternoon';
+    } else {
+      return 'Good Evening';
+    }
   }
 
   Widget _buildWalletBalanceCard() {
@@ -1000,7 +1100,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   }
 
   void _openWalletRecharge() {
-    // Navigate to wallet recharge screen
+    Navigator.push(context, MaterialPageRoute(builder: (context) => const WalletScreen()));
   }
 
   void _openCart() {
@@ -1763,7 +1863,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(Dimensions.paddingLg),
                         decoration: BoxDecoration(color: (action['color'] as Color).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
                         child: Icon(action['icon'] as IconData, color: action['color'] as Color, size: 24),
                       ),

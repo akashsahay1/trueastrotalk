@@ -33,7 +33,7 @@ void main() async {
   // Initialize Firebase
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-    
+
     // Set background message handler
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   } catch (e) {
@@ -86,11 +86,9 @@ class TrueAstrotalkApp extends StatelessWidget {
       title: Config.appName,
       debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey, // Global navigator key for deep linking
-
       // Theme configuration
       theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.light,
 
       // Initial route - Check auth state
       home: const AuthWrapper(),
@@ -147,10 +145,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
       // Check if onboarding has been completed
       final prefs = await SharedPreferences.getInstance();
       final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
-      
+
       // Initialize auth service
       await _authService.initialize();
-      
+
       setState(() {
         _isOnboardingCompleted = onboardingCompleted;
         _isLoading = false;

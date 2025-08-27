@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../themes/app_colors.dart';
 import '../../models/astrologer.dart';
+import '../../models/enums.dart';
 
 class AstrologerCallCard extends StatelessWidget {
   final Astrologer astrologer;
@@ -63,7 +64,7 @@ class AstrologerCallCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Name with online status
+                        // Name with verification badge
                         Row(
                           children: [
                             Expanded(
@@ -74,16 +75,15 @@ class AstrologerCallCard extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            if (astrologer.isOnline)
+                            if (astrologer.verificationStatus == VerificationStatus.verified)
                               Container(
                                 margin: const EdgeInsets.only(left: 8),
                                 padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary,
+                                decoration: const BoxDecoration(
+                                  color: Colors.blue,
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: AppColors.white, width: 2),
                                 ),
-                                child: const Icon(Icons.check, color: AppColors.white, size: 12),
+                                child: const Icon(Icons.check, color: Colors.white, size: 12),
                               ),
                           ],
                         ),
