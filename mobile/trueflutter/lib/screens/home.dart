@@ -1062,35 +1062,59 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         return;
       }
 
-      // Show loading indicator
+      // Show loading overlay that can handle blocking operations
+      bool isShowingLoader = true;
+      
+      // Show loading overlay
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Row(
-            children: [
-              const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return WillPopScope(
+              onWillPop: () async => false,
+              child: Material(
+                type: MaterialType.transparency,
+                child: Container(
+                  color: Colors.black54,
+                  child: Center(
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const CircularProgressIndicator(),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Starting ${callType == CallType.video ? 'video' : 'voice'} call...',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Please allow camera and microphone access',
+                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text('Starting ${callType == CallType.video ? 'video' : 'voice'} call...'),
-              ),
-            ],
-          ),
-          backgroundColor: AppColors.info,
-          duration: const Duration(seconds: 10),
-        ));
+            );
+          },
+        );
       }
 
-      // Defer heavy WebRTC work to prevent UI freezing
-      await Future.microtask(() async {
-        // Initialize WebRTC first
-        await _webrtcService.initialize();
-      });
+      // Initialize WebRTC
+      await _webrtcService.initialize();
+      
+      // Hide loading overlay
+      if (mounted && isShowingLoader) {
+        Navigator.of(context).pop();
+        isShowingLoader = false;
+      }
 
       // Generate session ID for this call
       final sessionId = 'call-${DateTime.now().millisecondsSinceEpoch}';
@@ -1122,8 +1146,13 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       debugPrint('❌ Failed to start call: $e');
+      
+      // Hide loading overlay if still showing
       if (mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        try {
+          Navigator.of(context).pop(); // Remove loading dialog
+        } catch (_) {} // Ignore if dialog already closed
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to start call: ${e.toString().replaceAll('Exception: ', '')}'), 
