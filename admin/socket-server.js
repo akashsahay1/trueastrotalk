@@ -386,7 +386,7 @@ async function handleMarkMessagesRead(socket, data) {
 // WebRTC Call Management handlers
 async function handleInitiateCall(socket, data) {
   try {
-    const { callType = 'voice', sessionId, astrologerId, userId } = data;
+    const { callType = 'voice', sessionId, astrologerId, userId, callerName } = data;
     const callerId = socket.data.userId;
     const callerType = socket.data.userType;
     
@@ -394,10 +394,23 @@ async function handleInitiateCall(socket, data) {
     
     const { client, db } = await getDbConnection();
     
+    // Get caller name from database if not provided in data
+    let resolvedCallerName = callerName;
+    if (!resolvedCallerName || resolvedCallerName === 'Unknown') {
+      console.log('🔍 Resolving caller name from database...');
+      const callerCollection = callerType === 'astrologer' ? 'astrologers' : 'users';
+      const caller = await db.collection(callerCollection).findOne({ 
+        _id: new ObjectId(callerId) 
+      });
+      resolvedCallerName = caller?.full_name || caller?.name || 'Unknown Caller';
+      console.log(`📞 Resolved caller name: "${resolvedCallerName}"`);
+    }
+    
     // Create call session record
     const callSession = {
       session_id: sessionId,
       caller_id: callerId,
+      caller_name: resolvedCallerName,
       caller_type: callerType,
       receiver_id: astrologerId,
       receiver_type: 'astrologer',
@@ -418,6 +431,7 @@ async function handleInitiateCall(socket, data) {
       callId,
       sessionId,
       callerId,
+      callerName: resolvedCallerName,
       callerType,
       receiverId: astrologerId,
       receiverType: 'astrologer',
@@ -426,24 +440,29 @@ async function handleInitiateCall(socket, data) {
       startTime: new Date()
     });
     
-    // Notify receiver about incoming call
-    io.to(`user_${astrologerId}`).emit('incoming_call', {
+    // Notify receiver about incoming call with proper caller name
+    const incomingCallData = {
       callId,
       sessionId,
       callType,
       callerId,
       callerType,
-      callerName: socket.data.userName || 'Unknown'
-    });
+      callerName: resolvedCallerName
+    };
+    
+    console.log('📞 Emitting incoming_call to astrologer with data:', incomingCallData);
+    io.to(`user_${astrologerId}`).emit('incoming_call', incomingCallData);
     
     // Confirm to caller
+    console.log(`🔥 DEBUG: About to emit call_initiated with sessionId: ${sessionId}`);
     socket.emit('call_initiated', {
       callId,
       sessionId,
       status: 'initiated'
     });
+    console.log(`🔥 DEBUG: Emitted call_initiated event`);
     
-    console.log(`📞 Call initiated: ${callId} from ${callerId} to ${astrologerId}`);
+    console.log(`📞 Call initiated: ${callId} from ${callerId} (${resolvedCallerName}) to ${astrologerId}`);
   } catch (error) {
     console.error('❌ Initiate call error:', error);
     socket.emit('call_error', { error: 'Failed to initiate call' });
