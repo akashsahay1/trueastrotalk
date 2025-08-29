@@ -80,6 +80,12 @@ const nextConfig: NextConfig = {
   
   // Enable webpack bundle analyzer in development
   webpack: (config, { dev, isServer }) => {
+    // Fix punycode deprecation warning by aliasing to userland module
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'punycode': 'punycode/',
+    };
+    
     // Bundle analyzer
     if (process.env.ANALYZE === 'true') {
       const BundleAnalyzerPlugin = require('@next/bundle-analyzer')({
