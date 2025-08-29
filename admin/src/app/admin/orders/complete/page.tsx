@@ -82,6 +82,8 @@ export default function CompleteOrdersPage() {
   const [amountMax, setAmountMax] = useState<string>('');
   const [customerFilter, setCustomerFilter] = useState<string>('');
   const [showOrderModal, setShowOrderModal] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [modalAnimating, setModalAnimating] = useState(false);
 
   const ordersPerPage = 20;
 
@@ -314,6 +316,35 @@ export default function CompleteOrdersPage() {
   };
 
   const totalPages = Math.ceil(totalOrders / ordersPerPage);
+
+  const openModal = () => {
+    setShowFilterModal(true);
+    setTimeout(() => setModalAnimating(true), 10);
+  };
+
+  const closeModal = () => {
+    setModalAnimating(false);
+    setTimeout(() => setShowFilterModal(false), 300);
+  };
+
+  const clearFilters = () => {
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+    setFromDate(thirtyDaysAgo.toISOString().split('T')[0]);
+    setToDate(today.toISOString().split('T')[0]);
+    setSearchTerm('');
+    setStatusFilter('all');
+    setAmountMin('');
+    setAmountMax('');
+    setCustomerFilter('');
+    setCurrentPage(1);
+    closeModal();
+  };
+
+  const applyFilters = () => {
+    setCurrentPage(1);
+    closeModal();
+  };
 
   return (
     <div className="dashboard-main-wrapper">
