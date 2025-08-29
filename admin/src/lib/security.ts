@@ -418,6 +418,68 @@ export class SecurityMiddleware {
     
     return allowedRoles.includes(user.user_type as string) || allowedRoles.includes('all');
   }
+
+  /**
+   * Check rate limits for request
+   */
+  static async checkRateLimit(
+    request: NextRequest,
+    identifier: string,
+    maxRequests: number,
+    windowMs: number,
+    customKeyGenerator?: (req: NextRequest) => string
+  ): Promise<{ allowed: boolean; remaining: number; retryAfter?: number }> {
+    try {
+      // Import rate limiter dynamically to avoid circular imports
+      const { rateLimiter } = await import('./rate-limiter');
+      
+      const result = await rateLimiter.checkLimit(request, identifier, {
+        windowMs,
+        max: maxRequests,
+        keyGenerator: customKeyGenerator
+      });
+
+      return {
+        allowed: result.allowed,
+        remaining: result.remaining,
+        retryAfter: result.allowed ? undefined : Math.ceil((result.resetTime.getTime() - Date.now()) / 1000)
+      };
+    } catch (error) {
+      console.error('Rate limit check failed:', error);
+      // Fail open for now - allow request if rate limiting fails
+      return { allowed: true, remaining: 0 };
+    }
+  }
+
+  /**
+   * Check progressive rate limits (stricter with repeated violations)
+   */
+  static async checkProgressiveRateLimit(
+    request: NextRequest,
+    identifier: string
+  ): Promise<{ allowed: boolean; remaining: number; retryAfter?: number; level: number }> {
+    try {
+      // Import rate limiter and configs dynamically
+      const { rateLimiter, RateLimitConfigs } = await import('./rate-limiter');
+      
+      const result = await rateLimiter.checkProgressiveLimit(
+        request, 
+        identifier, 
+        RateLimitConfigs.forgotPasswordProgressive
+      );
+
+      return {
+        allowed: result.allowed,
+        remaining: result.remaining,
+        level: result.level,
+        retryAfter: result.allowed ? undefined : Math.ceil((result.resetTime.getTime() - Date.now()) / 1000)
+      };
+    } catch (error) {
+      console.error('Progressive rate limit check failed:', error);
+      // Fail open for now
+      return { allowed: true, remaining: 0, level: 0 };
+    }
+  }
 }
 
 const SecurityExports = {

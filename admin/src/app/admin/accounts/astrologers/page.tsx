@@ -64,8 +64,8 @@ function ProfileImage({ user }: ProfileImageProps) {
           }
         })
         .catch(() => setImageError(true));
-    } else if (user.user_type === 'customer' && user.profile_image) {
-      // Customer with network image (Google OAuth or external URL)
+    } else if (user.profile_image) {
+      // User with network image (Google OAuth or external URL)
       setResolvedUrl(user.profile_image);
     } else {
       // No image available - show fallback
@@ -75,8 +75,18 @@ function ProfileImage({ user }: ProfileImageProps) {
 
   if (imageError || !resolvedUrl) {
     return (
-      <div className="avatar-xs rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mr-2">
-        {user.full_name.charAt(0)}
+      <div 
+        className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mr-2" 
+        style={{ 
+          width: '40px', 
+          height: '40px', 
+          fontSize: '16px', 
+          fontWeight: 'bold',
+          minWidth: '40px',
+          flexShrink: 0
+        }}
+      >
+        {user.full_name.charAt(0).toUpperCase()}
       </div>
     );
   }
@@ -88,7 +98,13 @@ function ProfileImage({ user }: ProfileImageProps) {
       className="rounded-circle mr-2"
       width={40}
       height={40}
-      style={{ width: '40px', height: '40px', objectFit: 'cover' }}
+      style={{ 
+        width: '40px', 
+        height: '40px', 
+        objectFit: 'cover',
+        minWidth: '40px',
+        flexShrink: 0
+      }}
       onError={() => setImageError(true)}
     />
   );
@@ -465,7 +481,12 @@ export default function AstrologersPage() {
                                 <td>
                                   <div className="d-flex align-items-center">
                                     <ProfileImage 
-                                      user={user}
+                                      user={{
+                                        profile_image_id: user.profile_image_id,
+                                        profile_image: user.profile_image,
+                                        user_type: 'astrologer',
+                                        full_name: user.full_name
+                                      }}
                                     />
                                     {user.full_name}
                                   </div>

@@ -77,6 +77,27 @@ export default function Sidebar() {
       ]
     },
     {
+      title: 'Orders',
+      icon: 'fa-shopping-bag',
+      submenu: [
+        {
+          title: 'Complete Orders',
+          href: '/admin/orders/complete',
+          active: pathname.startsWith('/admin/orders/complete')
+        },
+        {
+          title: 'Pending Orders',
+          href: '/admin/orders/pending',
+          active: pathname.startsWith('/admin/orders/pending')
+        },
+        {
+          title: 'History Orders',
+          href: '/admin/orders/history',
+          active: pathname.startsWith('/admin/orders/history')
+        }
+      ]
+    },
+    {
       title: 'Finance',
       icon: 'fa-dollar-sign',
       submenu: [
@@ -117,6 +138,12 @@ export default function Sidebar() {
           active: pathname.startsWith('/admin/notifications/preferences')
         }
       ]
+    },
+    {
+      title: 'Reports',
+      icon: 'fa-chart-line',
+      href: '/admin/reports',
+      active: pathname.startsWith('/admin/reports')
     },
     {
       title: 'Support',

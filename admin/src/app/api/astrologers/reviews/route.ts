@@ -38,14 +38,19 @@ export async function GET(request: NextRequest) {
           { projection: { full_name: 1, email: 1, profile_image_id: 1 } }
         );
 
+        // Log missing users for data integrity monitoring
+        if (!user) {
+          console.warn(`⚠️ Review ${review._id} references missing user: ${review.user_id}`);
+        }
+
         return {
           _id: review._id,
           rating: review.rating,
           comment: review.comment,
           created_at: review.created_at,
           user: {
-            name: user?.full_name || 'Anonymous',
-            email: user?.email || '',
+            name: user?.full_name || 'Anonymous Review',
+            email: user?.email || user?.email_address || null,
             profile_image_id: user?.profile_image_id || null
           }
         };

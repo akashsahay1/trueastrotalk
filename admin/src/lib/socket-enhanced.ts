@@ -279,13 +279,19 @@ async function handleSendMessage(socket: Socket, io: ServerIO, data: any) {
       return;
     }
     
-    // Get sender details
-    const senderCollection = senderType === 'astrologer' ? 'astrologers' : 'users';
-    const sender = await db.collection(senderCollection).findOne({ 
+    // Get sender details - all users are in 'users' collection
+    const sender = await db.collection('users').findOne({ 
       _id: new ObjectId(senderId) 
     });
     
-    const senderName = sender?.full_name || sender?.name || 'Unknown';
+    if (!sender) {
+      console.error(`❌ Sender not found: ${senderId}`);
+      socket.emit('message_error', { error: 'Sender not found' });
+      await client.close();
+      return;
+    }
+
+    const senderName = sender.full_name;
     
     // Create message
     const message: ChatMessage = {
@@ -418,16 +424,37 @@ async function handleInitiateCall(socket: Socket, io: ServerIO, data: any) {
     
     const { client, db } = await getDbConnection();
     
-    // Get caller and target user details
-    const callerCollection = callerType === 'astrologer' ? 'astrologers' : 'users';
-    const caller = await db.collection(callerCollection).findOne({ 
+    // Get caller and target user details - both are in 'users' collection
+    const caller = await db.collection('users').findOne({ 
       _id: new ObjectId(callerId) 
+    }, {
+      projection: { 
+        full_name: 1, 
+        name: 1, 
+        email: 1, 
+        email_address: 1,
+        profile_picture: 1, 
+        video_rate: 1, 
+        call_rate: 1,
+        phone_number: 1,
+        user_type: 1
+      }
     });
     
-    const targetType = callerType === 'astrologer' ? 'user' : 'astrologer';
-    const targetCollection = targetType === 'astrologer' ? 'astrologers' : 'users';
-    const target = await db.collection(targetCollection).findOne({ 
+    const target = await db.collection('users').findOne({ 
       _id: new ObjectId(targetUserId) 
+    }, {
+      projection: { 
+        full_name: 1, 
+        name: 1, 
+        email: 1, 
+        email_address: 1,
+        profile_picture: 1, 
+        video_rate: 1, 
+        call_rate: 1,
+        phone_number: 1,
+        user_type: 1
+      }
     });
     
     if (!target) {
@@ -435,6 +462,35 @@ async function handleInitiateCall(socket: Socket, io: ServerIO, data: any) {
       await client.close();
       return;
     }
+
+    if (!caller) {
+      console.error(`❌ Caller not found: ${callerId} in collection ${callerCollection}`);
+      socket.emit('call_error', { error: 'Caller not found' });
+      await client.close();
+      return;
+    }
+
+    // Validate user types match expected caller/target types
+    const targetType = callerType === 'astrologer' ? 'user' : 'astrologer';
+    
+    if (caller.user_type !== callerType) {
+      console.error(`❌ Caller type mismatch: expected ${callerType}, got ${caller.user_type}`);
+      socket.emit('call_error', { error: 'Caller type validation failed' });
+      await client.close();
+      return;
+    }
+    
+    if (target.user_type !== targetType) {
+      console.error(`❌ Target type mismatch: expected ${targetType}, got ${target.user_type}`);
+      socket.emit('call_error', { error: 'Target type validation failed' });
+      await client.close();
+      return;
+    }
+
+    // Debug logging for name resolution
+    console.log(`📞 Call initiation:`);
+    console.log(`   - Caller: ${caller.full_name} (${caller.user_type})`);
+    console.log(`   - Target: ${target.full_name} (${target.user_type})`);
     
     // Create call session in database
     const callSession = {
@@ -443,11 +499,13 @@ async function handleInitiateCall(socket: Socket, io: ServerIO, data: any) {
       astrologer_id: callerType === 'astrologer' ? callerId : targetUserId,
       caller_id: callerId,
       caller_type: callerType,
+      caller_name: caller.full_name, // Add caller name to session
+      target_name: target.full_name, // Add target name to session
       call_type: callType,
       status: 'ringing',
       rate_per_minute: callerType === 'astrologer' 
-        ? (callType === 'video' ? caller?.video_rate : caller?.call_rate) 
-        : (callType === 'video' ? target?.video_rate : target?.call_rate),
+        ? (callType === 'video' ? caller.video_rate : caller.call_rate) 
+        : (callType === 'video' ? target.video_rate : target.call_rate),
       created_at: new Date(),
       updated_at: new Date()
     };
@@ -469,7 +527,7 @@ async function handleInitiateCall(socket: Socket, io: ServerIO, data: any) {
     io.to(`user_${targetUserId}`).emit('incoming_call', {
       sessionId,
       callerId,
-      callerName: caller?.full_name || caller?.name || 'Unknown',
+      callerName: caller.full_name, // Direct access - no fallbacks needed
       callerType,
       callType,
       callerAvatar: caller?.profile_picture,
@@ -480,7 +538,7 @@ async function handleInitiateCall(socket: Socket, io: ServerIO, data: any) {
     socket.emit('call_initiated', { 
       sessionId, 
       status: 'ringing',
-      targetName: target?.full_name || target?.name || 'Unknown',
+      targetName: target.full_name, // Direct access - no fallbacks needed
       targetAvatar: target?.profile_picture
     });
     

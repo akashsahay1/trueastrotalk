@@ -43,26 +43,6 @@ export async function GET(request: NextRequest) {
     // Calculate skip
     const skip = (page - 1) * limit;
 
-    // Build query
-    const query: Record<string, unknown> = {};
-    
-    if (sessionType) {
-      query.session_type = sessionType;
-    }
-    
-    if (status) {
-      query.status = status;
-    }
-    
-    if (search) {
-      query.$or = [
-        { customer_name: { $regex: search, $options: 'i' } },
-        { astrologer_name: { $regex: search, $options: 'i' } },
-        { customer_phone: { $regex: search, $options: 'i' } },
-        { session_id: { $regex: search, $options: 'i' } }
-      ];
-    }
-
     // Connect to MongoDB
     const client = new MongoClient(MONGODB_URL);
     await client.connect();
@@ -83,16 +63,15 @@ export async function GET(request: NextRequest) {
     
     if (search) {
       mongoQuery.$or = [
-        { customer_name: { $regex: search, $options: 'i' } },
-        { astrologer_name: { $regex: search, $options: 'i' } },
-        { customer_phone: { $regex: search, $options: 'i' } },
-        { session_id: { $regex: search, $options: 'i' } }
+        { user_id: { $regex: search, $options: 'i' } },
+        { astrologer_id: { $regex: search, $options: 'i' } },
+        { _id: { $regex: search, $options: 'i' } }
       ];
     }
 
     // Additional filters
     if (astrologer) {
-      mongoQuery.astrologer_name = { $regex: astrologer, $options: 'i' };
+      mongoQuery.astrologer_id = { $regex: astrologer, $options: 'i' };
     }
 
     // Date range filter
@@ -144,12 +123,12 @@ export async function GET(request: NextRequest) {
     const formattedSessions = sessions.map(session => ({
       ...session,
       _id: session._id.toString(),
-      customer_id: session.customer_id.toString(),
-      astrologer_id: session.astrologer_id.toString(),
-      start_time: session.start_time.toISOString(),
-      end_time: session.end_time ? session.end_time.toISOString() : undefined,
-      created_at: session.created_at.toISOString(),
-      last_message_time: session.last_message_time ? session.last_message_time.toISOString() : undefined
+      user_id: session.user_id ? session.user_id.toString() : session.user_id,
+      astrologer_id: session.astrologer_id ? session.astrologer_id.toString() : session.astrologer_id,
+      start_time: session.start_time ? session.start_time.toISOString() : session.start_time,
+      end_time: session.end_time ? session.end_time.toISOString() : session.end_time,
+      created_at: session.created_at ? session.created_at.toISOString() : session.created_at,
+      updated_at: session.updated_at ? session.updated_at.toISOString() : session.updated_at
     }));
 
     // Calculate pagination info

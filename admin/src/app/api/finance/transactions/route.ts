@@ -23,8 +23,7 @@ export async function GET(request: NextRequest) {
     
     const db = client.db(DB_NAME);
     const transactionsCollection = db.collection('transactions');
-    const customersCollection = db.collection('customers');
-    const astrologersCollection = db.collection('astrologers');
+    const usersCollection = db.collection('users'); // All users are here
     
     // Build query for filtering
     const mongoQuery: Record<string, unknown> = {};
@@ -61,18 +60,15 @@ export async function GET(request: NextRequest) {
     for (const transaction of transactions) {
       let userData = null;
       
-      if (transaction.user_type === 'customer') {
-        try {
-          userData = await customersCollection.findOne({ _id: new ObjectId(transaction.user_id) });
-        } catch {
-          userData = await customersCollection.findOne({ _id: transaction.user_id });
-        }
-      } else if (transaction.user_type === 'astrologer') {
-        try {
-          userData = await astrologersCollection.findOne({ _id: new ObjectId(transaction.user_id) });
-        } catch {
-          userData = await astrologersCollection.findOne({ _id: transaction.user_id });
-        }
+      // Get user data from users collection regardless of type
+      try {
+        userData = await usersCollection.findOne({ _id: new ObjectId(transaction.user_id) });
+      } catch {
+        userData = await usersCollection.findOne({ _id: transaction.user_id });
+      }
+      
+      if (!userData) {
+        console.error(`❌ User not found for transaction ${transaction._id}: ${transaction.user_id}`);
       }
       
       // Apply search filter if provided
@@ -94,9 +90,9 @@ export async function GET(request: NextRequest) {
       
       enrichedTransactions.push({
         ...transaction,
-        user_name: userData?.full_name || 'Unknown User',
-        user_email: userData?.email_address || 'N/A',
-        user_phone: userData?.phone_number || 'N/A'
+        user_name: userData?.full_name || `User ${transaction.user_id?.slice(-4)}`,
+        user_email: userData?.email_address || userData?.email || null,
+        user_phone: userData?.phone_number || null
       });
     }
     

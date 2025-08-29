@@ -393,6 +393,378 @@ class EmailService {
       text: template.text
     });
   }
+
+  // Template: Password reset email
+  getForgotPasswordTemplate(user: { name: string; email: string }, resetToken: string): EmailTemplate {
+    const resetUrl = `${envConfig.NEXTAUTH_URL}/reset-password?token=${resetToken}`;
+    
+    return {
+      subject: 'Reset Your Password - True Astrotalk',
+      html: `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Reset Your Password</title>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
+            .reset-box { background: white; padding: 25px; border-radius: 8px; margin: 20px 0; text-align: center; }
+            .btn { display: inline-block; padding: 15px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: bold; }
+            .security-note { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin: 20px 0; }
+            .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+            .token-info { background: #e9ecef; padding: 15px; border-radius: 8px; margin: 20px 0; font-family: monospace; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🔐 Password Reset Request</h1>
+              <p>Reset your True Astrotalk password</p>
+            </div>
+            <div class="content">
+              <div class="reset-box">
+                <h2>Hello ${user.name},</h2>
+                <p>We received a request to reset your password for your True Astrotalk account.</p>
+                <p>Click the button below to reset your password:</p>
+                <a href="${resetUrl}" class="btn">Reset Password</a>
+              </div>
+
+              <div class="security-note">
+                <h4>🔒 Security Information</h4>
+                <ul style="text-align: left; margin: 0; padding-left: 20px;">
+                  <li>This link will expire in 15 minutes for security purposes</li>
+                  <li>If you didn't request this reset, you can safely ignore this email</li>
+                  <li>Your password won't be changed unless you click the link above</li>
+                </ul>
+              </div>
+
+              <div class="token-info">
+                <p><strong>Reset Token:</strong> ${resetToken}</p>
+                <p style="font-size: 12px; color: #666;">You can also use this token in the mobile app if needed</p>
+              </div>
+
+              <div class="footer">
+                <p>If you're having trouble clicking the button, copy and paste this URL into your browser:</p>
+                <p style="word-break: break-all; color: #667eea;">${resetUrl}</p>
+                <p>This is an automated email from True Astrotalk. Please do not reply.</p>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `
+        Reset Your Password - True Astrotalk
+        
+        Hello ${user.name},
+        
+        We received a request to reset your password for your True Astrotalk account.
+        
+        Reset your password by clicking this link: ${resetUrl}
+        
+        Reset Token: ${resetToken}
+        
+        Security Information:
+        - This link will expire in 15 minutes
+        - If you didn't request this reset, you can ignore this email
+        - Your password won't be changed unless you use the link above
+        
+        If you're having trouble with the link, copy and paste this URL into your browser:
+        ${resetUrl}
+        
+        Thank you,
+        True Astrotalk Team
+      `
+    };
+  }
+
+  // Send password reset email
+  async sendPasswordResetEmail(user: { name: string; email: string }, resetToken: string): Promise<boolean> {
+    const template = this.getForgotPasswordTemplate(user, resetToken);
+    
+    return await this.sendEmail({
+      to: user.email,
+      subject: template.subject,
+      html: template.html,
+      text: template.text
+    });
+  }
+
+  // Template: Order status change notification for customers
+  getOrderStatusTemplate(orderData: {
+    customerName: string;
+    orderNumber: string;
+    oldStatus?: string;
+    newStatus: string;
+    orderDate: string;
+    totalAmount: number;
+    trackingNumber?: string;
+    items: Array<{
+      product_name: string;
+      quantity: number;
+      price: number;
+    }>;
+  }): EmailTemplate {
+    const statusMessages = {
+      pending: 'Your order has been received and is being processed.',
+      confirmed: 'Your order has been confirmed and will be processed soon.',
+      processing: 'Your order is currently being prepared for shipment.',
+      shipped: 'Great news! Your order has been shipped.',
+      delivered: 'Your order has been delivered successfully.',
+      cancelled: 'Your order has been cancelled.'
+    };
+
+    const statusColors = {
+      pending: '#ffc107',
+      confirmed: '#17a2b8',
+      processing: '#007bff',
+      shipped: '#28a745',
+      delivered: '#28a745',
+      cancelled: '#dc3545'
+    };
+
+    return {
+      subject: `Order ${orderData.orderNumber} - Status Updated to ${orderData.newStatus.toUpperCase()}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Order Status Update - ${orderData.orderNumber}</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+              <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="color: #2c3e50;">True AstroTalk</h1>
+                <div style="width: 100%; height: 3px; background: linear-gradient(to right, #ff6b6b, #4ecdc4); margin: 10px 0;"></div>
+              </div>
+              
+              <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <h2 style="color: #2c3e50; margin-top: 0;">Order Status Update</h2>
+                <p>Dear ${orderData.customerName},</p>
+                <p>Your order status has been updated:</p>
+                
+                <div style="background: white; padding: 15px; border-radius: 5px; border-left: 4px solid ${statusColors[orderData.newStatus as keyof typeof statusColors]};">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong>Order #${orderData.orderNumber}</strong>
+                    <span style="background: ${statusColors[orderData.newStatus as keyof typeof statusColors]}; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; text-transform: uppercase;">
+                      ${orderData.newStatus}
+                    </span>
+                  </div>
+                  <p style="margin: 0; color: #666;">
+                    ${statusMessages[orderData.newStatus as keyof typeof statusMessages]}
+                  </p>
+                  ${orderData.trackingNumber ? `<p style="margin: 5px 0 0 0;"><strong>Tracking Number:</strong> ${orderData.trackingNumber}</p>` : ''}
+                </div>
+              </div>
+
+              <div style="background: white; border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                <h3 style="margin-top: 0; color: #2c3e50;">Order Details</h3>
+                <p><strong>Order Date:</strong> ${orderData.orderDate}</p>
+                <p><strong>Total Amount:</strong> ₹${orderData.totalAmount.toLocaleString()}</p>
+                
+                <h4 style="color: #2c3e50; border-bottom: 1px solid #e9ecef; padding-bottom: 5px;">Items Ordered</h4>
+                <ul style="list-style: none; padding: 0;">
+                  ${orderData.items.map(item => `
+                    <li style="padding: 10px 0; border-bottom: 1px solid #f1f3f4;">
+                      <div style="display: flex; justify-content: space-between;">
+                        <span>${item.product_name} (x${item.quantity})</span>
+                        <span>₹${(item.price * item.quantity).toLocaleString()}</span>
+                      </div>
+                    </li>
+                  `).join('')}
+                </ul>
+              </div>
+
+              <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e9ecef;">
+                <p style="color: #666; font-size: 14px;">
+                  Thank you for shopping with True AstroTalk!<br>
+                  If you have any questions, please contact our support team.
+                </p>
+                <p style="color: #999; font-size: 12px; margin-top: 20px;">
+                  This is an automated email. Please do not reply to this message.
+                </p>
+              </div>
+            </div>
+          </body>
+        </html>
+      `,
+      text: `
+        Order Status Update - ${orderData.orderNumber}
+
+        Dear ${orderData.customerName},
+
+        Your order status has been updated to: ${orderData.newStatus.toUpperCase()}
+
+        ${statusMessages[orderData.newStatus as keyof typeof statusMessages]}
+
+        Order Details:
+        - Order Number: ${orderData.orderNumber}
+        - Order Date: ${orderData.orderDate}
+        - Total Amount: ₹${orderData.totalAmount.toLocaleString()}
+        ${orderData.trackingNumber ? `- Tracking Number: ${orderData.trackingNumber}` : ''}
+
+        Items Ordered:
+        ${orderData.items.map(item => `- ${item.product_name} (x${item.quantity}) - ₹${(item.price * item.quantity).toLocaleString()}`).join('\n')}
+
+        Thank you for shopping with True AstroTalk!
+
+        This is an automated email. Please do not reply.
+      `
+    };
+  }
+
+  // Template: Admin notification for order status changes
+  getAdminOrderNotificationTemplate(orderData: {
+    customerName: string;
+    customerEmail: string;
+    orderNumber: string;
+    oldStatus: string;
+    newStatus: string;
+    totalAmount: number;
+    itemsCount: number;
+    trackingNumber?: string;
+  }): EmailTemplate {
+    return {
+      subject: `Admin: Order ${orderData.orderNumber} status changed to ${orderData.newStatus.toUpperCase()}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Admin: Order Status Changed - ${orderData.orderNumber}</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #2c3e50;">Order Status Changed</h2>
+              
+              <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                <p><strong>Order Number:</strong> ${orderData.orderNumber}</p>
+                <p><strong>Customer:</strong> ${orderData.customerName} (${orderData.customerEmail})</p>
+                <p><strong>Status Changed:</strong> ${orderData.oldStatus.toUpperCase()} → ${orderData.newStatus.toUpperCase()}</p>
+                <p><strong>Order Total:</strong> ₹${orderData.totalAmount.toLocaleString()}</p>
+                <p><strong>Items:</strong> ${orderData.itemsCount} item(s)</p>
+                ${orderData.trackingNumber ? `<p><strong>Tracking:</strong> ${orderData.trackingNumber}</p>` : ''}
+              </div>
+
+              <p style="color: #666; font-size: 14px;">
+                Customer has been automatically notified of this status change.
+              </p>
+            </div>
+          </body>
+        </html>
+      `,
+      text: `
+        Order Status Changed
+
+        Order Number: ${orderData.orderNumber}
+        Customer: ${orderData.customerName} (${orderData.customerEmail})
+        Status Changed: ${orderData.oldStatus.toUpperCase()} → ${orderData.newStatus.toUpperCase()}
+        Order Total: ₹${orderData.totalAmount.toLocaleString()}
+        Items: ${orderData.itemsCount} item(s)
+        ${orderData.trackingNumber ? `Tracking: ${orderData.trackingNumber}` : ''}
+
+        Customer has been automatically notified of this status change.
+      `
+    };
+  }
+
+  // Send order status notification to customer
+  async sendOrderStatusNotification(orderData: {
+    customerName: string;
+    customerEmail: string;
+    orderNumber: string;
+    oldStatus?: string;
+    newStatus: string;
+    orderDate: string;
+    totalAmount: number;
+    trackingNumber?: string;
+    items: Array<{
+      product_name: string;
+      quantity: number;
+      price: number;
+    }>;
+  }): Promise<boolean> {
+    const template = this.getOrderStatusTemplate(orderData);
+    
+    return await this.sendEmail({
+      to: orderData.customerEmail,
+      subject: template.subject,
+      html: template.html,
+      text: template.text
+    });
+  }
+
+  // Send admin notification for order status change
+  async sendAdminOrderNotification(orderData: {
+    customerName: string;
+    customerEmail: string;
+    orderNumber: string;
+    oldStatus: string;
+    newStatus: string;
+    totalAmount: number;
+    itemsCount: number;
+    trackingNumber?: string;
+  }): Promise<boolean> {
+    const adminEmail = envConfig.SMTP.USER || 'admin@trueastrotalk.com';
+    const template = this.getAdminOrderNotificationTemplate(orderData);
+    
+    return await this.sendEmail({
+      to: adminEmail,
+      subject: template.subject,
+      html: template.html,
+      text: template.text
+    });
+  }
+
+  // Send bulk status update notification to admin
+  async sendBulkOrderUpdateNotification(updatedCount: number, newStatus: string): Promise<boolean> {
+    const adminEmail = envConfig.SMTP.USER || 'admin@trueastrotalk.com';
+    
+    return await this.sendEmail({
+      to: adminEmail,
+      subject: `Bulk Update: ${updatedCount} orders updated to ${newStatus.toUpperCase()}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Bulk Order Status Update Completed</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #2c3e50;">Bulk Order Update Completed</h2>
+              
+              <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                <p style="margin: 0; color: #155724;">
+                  <strong>✅ Successfully updated ${updatedCount} orders to "${newStatus.toUpperCase()}" status.</strong>
+                </p>
+              </div>
+
+              <p>All affected customers have been automatically notified of their order status changes.</p>
+              
+              <p style="color: #666; font-size: 14px;">
+                Timestamp: ${new Date().toLocaleString('en-IN')}
+              </p>
+            </div>
+          </body>
+        </html>
+      `,
+      text: `
+        Bulk Order Update Completed
+
+        Successfully updated ${updatedCount} orders to "${newStatus.toUpperCase()}" status.
+
+        All affected customers have been automatically notified of their order status changes.
+
+        Timestamp: ${new Date().toLocaleString('en-IN')}
+      `
+    });
+  }
 }
 
 export const emailService = new EmailService();

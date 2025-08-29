@@ -30,9 +30,13 @@ async function resolveMediaUrl(request: NextRequest, mediaId: string | ObjectId 
       mediaFile = await mediaCollection.findOne({ _id: mediaId });
     }
 
-    if (mediaFile && mediaFile.url) {
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://trueastrotalk.com';
-      return `${baseUrl}${mediaFile.url}`;
+    if (mediaFile && mediaFile.file_path) {
+      // Get the actual host from the request headers
+      const host = request.headers.get('host') || 'www.trueastrotalk.com';
+      const protocol = request.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
+      const baseUrl = `${protocol}://${host}`;
+      
+      return `${baseUrl}${mediaFile.file_path}`;
     }
     
     return null;
@@ -50,17 +54,21 @@ function generateOrderNumber(): string {
   return `TA-${timestamp.slice(-6)}-${randomChars}-${random}`;
 }
 
-// GET - Get user's orders
+// GET - Get orders (user-specific or admin view)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
+    const adminView = searchParams.get('admin') === 'true';
+    const search = searchParams.get('search') || '';
     const status = searchParams.get('status');
+    const paymentStatus = searchParams.get('payment_status');
     const limit = parseInt(searchParams.get('limit') || '20');
     const page = parseInt(searchParams.get('page') || '1');
     const skip = (page - 1) * limit;
 
-    if (!userId) {
+    // For non-admin requests, userId is required
+    if (!adminView && !userId) {
       return NextResponse.json({
         success: false,
         error: 'Missing user ID',
@@ -69,11 +77,34 @@ export async function GET(request: NextRequest) {
     }
 
     const ordersCollection = await DatabaseService.getCollection('orders');
+    const usersCollection = await DatabaseService.getCollection('users');
 
     // Build query
-    const query: Record<string, unknown> = { user_id: userId };
-    if (status) {
+    const query: Record<string, unknown> = {};
+    
+    // If not admin view, filter by user
+    if (!adminView && userId) {
+      query.user_id = userId;
+    }
+
+    // Admin search functionality
+    if (adminView && search) {
+      const searchRegex = { $regex: search, $options: 'i' };
+      query.$or = [
+        { order_number: searchRegex },
+        { 'shipping_address.full_name': searchRegex },
+        { 'shipping_address.phone_number': searchRegex },
+        { 'items.product_name': searchRegex }
+      ];
+    }
+
+    // Status filters
+    if (status && status !== 'all') {
       query.status = status;
+    }
+
+    if (paymentStatus && paymentStatus !== 'all') {
+      query.payment_status = paymentStatus;
     }
 
     // Get orders with pagination
@@ -86,25 +117,75 @@ export async function GET(request: NextRequest) {
 
     const totalOrders = await ordersCollection.countDocuments(query);
 
-    // Format orders for response
-    const formattedOrders = orders.map(order => ({
-      _id: order._id.toString(),
-      order_number: order.order_number,
-      status: order.status,
-      payment_status: order.payment_status,
-      payment_method: order.payment_method,
-      total_amount: order.total_amount,
-      subtotal: order.subtotal,
-      shipping_cost: order.shipping_cost,
-      tax_amount: order.tax_amount,
-      items: order.items,
-      shipping_address: order.shipping_address,
-      tracking_number: order.tracking_number,
-      notes: order.notes,
-      created_at: order.created_at,
-      updated_at: order.updated_at,
-      shipped_at: order.shipped_at,
-      delivered_at: order.delivered_at
+    // For admin view, also get user information for each order
+    const formattedOrders = await Promise.all(orders.map(async order => {
+      // Get user information for admin view
+      let userInfo = null;
+      if (adminView && order.user_id) {
+        try {
+          const user = await usersCollection.findOne({ _id: new ObjectId(order.user_id) });
+          if (user) {
+            userInfo = {
+              name: user.name || user.full_name || 'Unknown User',
+              email: user.email || null,
+              phone: user.phone || user.phone_number || null
+            };
+          }
+        } catch (error) {
+          console.error(`Failed to fetch user info for user_id ${order.user_id}:`, error);
+        }
+      }
+      // Resolve product images for each item if needed
+      const itemsWithImages = await Promise.all((order.items || []).map(async (item: any) => {
+        if (!item.product_image && item.product_id) {
+          // If no product_image stored, try to get it from products collection
+          try {
+            const productsCollection = await DatabaseService.getCollection('products');
+            const product = await productsCollection.findOne({ _id: new ObjectId(item.product_id) });
+            
+            if (product && product.image_id) {
+              const resolvedImageUrl = await resolveMediaUrl(request, product.image_id);
+              if (resolvedImageUrl) {
+                console.log(`🖼️ Order fetch: Resolved missing image for ${item.product_name}: ${product.image_id} -> ${resolvedImageUrl}`);
+                return { ...item, product_image: resolvedImageUrl };
+              }
+            }
+          } catch (error) {
+            console.error(`Failed to resolve image for product ${item.product_id}:`, error);
+          }
+        }
+        return item;
+      }));
+
+      const baseOrder = {
+        _id: order._id.toString(),
+        order_number: order.order_number,
+        status: order.status,
+        payment_status: order.payment_status,
+        payment_method: order.payment_method,
+        total_amount: order.total_amount,
+        subtotal: order.subtotal,
+        shipping_cost: order.shipping_cost,
+        tax_amount: order.tax_amount,
+        items: itemsWithImages,
+        shipping_address: order.shipping_address,
+        tracking_number: order.tracking_number,
+        notes: order.notes,
+        created_at: order.created_at,
+        updated_at: order.updated_at,
+        shipped_at: order.shipped_at,
+        delivered_at: order.delivered_at
+      };
+
+      // Add user info for admin view
+      if (adminView && userInfo) {
+        return {
+          ...baseOrder,
+          user_info: userInfo
+        };
+      }
+
+      return baseOrder;
     }));
 
 

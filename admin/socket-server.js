@@ -255,13 +255,19 @@ async function handleSendMessage(socket, data) {
       return;
     }
     
-    // Get sender details
-    const senderCollection = senderType === 'astrologer' ? 'astrologers' : 'users';
-    const sender = await db.collection(senderCollection).findOne({ 
+    // Get sender details - all users are in 'users' collection
+    const sender = await db.collection('users').findOne({ 
       _id: new ObjectId(senderId) 
     });
     
-    const senderName = sender?.full_name || sender?.name || 'Unknown';
+    if (!sender) {
+      console.error(`❌ Sender not found: ${senderId}`);
+      socket.emit('message_error', { error: 'Sender not found' });
+      await client.close();
+      return;
+    }
+
+    const senderName = sender.full_name;
     
     // Create message
     const message = {

@@ -127,6 +127,42 @@ export class DatabaseIndexManager {
         notificationsCollection.createIndex({ notification_type: 1, created_at: -1 }, { background: true })
       ]);
 
+      // App Errors collection indexes (new)
+      const appErrorsCollection = await DatabaseService.getCollection('app_errors');
+      await Promise.all([
+        appErrorsCollection.createIndex({ error_type: 1, created_at: -1 }, { background: true }),
+        appErrorsCollection.createIndex({ user_id: 1, created_at: -1 }, { background: true }),
+        appErrorsCollection.createIndex({ user_type: 1, error_type: 1, created_at: -1 }, { background: true }),
+        appErrorsCollection.createIndex({ created_at: -1 }, { background: true }),
+        appErrorsCollection.createIndex({ resolved: 1, created_at: -1 }, { background: true }),
+        appErrorsCollection.createIndex({ severity: 1, resolved: 1, created_at: -1 }, { background: true })
+      ]);
+
+      // Performance Metrics collection indexes (new)
+      const performanceMetricsCollection = await DatabaseService.getCollection('performance_metrics');
+      await Promise.all([
+        performanceMetricsCollection.createIndex({ timestamp: -1 }, { background: true }),
+        performanceMetricsCollection.createIndex({ metric_type: 1, timestamp: -1 }, { background: true }),
+        performanceMetricsCollection.createIndex({ 
+          timestamp: -1 
+        }, { 
+          background: true,
+          expireAfterSeconds: 2592000 // 30 days TTL
+        })
+      ]);
+
+      // Real-time User Stats collection indexes (new)
+      const realtimeStatsCollection = await DatabaseService.getCollection('realtime_user_stats');
+      await Promise.all([
+        realtimeStatsCollection.createIndex({ timestamp: -1 }, { background: true }),
+        realtimeStatsCollection.createIndex({ 
+          timestamp: -1 
+        }, { 
+          background: true,
+          expireAfterSeconds: 86400 // 24 hours TTL
+        })
+      ]);
+
       console.log('✅ Database indexes created successfully');
 
     } catch (error) {

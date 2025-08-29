@@ -21,6 +21,7 @@ interface Wallet {
   status: string;
   last_transaction: string;
   created_at: string;
+  transaction_count: number;
 }
 
 interface PaginationInfo {
@@ -183,9 +184,9 @@ export default function WalletsPage() {
               <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12">
                 <div className="card border-3 border-top border-top-danger">
                   <div className="card-body">
-                    <h5 className="text-muted">Active Wallets</h5>
+                    <h5 className="text-muted">Total Transactions</h5>
                     <div className="metric-value d-inline-block">
-                      <h1 className="mb-1">{wallets.filter(w => w.status === 'active').length}</h1>
+                      <h1 className="mb-1">{wallets.reduce((sum, w) => sum + w.transaction_count, 0)}</h1>
                     </div>
                   </div>
                 </div>
@@ -258,6 +259,7 @@ export default function WalletsPage() {
                             <th>Spent/Earned</th>
                             <th>Recharged/Withdrawn</th>
                             <th>Sessions</th>
+                            <th>Transactions</th>
                             <th>Status</th>
                             <th>Last Transaction</th>
                             <th>Actions</th>
@@ -266,7 +268,7 @@ export default function WalletsPage() {
                         <tbody>
                           {loading ? (
                             <tr>
-                              <td colSpan={10} className="text-center">
+                              <td colSpan={11} className="text-center">
                                 <i className="fas fa-spinner fa-spin mr-2"></i>Loading...
                               </td>
                             </tr>
@@ -307,6 +309,9 @@ export default function WalletsPage() {
                                   <span className="badge badge-light">{wallet.session_count}</span>
                                 </td>
                                 <td>
+                                  <span className="badge badge-info">{wallet.transaction_count}</span>
+                                </td>
+                                <td>
                                   <span className={`badge ${getStatusBadge(wallet.status)}`}>
                                     {wallet.status}
                                   </span>
@@ -341,7 +346,7 @@ export default function WalletsPage() {
                             ))
                           ) : (
                             <tr>
-                              <td colSpan={10} className="text-center">No wallets found</td>
+                              <td colSpan={11} className="text-center">No wallets found</td>
                             </tr>
                           )}
                         </tbody>
