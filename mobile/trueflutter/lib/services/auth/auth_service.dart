@@ -10,6 +10,7 @@ import '../network/dio_client.dart';
 import '../local/local_storage_service.dart';
 import '../service_locator.dart';
 import '../../config/payment_config.dart';
+import '../../common/utils/error_handler.dart';
 
 class AuthResult {
   final bool success;
@@ -182,7 +183,11 @@ class AuthService {
     } on AstrologerRegistrationSuccessException catch (e) {
       return AuthResult.success(message: 'Astrologer registration submitted successfully. Please wait for admin approval.', user: e.newUser);
     } catch (e) {
-      return AuthResult.failure(message: e.toString());
+      // Handle registration errors gracefully
+      final appError = ErrorHandler.handleError(e, context: 'registration');
+      return AuthResult.failure(message: appError.userMessage.isNotEmpty 
+          ? appError.userMessage 
+          : 'Registration failed. Please try again.');
     }
   }
 
@@ -319,7 +324,11 @@ class AuthService {
         rethrow;
       }
 
-      throw Exception('Registration failed: ${e.toString()}');
+      // Handle registration errors gracefully
+      final appError = ErrorHandler.handleError(e, context: 'registration');
+      throw Exception(appError.userMessage.isNotEmpty 
+          ? appError.userMessage 
+          : 'Registration failed. Please try again.');
     }
   }
 
@@ -346,7 +355,11 @@ class AuthService {
       await _saveAuthData(user, token, refreshToken);
       return user;
     } catch (e) {
-      throw Exception('Login failed: ${e.toString()}');
+      // Handle login errors gracefully
+      final appError = ErrorHandler.handleError(e, context: 'login');
+      throw Exception(appError.userMessage.isNotEmpty 
+          ? appError.userMessage 
+          : 'Login failed. Please check your credentials and try again.');
     }
   }
 
@@ -403,7 +416,12 @@ class AuthService {
         debugPrint('🎯 AuthService: Rethrowing GoogleSignUpRequiredException');
         rethrow;
       }
-      throw Exception('Google Sign-In failed: ${e.toString()}');
+      
+      // Handle Google Sign-In errors gracefully
+      final appError = ErrorHandler.handleError(e, context: 'login');
+      throw Exception(appError.userMessage.isNotEmpty 
+          ? appError.userMessage 
+          : 'Google Sign-In failed. Please try again.');
     }
   }
 

@@ -67,6 +67,8 @@ class ApiEndpoints {
   static const String astrologerWalletEarningsHistory = '$astrologers/wallet/earnings-history';
   static const String astrologerWalletUpiDetails = '$astrologers/wallet/upi-details';
   static const String astrologerConsultationsPending = '$astrologers/consultations/pending';
+  static const String astrologerConsultations = '$astrologers/consultations';
+  static const String astrologerEarnings = '$astrologers/earnings';
   static String astrologerConsultationStatus(String id) => '$astrologers/consultations/$id/status';
 
   // Public discovery endpoints
@@ -84,4 +86,9 @@ class ApiEndpoints {
 
   // Public endpoints
   static const String publicAstrologerOptions = '/public/astrologer-options';
+
+  // Error reporting endpoints (new)
+  static const String reportError = '/reports/errors';
+  static const String reportPerformance = '/reports/performance';
+  static const String realtimeStats = '/reports/realtime-stats';
 }

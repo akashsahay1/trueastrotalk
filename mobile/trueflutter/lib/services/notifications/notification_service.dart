@@ -170,7 +170,7 @@ class NotificationService {
       // Show local notification for incoming call
       await showCallNotification(
         callerId: data['caller_id'] ?? '',
-        callerName: data['caller_name'] ?? 'Unknown',
+        callerName: data['caller_name'] ?? 'Incoming Call',
         callType: data['call_type'] ?? 'voice',
         sessionId: data['session_id'] ?? '',
       );

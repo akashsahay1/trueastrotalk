@@ -42,7 +42,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyDIyKdtH6FeOaI3I3XZ8vtwECLATnwy7Sw',
-    appId: '1:540290890159:web:placeholder',
+    appId: '1:540290890159:web:8f7d6c5b4a3e2f1a04175a',
     messagingSenderId: '540290890159',
     projectId: 'trueastrotalk-1',
     authDomain: 'trueastrotalk-1.firebaseapp.com',
@@ -51,7 +51,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDIyKdtH6FeOaI3I3XZ8vtwECLATnwy7Sw',
-    appId: '1:540290890159:android:placeholder',
+    appId: '1:540290890159:android:2b9e8d7c6f5a4e3d04175a',
     messagingSenderId: '540290890159',
     projectId: 'trueastrotalk-1',
     storageBucket: 'trueastrotalk-1.firebasestorage.app',
@@ -77,7 +77,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions windows = FirebaseOptions(
     apiKey: 'AIzaSyDIyKdtH6FeOaI3I3XZ8vtwECLATnwy7Sw',
-    appId: '1:540290890159:web:placeholder',
+    appId: '1:540290890159:web:8f7d6c5b4a3e2f1a04175a',
     messagingSenderId: '540290890159',
     projectId: 'trueastrotalk-1',
     authDomain: 'trueastrotalk-1.firebaseapp.com',

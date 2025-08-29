@@ -49,6 +49,11 @@ class WebRTCService extends ChangeNotifier {
   bool _isSpeakerOn = false;
   bool _isFrontCamera = true;
   
+  // Call duration tracking
+  DateTime? _callStartTime;
+  DateTime? _callEndTime;
+  Timer? _durationTimer;
+  
   // Pending offer queue for race condition handling
   Map<String, dynamic>? _pendingOffer;
 
@@ -137,7 +142,7 @@ class WebRTCService extends ChangeNotifier {
   Future<void> _enableSpeakerForCall() async {
     try {
       _isSpeakerOn = true;
-      await Helper.setSpeakerphoneOn(true);
+      await _setAudioRoute(true);
       debugPrint('🔊 Speaker enabled by default for call');
       notifyListeners();
     } catch (e) {
@@ -538,13 +543,71 @@ class WebRTCService extends ChangeNotifier {
   Future<void> toggleSpeaker() async {
     try {
       _isSpeakerOn = !_isSpeakerOn;
-      await Helper.setSpeakerphoneOn(_isSpeakerOn);
+      await _setAudioRoute(_isSpeakerOn);
       
       notifyListeners();
       debugPrint('🔊 Speaker ${_isSpeakerOn ? 'enabled' : 'disabled'}');
     } catch (e) {
       debugPrint('❌ Failed to toggle speaker: $e');
     }
+  }
+
+  /// Enhanced audio routing for iOS/Android compatibility
+  /// Specifically handles iPhone 15 Pro audio routing issues
+  Future<void> _setAudioRoute(bool useSpeaker) async {
+    try {
+      // Multiple attempts to ensure audio routing works on iPhone 15 Pro
+      debugPrint('🔊 Setting audio route: ${useSpeaker ? 'Speaker' : 'Earpiece'}');
+      
+      // Primary method - standard WebRTC helper
+      await Helper.setSpeakerphoneOn(useSpeaker);
+      
+      // Additional delay and retry for iOS devices (especially iPhone 15 Pro)
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        // Small delay to let the first call settle
+        await Future.delayed(const Duration(milliseconds: 100));
+        
+        // Second attempt to ensure it sticks on iPhone 15 Pro
+        await Helper.setSpeakerphoneOn(useSpeaker);
+        
+        debugPrint('📱 iOS: Double-set audio route for iPhone 15 Pro compatibility');
+      }
+      
+      debugPrint('✅ Audio route set successfully: ${useSpeaker ? 'Speaker' : 'Earpiece'}');
+    } catch (e) {
+      debugPrint('❌ Failed to set audio route: $e');
+      
+      // Fallback with retry
+      try {
+        debugPrint('🔄 Attempting fallback audio routing...');
+        await Future.delayed(const Duration(milliseconds: 200));
+        await Helper.setSpeakerphoneOn(useSpeaker);
+        debugPrint('✅ Fallback audio routing succeeded');
+      } catch (fallbackError) {
+        debugPrint('❌ Fallback audio routing failed: $fallbackError');
+        // Last resort - just update the UI state
+        debugPrint('⚠️ Audio routing failed, but continuing with call');
+      }
+    }
+  }
+
+  /// Ensure speaker is enabled when call connects
+  /// Critical for iPhone 15 Pro audio routing
+  void _ensureSpeakerOnConnection() {
+    // Run asynchronously to not block the connection process
+    Future.microtask(() async {
+      try {
+        // Wait a bit for the connection to stabilize
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        if (_isSpeakerOn && _callState == CallState.connected) {
+          debugPrint('📱 Ensuring speaker is active on connection (iPhone 15 Pro fix)');
+          await _setAudioRoute(true);
+        }
+      } catch (e) {
+        debugPrint('❌ Failed to ensure speaker on connection: $e');
+      }
+    });
   }
 
   /// Create peer connection
@@ -940,6 +1003,26 @@ class WebRTCService extends ChangeNotifier {
   void _updateCallState(CallState newState) {
     if (_callState != newState) {
       _callState = newState;
+      
+      // Track call duration for billing
+      if (newState == CallState.connected && _callStartTime == null) {
+        _callStartTime = DateTime.now();
+        // Start duration timer to notify listeners every second
+        _durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          notifyListeners(); // Update UI with current duration
+        });
+        debugPrint('⏱️ Call started at: $_callStartTime');
+        
+        // Ensure speaker is enabled when call connects (iPhone 15 Pro fix)
+        _ensureSpeakerOnConnection();
+      } else if ((newState == CallState.ended || newState == CallState.failed || newState == CallState.rejected) && _callStartTime != null) {
+        _callEndTime = DateTime.now();
+        _durationTimer?.cancel();
+        _durationTimer = null;
+        final duration = _callEndTime!.difference(_callStartTime!);
+        debugPrint('⏱️ Call ended at: $_callEndTime, Total duration: ${duration.inMinutes}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}');
+      }
+      
       _callStateController.add(newState);
       notifyListeners();
       debugPrint('📞 Call state changed to: $newState');
@@ -975,6 +1058,12 @@ class WebRTCService extends ChangeNotifier {
       _isMuted = false;
       _isCameraOn = true;
       _isSpeakerOn = false;
+      
+      // Clean up duration tracking
+      _durationTimer?.cancel();
+      _durationTimer = null;
+      _callStartTime = null;
+      _callEndTime = null;
       _pendingOffer = null; // Clear any pending offer
 
       // Update state to idle
@@ -1001,10 +1090,32 @@ class WebRTCService extends ChangeNotifier {
 
   /// Get call duration (if connected)
   String getCallDuration() {
-    // This would need to track start time and calculate duration
-    // For now, return a placeholder
-    return "00:00";
+    if (_callStartTime == null) {
+      return "00:00";
+    }
+    
+    final currentTime = DateTime.now();
+    final duration = currentTime.difference(_callStartTime!);
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
+    
+    return "${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}";
   }
+  
+  /// Get total call duration in minutes for billing
+  int getCallDurationMinutes() {
+    if (_callStartTime == null) return 0;
+    
+    final endTime = _callEndTime ?? DateTime.now();
+    final duration = endTime.difference(_callStartTime!);
+    return duration.inMinutes;
+  }
+  
+  /// Get call start time
+  DateTime? get callStartTime => _callStartTime;
+  
+  /// Get call end time
+  DateTime? get callEndTime => _callEndTime;
 
   /// Check if call is active
   bool get isCallActive => _callState == CallState.connected;

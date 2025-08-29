@@ -5,6 +5,7 @@ import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 import '../services/auth/auth_service.dart';
 import '../services/service_locator.dart';
+import '../common/utils/error_handler.dart';
 import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -149,14 +150,11 @@ class _LoginScreenState extends State<LoginScreen>
       if (mounted) {
         _triggerErrorHaptic();
         _shakeController.forward().then((_) => _shakeController.reverse());
-        String errorMessage = e.toString().replaceAll('Exception: ', '');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Login failed: $errorMessage'),
-            backgroundColor: AppColors.error,
-            duration: const Duration(seconds: 4),
-          ),
-        );
+        
+        // Handle login errors gracefully
+        final appError = ErrorHandler.handleError(e, context: 'login');
+        ErrorHandler.logError(appError);
+        ErrorHandler.showError(context, appError);
       }
     } finally {
       if (mounted) {
@@ -262,26 +260,18 @@ class _LoginScreenState extends State<LoginScreen>
           return;
         }
 
-        // Handle silently - no snackbars for any other Google Sign-In issues
-        if (e.toString().contains('cancelled')) {
-          // User cancelled - do nothing, stay on login screen
-          return;
-        }
-
-        // Debug: Log any other errors to help diagnose issues
-        debugPrint('🚨 Google Sign-In Error: $e');
-
-        // Only show error messages for actual technical failures, not user registration flows
+        // Handle Google Sign-In errors gracefully
+        final appError = ErrorHandler.handleError(e, context: 'login');
+        
+        // Log error for debugging
+        ErrorHandler.logError(appError);
+        
+        // Don't show error for user cancellation or signup flow
         if (!e.toString().contains('needs to complete signup') && 
-            !e.toString().contains('USER_NOT_REGISTERED')) {
+            !e.toString().contains('USER_NOT_REGISTERED') &&
+            appError.userMessage.isNotEmpty) {
           _triggerErrorHaptic();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Google Sign-In failed: ${e.toString()}'),
-              backgroundColor: AppColors.error,
-              duration: const Duration(seconds: 5),
-            ),
-          );
+          ErrorHandler.showError(context, appError);
         }
       }
     } finally {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
+import '../common/utils/error_handler.dart';
 import '../models/transaction.dart';
 import '../services/auth/auth_service.dart';
 import '../services/api/user_api_service.dart';
@@ -84,12 +85,9 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load transactions: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        final appError = ErrorHandler.handleError(e, context: 'wallet');
+        ErrorHandler.logError(appError);
+        ErrorHandler.showError(context, appError);
       }
     }
   }
@@ -127,12 +125,9 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load more transactions: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        final appError = ErrorHandler.handleError(e, context: 'wallet');
+        ErrorHandler.logError(appError);
+        ErrorHandler.showError(context, appError);
       }
     }
   }

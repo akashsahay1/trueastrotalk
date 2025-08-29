@@ -5,6 +5,7 @@ import '../models/transaction.dart';
 import '../services/auth/auth_service.dart';
 import '../services/api/user_api_service.dart';
 import '../services/service_locator.dart';
+import '../common/utils/error_handler.dart';
 import '../services/payment/razorpay_service.dart';
 import '../config/config.dart';
 import '../config/payment_config.dart';
@@ -449,12 +450,10 @@ class _WalletScreenState extends State<WalletScreen> {
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Payment failed: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        // Handle payment errors gracefully
+        final appError = ErrorHandler.handleError(e, context: 'payment');
+        ErrorHandler.logError(appError);
+        ErrorHandler.showError(context, appError);
       }
     }
   }
@@ -502,12 +501,11 @@ class _WalletScreenState extends State<WalletScreen> {
         debugPrint('❌ Failed to initialize payment config: $e');
         if (mounted) {
           Navigator.pop(context); // Close loading dialog
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Payment service not available: ${e.toString()}'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          
+          // Handle payment service errors gracefully
+          final appError = ErrorHandler.handleError(e, context: 'payment');
+          ErrorHandler.logError(appError);
+          ErrorHandler.showError(context, appError);
         }
         return;
       }

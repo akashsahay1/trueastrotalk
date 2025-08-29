@@ -10,6 +10,7 @@ import 'screens/onboarding.dart';
 import 'screens/welcome.dart';
 import 'screens/login.dart';
 import 'screens/signup.dart';
+import 'screens/forgot_password_screen.dart';
 import 'screens/home.dart';
 import 'screens/orders_list.dart';
 import 'services/service_locator.dart';
@@ -21,12 +22,16 @@ import 'services/network/dio_client.dart';
 import 'services/payment/razorpay_service.dart';
 import 'services/notifications/notification_service.dart';
 import 'services/deep_link_service.dart';
+import 'services/app_info_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize network client with auto IP detection
   await DioClient.initialize();
+
+  // Initialize app info service
+  await AppInfoService.initialize();
 
   // Print configuration in debug mode
   await Config.printConfig();
@@ -106,7 +111,7 @@ class TrueAstrotalkApp extends StatelessWidget {
         '/customer/home': (context) => const HomeScreen(),
         '/astrologer/dashboard': (context) => const HomeScreen(),
         '/astrologer/pending': (context) => const Scaffold(body: Center(child: Text('Astrologer Account Pending Approval'))),
-        '/forgot-password': (context) => const Scaffold(body: Center(child: Text('Forgot Password - Coming Soon'))),
+        '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/orders': (context) => const OrdersListScreen(),
       },
 

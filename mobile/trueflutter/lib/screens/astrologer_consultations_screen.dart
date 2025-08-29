@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
-// Future API integration
-// import '../services/api/user_api_service.dart';
-// import '../services/local/local_storage_service.dart';
-// import '../services/service_locator.dart';
+import '../common/utils/error_handler.dart';
+import '../services/api/user_api_service.dart';
+import '../services/auth/auth_service.dart';
+import '../services/service_locator.dart';
 
 enum ConsultationStatus { active, completed, upcoming, cancelled }
 enum ConsultationType { chat, voiceCall, videoCall }
@@ -46,6 +46,22 @@ class ConsultationItem {
       scheduledTime: DateTime.tryParse(json['scheduled_time'] ?? '') ?? DateTime.now(),
       duration: Duration(minutes: json['duration_minutes'] ?? 0),
       amount: (json['amount'] ?? 0).toDouble(),
+      notes: json['notes'],
+      rating: json['rating']?.toDouble(),
+      review: json['review'],
+    );
+  }
+
+  factory ConsultationItem.fromApiJson(Map<String, dynamic> json) {
+    return ConsultationItem(
+      id: json['id'] ?? json['consultation_id'] ?? '',
+      clientName: json['client_name'] ?? 'Unknown Client',
+      clientImage: json['client_image'] ?? '',
+      type: _parseConsultationType(json['type']),
+      status: _parseConsultationStatus(json['status']),
+      scheduledTime: DateTime.tryParse(json['scheduled_time'] ?? '') ?? DateTime.now(),
+      duration: Duration(minutes: json['duration_minutes'] ?? 0),
+      amount: (json['total_amount'] ?? json['amount'] ?? 0).toDouble(),
       notes: json['notes'],
       rating: json['rating']?.toDouble(),
       review: json['review'],
@@ -95,9 +111,8 @@ class AstrologerConsultationsScreen extends StatefulWidget {
 
 class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  // API services for future use
-  // late UserApiService _userApiService;
-  // late LocalStorageService _localStorage;
+  late final AuthService _authService;
+  late final UserApiService _userApiService;
 
   List<ConsultationItem> _allConsultations = [];
   List<ConsultationItem> _activeConsultations = [];
@@ -106,13 +121,15 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
 
   bool _isLoading = true;
   String _searchQuery = '';
+  int _currentPage = 1;
+  // Pagination fields will be added when infinite scrolling is implemented
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    // _userApiService = getIt<UserApiService>();
-    // _localStorage = getIt<LocalStorageService>();
+    _authService = getIt<AuthService>();
+    _userApiService = getIt<UserApiService>();
     _loadConsultations();
   }
 
@@ -123,123 +140,113 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
   }
 
   Future<void> _loadConsultations() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _allConsultations.clear();
+    });
 
     try {
-      // Generate demo data for now (replace with actual API call)
-      _allConsultations = _generateDemoConsultations();
-      _filterConsultations();
+      final token = _authService.authToken;
+      if (token == null) {
+        throw Exception('Authentication token not found');
+      }
+
+      final response = await _userApiService.getAstrologerConsultations(
+        token,
+        search: _searchQuery.isEmpty ? null : _searchQuery,
+        page: _currentPage,
+        limit: 20,
+      );
+
+      if (response['success'] == true) {
+        final consultations = (response['consultations'] as List<dynamic>? ?? [])
+            .map((json) => ConsultationItem.fromApiJson(json as Map<String, dynamic>))
+            .toList();
+
+        final pagination = response['pagination'] as Map<String, dynamic>? ?? {};
+        final statistics = response['statistics'] as Map<String, dynamic>? ?? {};
+        debugPrint('Loaded ${consultations.length} consultations with stats: $statistics');
+        
+        setState(() {
+          _allConsultations = consultations;
+          _filterConsultations();
+        });
+        
+        // Debug pagination info
+        debugPrint('Loaded ${consultations.length} consultations, has more: ${pagination['has_next']}');
+      } else {
+        throw Exception(response['message'] ?? 'Failed to load consultations');
+      }
     } catch (e) {
-      debugPrint('Error loading consultations: $e');
-      // Show error message
+      final appError = ErrorHandler.handleError(e, context: 'consultation');
+      ErrorHandler.logError(appError);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to load consultations'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ErrorHandler.showError(context, appError);
       }
     }
 
-    setState(() => _isLoading = false);
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   void _filterConsultations() {
     _activeConsultations = _allConsultations
         .where((c) => c.status == ConsultationStatus.active)
-        .where((c) => c.clientName.toLowerCase().contains(_searchQuery.toLowerCase()))
         .toList();
 
     _upcomingConsultations = _allConsultations
         .where((c) => c.status == ConsultationStatus.upcoming)
-        .where((c) => c.clientName.toLowerCase().contains(_searchQuery.toLowerCase()))
         .toList();
 
     _completedConsultations = _allConsultations
         .where((c) => c.status == ConsultationStatus.completed)
-        .where((c) => c.clientName.toLowerCase().contains(_searchQuery.toLowerCase()))
         .toList();
   }
 
-  List<ConsultationItem> _generateDemoConsultations() {
-    final now = DateTime.now();
-    return [
-      // Active consultations
-      ConsultationItem(
-        id: '1',
-        clientName: 'Priya Sharma',
-        clientImage: '',
-        type: ConsultationType.chat,
-        status: ConsultationStatus.active,
-        scheduledTime: now.subtract(const Duration(minutes: 15)),
-        duration: const Duration(minutes: 30),
-        amount: 150.0,
-        notes: 'Career guidance consultation',
-      ),
-      ConsultationItem(
-        id: '2',
-        clientName: 'Rahul Kumar',
-        clientImage: '',
-        type: ConsultationType.videoCall,
-        status: ConsultationStatus.active,
-        scheduledTime: now.subtract(const Duration(minutes: 5)),
-        duration: const Duration(minutes: 45),
-        amount: 300.0,
-        notes: 'Marriage compatibility reading',
-      ),
-
-      // Upcoming consultations
-      ConsultationItem(
-        id: '3',
-        clientName: 'Anita Mehta',
-        clientImage: '',
-        type: ConsultationType.voiceCall,
-        status: ConsultationStatus.upcoming,
-        scheduledTime: now.add(const Duration(hours: 2)),
-        duration: const Duration(minutes: 30),
-        amount: 200.0,
-        notes: 'Health and wellness consultation',
-      ),
-      ConsultationItem(
-        id: '4',
-        clientName: 'Vikash Singh',
-        clientImage: '',
-        type: ConsultationType.chat,
-        status: ConsultationStatus.upcoming,
-        scheduledTime: now.add(const Duration(hours: 4)),
-        duration: const Duration(minutes: 20),
-        amount: 120.0,
-        notes: 'Financial planning discussion',
-      ),
-
-      // Completed consultations
-      ConsultationItem(
-        id: '5',
-        clientName: 'Deepika Patel',
-        clientImage: '',
-        type: ConsultationType.chat,
-        status: ConsultationStatus.completed,
-        scheduledTime: now.subtract(const Duration(days: 1)),
-        duration: const Duration(minutes: 25),
-        amount: 150.0,
-        rating: 4.8,
-        review: 'Very insightful reading! Thank you for the guidance.',
-      ),
-      ConsultationItem(
-        id: '6',
-        clientName: 'Amit Joshi',
-        clientImage: '',
-        type: ConsultationType.videoCall,
-        status: ConsultationStatus.completed,
-        scheduledTime: now.subtract(const Duration(days: 2)),
-        duration: const Duration(minutes: 40),
-        amount: 280.0,
-        rating: 5.0,
-        review: 'Excellent session, very professional and accurate.',
-      ),
-    ];
+  void _onSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query;
+      _currentPage = 1;
+    });
+    
+    // Debounce the API call
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (_searchQuery == query && mounted) {
+        _loadConsultations();
+      }
+    });
   }
+
+  void _navigateToConsultation(ConsultationItem consultation) {
+    switch (consultation.type) {
+      case ConsultationType.chat:
+        Navigator.pushNamed(context, '/chat', arguments: {
+          'sessionId': consultation.id,
+          'clientName': consultation.clientName,
+          'isAstrologer': true,
+        });
+        break;
+      case ConsultationType.voiceCall:
+        Navigator.pushNamed(context, '/call', arguments: {
+          'sessionId': consultation.id,
+          'clientName': consultation.clientName,
+          'callType': 'voice',
+          'isAstrologer': true,
+        });
+        break;
+      case ConsultationType.videoCall:
+        Navigator.pushNamed(context, '/call', arguments: {
+          'sessionId': consultation.id,
+          'clientName': consultation.clientName,
+          'callType': 'video',
+          'isAstrologer': true,
+        });
+        break;
+    }
+  }
+
+  // Demo data generation method removed - now using real API data
 
   @override
   Widget build(BuildContext context) {
@@ -326,12 +333,7 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
                 filled: true,
                 fillColor: AppColors.background,
               ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                  _filterConsultations();
-                });
-              },
+              onChanged: _onSearchChanged,
             ),
           ),
           
@@ -727,14 +729,49 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
     return '$displayHour:$minute $period';
   }
 
-  void _joinConsultation(ConsultationItem consultation) {
-    // Navigate to consultation screen based on type
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Joining ${_getTypeLabel(consultation.type).toLowerCase()} with ${consultation.clientName}'),
-        backgroundColor: AppColors.success,
-      ),
-    );
+  void _joinConsultation(ConsultationItem consultation) async {
+    try {
+      final token = _authService.authToken;
+      if (token == null) {
+        throw Exception('Authentication token not found');
+      }
+
+      final sessionType = consultation.type == ConsultationType.chat ? 'chat' : 
+                         consultation.type == ConsultationType.voiceCall ? 'voice_call' : 'video_call';
+
+      final response = await _userApiService.updateConsultation(
+        token,
+        consultationId: consultation.id,
+        action: 'join',
+        sessionType: sessionType,
+      );
+
+      if (response['success'] == true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Joining ${_getTypeLabel(consultation.type).toLowerCase()} with ${consultation.clientName}'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+        
+        // Refresh consultations to show updated status
+        _currentPage = 1;
+        _loadConsultations();
+        
+        // Navigate to appropriate consultation screen
+        _navigateToConsultation(consultation);
+      } else {
+        throw Exception(response['message'] ?? 'Failed to join consultation');
+      }
+    } catch (e) {
+      if (mounted) {
+        final appError = ErrorHandler.handleError(e, context: 'consultation');
+        ErrorHandler.logError(appError);
+        ErrorHandler.showError(context, appError);
+      }
+    }
   }
 
   void _endConsultation(ConsultationItem consultation) {
@@ -749,32 +786,56 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(context).pop();
-              // Handle end consultation
-              setState(() {
-                final index = _allConsultations.indexWhere((c) => c.id == consultation.id);
-                if (index != -1) {
-                  _allConsultations[index] = ConsultationItem(
-                    id: consultation.id,
-                    clientName: consultation.clientName,
-                    clientImage: consultation.clientImage,
-                    type: consultation.type,
-                    status: ConsultationStatus.completed,
-                    scheduledTime: consultation.scheduledTime,
-                    duration: consultation.duration,
-                    amount: consultation.amount,
-                    notes: consultation.notes,
-                  );
-                  _filterConsultations();
+              
+              // Extract context references before async operations
+              final messenger = ScaffoldMessenger.of(context);
+              
+              try {
+                final token = _authService.authToken;
+                if (token == null) {
+                  throw Exception('Authentication token not found');
                 }
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Consultation ended successfully'),
-                  backgroundColor: AppColors.success,
-                ),
-              );
+
+                final sessionType = consultation.type == ConsultationType.chat ? 'chat' : 
+                                   consultation.type == ConsultationType.voiceCall ? 'voice_call' : 'video_call';
+
+                final response = await _userApiService.updateConsultation(
+                  token,
+                  consultationId: consultation.id,
+                  action: 'end',
+                  sessionType: sessionType,
+                );
+
+                if (response['success'] == true) {
+                  if (mounted) {
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('Consultation ended successfully'),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                  }
+                  
+                  // Refresh consultations to show updated status
+                  _currentPage = 1;
+                  _loadConsultations();
+                } else {
+                  throw Exception(response['message'] ?? 'Failed to end consultation');
+                }
+              } catch (e) {
+                final appError = ErrorHandler.handleError(e, context: 'consultation');
+                ErrorHandler.logError(appError);
+                if (mounted && appError.userMessage.isNotEmpty) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(appError.userMessage),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
+              }
             },
             child: const Text('End'),
           ),

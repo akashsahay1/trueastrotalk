@@ -710,27 +710,34 @@ class UserApiService {
   // Get astrologer consultations
   Future<Map<String, dynamic>> getAstrologerConsultations(String token, {
     String? status,
+    String? type,
+    String? search,
+    int page = 1,
     int limit = 20,
-    int offset = 0,
   }) async {
     try {
       final queryParams = <String, dynamic>{
+        'page': page,
         'limit': limit,
-        'offset': offset,
       };
-      if (status != null) queryParams['status'] = status;
+      if (status != null && status != 'all') queryParams['status'] = status;
+      if (type != null) queryParams['type'] = type;
+      if (search != null && search.isNotEmpty) queryParams['search'] = search;
 
       final response = await _dio.get(
-        '/astrologers/consultations',
+        ApiEndpoints.astrologerConsultations,
         queryParameters: queryParams,
         options: Options(headers: {'Authorization': 'Bearer $token'})
       );
 
       if (response.statusCode == 200) {
+        final data = response.data['data'] ?? {};
         return {
           'success': true,
-          'consultations': response.data['data'] ?? response.data['consultations'] ?? [],
-          'totalCount': response.data['totalCount'] ?? 0,
+          'consultations': data['consultations'] ?? [],
+          'statistics': data['statistics'] ?? {},
+          'pagination': data['pagination'] ?? {},
+          'filters': data['filters'] ?? {},
         };
       } else {
         return {
@@ -750,9 +757,23 @@ class UserApiService {
   }
 
   // Get astrologer wallet/earnings data
-  Future<Map<String, dynamic>> getAstrologerEarnings(String token) async {
+  Future<Map<String, dynamic>> getAstrologerEarnings(String token, {
+    String period = 'month',
+    int page = 1,
+    int limit = 20,
+  }) async {
     try {
-      final response = await _dio.get(ApiEndpoints.astrologerWalletBalance, options: Options(headers: {'Authorization': 'Bearer $token'}));
+      final queryParams = {
+        'period': period,
+        'page': page.toString(),
+        'limit': limit.toString(),
+      };
+      
+      final response = await _dio.get(
+        ApiEndpoints.astrologerEarnings, 
+        queryParameters: queryParams,
+        options: Options(headers: {'Authorization': 'Bearer $token'})
+      );
 
       if (response.statusCode == 200) {
         return response.data['data'] ?? response.data;
@@ -764,24 +785,92 @@ class UserApiService {
     }
   }
 
-  // Get astrologer earnings history
+  // Get astrologer earnings history (alias for backward compatibility)
   Future<Map<String, dynamic>> getAstrologerEarningsHistory(String token, {int limit = 10, int offset = 0}) async {
-    try {
-      final queryParams = {'limit': limit.toString(), 'offset': offset.toString()};
+    // Convert offset to page
+    final page = (offset / limit).floor() + 1;
+    return getAstrologerEarnings(token, page: page, limit: limit);
+  }
 
-      final response = await _dio.get(
-        ApiEndpoints.astrologerWalletEarningsHistory,
-        queryParameters: queryParams,
-        options: Options(headers: {'Authorization': 'Bearer $token'}),
+  // Update consultation (join, end, add notes, cancel)
+  Future<Map<String, dynamic>> updateConsultation(String token, {
+    required String consultationId,
+    required String action,
+    String? notes,
+    String? sessionType,
+  }) async {
+    try {
+      final requestData = {
+        'consultation_id': consultationId,
+        'action': action,
+        if (notes != null) 'notes': notes,
+        if (sessionType != null) 'session_type': sessionType,
+      };
+
+      final response = await _dio.put(
+        ApiEndpoints.astrologerConsultations,
+        data: requestData,
+        options: Options(headers: {'Authorization': 'Bearer $token'})
       );
 
       if (response.statusCode == 200) {
-        return response.data['data'] ?? response.data;
+        return {
+          'success': true,
+          'message': response.data['message'] ?? 'Consultation updated successfully',
+          'data': response.data['data'] ?? {},
+        };
       } else {
-        throw Exception('Failed to get earnings history: ${response.data['message']}');
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'Failed to update consultation',
+        };
       }
     } on DioException catch (e) {
-      throw _handleDioException(e);
+      debugPrint('❌ Update consultation API error: ${e.response?.statusCode} - ${e.response?.data}');
+      return {
+        'success': false,
+        'message': _handleDioException(e),
+      };
+    }
+  }
+
+  // Request withdrawal
+  Future<Map<String, dynamic>> requestWithdrawal(String token, {
+    required double amount,
+    required String withdrawalMethod,
+    required Map<String, dynamic> accountDetails,
+  }) async {
+    try {
+      final requestData = {
+        'amount': amount,
+        'withdrawal_method': withdrawalMethod,
+        'account_details': accountDetails,
+      };
+
+      final response = await _dio.post(
+        ApiEndpoints.astrologerEarnings,
+        data: requestData,
+        options: Options(headers: {'Authorization': 'Bearer $token'})
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': response.data['message'] ?? 'Withdrawal request submitted successfully',
+          'data': response.data['data'] ?? {},
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'Failed to submit withdrawal request',
+        };
+      }
+    } on DioException catch (e) {
+      debugPrint('❌ Withdrawal request API error: ${e.response?.statusCode} - ${e.response?.data}');
+      return {
+        'success': false,
+        'message': _handleDioException(e),
+      };
     }
   }
 
@@ -833,6 +922,25 @@ class UserApiService {
     } on DioException {
       // If statistics endpoint doesn't exist, return default values
       return {'today_consultations': 0, 'total_consultations': 0, 'average_rating': 0.0, 'total_reviews': 0};
+    }
+  }
+
+  // Update astrologer UPI details
+  Future<Map<String, dynamic>> updateAstrologerUpiDetails(String token, String upiId) async {
+    try {
+      final response = await _dio.put(
+        ApiEndpoints.astrologerWalletUpiDetails,
+        data: {'upi_id': upiId},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data['data'] ?? response.data;
+      } else {
+        throw Exception('Failed to update UPI details: ${response.data['message']}');
+      }
+    } on DioException catch (e) {
+      throw _handleDioException(e);
     }
   }
 

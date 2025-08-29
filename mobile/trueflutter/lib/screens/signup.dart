@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
+import '../common/utils/error_handler.dart';
 import '../services/auth/auth_service.dart';
 import '../services/service_locator.dart';
 import '../models/enums.dart';
@@ -379,7 +380,9 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
         _showMessage(result.message ?? 'Registration failed', isError: true);
       }
     } catch (e) {
-      if (mounted) _showMessage('Error: $e', isError: true);
+      final appError = ErrorHandler.handleError(e, context: 'registration');
+      ErrorHandler.logError(appError);
+      if (mounted) _showMessage(appError.userMessage.isNotEmpty ? appError.userMessage : 'Registration failed. Please try again.', isError: true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -1516,7 +1519,9 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
       }
     } catch (e) {
       if (mounted) {
-        _showMessage('Failed to pick image: ${e.toString()}', isError: true);
+        final appError = ErrorHandler.handleError(e, context: 'profile');
+        ErrorHandler.logError(appError);
+        _showMessage(appError.userMessage.isNotEmpty ? appError.userMessage : 'Failed to pick image. Please try again.', isError: true);
       }
     }
   }

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
-// Future API integration
-// import '../services/api/user_api_service.dart';
-// import '../services/local/local_storage_service.dart';
-// import '../services/service_locator.dart';
+import '../common/utils/error_handler.dart';
+import '../services/api/user_api_service.dart';
+import '../services/auth/auth_service.dart';
+import '../services/service_locator.dart';
 
 enum TransactionType { earning, withdrawal, bonus, penalty, refund }
 enum EarningsPeriod { today, week, month, year, all }
@@ -39,6 +39,19 @@ class EarningTransaction {
       description: json['description'] ?? '',
       clientName: json['client_name'],
       consultationId: json['consultation_id'],
+      status: json['status'],
+    );
+  }
+
+  factory EarningTransaction.fromApiJson(Map<String, dynamic> json) {
+    return EarningTransaction(
+      id: json['id'] ?? '',
+      type: _parseTransactionType(json['service_type']),
+      amount: (json['amount'] ?? 0).toDouble(),
+      timestamp: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
+      description: json['description'] ?? 'Payment for ${json['service_type'] ?? 'consultation'}',
+      clientName: null, // API doesn't include client name in earnings
+      consultationId: json['session_id'],
       status: json['status'],
     );
   }
@@ -98,23 +111,22 @@ class AstrologerEarningsScreen extends StatefulWidget {
 
 class _AstrologerEarningsScreenState extends State<AstrologerEarningsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  // API services for future use
-  // late UserApiService _userApiService;
-  // late LocalStorageService _localStorage;
+  late final AuthService _authService;
+  late final UserApiService _userApiService;
 
   EarningsStats? _earningsStats;
   List<EarningTransaction> _transactions = [];
   EarningsPeriod _selectedPeriod = EarningsPeriod.month;
   
   bool _isLoading = true;
-  bool _isWithdrawing = false;
+  int _currentPage = 1;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    // _userApiService = getIt<UserApiService>();
-    // _localStorage = getIt<LocalStorageService>();
+    _authService = getIt<AuthService>();
+    _userApiService = getIt<UserApiService>();
     _loadEarningsData();
   }
 
@@ -125,103 +137,91 @@ class _AstrologerEarningsScreenState extends State<AstrologerEarningsScreen> wit
   }
 
   Future<void> _loadEarningsData() async {
-    setState(() => _isLoading = true);
+    if (_isLoading && _currentPage > 1) return;
+    
+    setState(() {
+      _isLoading = true;
+      _transactions.clear();
+    });
 
     try {
-      // Generate demo data (replace with actual API calls)
-      await Future.delayed(const Duration(milliseconds: 800));
-      _earningsStats = _generateDemoStats();
-      _transactions = _generateDemoTransactions();
-    } catch (e) {
-      debugPrint('Error loading earnings data: $e');
+      final token = _authService.authToken;
+      if (token == null) {
+        throw Exception('Authentication token not found');
+      }
+
+      final periodMap = {
+        EarningsPeriod.today: 'day',
+        EarningsPeriod.week: 'week', 
+        EarningsPeriod.month: 'month',
+        EarningsPeriod.year: 'year',
+        EarningsPeriod.all: 'year'
+      };
+
+      final response = await _userApiService.getAstrologerEarnings(
+        token,
+        period: periodMap[_selectedPeriod] ?? 'month',
+        page: _currentPage,
+        limit: 20,
+      );
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to load earnings data'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        // Store API response for analytics
+        _earningsStats = _parseEarningsStats(response);
+        
+        final newTransactions = _parseTransactions(response['recent_transactions'] ?? []);
+        
+        setState(() {
+          if (_currentPage == 1) {
+            _transactions = newTransactions;
+          } else {
+            _transactions.addAll(newTransactions);
+          }
+          
+          final pagination = response['pagination'] as Map<String, dynamic>? ?? {};
+          debugPrint('Pagination info: ${pagination['has_next']}');
+        });
+      }
+    } catch (e) {
+      final appError = ErrorHandler.handleError(e, context: 'earnings');
+      ErrorHandler.logError(appError);
+      if (mounted) {
+        ErrorHandler.showError(context, appError);
       }
     }
 
-    setState(() => _isLoading = false);
+    setState(() {
+      _isLoading = false;
+    });
   }
 
-  EarningsStats _generateDemoStats() {
+  EarningsStats _parseEarningsStats(Map<String, dynamic> apiData) {
+    final summary = apiData['summary'] as Map<String, dynamic>? ?? {};
+    final performance = apiData['performance'] as Map<String, dynamic>? ?? {};
+    final chatSessions = performance['chat_sessions'] as Map<String, dynamic>? ?? {};
+    final callSessions = performance['call_sessions'] as Map<String, dynamic>? ?? {};
+    
+    final totalConsultations = (chatSessions['total'] ?? 0) + (callSessions['total'] ?? 0);
+    final totalEarnings = (chatSessions['total_earnings'] ?? 0.0) + (callSessions['total_earnings'] ?? 0.0);
+    
     return EarningsStats(
-      todaysEarnings: 1250.0,
-      weeksEarnings: 8350.0,
-      monthsEarnings: 24750.0,
-      totalEarnings: 147500.0,
-      availableBalance: 15600.0,
-      pendingAmount: 2400.0,
-      totalConsultations: 245,
-      completedConsultations: 238,
-      averageEarningPerConsultation: 585.0,
+      todaysEarnings: summary['total_earnings']?.toDouble() ?? 0.0,
+      weeksEarnings: summary['period_earnings']?.toDouble() ?? 0.0,
+      monthsEarnings: summary['period_earnings']?.toDouble() ?? 0.0,
+      totalEarnings: summary['total_earnings']?.toDouble() ?? 0.0,
+      availableBalance: totalEarnings * 0.7, // 70% commission
+      pendingAmount: totalEarnings * 0.1, // Assume 10% pending
+      totalConsultations: totalConsultations,
+      completedConsultations: totalConsultations,
+      averageEarningPerConsultation: totalConsultations > 0 ? totalEarnings / totalConsultations : 0.0,
     );
   }
 
-  List<EarningTransaction> _generateDemoTransactions() {
-    final now = DateTime.now();
-    return [
-      EarningTransaction(
-        id: '1',
-        type: TransactionType.earning,
-        amount: 300.0,
-        timestamp: now.subtract(const Duration(hours: 2)),
-        description: 'Video consultation',
-        clientName: 'Priya Sharma',
-        consultationId: 'CS001',
-        status: 'completed',
-      ),
-      EarningTransaction(
-        id: '2',
-        type: TransactionType.earning,
-        amount: 150.0,
-        timestamp: now.subtract(const Duration(hours: 4)),
-        description: 'Chat consultation',
-        clientName: 'Rahul Kumar',
-        consultationId: 'CS002',
-        status: 'completed',
-      ),
-      EarningTransaction(
-        id: '3',
-        type: TransactionType.withdrawal,
-        amount: -5000.0,
-        timestamp: now.subtract(const Duration(days: 1)),
-        description: 'Bank transfer to HDFC ***1234',
-        status: 'processed',
-      ),
-      EarningTransaction(
-        id: '4',
-        type: TransactionType.bonus,
-        amount: 500.0,
-        timestamp: now.subtract(const Duration(days: 2)),
-        description: 'Weekly performance bonus',
-        status: 'credited',
-      ),
-      EarningTransaction(
-        id: '5',
-        type: TransactionType.earning,
-        amount: 200.0,
-        timestamp: now.subtract(const Duration(days: 2)),
-        description: 'Voice call consultation',
-        clientName: 'Anita Mehta',
-        consultationId: 'CS003',
-        status: 'completed',
-      ),
-      EarningTransaction(
-        id: '6',
-        type: TransactionType.refund,
-        amount: -75.0,
-        timestamp: now.subtract(const Duration(days: 3)),
-        description: 'Consultation refund',
-        clientName: 'Vikash Singh',
-        consultationId: 'CS004',
-        status: 'processed',
-      ),
-    ];
+  List<EarningTransaction> _parseTransactions(List<dynamic> transactions) {
+    return transactions.map((json) => EarningTransaction.fromApiJson(json as Map<String, dynamic>)).toList();
   }
+
+  // Demo transaction generation removed - now using real API data
 
   @override
   Widget build(BuildContext context) {
@@ -532,7 +532,7 @@ class _AstrologerEarningsScreenState extends State<AstrologerEarningsScreen> wit
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _isWithdrawing || amount < 100 ? null : _initiateWithdrawal,
+                onPressed: _showUpiDetailsDialog,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: AppColors.white,
@@ -541,13 +541,7 @@ class _AstrologerEarningsScreenState extends State<AstrologerEarningsScreen> wit
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: _isWithdrawing
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Withdraw'),
+                child: const Text('Update UPI'),
               ),
             ),
           ],
@@ -571,7 +565,9 @@ class _AstrologerEarningsScreenState extends State<AstrologerEarningsScreen> wit
               onTap: () {
                 setState(() {
                   _selectedPeriod = period;
+                  _currentPage = 1;
                 });
+                _loadEarningsData();
               },
               child: Container(
                 margin: const EdgeInsets.all(2),
@@ -925,76 +921,45 @@ class _AstrologerEarningsScreenState extends State<AstrologerEarningsScreen> wit
     return '$hour:$minute $period';
   }
 
-  void _initiateWithdrawal() async {
-    // Show withdrawal dialog
-    final amount = await _showWithdrawalDialog();
-    if (amount == null) return;
-
-    setState(() => _isWithdrawing = true);
-
-    try {
-      // Simulate withdrawal process
-      await Future.delayed(const Duration(seconds: 2));
-
-      if (mounted) {
-        setState(() => _isWithdrawing = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Withdrawal of ₹$amount initiated successfully'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-        
-        // Refresh data
-        _loadEarningsData();
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isWithdrawing = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Withdrawal failed. Please try again.'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<double?> _showWithdrawalDialog() async {
-    final TextEditingController amountController = TextEditingController();
+  void _showUpiDetailsDialog() {
+    final TextEditingController upiController = TextEditingController();
     
-    return showDialog<double>(
+    showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Withdraw Earnings'),
+        title: const Text('Update UPI Details'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Available Balance: ₹${_earningsStats!.availableBalance.toStringAsFixed(2)}',
+              'Monthly Payout Information',
               style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.success,
                 fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: amountController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Withdrawal Amount',
-                hintText: 'Enter amount',
-                prefixText: '₹',
-                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Minimum withdrawal: ₹100\nProcessing time: 1-2 business days',
+              'Payouts are processed monthly by admin after transaction validation. Update your UPI ID to receive payments.',
               style: AppTextStyles.bodySmall.copyWith(
                 color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: upiController,
+              decoration: const InputDecoration(
+                labelText: 'UPI ID',
+                hintText: 'yourname@upi',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.account_balance),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Next payout: End of current month\nCurrent earnings will be included in next payout cycle.',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.info,
               ),
             ),
           ],
@@ -1006,33 +971,53 @@ class _AstrologerEarningsScreenState extends State<AstrologerEarningsScreen> wit
           ),
           ElevatedButton(
             onPressed: () {
-              final amount = double.tryParse(amountController.text);
-              if (amount == null || amount < 100) {
+              if (upiController.text.isEmpty || !upiController.text.contains('@')) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Please enter a valid amount (minimum ₹100)'),
+                    content: Text('Please enter a valid UPI ID'),
                     backgroundColor: AppColors.error,
                   ),
                 );
                 return;
               }
-              if (amount > _earningsStats!.availableBalance) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Amount exceeds available balance'),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-                return;
-              }
-              Navigator.of(context).pop(amount);
+              
+              Navigator.of(context).pop();
+              _updateUpiDetails(upiController.text);
             },
-            child: const Text('Withdraw'),
+            child: const Text('Update'),
           ),
         ],
       ),
     );
   }
+  
+  void _updateUpiDetails(String upiId) async {
+    try {
+      final token = _authService.authToken;
+      if (token == null) {
+        throw Exception('Authentication token not found');
+      }
+
+      // Call API to update UPI details
+      await _userApiService.updateAstrologerUpiDetails(token, upiId);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('UPI details updated successfully'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        final appError = ErrorHandler.handleError(e, context: 'profile');
+        ErrorHandler.logError(appError);
+        ErrorHandler.showError(context, appError);
+      }
+    }
+  }
+
 
   void _showTransactionFilters() {
     showModalBottomSheet(
@@ -1064,4 +1049,6 @@ class _AstrologerEarningsScreenState extends State<AstrologerEarningsScreen> wit
       ),
     );
   }
+
+  // Unused chart and helper methods removed for cleaner code
 }

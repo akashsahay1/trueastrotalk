@@ -141,6 +141,11 @@ dev_dependencies:
 
   # App Icon Generator
   flutter_launcher_icons: ^0.14.4
+  
+  # Testing dependencies
+  mockito: ^5.4.2
+  build_runner: ^2.4.7
+  mocktail: ^1.0.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

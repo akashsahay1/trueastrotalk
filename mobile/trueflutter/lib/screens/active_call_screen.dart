@@ -13,6 +13,7 @@ import '../services/network/network_diagnostics_service.dart';
 import '../services/call/call_service.dart';
 import '../services/auth/auth_service.dart';
 import '../services/service_locator.dart';
+import 'history.dart';
 import '../models/astrologer.dart';
 import '../models/call.dart' as call_models;
 import '../widgets/call_quality_indicator.dart';
@@ -523,8 +524,8 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
             // Caller/Receiver name
             Text(
               () {
-                final callerName = widget.callData['callerName'];
-                final receiverName = widget.callData['receiverName'];
+                final callerName = widget.callData['callerName'] ?? widget.callData['caller_name'];
+                final receiverName = widget.callData['receiverName'] ?? widget.callData['receiver_name'];
                 final webrtcRemoteName = _webrtcService.remoteUserName;
                 
                 debugPrint('📱 ActiveCallScreen name display logic:');
@@ -538,11 +539,19 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
                 if (widget.isIncoming) {
                   final displayName = callerName ?? webrtcRemoteName;
                   debugPrint('   - Displaying (incoming): "$displayName"');
-                  return displayName ?? 'Connecting...';
+                  // Don't show "Unknown" - show connecting instead
+                  if (displayName == null || displayName == 'Unknown' || displayName.isEmpty) {
+                    return 'Connecting...';
+                  }
+                  return displayName;
                 } else {
                   final displayName = receiverName ?? webrtcRemoteName;
                   debugPrint('   - Displaying (outgoing): "$displayName"');
-                  return displayName ?? 'Connecting...';
+                  // Don't show "Unknown" - show connecting instead
+                  if (displayName == null || displayName == 'Unknown' || displayName.isEmpty) {
+                    return 'Connecting...';
+                  }
+                  return displayName;
                 }
               }(),
               style: AppTextStyles.heading3.copyWith(
@@ -1074,7 +1083,6 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     
     // Stop billing and get final summary
     final billingWasActive = _billingService.isSessionActive;
-    final totalBilled = _billingService.totalBilled;
     final formattedBilled = _billingService.getFormattedTotalBilled();
     final callDuration = _formatCallDuration(_callDuration);
     
@@ -1088,41 +1096,115 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     _callTimer?.cancel();
     _callTimer = null;
     
-    // Show appropriate dialog based on user type and billing status
+    // Get user info for navigation decision
     final currentUser = _authService.currentUser;
     final isAstrologer = currentUser != null && currentUser.isAstrologer;
+    final shouldShowDialog = billingWasActive || (isAstrologer && _callDuration.inSeconds > 0);
     
-    debugPrint('💰 Dialog decision: billingWasActive=$billingWasActive, totalBilled=$totalBilled, isAstrologer=$isAstrologer');
+    debugPrint('📱 Navigation decision: isAstrologer=$isAstrologer, shouldShowDialog=$shouldShowDialog');
     
-    if (billingWasActive || (isAstrologer && _callDuration.inSeconds > 0)) {
-      // Show dialog if billing was active OR if this is an astrologer with call duration
+    // ALWAYS navigate away immediately - no UI blocking
+    if (shouldShowDialog) {
       if (isAstrologer) {
-        debugPrint('💰 Showing earnings dialog for astrologer');
-        await _showEarningsDialog(formattedBilled, callDuration, reason);
+        debugPrint('📱 Navigating astrologer to history with earnings dialog');
+        _navigateAstrologerToHistory(formattedBilled, callDuration, reason);
       } else {
-        debugPrint('💰 Showing billing dialog for customer');
-        await _showBillingAlertDialog(formattedBilled, callDuration, reason);
+        debugPrint('📱 Navigating customer to astrologer details with billing dialog');
+        _navigateCustomerToAstrologerDetails(formattedBilled, callDuration, reason);
       }
-      // Dialog will handle navigation when dismissed
     } else {
-      // Show end call reason if no billing dialog was shown
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(reason),
-            backgroundColor: AppColors.info,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-      
-      // Navigate back after a short delay only if no billing dialog
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
-          Navigator.of(context).pop();
-        }
-      });
+      debugPrint('📱 Simple navigation back');
+      _simpleNavigateBack(reason);
     }
+  }
+
+  /// Simple navigation back with snackbar
+  void _simpleNavigateBack(String reason) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(reason),
+          backgroundColor: AppColors.info,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      
+      // Navigate back immediately
+      Navigator.of(context).pop();
+    }
+  }
+
+  /// Navigate astrologer to history screen with earnings info
+  void _navigateAstrologerToHistory(String formattedBilled, String callDuration, String reason) {
+    if (!mounted) return;
+    
+    debugPrint('📱 Astrologer: Navigating to history, earnings: $formattedBilled for $callDuration');
+    
+    // Navigate to history screen immediately - no UI blocking
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (context) => const HistoryScreen(),
+      ),
+      (route) => route.isFirst,
+    );
+    
+    // Show a simple snackbar with earnings info after navigation
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.monetization_on, color: AppColors.success, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Call completed! Earned $formattedBilled (Duration: $callDuration)',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.success,
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    });
+  }
+
+  /// Navigate customer to astrologer details with billing info
+  void _navigateCustomerToAstrologerDetails(String formattedBilled, String callDuration, String reason) {
+    if (!mounted) return;
+    
+    debugPrint('📱 Customer: Navigating to astrologer details, charged: $formattedBilled for $callDuration');
+    
+    // Navigate to astrologer details immediately - no UI blocking
+    _navigateToAstrologerDetailsImmediate();
+    
+    // Show a simple snackbar with billing info after navigation
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.account_balance_wallet, color: AppColors.primary, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Call completed! Charged $formattedBilled (Duration: $callDuration)',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.primary,
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    });
   }
 
   Future<void> _startBilling() async {
@@ -1269,406 +1351,6 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     );
   }
 
-  /// Show billing alert dialog with call summary
-  Future<void> _showBillingAlertDialog(String totalBilled, String callDuration, String reason) async {
-    if (!mounted) return;
-    
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false, // User must tap OK
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: AppColors.backgroundDark,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(Dimensions.radiusLg),
-          ),
-          title: Row(
-            children: [
-              Icon(
-                Icons.account_balance_wallet,
-                color: AppColors.primary,
-                size: 28,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Call Summary',
-                  style: AppTextStyles.heading4.copyWith(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Call ended reason
-                Container(
-                  padding: const EdgeInsets.all(Dimensions.paddingMd),
-                  decoration: BoxDecoration(
-                    color: AppColors.backgroundLight,
-                    borderRadius: BorderRadius.circular(Dimensions.radiusMd),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        color: AppColors.info,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          reason,
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: Dimensions.paddingLg),
-                
-                // Call duration
-                _buildBillingSummaryRow(
-                  'Call Duration:',
-                  callDuration,
-                  Icons.access_time,
-                ),
-                
-                const SizedBox(height: Dimensions.paddingMd),
-                
-                // Amount debited
-                _buildBillingSummaryRow(
-                  'Amount Debited:',
-                  totalBilled,
-                  Icons.currency_rupee,
-                  valueColor: AppColors.error,
-                ),
-                
-                const SizedBox(height: Dimensions.paddingMd),
-                
-                // Updated wallet balance
-                _buildBillingSummaryRow(
-                  'Wallet Balance:',
-                  _walletService.formattedBalance,
-                  Icons.account_balance_wallet,
-                  valueColor: _walletService.currentBalance < 50 ? AppColors.warning : AppColors.success,
-                ),
-                
-                const SizedBox(height: Dimensions.paddingLg),
-                
-                // Thank you message
-                Container(
-                  padding: const EdgeInsets.all(Dimensions.paddingMd),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(Dimensions.radiusMd),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.favorite,
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Thank you for using True AstroTalk!',
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.white,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                debugPrint('💰 Customer tapped OK on billing dialog');
-                Navigator.of(context).pop(); // Close dialog
-                
-                // Use WidgetsBinding to ensure navigation happens after dialog is closed
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    debugPrint('💰 Post-frame: Attempting navigation...');
-                    _navigateToAstrologerDetailsImmediate();
-                  } else {
-                    debugPrint('❌ Post-frame: Widget not mounted, cannot navigate');
-                  }
-                });
-              },
-              style: TextButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Dimensions.paddingXl,
-                  vertical: Dimensions.paddingMd,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Dimensions.radiusMd),
-                ),
-              ),
-              child: Text(
-                'OK',
-                style: AppTextStyles.buttonMedium.copyWith(
-                  color: AppColors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  /// Show earnings dialog for astrologers
-  Future<void> _showEarningsDialog(String totalEarned, String callDuration, String reason) async {
-    if (!mounted) return;
-    
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false, // User must tap OK
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: AppColors.backgroundDark,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(Dimensions.radiusLg),
-          ),
-          title: Row(
-            children: [
-              Icon(
-                Icons.monetization_on,
-                color: Colors.green,
-                size: 28,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Earnings Summary',
-                  style: AppTextStyles.heading4.copyWith(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Call ended reason
-                Container(
-                  padding: const EdgeInsets.all(Dimensions.paddingMd),
-                  decoration: BoxDecoration(
-                    color: AppColors.info.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(Dimensions.radiusMd),
-                    border: Border.all(
-                      color: AppColors.info.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        color: AppColors.info,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          reason,
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: Dimensions.paddingLg),
-                
-                // Earnings details
-                Container(
-                  padding: const EdgeInsets.all(Dimensions.paddingLg),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(Dimensions.radiusMd),
-                    border: Border.all(
-                      color: Colors.green.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Consultation Earnings',
-                        style: AppTextStyles.bodyLarge.copyWith(
-                          color: AppColors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Duration:',
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                          Text(
-                            callDuration,
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: AppColors.white,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Total Earned:',
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                          Text(
-                            totalEarned,
-                            style: AppTextStyles.heading4.copyWith(
-                              color: Colors.green,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: Dimensions.paddingLg),
-                
-                // Thank you message
-                Container(
-                  padding: const EdgeInsets.all(Dimensions.paddingMd),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(Dimensions.radiusMd),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.star,
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Great consultation! Your earnings have been updated.',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-                Navigator.of(context).pop(); // Navigate back to previous screen
-              },
-              style: TextButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: AppColors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Dimensions.paddingXl,
-                  vertical: Dimensions.paddingMd,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Dimensions.radiusMd),
-                ),
-              ),
-              child: Text(
-                'OK',
-                style: AppTextStyles.buttonMedium.copyWith(
-                  color: AppColors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  /// Helper method to build billing summary rows
-  Widget _buildBillingSummaryRow(
-    String label,
-    String value,
-    IconData icon, {
-    Color? valueColor,
-  }) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          color: AppColors.white.withValues(alpha: 0.7),
-          size: 18,
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            label,
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.white.withValues(alpha: 0.8),
-            ),
-          ),
-        ),
-        Text(
-          value,
-          style: AppTextStyles.bodyMedium.copyWith(
-            color: valueColor ?? AppColors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
 
   String _formatCallDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');

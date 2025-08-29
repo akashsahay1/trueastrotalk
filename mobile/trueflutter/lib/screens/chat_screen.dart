@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 import '../common/constants/dimensions.dart';
+import '../common/utils/error_handler.dart';
 import '../models/chat.dart';
 import '../services/chat/chat_service.dart';
 import '../services/socket/socket_service.dart';
 import '../services/billing/billing_service.dart';
 import '../services/wallet/wallet_service.dart';
+import 'active_call_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final ChatSession chatSession;
@@ -767,13 +769,45 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     }
   }
 
-  void _startCall() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Voice call feature coming soon!'),
-        backgroundColor: AppColors.info,
-      ),
-    );
+  void _startCall() async {
+    try {
+      // Prepare call data for the ActiveCallScreen
+      final callData = {
+        'session_id': widget.chatSession.id,
+        'astrologer_id': widget.chatSession.astrologer.id,
+        'astrologer_name': widget.chatSession.astrologer.fullName,
+        'astrologer_image': widget.chatSession.astrologer.profileImage,
+        'customer_id': widget.chatSession.user.id,
+        'customer_name': widget.chatSession.user.name,
+        'call_type': 'voice',
+        'rate_per_minute': widget.chatSession.ratePerMinute,
+        'created_at': DateTime.now().toIso8601String(),
+      };
+      
+      // Navigate to the active call screen
+      if (mounted) {
+        final result = await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ActiveCallScreen(
+              callData: callData,
+              isIncoming: false,
+            ),
+          ),
+        );
+        
+        // Handle call completion if needed
+        if (result != null) {
+          debugPrint('Call completed with result: $result');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error starting voice call: $e');
+      if (mounted) {
+        final appError = ErrorHandler.handleError(e, context: 'call');
+        ErrorHandler.logError(appError);
+        ErrorHandler.showError(context, appError);
+      }
+    }
   }
 
   void _showMoreOptions() {
