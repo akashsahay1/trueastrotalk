@@ -326,7 +326,7 @@ export default function VideoSessionsPage() {
             {/* Stats Cards */}
             <div className="row mb-4">
               <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12">
-                <div className="card border-3 border-top border-top-primary">
+                <div className="card border-top-primary shadow-sm h-100">
                   <div className="card-body">
                     <h5 className="text-muted">Total Videos Today</h5>
                     <div className="metric-value d-inline-block">
@@ -342,7 +342,7 @@ export default function VideoSessionsPage() {
                 </div>
               </div>
               <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12">
-                <div className="card border-3 border-top border-top-danger">
+                <div className="card border-top-primary shadow-sm h-100">
                   <div className="card-body">
                     <h5 className="text-muted">Ongoing Videos</h5>
                     <div className="metric-value d-inline-block">
@@ -358,7 +358,7 @@ export default function VideoSessionsPage() {
                 </div>
               </div>
               <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12">
-                <div className="card border-3 border-top border-top-info">
+                <div className="card border-top-primary shadow-sm h-100">
                   <div className="card-body">
                     <h5 className="text-muted">Pending Sessions</h5>
                     <div className="metric-value d-inline-block">
@@ -374,7 +374,7 @@ export default function VideoSessionsPage() {
                 </div>
               </div>
               <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12">
-                <div className="card border-3 border-top border-top-success">
+                <div className="card border-top-primary shadow-sm h-100">
                   <div className="card-body">
                     <h5 className="text-muted">Avg Duration</h5>
                     <div className="metric-value d-inline-block">
@@ -421,7 +421,7 @@ export default function VideoSessionsPage() {
 
                     {/* Sessions Table */}
                     <div className="table-responsive">
-                      <table className="table table-striped table-bordered session-table m-0">
+                      <table className="table table-striped session-table m-0">
                         <thead>
                           <tr>
                             <th>
@@ -521,15 +521,15 @@ export default function VideoSessionsPage() {
                                 <td>
                                   <div className="">
                                     <button 
-                                      className="btn btn-outline-info btn-sm mr-1"
-                                      title="View Details"
+                                      className="btn btn-sm btn-info mr-1"
+                                      title="View"
                                       onClick={() => router.push(`/admin/sessions/video/details/${encodeURIComponent(session._id)}`)}
                                     >
                                       <i className="fas fa-eye"></i>
                                     </button>
                                     <button 
-                                      className="btn btn-outline-danger btn-sm"
-                                      title="Delete Session"
+                                      className="btn btn-sm btn-danger"
+                                      title="Delete"
                                       onClick={() => handleDelete(session._id)}
                                       disabled={deleting === session._id}
                                     >

@@ -31,7 +31,7 @@ class EmailService {
       const msg = {
         to: emailData.to,
         from: {
-          email: envConfig.SMTP.USER || 'noreply@trueastrotalk.com',
+          email: envConfig.SEND_FROM || 'noreply@trueastrotalk.com',
           name: 'True Astrotalk'
         },
         subject: emailData.subject,
@@ -359,7 +359,7 @@ class EmailService {
 
   // Send admin notification for new user signup
   async sendAdminSignupNotification(user: { name: string; email: string; phone?: string; user_type: string; createdAt?: string | Date }): Promise<boolean> {
-    const adminEmail = envConfig.SMTP.USER || 'admin@trueastrotalk.com'; // Admin email
+    const adminEmail = envConfig.SMTP.user || 'admin@trueastrotalk.com'; // Admin email
     const template = this.getAdminSignupNotificationTemplate(user);
     
     return await this.sendEmail({
@@ -710,7 +710,7 @@ class EmailService {
     itemsCount: number;
     trackingNumber?: string;
   }): Promise<boolean> {
-    const adminEmail = envConfig.SMTP.USER || 'admin@trueastrotalk.com';
+    const adminEmail = envConfig.SMTP.user || 'admin@trueastrotalk.com';
     const template = this.getAdminOrderNotificationTemplate(orderData);
     
     return await this.sendEmail({
@@ -723,7 +723,7 @@ class EmailService {
 
   // Send bulk status update notification to admin
   async sendBulkOrderUpdateNotification(updatedCount: number, newStatus: string): Promise<boolean> {
-    const adminEmail = envConfig.SMTP.USER || 'admin@trueastrotalk.com';
+    const adminEmail = envConfig.SMTP.user || 'admin@trueastrotalk.com';
     
     return await this.sendEmail({
       to: adminEmail,

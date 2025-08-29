@@ -280,7 +280,7 @@ export default function CompleteOrdersPage() {
         fetchOrders(currentPage, searchTerm, statusFilter);
         // Update selected order if modal is open
         if (selectedOrder && selectedOrder._id === orderId) {
-          setSelectedOrder({...selectedOrder, status: newStatus as any});
+          setSelectedOrder({...selectedOrder, status: newStatus as Order['status']});
         }
       } else {
         alert('Failed to update order status: ' + data.error);
@@ -363,7 +363,7 @@ export default function CompleteOrdersPage() {
                   </div>
                 </div>
                 <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-success shadow-sm h-100">
+                  <div className="card border-top-primary shadow-sm h-100">
                     <div className="card-body">
                       <h5 className="text-muted mb-4">Delivered Orders</h5>
                       <div className="d-flex justify-content-between">
@@ -380,7 +380,7 @@ export default function CompleteOrdersPage() {
                   </div>
                 </div>
                 <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-warning shadow-sm h-100">
+                  <div className="card border-top-primary shadow-sm h-100">
                     <div className="card-body">
                       <h5 className="text-muted mb-4">Pending Orders</h5>
                       <div className="d-flex justify-content-between">
@@ -397,7 +397,7 @@ export default function CompleteOrdersPage() {
                   </div>
                 </div>
                 <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-info shadow-sm h-100">
+                  <div className="card border-top-primary shadow-sm h-100">
                     <div className="card-body">
                       <h5 className="text-muted mb-4">Revenue (This Page)</h5>
                       <div className="d-flex justify-content-between">
@@ -994,6 +994,160 @@ export default function CompleteOrdersPage() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* Filter Modal */}
+            {showFilterModal && (
+              <div className={`modal fade ${modalAnimating ? 'show' : ''}`} style={{display: 'block'}} tabIndex={-1} role="dialog">
+                <div className="modal-dialog modal-dialog-centered modal-lg" role="document">
+                  <div className="modal-content">
+                    <div className="modal-header">
+                      <h5 className="modal-title">Filter Complete Orders</h5>
+                      <button 
+                        type="button" 
+                        className="close" 
+                        onClick={closeModal}
+                      >
+                        <span>&times;</span>
+                      </button>
+                    </div>
+                    <div className="modal-body">
+                      <div className="row">
+                        {/* Search Field */}
+                        <div className="col-md-6">
+                          <div className="form-group">
+                            <label>Search Orders</label>
+                            <input 
+                              type="text" 
+                              className="form-control form-control-sm" 
+                              placeholder="Search by order number, customer name"
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        
+                        {/* Status Filter */}
+                        <div className="col-md-6">
+                          <div className="form-group">
+                            <label>Status</label>
+                            <select 
+                              className="form-control form-control-sm"
+                              value={statusFilter}
+                              onChange={(e) => setStatusFilter(e.target.value)}
+                            >
+                              <option value="all">All Statuses</option>
+                              <option value="pending">Pending</option>
+                              <option value="confirmed">Confirmed</option>
+                              <option value="processing">Processing</option>
+                              <option value="shipped">Shipped</option>
+                              <option value="delivered">Delivered</option>
+                              <option value="cancelled">Cancelled</option>
+                            </select>
+                          </div>
+                        </div>
+                        
+                        {/* Date Range */}
+                        <div className="col-md-6">
+                          <div className="form-group">
+                            <label>From Date</label>
+                            <input 
+                              type="date" 
+                              className="form-control form-control-sm"
+                              value={fromDate}
+                              onChange={(e) => setFromDate(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="col-md-6">
+                          <div className="form-group">
+                            <label>To Date</label>
+                            <input 
+                              type="date" 
+                              className="form-control form-control-sm"
+                              value={toDate}
+                              onChange={(e) => setToDate(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        
+                        {/* Customer Filter */}
+                        <div className="col-md-6">
+                          <div className="form-group">
+                            <label>Customer</label>
+                            <input 
+                              type="text" 
+                              className="form-control form-control-sm"
+                              placeholder="Customer name or email"
+                              value={customerFilter}
+                              onChange={(e) => setCustomerFilter(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        
+                        {/* Amount Range */}
+                        <div className="col-md-3">
+                          <div className="form-group">
+                            <label>Min Amount (₹)</label>
+                            <input 
+                              type="number" 
+                              className="form-control form-control-sm"
+                              placeholder="0"
+                              value={amountMin}
+                              onChange={(e) => setAmountMin(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="col-md-3">
+                          <div className="form-group">
+                            <label>Max Amount (₹)</label>
+                            <input 
+                              type="number" 
+                              className="form-control form-control-sm"
+                              placeholder="No limit"
+                              value={amountMax}
+                              onChange={(e) => setAmountMax(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="alert alert-info mt-3">
+                        <i className="fas fa-info-circle mr-2"></i>
+                        By default, showing complete orders from last 30 days. Adjust date range to see more orders.
+                      </div>
+                    </div>
+                    <div className="modal-footer">
+                      <button 
+                        type="button" 
+                        className="btn btn-secondary btn-sm" 
+                        onClick={clearFilters}
+                      >
+                        <i className="fas fa-undo mr-1"></i>
+                        Reset All
+                      </button>
+                      <button 
+                        type="button" 
+                        className="btn btn-primary btn-sm" 
+                        onClick={applyFilters}
+                      >
+                        <i className="fas fa-check mr-1"></i>
+                        Apply Filters
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modal Backdrop */}
+            {showFilterModal && (
+              <div 
+                className={`modal-backdrop fade ${modalAnimating ? 'show' : ''}`}
+                onClick={closeModal}
+              ></div>
             )}
           </div>
         </div>

@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import DatabaseService from '@/lib/database';
 
+interface OptionValue {
+  name?: string;
+  isActive?: boolean;
+}
+
 // GET - Fetch only active astrologer options grouped by category
 export async function GET() {
   try {
@@ -20,12 +25,12 @@ export async function GET() {
     for (const option of options) {
       if (option.type === 'skills') {
         groupedOptions.skills = option.values
-          .filter((val: any) => val.isActive !== false)
-          .map((val: any) => typeof val === 'string' ? val : val.name);
+          .filter((val: string | OptionValue) => typeof val === 'string' || val.isActive !== false)
+          .map((val: string | OptionValue) => typeof val === 'string' ? val : val.name);
       } else if (option.type === 'languages') {
         groupedOptions.languages = option.values
-          .filter((val: any) => val.isActive !== false)
-          .map((val: any) => typeof val === 'string' ? val : val.name);
+          .filter((val: string | OptionValue) => typeof val === 'string' || val.isActive !== false)
+          .map((val: string | OptionValue) => typeof val === 'string' ? val : val.name);
       }
     }
 

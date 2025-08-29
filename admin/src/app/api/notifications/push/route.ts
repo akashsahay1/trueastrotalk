@@ -51,7 +51,17 @@ export async function POST(request: NextRequest) {
       priority = NotificationPriority.NORMAL,
       image_url,
       action_url
-    } = sanitizedBody;
+    } = sanitizedBody as {
+      type: string;
+      recipient_id: string;
+      recipient_type: 'customer' | 'astrologer' | 'administrator';
+      title: string;
+      message: string;
+      data?: Record<string, unknown>;
+      priority?: number;
+      image_url?: string;
+      action_url?: string;
+    };
 
     if (!type || !recipient_id || !title || !message) {
       return NextResponse.json({

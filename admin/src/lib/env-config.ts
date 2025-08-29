@@ -37,6 +37,15 @@ export const envConfig = {
   // Email Configuration - REQUIRED for production
   SEND_FROM: getRequiredEnv('SEND_FROM'),
   SENDGRID_API_KEY: getRequiredEnv('SENDGRID_API_KEY'),
+  SMTP: {
+    host: getOptionalEnv('SMTP_HOST'),
+    port: parseInt(getOptionalEnv('SMTP_PORT', '587')),
+    user: getOptionalEnv('SMTP_USER'),
+    password: getOptionalEnv('SMTP_PASSWORD')
+  },
+
+  // URLs
+  NEXTAUTH_URL: getOptionalEnv('NEXTAUTH_URL', 'http://localhost:4000'),
 
   // Payment - REQUIRED for transactions
   RAZORPAY_KEY_ID: getRequiredEnv('RAZORPAY_KEY_ID'),

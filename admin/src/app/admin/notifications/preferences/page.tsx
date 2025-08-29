@@ -157,7 +157,7 @@ export default function NotificationPreferencesPage() {
             </div>
 
             {/* Filters */}
-            <div className="row">
+            <div className="row mb-4">
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                 <div className="card">
                   <div className="card-body">

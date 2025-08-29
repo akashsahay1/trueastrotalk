@@ -2,7 +2,7 @@
 
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 
 interface Commission {
@@ -65,16 +65,18 @@ export default function CommissionsPage() {
   });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [searchInput, setSearchInput] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [modalAnimating, setModalAnimating] = useState(false);
+  const [filters, setFilters] = useState({
+    search: '',
+    status: '',
+    dateFrom: '',
+    dateTo: '',
+    minRevenue: '',
+    maxRevenue: ''
+  });
 
-  useEffect(() => {
-    document.body.className = '';
-    fetchCommissions(1, '', '', '');
-  }, []);
-
-  const fetchCommissions = async (page: number, searchTerm: string, fromDate: string, toDate: string) => {
+  const fetchCommissions = useCallback(async (page: number, searchTerm: string, filterParams = filters) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -82,17 +84,18 @@ export default function CommissionsPage() {
         limit: '30'
       });
       
-      if (searchTerm) {
-        params.append('search', searchTerm);
+      // Use either searchTerm (legacy) or filter search
+      const searchQuery = searchTerm || filterParams.search;
+      if (searchQuery) {
+        params.append('search', searchQuery);
       }
       
-      if (fromDate) {
-        params.append('date_from', fromDate);
-      }
-      
-      if (toDate) {
-        params.append('date_to', toDate);
-      }
+      // Add filter parameters
+      if (filterParams.status) params.append('status', filterParams.status);
+      if (filterParams.dateFrom) params.append('date_from', filterParams.dateFrom);
+      if (filterParams.dateTo) params.append('date_to', filterParams.dateTo);
+      if (filterParams.minRevenue) params.append('min_revenue', filterParams.minRevenue);
+      if (filterParams.maxRevenue) params.append('max_revenue', filterParams.maxRevenue);
 
       const response = await fetch(`/api/finance/commissions?${params}`);
       const data = await response.json();
@@ -101,8 +104,6 @@ export default function CommissionsPage() {
         setCommissions(data.data.commissions);
         setPagination(data.data.pagination);
         setSearch(searchTerm);
-        setDateFrom(fromDate);
-        setDateTo(toDate);
       } else {
         console.error('Failed to fetch commissions:', data.error);
       }
@@ -111,16 +112,61 @@ export default function CommissionsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchCommissions(1, searchInput, dateFrom, dateTo);
-  };
+  useEffect(() => {
+    document.body.className = '';
+    fetchCommissions(1, '', {
+      search: '',
+      status: '',
+      dateFrom: '',
+      dateTo: '',
+      minRevenue: '',
+      maxRevenue: ''
+    });
+  }, [fetchCommissions]);
 
   const handlePageChange = (page: number) => {
-    fetchCommissions(page, search, dateFrom, dateTo);
+    fetchCommissions(page, search, filters);
   };
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  const openModal = () => {
+    setShowFilterModal(true);
+    setTimeout(() => setModalAnimating(true), 10);
+  };
+
+  const closeModal = () => {
+    setModalAnimating(false);
+    setTimeout(() => setShowFilterModal(false), 150);
+  };
+
+  const clearFilters = () => {
+    const clearedFilters = {
+      search: '',
+      status: '',
+      dateFrom: '',
+      dateTo: '',
+      minRevenue: '',
+      maxRevenue: ''
+    };
+    setFilters(clearedFilters);
+    fetchCommissions(1, search, clearedFilters);
+    closeModal();
+  };
+
+  const applyFilters = () => {
+    fetchCommissions(1, search, filters);
+    closeModal();
+  };
+
+  const hasActiveFilters = Object.values(filters).some(value => value !== '');
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -178,7 +224,7 @@ export default function CommissionsPage() {
             {/* Stats Cards */}
             <div className="row mb-4">
               <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12">
-                <div className="card border-3 border-top border-top-primary">
+                <div className="card border-top-primary shadow-sm h-100">
                   <div className="card-body">
                     <h5 className="text-muted">Total Revenue</h5>
                     <div className="metric-value d-inline-block">
@@ -188,7 +234,7 @@ export default function CommissionsPage() {
                 </div>
               </div>
               <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12">
-                <div className="card border-3 border-top border-top-success">
+                <div className="card border-top-primary shadow-sm h-100">
                   <div className="card-body">
                     <h5 className="text-muted">Total Commissions</h5>
                     <div className="metric-value d-inline-block">
@@ -198,7 +244,7 @@ export default function CommissionsPage() {
                 </div>
               </div>
               <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12">
-                <div className="card border-3 border-top border-top-warning">
+                <div className="card border-top-primary shadow-sm h-100">
                   <div className="card-body">
                     <h5 className="text-muted">Platform Fees</h5>
                     <div className="metric-value d-inline-block">
@@ -208,7 +254,7 @@ export default function CommissionsPage() {
                 </div>
               </div>
               <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12">
-                <div className="card border-3 border-top border-top-danger">
+                <div className="card border-top-primary shadow-sm h-100">
                   <div className="card-body">
                     <h5 className="text-muted">Active Astrologers</h5>
                     <div className="metric-value d-inline-block">
@@ -222,70 +268,22 @@ export default function CommissionsPage() {
             {/* Filters and Actions */}
             <div className="row">
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
-                <div className="card">
-                  <div className="card-header d-flex justify-content-between align-items-center">
-                    <h5 className="mb-0">Astrologer Commissions ({pagination.totalCount} total)</h5>
-                  </div>
+                <div className="card mb-4">
                   <div className="card-body">
-                    {/* Search and Filter Form */}
-                    <form onSubmit={handleSearch} className="row mb-3">
-                      <div className="col-md-4">
-                        <div className="form-group">
-                          <input 
-                            type="text" 
-                            className="form-control" 
-                            placeholder="Search by astrologer name..." 
-                            value={searchInput}
-                            onChange={(e) => setSearchInput(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div className="col-md-2">
-                        <div className="form-group">
-                          <input 
-                            type="date" 
-                            className="form-control" 
-                            placeholder="From Date"
-                            value={dateFrom}
-                            onChange={(e) => setDateFrom(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div className="col-md-2">
-                        <div className="form-group">
-                          <input 
-                            type="date" 
-                            className="form-control" 
-                            placeholder="To Date"
-                            value={dateTo}
-                            onChange={(e) => setDateTo(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div className="col-md-2">
-                        <button type="submit" className="btn btn-primary" disabled={loading}>
-                          {loading ? 'Searching...' : 'Search'}
-                        </button>
-                      </div>
-                      <div className="col-md-2">
-                        <button 
-                          type="button" 
-                          className="btn btn-secondary"
-                          onClick={() => {
-                            setSearchInput('');
-                            setDateFrom('');
-                            setDateTo('');
-                            fetchCommissions(1, '', '', '');
-                          }}
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    </form>
+                    <div className='d-flex justify-content-between align-items-center mb-3'>
+                      <h5 className="mb-0">Astrologer Commissions ({pagination.totalCount})</h5>
+                      <button 
+                        className="btn btn-outline-secondary"
+                        onClick={openModal}
+                      >
+                        <i className="fas fa-filter mr-1"></i>
+                        Filters {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
+                      </button>
+                    </div>
 
                     {/* Commissions Table */}
                     <div className="table-responsive">
-                      <table className="table table-striped table-bordered session-table">
+                      <table className="table table-striped session-table m-0">
                         <thead>
                           <tr>
                             <th>Astrologer</th>
@@ -362,20 +360,20 @@ export default function CommissionsPage() {
                                   <div>
                                     <Link 
                                       href={`/admin/finance/transactions?user_id=${commission.astrologer_id}`}
-                                      className="btn btn-outline-info btn-sm mr-1"
-                                      title="View Transactions"
+                                      className="btn btn-sm btn-info mr-1"
+                                      title="View"
                                     >
-                                      <i className="fas fa-list"></i>
+                                      <i className="fas fa-eye"></i>
                                     </Link>
                                     <button 
-                                      className="btn btn-outline-primary btn-sm mr-1"
-                                      title="Edit Commission Rates"
+                                      className="btn btn-sm btn-warning mr-1"
+                                      title="Edit"
                                       onClick={() => {/* TODO: Implement edit commission rates */}}
                                     >
                                       <i className="fas fa-edit"></i>
                                     </button>
                                     <button 
-                                      className="btn btn-outline-success btn-sm"
+                                      className="btn btn-sm btn-success"
                                       title="Payout"
                                       onClick={() => {/* TODO: Implement payout */}}
                                     >
@@ -394,65 +392,197 @@ export default function CommissionsPage() {
                       </table>
                     </div>
 
-                    {/* Pagination */}
-                    {pagination.totalPages > 1 && (
-                      <nav aria-label="Commission pagination">
-                        <ul className="pagination justify-content-center">
-                          <li className={`page-item ${!pagination.hasPrevPage ? 'disabled' : ''}`}>
-                            <button 
-                              className="page-link" 
-                              onClick={() => handlePageChange(pagination.currentPage - 1)}
-                              disabled={!pagination.hasPrevPage || loading}
-                            >
-                              Previous
-                            </button>
-                          </li>
-                          
-                          {/* Page numbers */}
-                          {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                            let pageNumber;
-                            if (pagination.totalPages <= 5) {
-                              pageNumber = i + 1;
-                            } else if (pagination.currentPage <= 3) {
-                              pageNumber = i + 1;
-                            } else if (pagination.currentPage >= pagination.totalPages - 2) {
-                              pageNumber = pagination.totalPages - 4 + i;
-                            } else {
-                              pageNumber = pagination.currentPage - 2 + i;
-                            }
-                            
-                            return (
-                              <li key={pageNumber} className={`page-item ${pageNumber === pagination.currentPage ? 'active' : ''}`}>
-                                <button 
-                                  className="page-link" 
-                                  onClick={() => handlePageChange(pageNumber)}
-                                  disabled={loading}
-                                >
-                                  {pageNumber}
-                                </button>
-                              </li>
-                            );
-                          })}
-                          
-                          <li className={`page-item ${!pagination.hasNextPage ? 'disabled' : ''}`}>
-                            <button 
-                              className="page-link" 
-                              onClick={() => handlePageChange(pagination.currentPage + 1)}
-                              disabled={!pagination.hasNextPage || loading}
-                            >
-                              Next
-                            </button>
-                          </li>
-                        </ul>
-                      </nav>
-                    )}
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Pagination - Outside Card */}
+            {pagination.totalPages > 1 && (
+              <div className="row">
+                <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+                  <nav aria-label="Commission pagination">
+                    <ul className="pagination justify-content-center">
+                      <li className={`page-item ${!pagination.hasPrevPage ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={() => handlePageChange(pagination.currentPage - 1)}
+                          disabled={!pagination.hasPrevPage || loading}
+                        >
+                          Previous
+                        </button>
+                      </li>
+                      
+                      {/* Page numbers */}
+                      {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                        let pageNumber;
+                        if (pagination.totalPages <= 5) {
+                          pageNumber = i + 1;
+                        } else if (pagination.currentPage <= 3) {
+                          pageNumber = i + 1;
+                        } else if (pagination.currentPage >= pagination.totalPages - 2) {
+                          pageNumber = pagination.totalPages - 4 + i;
+                        } else {
+                          pageNumber = pagination.currentPage - 2 + i;
+                        }
+                        
+                        return (
+                          <li key={pageNumber} className={`page-item ${pagination.currentPage === pageNumber ? 'active' : ''}`}>
+                            <button 
+                              className="page-link" 
+                              onClick={() => handlePageChange(pageNumber)}
+                              disabled={loading}
+                            >
+                              {pageNumber}
+                            </button>
+                          </li>
+                        );
+                      })}
+                      
+                      <li className={`page-item ${!pagination.hasNextPage ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={() => handlePageChange(pagination.currentPage + 1)}
+                          disabled={!pagination.hasNextPage || loading}
+                        >
+                          Next
+                        </button>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Filter Modal */}
+      {showFilterModal && (
+        <div className={`modal fade ${modalAnimating ? 'show' : ''}`} style={{display: 'block'}} tabIndex={-1} role="dialog">
+          <div className="modal-dialog modal-dialog-centered modal-md" role="document">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Filter Commissions</h5>
+                <button 
+                  type="button" 
+                  className="close" 
+                  onClick={closeModal}
+                >
+                  <span>&times;</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                {/* Search Field */}
+                <div className="form-group">
+                  <label>Search</label>
+                  <input 
+                    type="text" 
+                    className="form-control form-control-sm" 
+                    placeholder="Search by astrologer name or email"
+                    value={filters.search}
+                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                  />
+                </div>
+
+                {/* Status Filter */}
+                <div className="form-group">
+                  <label>Status</label>
+                  <select 
+                    className="form-control form-control-sm"
+                    value={filters.status}
+                    onChange={(e) => handleFilterChange('status', e.target.value)}
+                  >
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="suspended">Suspended</option>
+                    <option value="pending">Pending</option>
+                  </select>
+                </div>
+
+                {/* Date Range - 2 columns */}
+                <div className="row">
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>From Date</label>
+                      <input 
+                        type="date" 
+                        className="form-control form-control-sm" 
+                        value={filters.dateFrom}
+                        onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>To Date</label>
+                      <input 
+                        type="date" 
+                        className="form-control form-control-sm" 
+                        value={filters.dateTo}
+                        onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Revenue Range - 2 columns */}
+                <div className="row">
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Min Revenue (₹)</label>
+                      <input 
+                        type="number" 
+                        className="form-control form-control-sm" 
+                        placeholder="Min revenue"
+                        value={filters.minRevenue}
+                        onChange={(e) => handleFilterChange('minRevenue', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Max Revenue (₹)</label>
+                      <input 
+                        type="number" 
+                        className="form-control form-control-sm" 
+                        placeholder="Max revenue"
+                        value={filters.maxRevenue}
+                        onChange={(e) => handleFilterChange('maxRevenue', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary btn-sm" 
+                  onClick={clearFilters}
+                >
+                  Clear All
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-primary btn-sm" 
+                  onClick={applyFilters}
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Backdrop */}
+      {showFilterModal && (
+        <div 
+          className={`modal-backdrop fade ${modalAnimating ? 'show' : ''}`}
+          onClick={closeModal}
+        ></div>
+      )}
     </div>
   );
 }

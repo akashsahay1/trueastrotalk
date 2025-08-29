@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     const usersCollection = await DatabaseService.getCollection('users');
 
     // Build query based on target type
-    let query: Record<string, unknown> = {
+    const query: Record<string, unknown> = {
       account_status: 'active' // Only send to active users
     };
 

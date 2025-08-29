@@ -162,8 +162,22 @@ const getEmailTemplate = (type: string, data: Record<string, unknown>) => {
 };
 
 // POST - Send email notification
+interface EmailNotificationBody {
+  subject: string;
+  message: string;
+  recipient_type: 'all' | 'customers' | 'astrologers' | 'specific';
+  user_ids?: string[];
+  send_now?: boolean;
+  scheduled_time?: string;
+  template_type?: string;
+  type?: string;
+  data?: Record<string, unknown>;
+  recipient_email?: string;
+  recipient_name?: string;
+}
+
 export async function POST(request: NextRequest) {
-  let body: any;
+  let body: EmailNotificationBody;
   try {
     body = await request.json();
     const { type, recipient_email, recipient_name, data } = body;

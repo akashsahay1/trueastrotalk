@@ -327,7 +327,7 @@ export default function ReportsPage() {
                   </div>
                 </div>
                 <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-success shadow-sm h-100">
+                  <div className="card border-top-primary shadow-sm h-100">
                     <div className="card-body">
                       <h5 className="text-muted mb-4">Online Customers</h5>
                       <div className="d-flex justify-content-between">
@@ -342,7 +342,7 @@ export default function ReportsPage() {
                   </div>
                 </div>
                 <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-success shadow-sm h-100">
+                  <div className="card border-top-primary shadow-sm h-100">
                     <div className="card-body">
                       <h5 className="text-muted mb-4">Online Astrologers</h5>
                       <div className="d-flex justify-content-between">
@@ -363,7 +363,7 @@ export default function ReportsPage() {
             <div className="ecommerce-widget">
               <div className="row">
                 <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-info shadow-sm h-100">
+                  <div className="card border-top-primary shadow-sm h-100">
                     <div className="card-body">
                       <h5 className="text-muted mb-4">Active Sessions</h5>
                       <div className="d-flex justify-content-between">
@@ -378,7 +378,7 @@ export default function ReportsPage() {
                   </div>
                 </div>
                 <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-info shadow-sm h-100">
+                  <div className="card border-top-primary shadow-sm h-100">
                     <div className="card-body">
                       <h5 className="text-muted mb-4">Active Calls</h5>
                       <div className="d-flex justify-content-between">
@@ -393,7 +393,7 @@ export default function ReportsPage() {
                   </div>
                 </div>
                 <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-warning shadow-sm h-100">
+                  <div className="card border-top-primary shadow-sm h-100">
                     <div className="card-body">
                       <h5 className="text-muted mb-4">API Calls Today</h5>
                       <div className="d-flex justify-content-between">
@@ -429,7 +429,7 @@ export default function ReportsPage() {
             <div className="ecommerce-widget">
               <div className="row">
                 <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-secondary shadow-sm h-100">
+                  <div className="card border-top-primary shadow-sm h-100">
                     <div className="card-body">
                       <h5 className="text-muted mb-4">Total Errors</h5>
                       <div className="d-flex justify-content-between">
@@ -444,7 +444,7 @@ export default function ReportsPage() {
                   </div>
                 </div>
                 <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-warning shadow-sm h-100">
+                  <div className="card border-top-primary shadow-sm h-100">
                     <div className="card-body">
                       <h5 className="text-muted mb-4">Unresolved Errors</h5>
                       <div className="d-flex justify-content-between">
@@ -459,7 +459,7 @@ export default function ReportsPage() {
                   </div>
                 </div>
                 <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-danger shadow-sm h-100">
+                  <div className="card border-top-primary shadow-sm h-100">
                     <div className="card-body">
                       <h5 className="text-muted mb-4">Critical Errors</h5>
                       <div className="d-flex justify-content-between">
@@ -474,7 +474,7 @@ export default function ReportsPage() {
                   </div>
                 </div>
                 <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-info shadow-sm h-100">
+                  <div className="card border-top-primary shadow-sm h-100">
                     <div className="card-body">
                       <h5 className="text-muted mb-4">Errors Today</h5>
                       <div className="d-flex justify-content-between">
@@ -495,7 +495,7 @@ export default function ReportsPage() {
             <div className="ecommerce-widget">
               <div className="row">
                 <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-success shadow-sm h-100">
+                  <div className="card border-top-primary shadow-sm h-100">
                     <div className="card-body">
                       <h5 className="text-muted mb-4">Avg Response Time</h5>
                       <div className="d-flex justify-content-between">
@@ -510,7 +510,7 @@ export default function ReportsPage() {
                   </div>
                 </div>
                 <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-warning shadow-sm h-100">
+                  <div className="card border-top-primary shadow-sm h-100">
                     <div className="card-body">
                       <h5 className="text-muted mb-4">Error Rate</h5>
                       <div className="d-flex justify-content-between">
@@ -525,7 +525,7 @@ export default function ReportsPage() {
                   </div>
                 </div>
                 <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-info shadow-sm h-100">
+                  <div className="card border-top-primary shadow-sm h-100">
                     <div className="card-body">
                       <h5 className="text-muted mb-4">Peak Users (24h)</h5>
                       <div className="d-flex justify-content-between">
@@ -540,7 +540,7 @@ export default function ReportsPage() {
                   </div>
                 </div>
                 <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-danger shadow-sm h-100">
+                  <div className="card border-top-primary shadow-sm h-100">
                     <div className="card-body">
                       <h5 className="text-muted mb-4">App Crashes Today</h5>
                       <div className="d-flex justify-content-between">

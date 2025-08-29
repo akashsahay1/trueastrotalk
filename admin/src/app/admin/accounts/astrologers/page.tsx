@@ -434,11 +434,11 @@ export default function AstrologersPage() {
                         <i className="fas fa-filter mr-1"></i>
                         Filters {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
                       </button>
-                      <Link href="/admin/accounts/add-user?type=astrologer" className="btn btn-primary">Add New</Link>
+                      <Link href="/admin/accounts/add-user?type=astrologer" className="btn btn-primary">Add</Link>
                     </div>
                     {/* Users Table */}
                     <div className="table-responsive">
-                      <table className="table table-striped table-bordered m-0">
+                      <table className="table table-striped m-0">
                         <thead>
                           <tr>
                             <th className='text-center'>
@@ -520,14 +520,14 @@ export default function AstrologersPage() {
                                   <div>
                                     <Link 
                                       href={`/admin/accounts/edit-user?id=${user._id}`}
-                                      className="btn btn-outline-primary btn-sm mr-1"
+                                      className="btn btn-sm btn-warning mr-1"
                                       title="Edit"
                                     >
                                       <i className="fas fa-edit"></i>
                                     </Link>
                                     <button 
-                                      className="btn btn-outline-danger btn-sm"
-                                      title="Delete User"
+                                      className="btn btn-sm btn-danger"
+                                      title="Delete"
                                       onClick={() => handleDelete(user._id)}
                                       disabled={deleting === user._id}
                                     >

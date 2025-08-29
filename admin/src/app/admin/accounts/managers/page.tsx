@@ -308,11 +308,11 @@ export default function ManagersPage() {
                         <i className="fas fa-filter mr-1"></i>
                         Filters {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
                       </button>
-                      <Link href="/admin/accounts/add-user?type=manager" className="btn btn-primary">Add New</Link>
+                      <Link href="/admin/accounts/add-user?type=manager" className="btn btn-primary">Add</Link>
                     </div>
                     {/* Users Table */}
                     <div className="table-responsive">
-                      <table className="table table-striped table-bordered m-0">
+                      <table className="table table-striped m-0">
                         <thead>
                           <tr>
                             <th className='text-center'>
@@ -390,23 +390,23 @@ export default function ManagersPage() {
                                 <td>{new Date(user.created_at).toLocaleDateString()}</td>
                                 <td>
                                   <div className="">
+                                    <button 
+                                      className="btn btn-sm btn-info mr-1"
+                                      title="View"
+                                      onClick={() => {/* TODO: Implement view details */}}
+                                    >
+                                      <i className="fas fa-eye"></i>
+                                    </button>
                                     <Link 
                                       href={`/admin/accounts/edit-user?id=${user._id}`}
-                                      className="btn btn-outline-primary btn-sm mr-1"
+                                      className="btn btn-sm btn-warning mr-1"
                                       title="Edit"
                                     >
                                       <i className="fas fa-edit"></i>
                                     </Link>
                                     <button 
-                                      className="btn btn-outline-info btn-sm mr-1"
-                                      title="View Details"
-                                      onClick={() => {/* TODO: Implement view details */}}
-                                    >
-                                      <i className="fas fa-eye"></i>
-                                    </button>
-                                    <button 
-                                      className="btn btn-outline-danger btn-sm"
-                                      title="Delete User"
+                                      className="btn btn-sm btn-danger"
+                                      title="Delete"
                                       onClick={() => handleDelete(user._id)}
                                       disabled={deleting === user._id}
                                     >

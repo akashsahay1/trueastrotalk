@@ -103,10 +103,8 @@ export async function GET(request: NextRequest) {
     // Sort by last transaction date
     wallets.sort((a, b) => new Date(b.last_transaction).getTime() - new Date(a.last_transaction).getTime());
     
-    // Apply pagination if we got results from both collections
-    if (userType === '') {
-      wallets = wallets.slice(skip, skip + limit);
-    }
+    // Apply pagination based on the results we fetched
+    // Since we already applied limit/skip to the DB query, don't slice again
     
     // Get total count for pagination
     const totalCount = await usersCollection.countDocuments(mongoQuery);

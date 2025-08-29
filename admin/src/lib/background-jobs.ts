@@ -72,7 +72,7 @@ export class BackgroundJobsService {
     }
 
     console.log('🛑 Stopping background jobs...');
-    cron.destroy();
+    // Note: node-cron doesn't have a destroy method, jobs are stopped individually
     this.isRunning = false;
     console.log('✅ Background jobs stopped');
   }

@@ -16,8 +16,10 @@ interface RateLimitResult {
   total: number;
 }
 
+import { ObjectId } from 'mongodb';
+
 interface RateLimitRecord {
-  _id?: string;
+  _id?: ObjectId;
   key: string;
   count: number;
   windowStart: Date;

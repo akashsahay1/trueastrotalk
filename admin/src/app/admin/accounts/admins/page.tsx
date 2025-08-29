@@ -13,6 +13,8 @@ interface User {
   email_address: string;
   phone_number: string;
   profile_image: string;
+  profile_image_id?: string;
+  user_type: string;
   account_status: string;
   verification_status: string;
   is_online: boolean;
@@ -347,16 +349,7 @@ export default function AdminsPage() {
             {/* Filters and Actions */}
             <div className="row">
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
-                <div className="card">
-                  <div className="card-header d-flex justify-content-between align-items-center">
-                    <h5 className="mb-0">Administrator List ({pagination.totalCount} Total)</h5>
-                    <div>
-                      <Link href="/admin/accounts/add-user?type=admin" className="btn btn-primary">
-                        <i className="fas fa-plus mr-2"></i>Add Administrator
-                      </Link>
-                    </div>
-                  </div>
-            
+                <div className="card mb-4">
                   <div className="card-body">
 										<div className='d-flex justify-content-end align-items-center mb-3'>
                       {selectedUsers.length > 0 && (
@@ -376,10 +369,11 @@ export default function AdminsPage() {
                         <i className="fas fa-filter mr-1"></i>
                         Filters {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
                       </button>
+                      <Link href="/admin/accounts/add-user?type=admin" className="btn btn-primary">Add</Link>
                     </div>
                     {/* Users Table */}
                     <div className="table-responsive">
-                      <table className="table table-striped table-bordered m-0">
+                      <table className="table table-striped m-0">
                         <thead>
                           <tr>
                             <th className='text-center'>
@@ -447,16 +441,17 @@ export default function AdminsPage() {
                                 </td>
                                 <td>{new Date(user.created_at).toLocaleDateString()}</td>
                                 <td>
-                                  <div className="">
+                                  <div>
                                     <Link 
                                       href={`/admin/accounts/edit-user?id=${user._id}`}
-                                      className="btn btn-outline-primary btn-sm mr-1"
+                                      className="btn btn-sm btn-warning mr-1"
                                       title="Edit"
                                     >
                                       <i className="fas fa-edit"></i>
                                     </Link>
                                     <button 
-                                      className="btn btn-outline-danger btn-sm"
+                                      className="btn btn-sm btn-danger"
+                                      title="Delete"
                                       onClick={() => handleDelete(user._id)}
                                       disabled={deleting === user._id}
                                     >

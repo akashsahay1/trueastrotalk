@@ -3,6 +3,15 @@ import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../lib/database';
 import '../../../lib/security';
 
+// Type definitions
+interface OrderItem {
+  product_id: string;
+  product_name: string;
+  product_image?: string | null;
+  price: number;
+  quantity: number;
+}
+
 // Helper function to resolve media URL from media collection
 async function resolveMediaUrl(request: NextRequest, mediaId: string | ObjectId | null | undefined): Promise<string | null> {
   if (!mediaId) return null;
@@ -136,7 +145,7 @@ export async function GET(request: NextRequest) {
         }
       }
       // Resolve product images for each item if needed
-      const itemsWithImages = await Promise.all((order.items || []).map(async (item: any) => {
+      const itemsWithImages = await Promise.all((order.items || []).map(async (item: OrderItem) => {
         if (!item.product_image && item.product_id) {
           // If no product_image stored, try to get it from products collection
           try {

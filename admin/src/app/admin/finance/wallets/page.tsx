@@ -2,7 +2,7 @@
 
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 
 interface Wallet {
@@ -43,15 +43,17 @@ export default function WalletsPage() {
   });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [searchInput, setSearchInput] = useState('');
-  const [userTypeFilter, setUserTypeFilter] = useState('');
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [modalAnimating, setModalAnimating] = useState(false);
+  const [filters, setFilters] = useState({
+    search: '',
+    userType: '',
+    status: '',
+    minBalance: '',
+    maxBalance: ''
+  });
 
-  useEffect(() => {
-    document.body.className = '';
-    fetchWallets(1, '', '');
-  }, []);
-
-  const fetchWallets = async (page: number, searchTerm: string, userType: string) => {
+  const fetchWallets = useCallback(async (page: number, searchTerm: string, filterParams = filters) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -59,13 +61,17 @@ export default function WalletsPage() {
         limit: '30'
       });
       
-      if (searchTerm) {
-        params.append('search', searchTerm);
+      // Use either searchTerm (legacy) or filter search
+      const searchQuery = searchTerm || filterParams.search;
+      if (searchQuery) {
+        params.append('search', searchQuery);
       }
       
-      if (userType) {
-        params.append('type', userType);
-      }
+      // Add filter parameters
+      if (filterParams.userType) params.append('type', filterParams.userType);
+      if (filterParams.status) params.append('status', filterParams.status);
+      if (filterParams.minBalance) params.append('min_balance', filterParams.minBalance);
+      if (filterParams.maxBalance) params.append('max_balance', filterParams.maxBalance);
 
       const response = await fetch(`/api/finance/wallets?${params}`);
       const data = await response.json();
@@ -74,7 +80,6 @@ export default function WalletsPage() {
         setWallets(data.data.wallets);
         setPagination(data.data.pagination);
         setSearch(searchTerm);
-        setUserTypeFilter(userType);
       } else {
         console.error('Failed to fetch wallets:', data.error);
       }
@@ -83,21 +88,59 @@ export default function WalletsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchWallets(1, searchInput, userTypeFilter);
-  };
+  useEffect(() => {
+    document.body.className = '';
+    fetchWallets(1, '', {
+      search: '',
+      userType: '',
+      status: '',
+      minBalance: '',
+      maxBalance: ''
+    });
+  }, [fetchWallets]);
 
   const handlePageChange = (page: number) => {
-    fetchWallets(page, search, userTypeFilter);
+    fetchWallets(page, search, filters);
   };
 
-  const handleFilterChange = (userType: string) => {
-    setUserTypeFilter(userType);
-    fetchWallets(1, search, userType);
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
   };
+
+  const openModal = () => {
+    setShowFilterModal(true);
+    setTimeout(() => setModalAnimating(true), 10);
+  };
+
+  const closeModal = () => {
+    setModalAnimating(false);
+    setTimeout(() => setShowFilterModal(false), 150);
+  };
+
+  const clearFilters = () => {
+    const clearedFilters = {
+      search: '',
+      userType: '',
+      status: '',
+      minBalance: '',
+      maxBalance: ''
+    };
+    setFilters(clearedFilters);
+    fetchWallets(1, search, clearedFilters);
+    closeModal();
+  };
+
+  const applyFilters = () => {
+    fetchWallets(1, search, filters);
+    closeModal();
+  };
+
+  const hasActiveFilters = Object.values(filters).some(value => value !== '');
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -152,7 +195,7 @@ export default function WalletsPage() {
             {/* Stats Cards */}
             <div className="row mb-4">
               <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12">
-                <div className="card border-3 border-top border-top-primary">
+                <div className="card border-top-primary shadow-sm h-100">
                   <div className="card-body">
                     <h5 className="text-muted">Total Customer Wallets</h5>
                     <div className="metric-value d-inline-block">
@@ -162,7 +205,7 @@ export default function WalletsPage() {
                 </div>
               </div>
               <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12">
-                <div className="card border-3 border-top border-top-success">
+                <div className="card border-top-primary shadow-sm h-100">
                   <div className="card-body">
                     <h5 className="text-muted">Total Astrologer Wallets</h5>
                     <div className="metric-value d-inline-block">
@@ -172,7 +215,7 @@ export default function WalletsPage() {
                 </div>
               </div>
               <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12">
-                <div className="card border-3 border-top border-top-warning">
+                <div className="card border-top-primary shadow-sm h-100">
                   <div className="card-body">
                     <h5 className="text-muted">Total Balance</h5>
                     <div className="metric-value d-inline-block">
@@ -182,7 +225,7 @@ export default function WalletsPage() {
                 </div>
               </div>
               <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12">
-                <div className="card border-3 border-top border-top-danger">
+                <div className="card border-top-primary shadow-sm h-100">
                   <div className="card-body">
                     <h5 className="text-muted">Total Transactions</h5>
                     <div className="metric-value d-inline-block">
@@ -196,60 +239,22 @@ export default function WalletsPage() {
             {/* Filters and Actions */}
             <div className="row">
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
-                <div className="card">
-                  <div className="card-header d-flex justify-content-between align-items-center">
-                    <h5 className="mb-0">Wallets ({pagination.totalCount} total)</h5>
-                  </div>
+                <div className="card mb-4">
                   <div className="card-body">
-                    {/* Search and Filter Form */}
-                    <form onSubmit={handleSearch} className="row mb-3">
-                      <div className="col-md-5">
-                        <div className="form-group">
-                          <input 
-                            type="text" 
-                            className="form-control" 
-                            placeholder="Search by name, email, or phone..." 
-                            value={searchInput}
-                            onChange={(e) => setSearchInput(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div className="col-md-3">
-                        <div className="form-group">
-                          <select 
-                            className="form-control"
-                            value={userTypeFilter}
-                            onChange={(e) => handleFilterChange(e.target.value)}
-                          >
-                            <option value="">All User Types</option>
-                            <option value="customer">Customers</option>
-                            <option value="astrologer">Astrologers</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div className="col-md-2">
-                        <button type="submit" className="btn btn-primary" disabled={loading}>
-                          {loading ? 'Searching...' : 'Search'}
-                        </button>
-                      </div>
-                      <div className="col-md-2">
-                        <button 
-                          type="button" 
-                          className="btn btn-secondary"
-                          onClick={() => {
-                            setSearchInput('');
-                            setUserTypeFilter('');
-                            fetchWallets(1, '', '');
-                          }}
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    </form>
+                    <div className='d-flex justify-content-between align-items-center mb-3'>
+                      <h5 className="mb-0">Wallets ({pagination.totalCount})</h5>
+                      <button 
+                        className="btn btn-outline-secondary"
+                        onClick={openModal}
+                      >
+                        <i className="fas fa-filter mr-1"></i>
+                        Filters {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
+                      </button>
+                    </div>
 
                     {/* Wallets Table */}
                     <div className="table-responsive">
-                      <table className="table table-striped table-bordered session-table">
+                      <table className="table table-striped session-table m-0">
                         <thead>
                           <tr>
                             <th>User</th>
@@ -353,65 +358,189 @@ export default function WalletsPage() {
                       </table>
                     </div>
 
-                    {/* Pagination */}
-                    {pagination.totalPages > 1 && (
-                      <nav aria-label="Wallet pagination">
-                        <ul className="pagination justify-content-center">
-                          <li className={`page-item ${!pagination.hasPrevPage ? 'disabled' : ''}`}>
-                            <button 
-                              className="page-link" 
-                              onClick={() => handlePageChange(pagination.currentPage - 1)}
-                              disabled={!pagination.hasPrevPage || loading}
-                            >
-                              Previous
-                            </button>
-                          </li>
-                          
-                          {/* Page numbers */}
-                          {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                            let pageNumber;
-                            if (pagination.totalPages <= 5) {
-                              pageNumber = i + 1;
-                            } else if (pagination.currentPage <= 3) {
-                              pageNumber = i + 1;
-                            } else if (pagination.currentPage >= pagination.totalPages - 2) {
-                              pageNumber = pagination.totalPages - 4 + i;
-                            } else {
-                              pageNumber = pagination.currentPage - 2 + i;
-                            }
-                            
-                            return (
-                              <li key={pageNumber} className={`page-item ${pageNumber === pagination.currentPage ? 'active' : ''}`}>
-                                <button 
-                                  className="page-link" 
-                                  onClick={() => handlePageChange(pageNumber)}
-                                  disabled={loading}
-                                >
-                                  {pageNumber}
-                                </button>
-                              </li>
-                            );
-                          })}
-                          
-                          <li className={`page-item ${!pagination.hasNextPage ? 'disabled' : ''}`}>
-                            <button 
-                              className="page-link" 
-                              onClick={() => handlePageChange(pagination.currentPage + 1)}
-                              disabled={!pagination.hasNextPage || loading}
-                            >
-                              Next
-                            </button>
-                          </li>
-                        </ul>
-                      </nav>
-                    )}
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Pagination - Outside Card */}
+            {pagination.totalPages > 1 && (
+              <div className="row">
+                <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+                  <nav aria-label="Wallet pagination">
+                    <ul className="pagination justify-content-center">
+                      <li className={`page-item ${!pagination.hasPrevPage ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={() => handlePageChange(pagination.currentPage - 1)}
+                          disabled={!pagination.hasPrevPage || loading}
+                        >
+                          Previous
+                        </button>
+                      </li>
+                      
+                      {/* Page numbers */}
+                      {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                        let pageNumber;
+                        if (pagination.totalPages <= 5) {
+                          pageNumber = i + 1;
+                        } else if (pagination.currentPage <= 3) {
+                          pageNumber = i + 1;
+                        } else if (pagination.currentPage >= pagination.totalPages - 2) {
+                          pageNumber = pagination.totalPages - 4 + i;
+                        } else {
+                          pageNumber = pagination.currentPage - 2 + i;
+                        }
+                        
+                        return (
+                          <li key={pageNumber} className={`page-item ${pagination.currentPage === pageNumber ? 'active' : ''}`}>
+                            <button 
+                              className="page-link" 
+                              onClick={() => handlePageChange(pageNumber)}
+                              disabled={loading}
+                            >
+                              {pageNumber}
+                            </button>
+                          </li>
+                        );
+                      })}
+                      
+                      <li className={`page-item ${!pagination.hasNextPage ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={() => handlePageChange(pagination.currentPage + 1)}
+                          disabled={!pagination.hasNextPage || loading}
+                        >
+                          Next
+                        </button>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Filter Modal */}
+      {showFilterModal && (
+        <div className={`modal fade ${modalAnimating ? 'show' : ''}`} style={{display: 'block'}} tabIndex={-1} role="dialog">
+          <div className="modal-dialog modal-dialog-centered modal-md" role="document">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Filter Wallets</h5>
+                <button 
+                  type="button" 
+                  className="close" 
+                  onClick={closeModal}
+                >
+                  <span>&times;</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                {/* Search Field */}
+                <div className="form-group">
+                  <label>Search</label>
+                  <input 
+                    type="text" 
+                    className="form-control form-control-sm" 
+                    placeholder="Search by name, email, or phone"
+                    value={filters.search}
+                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                  />
+                </div>
+
+                {/* User Type and Status - 2 columns */}
+                <div className="row">
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>User Type</label>
+                      <select 
+                        className="form-control form-control-sm"
+                        value={filters.userType}
+                        onChange={(e) => handleFilterChange('userType', e.target.value)}
+                      >
+                        <option value="">All Types</option>
+                        <option value="customer">Customer</option>
+                        <option value="astrologer">Astrologer</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Status</label>
+                      <select 
+                        className="form-control form-control-sm"
+                        value={filters.status}
+                        onChange={(e) => handleFilterChange('status', e.target.value)}
+                      >
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="suspended">Suspended</option>
+                        <option value="pending">Pending</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Balance Range - 2 columns */}
+                <div className="row">
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Min Balance (₹)</label>
+                      <input 
+                        type="number" 
+                        className="form-control form-control-sm" 
+                        placeholder="Min balance"
+                        value={filters.minBalance}
+                        onChange={(e) => handleFilterChange('minBalance', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Max Balance (₹)</label>
+                      <input 
+                        type="number" 
+                        className="form-control form-control-sm" 
+                        placeholder="Max balance"
+                        value={filters.maxBalance}
+                        onChange={(e) => handleFilterChange('maxBalance', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary btn-sm" 
+                  onClick={clearFilters}
+                >
+                  Clear All
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-primary btn-sm" 
+                  onClick={applyFilters}
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Backdrop */}
+      {showFilterModal && (
+        <div 
+          className={`modal-backdrop fade ${modalAnimating ? 'show' : ''}`}
+          onClick={closeModal}
+        ></div>
+      )}
     </div>
   );
 }

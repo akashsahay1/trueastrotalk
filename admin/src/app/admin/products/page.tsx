@@ -41,6 +41,8 @@ export default function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [modalAnimating, setModalAnimating] = useState(false);
 
   useEffect(() => {
     document.body.className = '';
@@ -84,7 +86,7 @@ export default function ProductsPage() {
       const response = await fetch('/api/admin/products/categories');
       if (response.ok) {
         const data = await response.json();
-        setCategories(data.categories ? data.categories.map((cat: any) => cat.name) : []);
+        setCategories(data.categories ? data.categories.map((cat: Category) => cat.name) : []);
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -140,6 +142,28 @@ export default function ProductsPage() {
     } else {
       setSelectedProducts([]);
     }
+  };
+
+  const openModal = () => {
+    setShowFilterModal(true);
+    setTimeout(() => setModalAnimating(true), 10);
+  };
+
+  const closeModal = () => {
+    setModalAnimating(false);
+    setTimeout(() => setShowFilterModal(false), 300);
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedCategory('');
+    setPagination(prev => ({ ...prev, page: 1 }));
+    closeModal();
+  };
+
+  const applyFilters = () => {
+    setPagination(prev => ({ ...prev, page: 1 }));
+    closeModal();
   };
 
   const handleSelectProduct = (productId: string, checked: boolean) => {
@@ -220,84 +244,38 @@ export default function ProductsPage() {
             {/* Filters and Actions */}
             <div className="row">
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
-                <div className="card">
-                  <div className="card-header d-flex justify-content-between align-items-center">
-                    <h5 className="mb-0">Product List ({pagination.total} Total)</h5>
-                    <div>
-                      <Link href="/admin/products/categories" className="btn btn-outline-secondary mr-2">
-                        <i className="fas fa-tags mr-1"></i>Manage Categories
-                      </Link>
-                      <Link href="/admin/products/add" className="btn btn-primary">
-                        <i className="fas fa-plus mr-2"></i>Add Product
-                      </Link>
-                    </div>
-                  </div>
-            
+                <div className="card mb-4">
                   <div className="card-body">
-                    {/* Search and Filter Form */}
-                    <div className="row mb-3">
-                      <div className="col-md-4">
-                        <div className="form-group">
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="Search by product name or description..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                          />
-                        </div>
-                      </div>
-                      <div className="col-md-3">
-                        <div className="form-group">
-                          <select
-                            className="form-control"
-                            value={selectedCategory}
-                            onChange={(e) => setSelectedCategory(e.target.value)}
-                          >
-                            <option value="">All Categories</option>
-                            {categories.map(category => (
-                              <option key={category} value={category}>
-                                {category}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                      <div className="col-md-2">
+                    <div className='d-flex justify-content-end align-items-center mb-3'>
+                      {selectedProducts.length > 0 && (
                         <button 
-                          type="button" 
-                          className="btn btn-outline-secondary"
-                          onClick={() => {
-                            setSearchTerm('');
-                            setSelectedCategory('');
-                            setPagination(prev => ({ ...prev, page: 1 }));
-                          }}
+                          className="btn btn-danger mr-2"
+                          onClick={handleBulkDelete}
+                          disabled={bulkLoading}
                         >
-                          Clear
+                          {bulkLoading ? (
+                            <><i className="fas fa-spinner fa-spin mr-1"></i>Deleting...</>
+                          ) : (
+                            <><i className="fas fa-trash mr-1"></i>Delete Selected ({selectedProducts.length})</>
+                          )}
                         </button>
-                      </div>
-                      <div className="col-md-3">
-                        {selectedProducts.length > 0 && (
-                          <button 
-                            type="button" 
-                            className="btn btn-danger"
-                            onClick={handleBulkDelete}
-                            disabled={bulkLoading}
-                          >
-                            {bulkLoading ? (
-                              <><i className="fas fa-spinner fa-spin mr-1"></i>Deleting...</>
-                            ) : (
-                              <><i className="fas fa-trash mr-1"></i>Delete Selected ({selectedProducts.length})</>
-                            )}
-                          </button>
-                        )}
-                      </div>
+                      )}
+                      <Link href="/admin/products/categories" className="btn btn-outline-secondary mr-2">
+                        <i className="fas fa-tags mr-1"></i>Categories
+                      </Link>
+                      <button 
+                        className="btn btn-outline-secondary mr-2"
+                        onClick={() => setShowFilterModal(true)}
+                      >
+                        <i className="fas fa-filter mr-1"></i>
+                        Filters {(searchTerm || selectedCategory) && <span className="badge badge-primary ml-1">•</span>}
+                      </button>
+                      <Link href="/admin/products/add" className="btn btn-primary">Add</Link>
                     </div>
 
                     {/* Products Table */}
                     <div className="table-responsive">
-                      <table className="table table-striped table-bordered m-0">
+                      <table className="table table-striped m-0">
                   <thead>
                     <tr>
                       <th width="40">
@@ -398,13 +376,13 @@ export default function ProductsPage() {
                           <td>
                             <Link
                               href={`/admin/products/edit/${product._id}`}
-                              className="btn btn-sm btn-outline-primary mr-1"
+                              className="btn btn-sm btn-warning mr-1"
                               title="Edit"
                             >
                               <i className="fas fa-edit"></i>
                             </Link>
                             <button
-                              className="btn btn-sm btn-outline-danger"
+                              className="btn btn-sm btn-danger"
                               onClick={() => handleDelete(product._id)}
                               title="Delete"
                             >
@@ -474,6 +452,80 @@ export default function ProductsPage() {
           </div>
         </div>
       </div>
+
+      {/* Filter Modal */}
+      {showFilterModal && (
+        <div className={`modal fade ${modalAnimating ? 'show' : ''}`} style={{display: 'block'}} tabIndex={-1} role="dialog">
+          <div className="modal-dialog modal-dialog-centered modal-md" role="document">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Filter Products</h5>
+                <button 
+                  type="button" 
+                  className="close" 
+                  onClick={closeModal}
+                >
+                  <span>&times;</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                {/* Search Field */}
+                <div className="form-group">
+                  <label>Search</label>
+                  <input 
+                    type="text" 
+                    className="form-control form-control-sm" 
+                    placeholder="Search by product name or description"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+
+                {/* Category Filter */}
+                <div className="form-group">
+                  <label>Category</label>
+                  <select 
+                    className="form-control form-control-sm"
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                  >
+                    <option value="">All Categories</option>
+                    {categories.map(category => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary btn-sm" 
+                  onClick={clearFilters}
+                >
+                  Clear All
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-primary btn-sm" 
+                  onClick={applyFilters}
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Backdrop */}
+      {showFilterModal && (
+        <div 
+          className={`modal-backdrop fade ${modalAnimating ? 'show' : ''}`}
+          onClick={closeModal}
+        ></div>
+      )}
     </div>
   );
 }

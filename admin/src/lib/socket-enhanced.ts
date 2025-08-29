@@ -25,6 +25,35 @@ interface UserConnection {
   lastSeen: Date;
 }
 
+interface CallData {
+  from?: string;
+  to?: string;
+  roomId?: string;
+  callId?: string;
+  offer?: RTCSessionDescriptionInit;
+  answer?: RTCSessionDescriptionInit;
+  candidate?: RTCIceCandidateInit;
+  sessionId?: string;
+  userId?: string;
+  astrologerId?: string;
+  duration?: number;
+  action?: string;
+}
+
+interface MessageData {
+  roomId?: string;
+  message?: string;
+  from?: string;
+  to?: string;
+  timestamp?: Date;
+}
+
+interface SocketAuth {
+  userId?: string;
+  userType?: 'user' | 'astrologer';
+  token?: string;
+}
+
 interface CallSession {
   sessionId: string;
   userId: string;
@@ -464,7 +493,7 @@ async function handleInitiateCall(socket: Socket, io: ServerIO, data: any) {
     }
 
     if (!caller) {
-      console.error(`❌ Caller not found: ${callerId} in collection ${callerCollection}`);
+      console.error(`❌ Caller not found: ${callerId} in users collection`);
       socket.emit('call_error', { error: 'Caller not found' });
       await client.close();
       return;

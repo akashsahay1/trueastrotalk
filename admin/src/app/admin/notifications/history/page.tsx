@@ -113,7 +113,7 @@ export default function NotificationHistoryPage() {
             </div>
 
             {/* Filters */}
-            <div className="row">
+            <div className="row mb-4">
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                 <div className="card">
                   <div className="card-body">
@@ -188,7 +188,7 @@ export default function NotificationHistoryPage() {
                   <h5 className="card-header">Notification History</h5>
                   <div className="card-body p-0">
                     <div className="table-responsive">
-                      <table className="table table-striped table-bordered m-0">
+                      <table className="table table-striped m-0">
                         <thead>
                           <tr>
                             <th>Date</th>

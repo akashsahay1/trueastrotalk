@@ -165,6 +165,8 @@ export default function EditProductPage() {
           
           primary_image: productData.image_url || '',
           image_url: productData.image_url || '',
+          images: productData.images || [],
+          image_urls: productData.image_urls || [],
           
           material: productData.material || '',
           weight: productData.weight ? productData.weight.toString() : '',

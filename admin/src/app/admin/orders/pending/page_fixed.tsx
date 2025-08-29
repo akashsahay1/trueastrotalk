@@ -24,7 +24,7 @@ export default function PendingOrdersPage() {
           {/* Orders Statistics - Fixed alignment */}
           <div className="row">
             <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12">
-              <div className="card border-3 border-top border-top-primary">
+              <div className="card border-top-primary shadow-sm h-100">
                 <div className="card-body">
                   <h5 className="text-muted">Total Pending Orders</h5>
                   <div className="d-flex justify-content-between">

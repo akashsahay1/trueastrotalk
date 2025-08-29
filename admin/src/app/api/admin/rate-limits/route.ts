@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     const rateLimitsCollection = await DatabaseService.getCollection('rate_limits');
 
     // Build filter
-    let filter: any = {};
+    const filter: Record<string, unknown> = {};
     if (type !== 'all') {
       if (type === 'violations') {
         filter.key = { $regex: ':violations$' };

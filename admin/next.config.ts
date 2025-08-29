@@ -3,11 +3,11 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* Performance optimizations */
   eslint: {
-    // Skip linting during builds for now
+    // Temporarily ignore linting during builds - TODO: Fix remaining warnings
     ignoreDuringBuilds: true,
   },
   typescript: {
-    // Skip type checking during builds for now  
+    // Temporarily ignore type errors - TODO: Fix remaining type errors
     ignoreBuildErrors: true,
   },
   images: {

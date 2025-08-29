@@ -30,6 +30,8 @@ export default function CategoriesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [modalAnimating, setModalAnimating] = useState(false);
 
   useEffect(() => {
     document.body.className = '';
@@ -133,6 +135,27 @@ export default function CategoriesPage() {
     setPagination(prev => ({ ...prev, page: newPage }));
   };
 
+  const openModal = () => {
+    setShowFilterModal(true);
+    setTimeout(() => setModalAnimating(true), 10);
+  };
+
+  const closeModal = () => {
+    setModalAnimating(false);
+    setTimeout(() => setShowFilterModal(false), 300);
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setPagination(prev => ({ ...prev, page: 1 }));
+    closeModal();
+  };
+
+  const applyFilters = () => {
+    setPagination(prev => ({ ...prev, page: 1 }));
+    closeModal();
+  };
+
 
 
   if (loading) {
@@ -195,72 +218,41 @@ export default function CategoriesPage() {
 
       <div className="row">
         <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
-          <div className="card">
-            <div className="card-header d-flex justify-content-between align-items-center">
-              <h5 className="mb-0">Category List ({pagination.total} Total)</h5>
-              <div>
+          <div className="card mb-4">
+            <div className="card-body">
+              <div className='d-flex justify-content-end align-items-center mb-3'>
+                {selectedCategories.length > 0 && (
+                  <button 
+                    className="btn btn-danger mr-2"
+                    onClick={handleBulkDelete}
+                    disabled={bulkLoading}
+                  >
+                    {bulkLoading ? (
+                      <><i className="fas fa-spinner fa-spin mr-1"></i>Deleting...</>
+                    ) : (
+                      <><i className="fas fa-trash mr-1"></i>Delete Selected ({selectedCategories.length})</>
+                    )}
+                  </button>
+                )}
                 <Link href="/admin/products" className="btn btn-outline-secondary mr-2">
                   <i className="fas fa-arrow-left mr-1"></i>Back to Products
                 </Link>
-                <Link href="/admin/products/categories/add" className="btn btn-primary">
-                  <i className="fas fa-plus mr-2"></i>Add Category
-                </Link>
-              </div>
-            </div>
-            
-            <div className="card-body">
-              {/* Search and Filter Form */}
-              <div className="row mb-3">
-                <div className="col-md-4">
-                  <div className="form-group">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Search categories..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                    />
-                  </div>
-                </div>
-                <div className="col-md-2">
-                  <button 
-                    type="button" 
-                    className="btn btn-outline-secondary"
-                    onClick={() => {
-                      setSearchTerm('');
-                      setPagination(prev => ({ ...prev, page: 1 }));
-                    }}
-                  >
-                    Clear
-                  </button>
-                </div>
-                <div className="col-md-6">
-                  {selectedCategories.length > 0 && (
-                    <div className="text-right">
-                      <button 
-                        type="button" 
-                        className="btn btn-danger"
-                        onClick={handleBulkDelete}
-                        disabled={bulkLoading}
-                      >
-                        {bulkLoading ? (
-                          <><i className="fas fa-spinner fa-spin mr-1"></i>Deleting...</>
-                        ) : (
-                          <><i className="fas fa-trash mr-1"></i>Delete Selected ({selectedCategories.length})</>
-                        )}
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <button 
+                  className="btn btn-outline-secondary mr-2"
+                  onClick={() => setShowFilterModal(true)}
+                >
+                  <i className="fas fa-filter mr-1"></i>
+                  Filters {searchTerm && <span className="badge badge-primary ml-1">•</span>}
+                </button>
+                <Link href="/admin/products/categories/add" className="btn btn-primary">Add</Link>
               </div>
 
               {/* Categories Table */}
               <div className="table-responsive">
-                <table className="table table-striped table-bordered m-0">
+                <table className="table table-striped m-0">
                   <thead>
                     <tr>
-                      <th width="40">
+                      <th style={{width: "40px"}}>
                         <input
                           type="checkbox"
                           checked={selectedCategories.length === categories.length && categories.length > 0}
@@ -314,13 +306,13 @@ export default function CategoriesPage() {
                           <td>
                             <Link
                               href={`/admin/products/categories/edit/${category._id}`}
-                              className="btn btn-sm btn-outline-primary mr-1"
+                              className="btn btn-sm btn-warning mr-1"
                               title="Edit"
                             >
                               <i className="fas fa-edit"></i>
                             </Link>
                             <button
-                              className="btn btn-sm btn-outline-danger"
+                              className="btn btn-sm btn-danger"
                               onClick={() => handleDelete(category._id)}
                               title="Delete"
                               disabled={!!(category.product_count && category.product_count > 0)}
@@ -391,6 +383,63 @@ export default function CategoriesPage() {
           </div>
         </div>
       </div>
+
+      {/* Filter Modal */}
+      {showFilterModal && (
+        <div className={`modal fade ${modalAnimating ? 'show' : ''}`} style={{display: 'block'}} tabIndex={-1} role="dialog">
+          <div className="modal-dialog modal-dialog-centered modal-md" role="document">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Filter Categories</h5>
+                <button 
+                  type="button" 
+                  className="close" 
+                  onClick={closeModal}
+                >
+                  <span>&times;</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                {/* Search Field */}
+                <div className="form-group">
+                  <label>Search</label>
+                  <input 
+                    type="text" 
+                    className="form-control form-control-sm" 
+                    placeholder="Search by category name or description"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary btn-sm" 
+                  onClick={clearFilters}
+                >
+                  Clear All
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-primary btn-sm" 
+                  onClick={applyFilters}
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Backdrop */}
+      {showFilterModal && (
+        <div 
+          className={`modal-backdrop fade ${modalAnimating ? 'show' : ''}`}
+          onClick={closeModal}
+        ></div>
+      )}
     </div>
   );
 }

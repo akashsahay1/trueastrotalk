@@ -2,7 +2,7 @@
 
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 interface Transaction {
@@ -18,9 +18,12 @@ interface Transaction {
   payment_method: string;
   reference_id: string;
   description: string;
+  gateway_transaction_id?: string;
+  notes?: string;
   bank_details?: {
     account_number: string;
     ifsc_code: string;
+    bank_name?: string;
   };
   created_at: string;
 }
@@ -45,29 +48,23 @@ function TransactionsContent() {
   });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [searchInput, setSearchInput] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [modalAnimating, setModalAnimating] = useState(false);
+  const [filters, setFilters] = useState({
+    search: '',
+    type: '',
+    status: '',
+    dateFrom: '',
+    dateTo: ''
+  });
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
-  useEffect(() => {
-    document.body.className = '';
-    
-    // Get user_id from URL params if present
-    const userId = searchParams.get('user_id') || '';
-    
-    fetchTransactions(1, '', userId, '', '', '', '');
-  }, [searchParams]);
-
-  const fetchTransactions = async (
+  const fetchTransactions = useCallback(async (
     page: number, 
     searchTerm: string, 
     userId: string, 
-    type: string, 
-    status: string, 
-    fromDate: string, 
-    toDate: string
+    filterParams = filters
   ) => {
     setLoading(true);
     try {
@@ -76,12 +73,16 @@ function TransactionsContent() {
         limit: '30'
       });
       
-      if (searchTerm) params.append('search', searchTerm);
+      // Use either searchTerm (legacy) or filter search
+      const searchQuery = searchTerm || filterParams.search;
+      if (searchQuery) params.append('search', searchQuery);
       if (userId) params.append('user_id', userId);
-      if (type) params.append('type', type);
-      if (status) params.append('status', status);
-      if (fromDate) params.append('date_from', fromDate);
-      if (toDate) params.append('date_to', toDate);
+      
+      // Add filter parameters
+      if (filterParams.type) params.append('type', filterParams.type);
+      if (filterParams.status) params.append('status', filterParams.status);
+      if (filterParams.dateFrom) params.append('date_from', filterParams.dateFrom);
+      if (filterParams.dateTo) params.append('date_to', filterParams.dateTo);
 
       const response = await fetch(`/api/finance/transactions?${params}`);
       const data = await response.json();
@@ -90,10 +91,6 @@ function TransactionsContent() {
         setTransactions(data.data.transactions);
         setPagination(data.data.pagination);
         setSearch(searchTerm);
-        setTypeFilter(type);
-        setStatusFilter(status);
-        setDateFrom(fromDate);
-        setDateTo(toDate);
       } else {
         console.error('Failed to fetch transactions:', data.error);
       }
@@ -102,17 +99,109 @@ function TransactionsContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    document.body.className = '';
+    
+    // Get user_id from URL params if present
     const userId = searchParams.get('user_id') || '';
-    fetchTransactions(1, searchInput, userId, typeFilter, statusFilter, dateFrom, dateTo);
-  };
+    
+    fetchTransactions(1, '', userId, {
+      search: '',
+      type: '',
+      status: '',
+      dateFrom: '',
+      dateTo: ''
+    });
+  }, [searchParams, fetchTransactions]);
 
   const handlePageChange = (page: number) => {
     const userId = searchParams.get('user_id') || '';
-    fetchTransactions(page, search, userId, typeFilter, statusFilter, dateFrom, dateTo);
+    fetchTransactions(page, search, userId, filters);
+  };
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  const openModal = () => {
+    setShowFilterModal(true);
+    setTimeout(() => setModalAnimating(true), 10);
+  };
+
+  const closeModal = () => {
+    setModalAnimating(false);
+    setTimeout(() => setShowFilterModal(false), 150);
+  };
+
+  const clearFilters = () => {
+    const clearedFilters = {
+      search: '',
+      type: '',
+      status: '',
+      dateFrom: '',
+      dateTo: ''
+    };
+    setFilters(clearedFilters);
+    const userId = searchParams.get('user_id') || '';
+    fetchTransactions(1, search, userId, clearedFilters);
+    closeModal();
+  };
+
+  const applyFilters = () => {
+    const userId = searchParams.get('user_id') || '';
+    fetchTransactions(1, search, userId, filters);
+    closeModal();
+  };
+
+  const hasActiveFilters = Object.values(filters).some(value => value !== '');
+
+  const handleViewDetails = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setShowDetailsModal(true);
+  };
+
+  const closeDetailsModal = () => {
+    setShowDetailsModal(false);
+    setSelectedTransaction(null);
+  };
+
+  const handleStatusUpdate = async (transactionId: string, newStatus: string, actionType: 'approve' | 'reject') => {
+    if (!confirm(`Are you sure you want to ${actionType} this transaction? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/finance/transactions/${transactionId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: newStatus,
+          admin_action: actionType,
+          admin_notes: `Transaction ${actionType}d by admin`
+        }),
+      });
+
+      if (response.ok) {
+        alert(`Transaction ${actionType}d successfully`);
+        // Refresh the transactions list
+        const userId = searchParams.get('user_id') || '';
+        fetchTransactions(pagination.currentPage, search, userId, filters);
+        closeDetailsModal();
+      } else {
+        const errorData = await response.json();
+        alert('Error updating transaction: ' + (errorData.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      alert('Error updating transaction. Please try again.');
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -190,7 +279,7 @@ function TransactionsContent() {
             {/* Stats Cards */}
             <div className="row mb-4">
               <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12">
-                <div className="card border-3 border-top border-top-primary">
+                <div className="card border-top-primary shadow-sm h-100">
                   <div className="card-body">
                     <h5 className="text-muted">Total Amount</h5>
                     <div className="metric-value d-inline-block">
@@ -200,7 +289,7 @@ function TransactionsContent() {
                 </div>
               </div>
               <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12">
-                <div className="card border-3 border-top border-top-success">
+                <div className="card border-top-primary shadow-sm h-100">
                   <div className="card-body">
                     <h5 className="text-muted">Completed Amount</h5>
                     <div className="metric-value d-inline-block">
@@ -210,7 +299,7 @@ function TransactionsContent() {
                 </div>
               </div>
               <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12">
-                <div className="card border-3 border-top border-top-warning">
+                <div className="card border-top-primary shadow-sm h-100">
                   <div className="card-body">
                     <h5 className="text-muted">Pending Amount</h5>
                     <div className="metric-value d-inline-block">
@@ -220,7 +309,7 @@ function TransactionsContent() {
                 </div>
               </div>
               <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12">
-                <div className="card border-3 border-top border-top-danger">
+                <div className="card border-top-primary shadow-sm h-100">
                   <div className="card-body">
                     <h5 className="text-muted">Total Transactions</h5>
                     <div className="metric-value d-inline-block">
@@ -234,101 +323,22 @@ function TransactionsContent() {
             {/* Filters and Actions */}
             <div className="row">
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
-                <div className="card">
-                  <div className="card-header d-flex justify-content-between align-items-center">
-                    <h5 className="mb-0">Transactions ({pagination.totalCount} total)</h5>
-                  </div>
+                <div className="card mb-4">
                   <div className="card-body">
-                    {/* Search and Filter Form */}
-                    <form onSubmit={handleSearch} className="row mb-3">
-                      <div className="col-md-3">
-                        <div className="form-group">
-                          <input 
-                            type="text" 
-                            className="form-control" 
-                            placeholder="Search by name, email, reference..." 
-                            value={searchInput}
-                            onChange={(e) => setSearchInput(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div className="col-md-2">
-                        <div className="form-group">
-                          <select 
-                            className="form-control"
-                            value={typeFilter}
-                            onChange={(e) => setTypeFilter(e.target.value)}
-                          >
-                            <option value="">All Types</option>
-                            <option value="recharge">Recharge</option>
-                            <option value="withdrawal">Withdrawal</option>
-                            <option value="payment">Payment</option>
-                            <option value="commission">Commission</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div className="col-md-2">
-                        <div className="form-group">
-                          <select 
-                            className="form-control"
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                          >
-                            <option value="">All Status</option>
-                            <option value="completed">Completed</option>
-                            <option value="pending">Pending</option>
-                            <option value="processing">Processing</option>
-                            <option value="failed">Failed</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div className="col-md-1">
-                        <div className="form-group">
-                          <input 
-                            type="date" 
-                            className="form-control" 
-                            value={dateFrom}
-                            onChange={(e) => setDateFrom(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div className="col-md-1">
-                        <div className="form-group">
-                          <input 
-                            type="date" 
-                            className="form-control" 
-                            value={dateTo}
-                            onChange={(e) => setDateTo(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div className="col-md-1">
-                        <button type="submit" className="btn btn-primary btn-sm" disabled={loading}>
-                          Search
-                        </button>
-                      </div>
-                      <div className="col-md-2">
-                        <button 
-                          type="button" 
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => {
-                            setSearchInput('');
-                            setTypeFilter('');
-                            setStatusFilter('');
-                            setDateFrom('');
-                            setDateTo('');
-                            const userId = searchParams.get('user_id') || '';
-                            fetchTransactions(1, '', userId, '', '', '', '');
-                          }}
-                        >
-                          Clear Filters
-                        </button>
-                      </div>
-                    </form>
+                    <div className='d-flex justify-content-between align-items-center mb-3'>
+                      <h5 className="mb-0">Transactions ({pagination.totalCount})</h5>
+                      <button 
+                        className="btn btn-outline-secondary"
+                        onClick={openModal}
+                      >
+                        <i className="fas fa-filter mr-1"></i>
+                        Filters {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
+                      </button>
+                    </div>
 
                     {/* Transactions Table */}
                     <div className="table-responsive">
-                      <table className="table table-striped table-bordered session-table">
+                      <table className="table table-striped session-table m-0">
                         <thead>
                           <tr>
                             <th>Reference</th>
@@ -403,25 +413,25 @@ function TransactionsContent() {
                                 <td>
                                   <div>
                                     <button 
-                                      className="btn btn-outline-info btn-sm mr-1"
-                                      title="View Details"
-                                      onClick={() => {/* TODO: Implement view details */}}
+                                      className="btn btn-sm btn-info mr-1"
+                                      title="View"
+                                      onClick={() => handleViewDetails(transaction)}
                                     >
                                       <i className="fas fa-eye"></i>
                                     </button>
                                     {transaction.status === 'pending' && (
                                       <>
                                         <button 
-                                          className="btn btn-outline-success btn-sm mr-1"
+                                          className="btn btn-sm btn-success mr-1"
                                           title="Approve"
-                                          onClick={() => {/* TODO: Implement approve */}}
+                                          onClick={() => handleStatusUpdate(transaction._id, 'completed', 'approve')}
                                         >
                                           <i className="fas fa-check"></i>
                                         </button>
                                         <button 
-                                          className="btn btn-outline-danger btn-sm"
+                                          className="btn btn-sm btn-danger"
                                           title="Reject"
-                                          onClick={() => {/* TODO: Implement reject */}}
+                                          onClick={() => handleStatusUpdate(transaction._id, 'failed', 'reject')}
                                         >
                                           <i className="fas fa-times"></i>
                                         </button>
@@ -440,64 +450,335 @@ function TransactionsContent() {
                       </table>
                     </div>
 
-                    {/* Pagination */}
-                    {pagination.totalPages > 1 && (
-                      <nav aria-label="Transaction pagination">
-                        <ul className="pagination justify-content-center">
-                          <li className={`page-item ${!pagination.hasPrevPage ? 'disabled' : ''}`}>
-                            <button 
-                              className="page-link" 
-                              onClick={() => handlePageChange(pagination.currentPage - 1)}
-                              disabled={!pagination.hasPrevPage || loading}
-                            >
-                              Previous
-                            </button>
-                          </li>
-                          
-                          {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                            let pageNumber;
-                            if (pagination.totalPages <= 5) {
-                              pageNumber = i + 1;
-                            } else if (pagination.currentPage <= 3) {
-                              pageNumber = i + 1;
-                            } else if (pagination.currentPage >= pagination.totalPages - 2) {
-                              pageNumber = pagination.totalPages - 4 + i;
-                            } else {
-                              pageNumber = pagination.currentPage - 2 + i;
-                            }
-                            
-                            return (
-                              <li key={pageNumber} className={`page-item ${pageNumber === pagination.currentPage ? 'active' : ''}`}>
-                                <button 
-                                  className="page-link" 
-                                  onClick={() => handlePageChange(pageNumber)}
-                                  disabled={loading}
-                                >
-                                  {pageNumber}
-                                </button>
-                              </li>
-                            );
-                          })}
-                          
-                          <li className={`page-item ${!pagination.hasNextPage ? 'disabled' : ''}`}>
-                            <button 
-                              className="page-link" 
-                              onClick={() => handlePageChange(pagination.currentPage + 1)}
-                              disabled={!pagination.hasNextPage || loading}
-                            >
-                              Next
-                            </button>
-                          </li>
-                        </ul>
-                      </nav>
-                    )}
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Pagination - Outside Card */}
+            {pagination.totalPages > 1 && (
+              <div className="row">
+                <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+                  <nav aria-label="Transaction pagination">
+                    <ul className="pagination justify-content-center">
+                      <li className={`page-item ${!pagination.hasPrevPage ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={() => handlePageChange(pagination.currentPage - 1)}
+                          disabled={!pagination.hasPrevPage || loading}
+                        >
+                          Previous
+                        </button>
+                      </li>
+                      
+                      {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                        let pageNumber;
+                        if (pagination.totalPages <= 5) {
+                          pageNumber = i + 1;
+                        } else if (pagination.currentPage <= 3) {
+                          pageNumber = i + 1;
+                        } else if (pagination.currentPage >= pagination.totalPages - 2) {
+                          pageNumber = pagination.totalPages - 4 + i;
+                        } else {
+                          pageNumber = pagination.currentPage - 2 + i;
+                        }
+                        
+                        return (
+                          <li key={pageNumber} className={`page-item ${pageNumber === pagination.currentPage ? 'active' : ''}`}>
+                            <button 
+                              className="page-link" 
+                              onClick={() => handlePageChange(pageNumber)}
+                              disabled={loading}
+                            >
+                              {pageNumber}
+                            </button>
+                          </li>
+                        );
+                      })}
+                      
+                      <li className={`page-item ${!pagination.hasNextPage ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={() => handlePageChange(pagination.currentPage + 1)}
+                          disabled={!pagination.hasNextPage || loading}
+                        >
+                          Next
+                        </button>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Transaction Details Modal */}
+      {showDetailsModal && selectedTransaction && (
+        <div className="modal fade show" style={{display: 'block'}} tabIndex={-1} role="dialog">
+          <div className="modal-dialog modal-lg" role="document">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Transaction Details</h5>
+                <button 
+                  type="button" 
+                  className="close" 
+                  onClick={closeDetailsModal}
+                >
+                  <span>&times;</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                <div className="row">
+                  <div className="col-md-6">
+                    <h6 className="text-primary">Basic Information</h6>
+                    <table className="table table-sm">
+                      <tbody>
+                        <tr>
+                          <td><strong>Transaction ID:</strong></td>
+                          <td>{selectedTransaction._id}</td>
+                        </tr>
+                        <tr>
+                          <td><strong>Reference ID:</strong></td>
+                          <td>{selectedTransaction.reference_id || 'N/A'}</td>
+                        </tr>
+                        <tr>
+                          <td><strong>Type:</strong></td>
+                          <td>
+                            <span className={`badge ${selectedTransaction.transaction_type === 'recharge' || selectedTransaction.transaction_type === 'commission' ? 'badge-success' : 'badge-warning'}`}>
+                              {selectedTransaction.transaction_type?.toUpperCase()}
+                            </span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td><strong>Amount:</strong></td>
+                          <td><strong>₹{selectedTransaction.amount.toLocaleString()}</strong></td>
+                        </tr>
+                        <tr>
+                          <td><strong>Status:</strong></td>
+                          <td>
+                            <span className={`badge ${getStatusBadge(selectedTransaction.status)}`}>
+                              {selectedTransaction.status?.toUpperCase()}
+                            </span>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="col-md-6">
+                    <h6 className="text-primary">User & Payment Information</h6>
+                    <table className="table table-sm">
+                      <tbody>
+                        <tr>
+                          <td><strong>User Name:</strong></td>
+                          <td>{selectedTransaction.user_name}</td>
+                        </tr>
+                        <tr>
+                          <td><strong>Email:</strong></td>
+                          <td>{selectedTransaction.user_email}</td>
+                        </tr>
+                        <tr>
+                          <td><strong>Payment Method:</strong></td>
+                          <td>{selectedTransaction.payment_method || 'N/A'}</td>
+                        </tr>
+                        <tr>
+                          <td><strong>Gateway Reference:</strong></td>
+                          <td>{selectedTransaction.gateway_transaction_id || 'N/A'}</td>
+                        </tr>
+                        <tr>
+                          <td><strong>Created:</strong></td>
+                          <td>{new Date(selectedTransaction.created_at).toLocaleString()}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                
+                <div className="row mt-3">
+                  <div className="col-12">
+                    <h6 className="text-primary">Description & Notes</h6>
+                    <div className="card">
+                      <div className="card-body">
+                        <p><strong>Description:</strong> {selectedTransaction.description || 'No description available'}</p>
+                        {selectedTransaction.notes && (
+                          <p><strong>Notes:</strong> {selectedTransaction.notes}</p>
+                        )}
+                        {selectedTransaction.bank_details && (
+                          <div>
+                            <p><strong>Bank Details:</strong></p>
+                            <ul>
+                              <li>Account: {selectedTransaction.bank_details.account_number}</li>
+                              <li>IFSC: {selectedTransaction.bank_details.ifsc_code}</li>
+                              <li>Bank: {selectedTransaction.bank_details.bank_name}</li>
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                {selectedTransaction.status === 'pending' && (
+                  <>
+                    <button 
+                      type="button" 
+                      className="btn btn-success mr-2"
+                      onClick={() => handleStatusUpdate(selectedTransaction._id, 'completed', 'approve')}
+                    >
+                      <i className="fas fa-check mr-1"></i>
+                      Approve Transaction
+                    </button>
+                    <button 
+                      type="button" 
+                      className="btn btn-danger mr-2"
+                      onClick={() => handleStatusUpdate(selectedTransaction._id, 'failed', 'reject')}
+                    >
+                      <i className="fas fa-times mr-1"></i>
+                      Reject Transaction
+                    </button>
+                  </>
+                )}
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={closeDetailsModal}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filter Modal */}
+      {showFilterModal && (
+        <div className={`modal fade ${modalAnimating ? 'show' : ''}`} style={{display: 'block'}} tabIndex={-1} role="dialog">
+          <div className="modal-dialog modal-dialog-centered modal-md" role="document">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Filter Transactions</h5>
+                <button 
+                  type="button" 
+                  className="close" 
+                  onClick={closeModal}
+                >
+                  <span>&times;</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                {/* Search Field */}
+                <div className="form-group">
+                  <label>Search</label>
+                  <input 
+                    type="text" 
+                    className="form-control form-control-sm" 
+                    placeholder="Search by name, email, or reference"
+                    value={filters.search}
+                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                  />
+                </div>
+
+                {/* Type and Status - 2 columns */}
+                <div className="row">
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Transaction Type</label>
+                      <select 
+                        className="form-control form-control-sm"
+                        value={filters.type}
+                        onChange={(e) => handleFilterChange('type', e.target.value)}
+                      >
+                        <option value="">All Types</option>
+                        <option value="recharge">Recharge</option>
+                        <option value="withdrawal">Withdrawal</option>
+                        <option value="payment">Payment</option>
+                        <option value="commission">Commission</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Status</label>
+                      <select 
+                        className="form-control form-control-sm"
+                        value={filters.status}
+                        onChange={(e) => handleFilterChange('status', e.target.value)}
+                      >
+                        <option value="">All Status</option>
+                        <option value="completed">Completed</option>
+                        <option value="pending">Pending</option>
+                        <option value="processing">Processing</option>
+                        <option value="failed">Failed</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Date Range - 2 columns */}
+                <div className="row">
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>From Date</label>
+                      <input 
+                        type="date" 
+                        className="form-control form-control-sm" 
+                        value={filters.dateFrom}
+                        onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>To Date</label>
+                      <input 
+                        type="date" 
+                        className="form-control form-control-sm" 
+                        value={filters.dateTo}
+                        onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary btn-sm" 
+                  onClick={clearFilters}
+                >
+                  Clear All
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-primary btn-sm" 
+                  onClick={applyFilters}
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filter Modal Backdrop */}
+      {showFilterModal && (
+        <div 
+          className={`modal-backdrop fade ${modalAnimating ? 'show' : ''}`}
+          onClick={closeModal}
+        ></div>
+      )}
+
+      {/* Details Modal Backdrop */}
+      {showDetailsModal && (
+        <div 
+          className="modal-backdrop fade show"
+          onClick={closeDetailsModal}
+        ></div>
+      )}
     </div>
   );
 }
