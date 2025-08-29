@@ -7,7 +7,7 @@
     "dev:next": "next dev",
     "dev:socket": "node socket-server.js",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:socket\"",
-    "build": "next build",
+    "build": "NODE_NO_WARNINGS=1 next build",
     "start": "NODE_ENV=production node server.js",
     "start:next": "next start",
     "start:socket": "NODE_ENV=production node socket-server.js",
