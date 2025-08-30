@@ -12,7 +12,7 @@ const DB_NAME = 'trueastrotalkDB';
 // PATCH - Update transaction status (admin only, for dispute resolution)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify authentication
@@ -32,7 +32,7 @@ export async function PATCH(
 
     const body = await request.json();
     const { status, admin_action, admin_notes } = body;
-    const transactionId = params.id;
+    const { id: transactionId } = await params;
 
     if (!transactionId) {
       return NextResponse.json({
@@ -129,7 +129,7 @@ export async function PATCH(
 // GET - Get individual transaction details (admin only)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify authentication
@@ -147,7 +147,7 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const transactionId = params.id;
+    const { id: transactionId } = await params;
 
     if (!transactionId) {
       return NextResponse.json({

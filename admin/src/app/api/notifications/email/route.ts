@@ -177,9 +177,9 @@ interface EmailNotificationBody {
 }
 
 export async function POST(request: NextRequest) {
-  let body: EmailNotificationBody;
+  let body: EmailNotificationBody | undefined;
   try {
-    body = await request.json();
+    body = await request.json() as EmailNotificationBody;
     const { type, recipient_email, recipient_name, data } = body;
 
     if (!type || !recipient_email) {

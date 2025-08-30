@@ -85,7 +85,7 @@ describe('/api/auth/login', () => {
 
       mockUsersCollection.findOne.mockResolvedValue(mockUser)
       mockPasswordSecurity.verifyPassword.mockResolvedValue(true)
-      mockJWTSecurity.generateToken.mockReturnValue('mock-jwt-token')
+      ;(mockJWTSecurity as any).generateToken = jest.fn().mockReturnValue('mock-jwt-token')
 
       const request = createMockRequest({
         email_address: 'admin@test.com',

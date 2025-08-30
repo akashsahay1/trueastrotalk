@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
     if (search) {
       const searchRegex = { $regex: search, $options: 'i' };
       query.$and = [
-        ...(query.$and || []),
+        ...(Array.isArray(query.$and) ? query.$and : []),
         {
           $or: [
             { order_number: searchRegex },

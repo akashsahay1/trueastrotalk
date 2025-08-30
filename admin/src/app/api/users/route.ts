@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient, ObjectId } from 'mongodb';
 import { jwtVerify } from 'jose';
+import { withSecurity, SecurityPresets } from '@/lib/api-security';
 
 // Helper function to get base URL for images
 function getBaseUrl(request: NextRequest): string {
@@ -59,7 +60,7 @@ const JWT_SECRET = new TextEncoder().encode(
 const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const DB_NAME = 'trueastrotalkDB';
 
-export async function GET(request: NextRequest) {
+export const GET = withSecurity(async (request: NextRequest) => {
   try {
     // Verify authentication
     const token = request.cookies.get('auth-token')?.value;
@@ -215,4 +216,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, SecurityPresets.admin);

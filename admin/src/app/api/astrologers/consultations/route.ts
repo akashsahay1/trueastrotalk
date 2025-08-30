@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
 
     // Add status filter
     if (status && status !== 'all') {
-      const statusMap = {
+      const statusMap: Record<string, string> = {
         'active': 'ongoing',
         'upcoming': 'scheduled',
         'completed': 'completed',

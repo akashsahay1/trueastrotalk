@@ -51,11 +51,13 @@ export async function POST(request: NextRequest) {
     const { email } = sanitizedBody;
 
     // Validate input
-    const validation = Validator.validate({
-      email: email
-    }, {
-      email: ValidationSchemas.email
-    });
+    const validation = Validator.validate([
+      {
+        field: 'email',
+        value: email,
+        rules: ['required', 'email']
+      }
+    ]);
 
     if (!validation.isValid) {
       return NextResponse.json({
@@ -66,7 +68,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedEmail = (email as string).toLowerCase().trim();
 
     // Additional rate limiting by email address to prevent targeting specific accounts
     const emailRateLimitResult = await SecurityMiddleware.checkRateLimit(

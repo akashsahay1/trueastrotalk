@@ -1,14 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* Performance optimizations */
+  /* Build configuration */
   eslint: {
-    // Temporarily ignore linting during builds - TODO: Fix remaining warnings
+    // Skip ESLint during builds to avoid blocking on style issues
+    // TODO: Gradually fix ESLint warnings and re-enable
     ignoreDuringBuilds: true,
   },
   typescript: {
-    // Temporarily ignore type errors - TODO: Fix remaining type errors
-    ignoreBuildErrors: true,
+    // TypeScript errors don't block the build - all errors fixed!
+    ignoreBuildErrors: false,
   },
   images: {
     // Allow images from all domains - like WordPress media library

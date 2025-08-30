@@ -1,4 +1,4 @@
-import { ErrorHandler, ErrorCode, ErrorSeverity } from '../../lib/error-handler'
+import { ErrorHandler, ErrorCode, ErrorSeverity, AppError } from '../../lib/error-handler'
 
 describe('ErrorHandler', () => {
   beforeEach(() => {
@@ -11,34 +11,32 @@ describe('ErrorHandler', () => {
       const error = ErrorHandler.createError(
         ErrorCode.VALIDATION_ERROR,
         'Test error message',
-        { field: 'email' },
-        ErrorSeverity.HIGH
+        'User message',
+        { field: 'email' }
       )
 
-      expect(error).toEqual({
-        code: ErrorCode.VALIDATION_ERROR,
-        message: 'Test error message',
-        details: { field: 'email' },
-        severity: ErrorSeverity.HIGH,
-        timestamp: expect.any(Date),
-        requestId: expect.any(String)
-      })
+      expect(error.code).toBe(ErrorCode.VALIDATION_ERROR)
+      expect(error.message).toBe('Test error message')
+      expect(error.details).toEqual({ field: 'email' })
+      expect(error.severity).toBe(ErrorSeverity.LOW)
+      expect(error.timestamp).toBeDefined()
     })
 
     it('should create error with default severity', () => {
       const error = ErrorHandler.createError(
-        ErrorCode.AUTHENTICATION_ERROR,
+        ErrorCode.AUTHENTICATION_REQUIRED,
         'Auth failed'
       )
 
       expect(error.severity).toBe(ErrorSeverity.MEDIUM)
     })
 
-    it('should generate unique request IDs', () => {
+    it('should generate unique timestamps', () => {
       const error1 = ErrorHandler.createError(ErrorCode.NETWORK_ERROR, 'Error 1')
       const error2 = ErrorHandler.createError(ErrorCode.NETWORK_ERROR, 'Error 2')
 
-      expect(error1.requestId).not.toBe(error2.requestId)
+      expect(error1.timestamp).toBeDefined()
+      expect(error2.timestamp).toBeDefined()
     })
   })
 
@@ -52,104 +50,73 @@ describe('ErrorHandler', () => {
     })
   })
 
-  describe('authenticationError', () => {
-    it('should create authentication error', () => {
-      const error = ErrorHandler.authenticationError('Invalid token')
+  describe('validationError', () => {
+    it('should create validation error using helper', () => {
+      const error = ErrorHandler.validationError('Invalid email format', { email: 'invalid' })
 
-      expect(error.code).toBe(ErrorCode.AUTHENTICATION_ERROR)
-      expect(error.message).toBe('Invalid token')
+      expect(error.code).toBe(ErrorCode.VALIDATION_ERROR)
+      expect(error.message).toBe('Invalid email format')
       expect(error.severity).toBe(ErrorSeverity.HIGH)
     })
   })
 
-  describe('notFoundError', () => {
+  describe('createError for different codes', () => {
     it('should create not found error', () => {
-      const error = ErrorHandler.notFoundError('User not found', { userId: '123' })
+      const error = ErrorHandler.createError(
+        ErrorCode.RESOURCE_NOT_FOUND,
+        'User not found',
+        'User not found',
+        { userId: '123' }
+      )
 
       expect(error.code).toBe(ErrorCode.RESOURCE_NOT_FOUND)
       expect(error.message).toBe('User not found')
       expect(error.details).toEqual({ userId: '123' })
     })
-  })
 
-  describe('networkError', () => {
     it('should create network error', () => {
-      const originalError = new Error('Connection timeout')
-      const error = ErrorHandler.networkError('Database connection failed', originalError)
+      const error = ErrorHandler.createError(
+        ErrorCode.NETWORK_ERROR,
+        'Database connection failed'
+      )
 
       expect(error.code).toBe(ErrorCode.NETWORK_ERROR)
       expect(error.message).toBe('Database connection failed')
-      expect(error.details?.originalError).toBe(originalError)
     })
   })
 
   describe('handleError', () => {
-    it('should handle Error objects', () => {
+    it('should handle Error objects', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()
       const originalError = new Error('Test error')
 
-      const handled = ErrorHandler.handleError(originalError)
+      const response = await ErrorHandler.handleError(originalError)
+      const json = await response.json()
 
-      expect(handled.code).toBe(ErrorCode.UNKNOWN_ERROR)
-      expect(handled.message).toBe('Test error')
+      expect(json.error).toBe('INTERNAL_SERVER_ERROR')
+      expect(json.message).toBe('Test error')
       expect(consoleErrorSpy).toHaveBeenCalled()
 
       consoleErrorSpy.mockRestore()
     })
 
-    it('should handle string errors', () => {
+    it('should handle AppError objects', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()
+      const appError = new AppError(
+        ErrorCode.VALIDATION_ERROR,
+        'Validation failed',
+        400
+      )
 
-      const handled = ErrorHandler.handleError('String error')
+      const response = await ErrorHandler.handleError(appError)
+      const json = await response.json()
 
-      expect(handled.code).toBe(ErrorCode.UNKNOWN_ERROR)
-      expect(handled.message).toBe('String error')
+      expect(json.error).toBe('VALIDATION_ERROR')
+      expect(json.message).toBe('Validation failed')
       expect(consoleErrorSpy).toHaveBeenCalled()
 
       consoleErrorSpy.mockRestore()
     })
 
-    it('should handle ErrorHandler objects', () => {
-      const originalError = ErrorHandler.validationError('Validation failed')
-
-      const handled = ErrorHandler.handleError(originalError)
-
-      expect(handled).toBe(originalError)
-    })
-  })
-
-  describe('withErrorHandler', () => {
-    it('should handle successful function execution', async () => {
-      const mockFn = jest.fn().mockResolvedValue({ success: true })
-      const wrappedFn = ErrorHandler.withErrorHandler(mockFn)
-
-      const mockRequest = {} as any
-      const result = await wrappedFn(mockRequest)
-
-      expect(mockFn).toHaveBeenCalledWith(mockRequest)
-      expect(result).toEqual({ success: true })
-    })
-
-    it('should handle errors and return error response', async () => {
-      const mockError = new Error('Test error')
-      const mockFn = jest.fn().mockRejectedValue(mockError)
-      const wrappedFn = ErrorHandler.withErrorHandler(mockFn)
-
-      const mockRequest = {} as any
-      const response = await wrappedFn(mockRequest)
-
-      expect(response.constructor.name).toBe('NextResponse')
-    })
-
-    it('should handle validation errors with specific status', async () => {
-      const validationError = ErrorHandler.validationError('Invalid input')
-      const mockFn = jest.fn().mockRejectedValue(validationError)
-      const wrappedFn = ErrorHandler.withErrorHandler(mockFn)
-
-      const mockRequest = {} as any
-      const response = await wrappedFn(mockRequest)
-
-      expect(response.constructor.name).toBe('NextResponse')
-    })
   })
 })

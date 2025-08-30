@@ -4,12 +4,13 @@ import crypto from 'crypto';
 import { omit } from '@/utils/omit';
 import { envConfig, envHelpers } from '@/lib/env-config';
 import { emailService } from '@/lib/email-service';
+import { withSecurity, SecurityPresets } from '@/lib/api-security';
 
 function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withSecurity(async (request: NextRequest) => {
   const client = new MongoClient(envHelpers.getDatabaseUrl());
   
   try {
@@ -191,4 +192,4 @@ export async function POST(request: NextRequest) {
   } finally {
     await client.close();
   }
-}
+}, SecurityPresets.admin);

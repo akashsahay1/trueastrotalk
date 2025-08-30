@@ -1,0 +1,36 @@
+{
+  "extends": [
+    "next/core-web-vitals",
+    "@next/eslint-config-next"
+  ],
+  "rules": {
+    // Disable overly strict rules that don't affect functionality
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-unused-vars": "warn",
+    
+    // Keep important security and correctness rules as errors
+    "no-unused-expressions": "error",
+    "no-unreachable": "error",
+    "no-constant-condition": "error",
+    "no-duplicate-keys": "error",
+    
+    // React/Next.js specific rules
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    
+    // Allow console statements (useful for server-side logging)
+    "no-console": "off",
+    
+    // Allow empty catch blocks (sometimes needed for fallback handling)
+    "no-empty": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/no-unused-vars": "off"
+      }
+    }
+  ]
+}

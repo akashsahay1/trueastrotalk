@@ -278,7 +278,7 @@ export default function ProductsPage() {
                       <table className="table table-striped m-0">
                   <thead>
                     <tr>
-                      <th width="40">
+                      <th style={{ width: '40px' }}>
                         <input
                           type="checkbox"
                           checked={selectedProducts.length === products.length && products.length > 0}

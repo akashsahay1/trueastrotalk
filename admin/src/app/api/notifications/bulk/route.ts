@@ -118,22 +118,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Apply additional filters if provided
-    if (filters) {
+    if (filters && typeof filters === 'object') {
       // Examples of filters:
       // - { "wallet_balance": { "$gte": 100 } } - Users with wallet balance >= 100
       // - { "last_active": { "$gte": "2024-01-01" } } - Recently active users
       // - { "consultation_count": { "$gte": 5 } } - Users with 5+ consultations
-      if (filters.wallet_balance) {
-        query.wallet_balance = filters.wallet_balance;
+      const filterObj = filters as Record<string, any>;
+      if (filterObj.wallet_balance) {
+        query.wallet_balance = filterObj.wallet_balance;
       }
-      if (filters.last_active) {
-        query.last_active = filters.last_active;
+      if (filterObj.last_active) {
+        query.last_active = filterObj.last_active;
       }
-      if (filters.consultation_count) {
-        query.consultation_count = filters.consultation_count;
+      if (filterObj.consultation_count) {
+        query.consultation_count = filterObj.consultation_count;
       }
-      if (filters.registration_date) {
-        query.created_at = filters.registration_date;
+      if (filterObj.registration_date) {
+        query.created_at = filterObj.registration_date;
       }
     }
 
@@ -165,14 +166,14 @@ export async function POST(request: NextRequest) {
       targets,
       {
         type: type as NotificationType,
-        title,
-        body: message,
-        data,
-        imageUrl: image_url,
-        actionUrl: action_url,
+        title: title as string,
+        body: message as string,
+        data: data as Record<string, unknown> | undefined,
+        imageUrl: image_url as string | undefined,
+        actionUrl: action_url as string | undefined,
         priority: priority as NotificationPriority,
         channels: channels as NotificationChannel[],
-        scheduleAt: schedule_at ? new Date(schedule_at) : undefined
+        scheduleAt: schedule_at ? new Date(schedule_at as string) : undefined
       }
     );
 

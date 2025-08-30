@@ -49,15 +49,23 @@ export async function POST(request: NextRequest) {
     const { token, newPassword, confirmPassword } = sanitizedBody;
 
     // Validate input
-    const validation = Validator.validate({
-      token: token,
-      newPassword: newPassword,
-      confirmPassword: confirmPassword
-    }, {
-      token: { required: true, type: 'string', minLength: 64, maxLength: 64 },
-      newPassword: ValidationSchemas.password,
-      confirmPassword: { required: true, type: 'string' }
-    });
+    const validation = Validator.validate([
+      {
+        field: 'token',
+        value: token,
+        rules: ['required', 'minLength:64', 'maxLength:64']
+      },
+      {
+        field: 'newPassword',
+        value: newPassword,
+        rules: ['required', 'minLength:8']
+      },
+      {
+        field: 'confirmPassword',
+        value: confirmPassword,
+        rules: ['required']
+      }
+    ]);
 
     if (!validation.isValid) {
       return NextResponse.json({
@@ -78,7 +86,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash the token to compare with stored hash
-    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const tokenHash = crypto.createHash('sha256').update(token as string).digest('hex');
 
     // Get database connection
     const usersCollection = await DatabaseService.getCollection('users');
@@ -98,7 +106,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash the new password
-    const hashedPassword = await PasswordSecurity.hashPassword(newPassword);
+    const hashedPassword = await PasswordSecurity.hashPassword(newPassword as string);
 
     // Update user's password and clear reset token
     const updateResult = await usersCollection.updateOne(
@@ -156,7 +164,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Hash the token to compare with stored hash
-    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const tokenHash = crypto.createHash('sha256').update(token as string).digest('hex');
 
     // Get database connection
     const usersCollection = await DatabaseService.getCollection('users');
