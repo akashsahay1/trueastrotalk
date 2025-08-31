@@ -1,5 +1,7 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import Header from '../../components/Header'
+import { render } from '@testing-library/react'
+// @ts-ignore - Testing library types issue with React 19
+import { screen, fireEvent, waitFor } from '@testing-library/react'
+import Header from '../../components/admin/Header'
 
 // Mock SweetAlert2
 const mockSwal = {
