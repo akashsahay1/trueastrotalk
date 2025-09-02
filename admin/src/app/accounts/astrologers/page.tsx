@@ -39,6 +39,18 @@ interface PaginationInfo {
   hasPrevPage: boolean;
 }
 
+interface FilterParams {
+  search?: string;
+  accountStatus?: string;
+  verificationStatus?: string;
+  skills?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  fromDate?: string;
+  toDate?: string;
+}
+
 interface ProfileImageProps {
   user: {
     profile_image_id?: string;
@@ -161,7 +173,7 @@ export default function AstrologersPage() {
     }
   }, []);
 
-  const fetchUsers = useCallback(async (page: number, searchTerm: string, filterParams = filters) => {
+  const fetchUsers = useCallback(async (page: number, searchTerm: string, filterParams: FilterParams = {}) => {
     console.log(searchTerm, filterParams);
     setLoading(true);
     try {

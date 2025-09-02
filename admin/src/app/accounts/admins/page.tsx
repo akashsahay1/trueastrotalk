@@ -404,7 +404,7 @@ export default function AdminsPage() {
                               </td>
                             </tr>
                           ) : users.length > 0 ? (
-                            users.map((user, index) => (
+                            users.map((user) => (
                               <tr key={user._id}>
                                 <td className='text-center'>
                                   <input 

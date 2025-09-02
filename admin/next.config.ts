@@ -3,9 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* Build configuration */
   eslint: {
-    // Skip ESLint during builds to avoid blocking on style issues
-    // TODO: Gradually fix ESLint warnings and re-enable
-    ignoreDuringBuilds: true,
+    // ESLint enabled for build-time quality checks
+    ignoreDuringBuilds: false,
   },
   typescript: {
     // TypeScript errors don't block the build - all errors fixed!

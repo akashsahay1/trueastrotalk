@@ -6,6 +6,24 @@ import {
   InputSanitizer 
 } from '../../../../lib/security';
 
+interface SessionData {
+  _id: { toString(): string };
+  customer_id?: { toString(): string };
+  client_name?: string;
+  client_image?: string;
+  astrologer_id?: { toString(): string };
+  created_at?: Date;
+  updated_at?: Date;
+  status?: string;
+  duration?: number;
+  amount?: number;
+  commission?: number;
+  rate_per_minute?: number;
+  client_rating?: number;
+  astrologer_rating?: number;
+  recording_url?: string;
+}
+
 // GET - Astrologer consultations history
 export async function GET(request: NextRequest) {
   try {
@@ -65,7 +83,7 @@ export async function GET(request: NextRequest) {
     const usersCollection = await DatabaseService.getCollection('users');
 
     // Helper function to build consultation object
-    const buildConsultation = (session: any, sessionType: string) => {
+    const buildConsultation = (session: SessionData, sessionType: string) => {
       return {
         id: session._id.toString(),
         consultation_id: session._id.toString(),
@@ -106,7 +124,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch consultations based on type filter
-    let consultations: any[] = [];
+    let consultations: ReturnType<typeof buildConsultation>[] = [];
 
     if (!type || type === 'chat') {
       // Fetch chat sessions
@@ -170,7 +188,7 @@ export async function GET(request: NextRequest) {
       .filter(id => id && ObjectId.isValid(id))
     )];
 
-    let clientsData: Record<string, any> = {};
+    let clientsData: Record<string, { full_name?: string; profile_image?: string }> = {};
     if (clientIds.length > 0) {
       const clients = await usersCollection
         .find({ 
@@ -192,7 +210,7 @@ export async function GET(request: NextRequest) {
           email: client.email_address
         };
         return acc;
-      }, {} as Record<string, any>);
+      }, {} as Record<string, { full_name?: string; profile_image?: string }>);
     }
 
     // Enhance consultations with client data

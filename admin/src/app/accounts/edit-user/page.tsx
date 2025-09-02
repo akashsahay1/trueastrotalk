@@ -7,7 +7,7 @@ import { useEffect, useState, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { validateForm, getUserFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/client-validation';
+// Removed unused import clearValidationErrors
 import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
 import AirDatePickerComponent from '@/components/admin/AirDatePickerComponent';
 
@@ -67,7 +67,6 @@ function EditUserContent() {
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
   const [defaultCommission, setDefaultCommission] = useState(25);
 
@@ -120,15 +119,12 @@ function EditUserContent() {
 
   const [imagePreview, setImagePreview] = useState('');
   const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
-  const [panCardUploading, setPanCardUploading] = useState(false);
   const [panCardPreview, setPanCardPreview] = useState('');
   const [showPanCardLibrary, setShowPanCardLibrary] = useState(false);
 
   // Define user type booleans for conditional rendering
   const isAstrologer = formData.user_type === 'astrologer';
   const isCustomer = formData.user_type === 'customer';
-  const isAdmin = formData.user_type === 'administrator';
-  const isManager = formData.user_type === 'manager';
 
   const loadAdminSettings = async () => {
     try {
@@ -328,8 +324,6 @@ function EditUserContent() {
   };
 
   const validateUserForm = () => {
-    clearValidationErrors();
-
     const customErrors: {[key: string]: string} = {};
 
     // Basic validations for all user types
@@ -437,7 +431,6 @@ function EditUserContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
     setFieldErrors({});
 
     if (!validateUserForm()) {

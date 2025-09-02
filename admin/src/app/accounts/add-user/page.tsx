@@ -6,7 +6,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { validateForm, getUserFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/client-validation';
+// Removed unused import clearValidationErrors
 import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
 import AirDatePickerComponent from '@/components/admin/AirDatePickerComponent';
 import MediaLibrary from '@/components/admin/MediaLibrary';
@@ -63,7 +63,6 @@ function AddUserPageContent() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [defaultCommission, setDefaultCommission] = useState(25);
   
   const [formData, setFormData] = useState<FormData>({
@@ -112,9 +111,7 @@ function AddUserPageContent() {
     }
   });
 
-  const [imageUploading, setImageUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState('');
-  const [panCardUploading, setPanCardUploading] = useState(false);
   const [panCardPreview, setPanCardPreview] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
   const [showProfileImageLibrary, setShowProfileImageLibrary] = useState(false);
@@ -227,8 +224,6 @@ function AddUserPageContent() {
   };
 
   const validateUserForm = () => {
-    clearValidationErrors();
-    
     const customErrors: {[key: string]: string} = {};
 
     // Basic validations for all user types
@@ -347,7 +342,6 @@ function AddUserPageContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
 
     if (!validateUserForm()) {
       return;

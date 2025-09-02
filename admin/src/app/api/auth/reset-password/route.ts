@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ObjectId } from 'mongodb';
 import crypto from 'crypto';
 import DatabaseService from '../../../../lib/database';
 import { 
   PasswordSecurity,
   SecurityMiddleware,
-  InputSanitizer,
-  ValidationSchemas 
+  InputSanitizer
 } from '../../../../lib/security';
 import { Validator } from '../../../../lib/validation';
 

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient, ObjectId } from 'mongodb';
-import { UploadService } from '@/lib/upload-service';
 import { generateProductId } from '@/lib/custom-id';
 
 const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';

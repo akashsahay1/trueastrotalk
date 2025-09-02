@@ -32,6 +32,14 @@ interface PaginationInfo {
   hasPrevPage: boolean;
 }
 
+interface FilterParams {
+  search?: string;
+  userType?: string;
+  status?: string;
+  minBalance?: string;
+  maxBalance?: string;
+}
+
 export default function WalletsPage() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo>({
@@ -53,7 +61,7 @@ export default function WalletsPage() {
     maxBalance: ''
   });
 
-  const fetchWallets = useCallback(async (page: number, searchTerm: string, filterParams = filters) => {
+  const fetchWallets = useCallback(async (page: number, searchTerm: string, filterParams: FilterParams = {}) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({

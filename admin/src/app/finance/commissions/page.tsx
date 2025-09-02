@@ -54,6 +54,15 @@ interface PaginationInfo {
   hasPrevPage: boolean;
 }
 
+interface FilterParams {
+  search?: string;
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  minRevenue?: string;
+  maxRevenue?: string;
+}
+
 export default function CommissionsPage() {
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo>({
@@ -76,7 +85,7 @@ export default function CommissionsPage() {
     maxRevenue: ''
   });
 
-  const fetchCommissions = useCallback(async (page: number, searchTerm: string, filterParams = filters) => {
+  const fetchCommissions = useCallback(async (page: number, searchTerm: string, filterParams: FilterParams = {}) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({

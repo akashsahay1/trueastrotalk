@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const sessionsCollection = db.collection('sessions');
     const transactionsCollection = db.collection('transactions');
     
-    let wallets = [];
+    const wallets = [];
     
     // Build query for search
     let mongoQuery: Record<string, unknown> = {};
