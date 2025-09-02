@@ -359,7 +359,7 @@ export default function CommissionsPage() {
                                 <td>
                                   <div>
                                     <Link 
-                                      href={`/admin/finance/transactions?user_id=${commission.astrologer_id}`}
+                                      href={`/finance/transactions?user_id=${commission.astrologer_id}`}
                                       className="btn btn-sm btn-info mr-1"
                                       title="View"
                                     >

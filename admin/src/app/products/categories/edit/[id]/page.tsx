@@ -47,12 +47,12 @@ export default function EditCategoryPage() {
         });
       } else {
         errorMessages.notFound('Category');
-        router.push('/admin/products/categories');
+        router.push('/products/categories');
       }
     } catch (error) {
       console.error('Error fetching category:', error);
       errorMessages.networkError();
-      router.push('/admin/products/categories');
+      router.push('/products/categories');
     } finally {
       setLoading(false);
     }
@@ -112,7 +112,7 @@ export default function EditCategoryPage() {
       if (response.ok) {
         closeSweetAlert();
         await successMessages.updated('Category');
-        router.push('/admin/products/categories');
+        router.push('/products/categories');
       } else {
         const error = await response.json();
         closeSweetAlert();
@@ -242,7 +242,7 @@ export default function EditCategoryPage() {
                           <button
                             type="button"
                             className="btn btn-secondary mr-2"
-                            onClick={() => router.push('/admin/products/categories')}
+                            onClick={() => router.push('/products/categories')}
                             disabled={saving}
                           >
                             <i className="fas fa-arrow-left mr-1"></i>Cancel

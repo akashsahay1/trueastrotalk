@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert';
+import { Pagination } from '@/components/admin/ui/Pagination';
+import tableStyles from '@/styles/table.module.css';
 
 interface User {
   _id: string;
@@ -136,7 +138,15 @@ export default function CustomersPage() {
   const hasActiveFilters = Object.values(filters).some(value => value !== '');
 
   const handlePageChange = (newPage: number) => {
-    fetchUsers(newPage, filters);
+    // Store current scroll position
+    const scrollPosition = window.scrollY;
+    
+    fetchUsers(newPage, filters).then(() => {
+      // Restore scroll position after data loads
+      requestAnimationFrame(() => {
+        window.scrollTo(0, scrollPosition);
+      });
+    });
   };
 
   const getStatusBadge = (status: string) => {
@@ -311,7 +321,7 @@ export default function CustomersPage() {
                       <Link href="/accounts/add-user?type=customer" className="btn btn-primary">Add New</Link>
                     </div>
                     {/* Users Table */}
-                    <div className="table-responsive">
+                    <div className={`table-responsive ${tableStyles.tableContainer}`}>
                       <table className="table table-striped table-bordered m-0">
                         <thead>
                           <tr>
@@ -398,7 +408,7 @@ export default function CustomersPage() {
                                 <td data-label="Actions">
                                   <div className="quick-actions">
                                     <Link 
-                                      href={`/admin/accounts/edit-user?id=${user._id}`}
+                                      href={`/accounts/edit-user?id=${user._id}`}
                                       className="btn btn-outline-primary btn-sm"
                                       title="Edit"
                                     >
@@ -435,61 +445,16 @@ export default function CustomersPage() {
             </div>
 
             {/* Pagination */}
-            {pagination.totalPages > 1 && (
-              <div className="row">
-                <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
-                  <nav aria-label="User pagination">
-                    <ul className="pagination justify-content-center">
-                      <li className={`page-item ${!pagination.hasPrevPage ? 'disabled' : ''}`}>
-                        <button 
-                          className="page-link" 
-                          onClick={() => handlePageChange(pagination.currentPage - 1)}
-                          disabled={!pagination.hasPrevPage || loading}
-                        >
-                          Previous
-                        </button>
-                      </li>
-                      
-                      {/* Page numbers */}
-                      {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                        let pageNumber;
-                        if (pagination.totalPages <= 5) {
-                          pageNumber = i + 1;
-                        } else if (pagination.currentPage <= 3) {
-                          pageNumber = i + 1;
-                        } else if (pagination.currentPage >= pagination.totalPages - 2) {
-                          pageNumber = pagination.totalPages - 4 + i;
-                        } else {
-                          pageNumber = pagination.currentPage - 2 + i;
-                        }
-                        
-                        return (
-                          <li key={pageNumber} className={`page-item ${pagination.currentPage === pageNumber ? 'active' : ''}`}>
-                            <button 
-                              className="page-link" 
-                              onClick={() => handlePageChange(pageNumber)}
-                              disabled={loading}
-                            >
-                              {pageNumber}
-                            </button>
-                          </li>
-                        );
-                      })}
-                      
-                      <li className={`page-item ${!pagination.hasNextPage ? 'disabled' : ''}`}>
-                        <button 
-                          className="page-link" 
-                          onClick={() => handlePageChange(pagination.currentPage + 1)}
-                          disabled={!pagination.hasNextPage || loading}
-                        >
-                          Next
-                        </button>
-                      </li>
-                    </ul>
-                  </nav>
-                </div>
+            <div className="row">
+              <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+                <Pagination
+                  pagination={pagination}
+                  onPageChange={handlePageChange}
+                  loading={loading}
+                  className="mt-3"
+                />
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>

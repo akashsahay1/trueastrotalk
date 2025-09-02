@@ -217,4 +217,12 @@ export const GET = withSecurity(async (request: NextRequest) => {
       { status: 500 }
     );
   }
-}, SecurityPresets.admin);
+}, {
+  requireAuth: true,
+  allowedRoles: ['administrator'],
+  requireCSRF: false, // GET requests don't need CSRF protection
+  rateLimit: {
+    requests: 100,
+    windowMs: 15 * 60 * 1000,
+  },
+});

@@ -196,12 +196,12 @@ export default function EditProductPage() {
         });
       } else {
         errorMessages.notFound('Product');
-        router.push('/admin/products');
+        router.push('/products');
       }
     } catch (error) {
       console.error('Error fetching product:', error);
       errorMessages.networkError();
-      router.push('/admin/products');
+      router.push('/products');
     } finally {
       setLoading(false);
     }
@@ -307,7 +307,7 @@ export default function EditProductPage() {
       if (response.ok) {
         closeSweetAlert();
         await successMessages.updated('Product');
-        router.push('/admin/products');
+        router.push('/products');
       } else {
         const error = await response.json();
         closeSweetAlert();
@@ -1145,7 +1145,7 @@ export default function EditProductPage() {
                           <button
                             type="button"
                             className="btn btn-secondary mr-2"
-                            onClick={() => router.push('/admin/products')}
+                            onClick={() => router.push('/products')}
                             disabled={saving}
                           >
                             <i className="fas fa-arrow-left mr-1"></i>Cancel

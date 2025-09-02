@@ -1,0 +1,32 @@
+.tableContainer {
+  min-height: 400px;
+}
+
+@media (min-width: 576px) {
+  .tableContainer {
+    min-height: 500px;
+  }
+}
+
+@media (min-width: 768px) {
+  .tableContainer {
+    min-height: 600px;
+  }
+}
+
+@media (min-width: 992px) {
+  .tableContainer {
+    min-height: 700px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .tableContainer {
+    min-height: 800px;
+  }
+}
+
+.responsiveTable {
+  width: 100%;
+  overflow-x: auto;
+}

@@ -175,7 +175,7 @@ export default function AddProductPage() {
       if (response.ok) {
         closeSweetAlert();
         await successMessages.created('Product');
-        router.push('/admin/products');
+        router.push('/products');
       } else {
         const error = await response.json();
         closeSweetAlert();
@@ -758,7 +758,7 @@ export default function AddProductPage() {
                           <button
                             type="button"
                             className="btn btn-secondary mr-2"
-                            onClick={() => router.push('/admin/products')}
+                            onClick={() => router.push('/products')}
                             disabled={loading}
                           >
                             <i className="fas fa-arrow-left mr-1"></i>Cancel

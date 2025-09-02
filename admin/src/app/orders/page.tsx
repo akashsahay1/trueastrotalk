@@ -8,7 +8,7 @@ export default function OrdersPage() {
 
   useEffect(() => {
     // Redirect to complete orders by default
-    router.replace('/admin/orders/complete');
+    router.replace('/orders/complete');
   }, [router]);
 
   return (

@@ -65,7 +65,7 @@ export default function AddCategoryPage() {
       if (response.ok) {
         closeSweetAlert();
         await successMessages.created('Category');
-        router.push('/admin/products/categories');
+        router.push('/products/categories');
       } else {
         const error = await response.json();
         closeSweetAlert();

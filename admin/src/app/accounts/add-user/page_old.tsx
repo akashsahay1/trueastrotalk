@@ -539,15 +539,15 @@ function AddUserPageContent() {
         await successMessages.created('User');
         
         // Redirect to appropriate page
-        let redirectPath = '/admin/accounts/customers';
+        let redirectPath = '/accounts/customers';
         if (formData.user_type === 'administrator') {
-          redirectPath = '/admin/accounts/admins';
+          redirectPath = '/accounts/admins';
         } else if (formData.user_type === 'manager') {
-          redirectPath = '/admin/accounts/managers';
+          redirectPath = '/accounts/managers';
         } else if (formData.user_type === 'astrologer') {
-          redirectPath = '/admin/accounts/astrologers';
+          redirectPath = '/accounts/astrologers';
         } else if (formData.user_type === 'customer') {
-          redirectPath = '/admin/accounts/customers';
+          redirectPath = '/accounts/customers';
         }
         
         router.push(redirectPath);

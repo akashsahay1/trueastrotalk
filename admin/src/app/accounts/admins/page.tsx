@@ -6,6 +6,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert';
+import { Pagination } from '@/components/admin/ui/Pagination';
 
 interface User {
   _id: string;
@@ -443,7 +444,7 @@ export default function AdminsPage() {
                                 <td>
                                   <div>
                                     <Link 
-                                      href={`/admin/accounts/edit-user?id=${user._id}`}
+                                      href={`/accounts/edit-user?id=${user._id}`}
                                       className="btn btn-sm btn-warning mr-1"
                                       title="Edit"
                                     >
@@ -480,61 +481,16 @@ export default function AdminsPage() {
             </div>
 
             {/* Pagination */}
-            {pagination.totalPages > 1 && (
-              <div className="row mt-4">
-                <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
-                  <nav aria-label="User pagination">
-                    <ul className="pagination justify-content-center">
-                      <li className={`page-item ${!pagination.hasPrevPage ? 'disabled' : ''}`}>
-                        <button 
-                          className="page-link" 
-                          onClick={() => handlePageChange(pagination.currentPage - 1)}
-                          disabled={!pagination.hasPrevPage || loading}
-                        >
-                          Previous
-                        </button>
-                      </li>
-                      
-                      {/* Page numbers */}
-                      {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                        let pageNumber;
-                        if (pagination.totalPages <= 5) {
-                          pageNumber = i + 1;
-                        } else if (pagination.currentPage <= 3) {
-                          pageNumber = i + 1;
-                        } else if (pagination.currentPage >= pagination.totalPages - 2) {
-                          pageNumber = pagination.totalPages - 4 + i;
-                        } else {
-                          pageNumber = pagination.currentPage - 2 + i;
-                        }
-                        
-                        return (
-                          <li key={pageNumber} className={`page-item ${pagination.currentPage === pageNumber ? 'active' : ''}`}>
-                            <button 
-                              className="page-link" 
-                              onClick={() => handlePageChange(pageNumber)}
-                              disabled={loading}
-                            >
-                              {pageNumber}
-                            </button>
-                          </li>
-                        );
-                      })}
-                      
-                      <li className={`page-item ${!pagination.hasNextPage ? 'disabled' : ''}`}>
-                        <button 
-                          className="page-link" 
-                          onClick={() => handlePageChange(pagination.currentPage + 1)}
-                          disabled={!pagination.hasNextPage || loading}
-                        >
-                          Next
-                        </button>
-                      </li>
-                    </ul>
-                  </nav>
-                </div>
+            <div className="row">
+              <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+                <Pagination
+                  pagination={pagination}
+                  onPageChange={handlePageChange}
+                  loading={loading}
+                  className="mt-3"
+                />
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>

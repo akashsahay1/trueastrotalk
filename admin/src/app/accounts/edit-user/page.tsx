@@ -471,13 +471,13 @@ function EditUserContent() {
         closeSweetAlert();
         await successMessages.updated('User');
 
-        let redirectPath = '/admin/accounts/customers';
+        let redirectPath = '/accounts/customers';
         if (formData.user_type === 'administrator') {
-          redirectPath = '/admin/accounts/admins';
+          redirectPath = '/accounts/admins';
         } else if (formData.user_type === 'manager') {
-          redirectPath = '/admin/accounts/managers';
+          redirectPath = '/accounts/managers';
         } else if (formData.user_type === 'astrologer') {
-          redirectPath = '/admin/accounts/astrologers';
+          redirectPath = '/accounts/astrologers';
         }
 
         router.push(redirectPath);
@@ -1020,6 +1020,76 @@ function EditUserContent() {
                             </div>
                           )}
                           <small className="text-muted">Click to select PAN card from media library</small>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bank Details Card - For Astrologers */}
+                  <div className={`card mb-4 ${!isAstrologer ? 'd-none' : ''}`}>
+                    <h5 className="card-header">Bank Details</h5>
+                    <div className="card-body">
+                      <div className="row">
+                        <div className="col-md-6 mb-4">
+                          <label className="label">Account Holder Name <span className="text-danger">*</span></label>
+                          <input 
+                            type="text" 
+                            className={`form-control ${fieldErrors.bank_account_holder_name ? 'is-invalid' : ''}`}
+                            name="bank_details.account_holder_name"
+                            value={formData.bank_details.account_holder_name}
+                            onChange={handleInputChange}
+                            placeholder="Full name as per bank records"
+                          />
+                          {fieldErrors.bank_account_holder_name && (
+                            <div className="invalid-feedback">{fieldErrors.bank_account_holder_name}</div>
+                          )}
+                        </div>
+
+                        <div className="col-md-6 mb-4">
+                          <label className="label">Account Number <span className="text-danger">*</span></label>
+                          <input 
+                            type="text" 
+                            className={`form-control ${fieldErrors.bank_account_number ? 'is-invalid' : ''}`}
+                            name="bank_details.account_number"
+                            value={formData.bank_details.account_number}
+                            onChange={handleInputChange}
+                            placeholder="Bank account number"
+                          />
+                          {fieldErrors.bank_account_number && (
+                            <div className="invalid-feedback">{fieldErrors.bank_account_number}</div>
+                          )}
+                        </div>
+
+                        <div className="col-md-6 mb-4">
+                          <label className="label">Bank Name <span className="text-danger">*</span></label>
+                          <input 
+                            type="text" 
+                            className={`form-control ${fieldErrors.bank_bank_name ? 'is-invalid' : ''}`}
+                            name="bank_details.bank_name"
+                            value={formData.bank_details.bank_name}
+                            onChange={handleInputChange}
+                            placeholder="Bank name"
+                          />
+                          {fieldErrors.bank_bank_name && (
+                            <div className="invalid-feedback">{fieldErrors.bank_bank_name}</div>
+                          )}
+                        </div>
+
+                        <div className="col-md-6 mb-4">
+                          <label className="label">IFSC Code <span className="text-danger">*</span></label>
+                          <input 
+                            type="text" 
+                            className={`form-control ${fieldErrors.bank_ifsc_code ? 'is-invalid' : ''}`}
+                            name="bank_details.ifsc_code"
+                            value={formData.bank_details.ifsc_code}
+                            onChange={handleInputChange}
+                            placeholder="IFSC code (e.g., SBIN0001234)"
+                            style={{ textTransform: 'uppercase' }}
+                          />
+                          {fieldErrors.bank_ifsc_code && (
+                            <div className="invalid-feedback">{fieldErrors.bank_ifsc_code}</div>
+                          )}
+                          <small className="text-muted">11-character IFSC code for fund transfers</small>
                         </div>
                       </div>
                     </div>

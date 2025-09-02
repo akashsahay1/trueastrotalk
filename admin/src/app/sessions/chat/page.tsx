@@ -6,7 +6,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert';
-
+import { Pagination } from '@/components/admin/ui/Pagination';
 interface ChatSession {
   _id: string;
   customer_name: string;
@@ -531,7 +531,7 @@ export default function ChatSessionsPage() {
                                     <button 
                                       className="btn btn-sm btn-info mr-1"
                                       title="View"
-                                      onClick={() => router.push(`/admin/sessions/chat/details/${encodeURIComponent(session._id)}`)}
+                                      onClick={() => router.push(`/sessions/chat/details/${encodeURIComponent(session._id)}`)}
                                     >
                                       <i className="fas fa-eye"></i>
                                     </button>
@@ -576,57 +576,17 @@ export default function ChatSessionsPage() {
                       </table>
                     </div>
 
-                    {/* Pagination */}
-                    {pagination.totalPages > 1 && (
-                      <nav aria-label="Session pagination">
-                        <ul className="pagination justify-content-center">
-                          <li className={`page-item ${!pagination.hasPrevPage ? 'disabled' : ''}`}>
-                            <button 
-                              className="page-link" 
-                              onClick={() => handlePageChange(pagination.currentPage - 1)}
-                              disabled={!pagination.hasPrevPage || loading}
-                            >
-                              Previous
-                            </button>
-                          </li>
-                          
-                          {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                            let pageNumber;
-                            if (pagination.totalPages <= 5) {
-                              pageNumber = i + 1;
-                            } else if (pagination.currentPage <= 3) {
-                              pageNumber = i + 1;
-                            } else if (pagination.currentPage >= pagination.totalPages - 2) {
-                              pageNumber = pagination.totalPages - 4 + i;
-                            } else {
-                              pageNumber = pagination.currentPage - 2 + i;
-                            }
-                            
-                            return (
-                              <li key={pageNumber} className={`page-item ${pagination.currentPage === pageNumber ? 'active' : ''}`}>
-                                <button 
-                                  className="page-link" 
-                                  onClick={() => handlePageChange(pageNumber)}
-                                  disabled={loading}
-                                >
-                                  {pageNumber}
-                                </button>
-                              </li>
-                            );
-                          })}
-                          
-                          <li className={`page-item ${!pagination.hasNextPage ? 'disabled' : ''}`}>
-                            <button 
-                              className="page-link" 
-                              onClick={() => handlePageChange(pagination.currentPage + 1)}
-                              disabled={!pagination.hasNextPage || loading}
-                            >
-                              Next
-                            </button>
-                          </li>
-                        </ul>
-                      </nav>
-                    )}
+            {/* Pagination */}
+            <div className="row">
+              <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+                <Pagination
+                  pagination={pagination}
+                  onPageChange={handlePageChange}
+                  loading={loading}
+                  className="mt-3"
+                />
+              </div>
+            </div>
                   </div>
                 </div>
               </div>

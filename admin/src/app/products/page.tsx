@@ -6,6 +6,7 @@ import Header from '@/components/admin/Header';
 import Sidebar from '@/components/admin/Sidebar';
 import Image from 'next/image';
 import { confirmDialogs, errorMessages } from '@/lib/sweetalert';
+import { Pagination } from '@/components/admin/ui/Pagination';
 
 interface Product {
   _id: string;
@@ -388,7 +389,7 @@ export default function ProductsPage() {
                           <td>{new Date(product.created_at).toLocaleDateString()}</td>
                           <td>
                             <Link
-                              href={`/admin/products/edit/${product._id}`}
+                              href={`/products/edit/${product._id}`}
                               className="btn btn-sm btn-warning mr-1"
                               title="Edit"
                             >
@@ -414,53 +415,16 @@ export default function ProductsPage() {
       </div>
 
             {/* Pagination */}
-            {pagination.totalPages > 1 && (
-              <div className="row mt-4">
-                <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
-                  <nav aria-label="Products pagination">
-                    <ul className="pagination justify-content-center">
-                      <li className={`page-item ${pagination.page === 1 ? 'disabled' : ''}`}>
-                        <button 
-                          className="page-link" 
-                          onClick={() => handlePageChange(pagination.page - 1)}
-                          disabled={pagination.page === 1 || loading}
-                        >
-                          Previous
-                        </button>
-                      </li>
-                      
-                      {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                        const startPage = Math.max(1, pagination.page - 2);
-                        const pageNum = startPage + i;
-                        if (pageNum > pagination.totalPages) return null;
-                        
-                        return (
-                          <li key={pageNum} className={`page-item ${pagination.page === pageNum ? 'active' : ''}`}>
-                            <button 
-                              className="page-link" 
-                              onClick={() => handlePageChange(pageNum)}
-                              disabled={loading}
-                            >
-                              {pageNum}
-                            </button>
-                          </li>
-                        );
-                      })}
-                      
-                      <li className={`page-item ${pagination.page === pagination.totalPages ? 'disabled' : ''}`}>
-                        <button 
-                          className="page-link" 
-                          onClick={() => handlePageChange(pagination.page + 1)}
-                          disabled={pagination.page === pagination.totalPages || loading}
-                        >
-                          Next
-                        </button>
-                      </li>
-                    </ul>
-                  </nav>
-                </div>
+            <div className="row">
+              <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+                <Pagination
+                  pagination={pagination}
+                  onPageChange={handlePageChange}
+                  loading={loading}
+                  className="mt-3"
+                />
               </div>
-            )}
+            </div>
 
           </div>
         </div>

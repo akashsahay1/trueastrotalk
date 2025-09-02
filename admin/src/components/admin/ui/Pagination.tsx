@@ -65,7 +65,9 @@ export function Pagination({
     return pages;
   };
 
-  const handlePageClick = (page: number | string) => {
+  const handlePageClick = (e: React.MouseEvent, page: number | string) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (typeof page === 'number' && page !== currentPage && !loading) {
       onPageChange(page);
     }
@@ -74,23 +76,42 @@ export function Pagination({
   const pageNumbers = getPageNumbers();
 
   return (
-    <div className={`d-flex flex-column flex-md-row justify-content-between align-items-center ${className}`}>
-      {showInfo && (
-        <div className="mb-2 mb-md-0">
-          <small className="text-muted">
-            Showing {Math.min((currentPage - 1) * 30 + 1, totalCount)} to{' '}
-            {Math.min(currentPage * 30, totalCount)} of {totalCount} entries
-          </small>
-        </div>
-      )}
+    <div className={`d-flex flex-column justify-content-center align-items-center ${className}`}>
+      <style jsx>{`
+        .page-link:hover:not(.disabled) {
+          background-color: #007bff !important;
+          border-color: #007bff !important;
+          color: #fff !important;
+        }
+        .page-item.disabled .page-link:hover {
+          background-color: initial !important;
+          border-color: initial !important;
+          color: initial !important;
+        }
+      `}</style>
       
       <nav>
         <ul className="pagination mb-0">
+          {/* First Button */}
+          <li className={`page-item ${currentPage <= 1 || loading ? 'disabled' : ''}`}>
+            <button
+              type="button"
+              className="page-link"
+              onClick={(e) => handlePageClick(e, 1)}
+              disabled={currentPage <= 1 || loading}
+              aria-label="First"
+              title="First page"
+            >
+              <span aria-hidden="true">&laquo;&laquo;</span>
+            </button>
+          </li>
+
           {/* Previous Button */}
           <li className={`page-item ${!hasPrevPage || loading ? 'disabled' : ''}`}>
             <button
+              type="button"
               className="page-link"
-              onClick={() => handlePageClick(currentPage - 1)}
+              onClick={(e) => handlePageClick(e, currentPage - 1)}
               disabled={!hasPrevPage || loading}
               aria-label="Previous"
             >
@@ -112,8 +133,9 @@ export function Pagination({
                 <span className="page-link">{page}</span>
               ) : (
                 <button
+                  type="button"
                   className="page-link"
-                  onClick={() => handlePageClick(page)}
+                  onClick={(e) => handlePageClick(e, page)}
                   disabled={loading}
                 >
                   {page}
@@ -125,16 +147,40 @@ export function Pagination({
           {/* Next Button */}
           <li className={`page-item ${!hasNextPage || loading ? 'disabled' : ''}`}>
             <button
+              type="button"
               className="page-link"
-              onClick={() => handlePageClick(currentPage + 1)}
+              onClick={(e) => handlePageClick(e, currentPage + 1)}
               disabled={!hasNextPage || loading}
               aria-label="Next"
             >
               <span aria-hidden="true">&raquo;</span>
             </button>
           </li>
+
+          {/* Last Button */}
+          <li className={`page-item ${currentPage >= totalPages || loading ? 'disabled' : ''}`}>
+            <button
+              type="button"
+              className="page-link"
+              onClick={(e) => handlePageClick(e, totalPages)}
+              disabled={currentPage >= totalPages || loading}
+              aria-label="Last"
+              title="Last page"
+            >
+              <span aria-hidden="true">&raquo;&raquo;</span>
+            </button>
+          </li>
         </ul>
       </nav>
+
+      {showInfo && (
+        <div className="mt-2">
+          <small className="text-muted">
+            Showing {Math.min((currentPage - 1) * 30 + 1, totalCount)} to{' '}
+            {Math.min(currentPage * 30, totalCount)} of {totalCount} entries
+          </small>
+        </div>
+      )}
     </div>
   );
 }
@@ -159,11 +205,36 @@ export function SimplePagination({
 
   return (
     <nav>
+      <style jsx>{`
+        .page-link:hover:not(.disabled) {
+          background-color: #007bff !important;
+          border-color: #007bff !important;
+          color: #fff !important;
+        }
+        .page-item.disabled .page-link:hover {
+          background-color: initial !important;
+          border-color: initial !important;
+          color: initial !important;
+        }
+      `}</style>
       <ul className="pagination justify-content-center mb-0">
         <li className={`page-item ${currentPage <= 1 || loading ? 'disabled' : ''}`}>
           <button
+            type="button"
             className="page-link"
-            onClick={() => onPageChange(currentPage - 1)}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onPageChange(1); }}
+            disabled={currentPage <= 1 || loading}
+            title="First page"
+          >
+            First
+          </button>
+        </li>
+
+        <li className={`page-item ${currentPage <= 1 || loading ? 'disabled' : ''}`}>
+          <button
+            type="button"
+            className="page-link"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onPageChange(currentPage - 1); }}
             disabled={currentPage <= 1 || loading}
           >
             Previous
@@ -178,11 +249,24 @@ export function SimplePagination({
         
         <li className={`page-item ${currentPage >= totalPages || loading ? 'disabled' : ''}`}>
           <button
+            type="button"
             className="page-link"
-            onClick={() => onPageChange(currentPage + 1)}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onPageChange(currentPage + 1); }}
             disabled={currentPage >= totalPages || loading}
           >
             Next
+          </button>
+        </li>
+
+        <li className={`page-item ${currentPage >= totalPages || loading ? 'disabled' : ''}`}>
+          <button
+            type="button"
+            className="page-link"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onPageChange(totalPages); }}
+            disabled={currentPage >= totalPages || loading}
+            title="Last page"
+          >
+            Last
           </button>
         </li>
       </ul>

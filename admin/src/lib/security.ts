@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import Joi from 'joi';
 import { NextRequest } from 'next/server';
 import crypto from 'crypto';
+import { jwtVerify } from 'jose';
 
 // Security configuration
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -162,7 +163,7 @@ export class JWTSecurity {
   /**
    * Extract token from cookies
    */
-  static extractTokenFromCookies(request: NextRequest, cookieName: string = 'auth_token'): string | null {
+  static extractTokenFromCookies(request: NextRequest, cookieName: string = 'auth-token'): string | null {
     return request.cookies.get(cookieName)?.value || null;
   }
 }
@@ -493,3 +494,4 @@ const SecurityExports = {
 };
 
 export default SecurityExports;
+

@@ -325,7 +325,7 @@ export default function WalletsPage() {
                                 <td>
                                   <div>
                                     <Link 
-                                      href={`/admin/finance/transactions?user_id=${wallet.user_id}`}
+                                      href={`/finance/transactions?user_id=${wallet.user_id}`}
                                       className="btn btn-outline-info btn-sm mr-1"
                                       title="View Transactions"
                                     >
