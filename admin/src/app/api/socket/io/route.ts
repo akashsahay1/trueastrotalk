@@ -12,7 +12,7 @@ export async function GET() {
   // This endpoint will initialize Socket.IO if it hasn't been initialized
   const res = NextResponse.json({ 
     message: 'Socket.IO endpoint - use WebSocket connection',
-    url: 'ws://localhost:4000/socket.io/'
+    url: 'ws://localhost:4002/socket.io/'
   });
 
   // Initialize Socket.IO server if it hasn't been initialized

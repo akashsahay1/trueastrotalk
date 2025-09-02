@@ -118,7 +118,7 @@ class EmailService {
               <div class="action-required">
                 <h4>⚠️ Action Required</h4>
                 <p>This astrologer registration requires your review and approval. Please log in to the admin panel to verify their credentials and approve or reject their application.</p>
-                <a href="${envConfig.NEXTAUTH_URL}/admin/accounts/astrologers" class="btn">Review Application</a>
+                <a href="${envConfig.NEXTAUTH_URL}/accounts/astrologers" class="btn">Review Application</a>
               </div>
               ` : ''}
 
@@ -144,7 +144,7 @@ class EmailService {
         
         ${user.user_type === 'astrologer' ? 'This astrologer registration requires your review and approval.' : ''}
         
-        Admin Panel: ${envConfig.NEXTAUTH_URL}/admin
+        Admin Panel: ${envConfig.NEXTAUTH_URL}
       `
     };
   }

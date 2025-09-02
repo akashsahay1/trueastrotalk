@@ -25,7 +25,7 @@ export default function Header() {
       await fetch('/api/auth/logout', {
         method: 'POST',
       });
-      router.push('/admin/login');
+      router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -36,7 +36,7 @@ export default function Header() {
   return (
     <div className="dashboard-header">
       <nav className="navbar navbar-expand-lg navbar-light bg-white fixed-top">
-        <a className="navbar-brand" href="/admin/dashboard">
+        <a className="navbar-brand" href="/dashboard">
           <Image src="/logo.png" alt="True Astrotalk" width={40} height={40} />
 					<span className="ml-3"><strong>True Astrotalk</strong></span>
         </a>

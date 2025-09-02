@@ -10,8 +10,8 @@ export default function Sidebar() {
     {
       title: 'Dashboard',
       icon: 'fa-tachometer-alt',
-      href: '/admin/dashboard',
-      active: pathname === '/admin/dashboard'
+      href: '/dashboard',
+      active: pathname === '/dashboard'
     },
     {
       title: 'Accounts',
@@ -19,23 +19,23 @@ export default function Sidebar() {
       submenu: [
         {
           title: 'Admins',
-          href: '/admin/accounts/admins',
-          active: pathname?.startsWith('/admin/accounts/admins') || false
+          href: '/accounts/admins',
+          active: pathname?.startsWith('/accounts/admins') || false
         },
         {
           title: 'Astrologers',
-          href: '/admin/accounts/astrologers',
-          active: pathname?.startsWith('/admin/accounts/astrologers')
+          href: '/accounts/astrologers',
+          active: pathname?.startsWith('/accounts/astrologers') || false
         },
         {
           title: 'Customers',
-          href: '/admin/accounts/customers',
-          active: pathname?.startsWith('/admin/accounts/customers')
+          href: '/accounts/customers',
+          active: pathname?.startsWith('/accounts/customers') || false
         },
         {
           title: 'Managers',
-          href: '/admin/accounts/managers',
-          active: pathname?.startsWith('/admin/accounts/managers')
+          href: '/accounts/managers',
+          active: pathname?.startsWith('/accounts/managers') || false
         }
       ]
     },
@@ -45,18 +45,18 @@ export default function Sidebar() {
       submenu: [
         {
           title: 'Call',
-          href: '/admin/sessions/call',
-          active: pathname?.startsWith('/admin/sessions/call')
+          href: '/sessions/call',
+          active: pathname?.startsWith('/sessions/call') || false
         },
         {
           title: 'Chat',
-          href: '/admin/sessions/chat',
-          active: pathname?.startsWith('/admin/sessions/chat')
+          href: '/sessions/chat',
+          active: pathname?.startsWith('/sessions/chat') || false
         },
         {
           title: 'Video',
-          href: '/admin/sessions/video',
-          active: pathname?.startsWith('/admin/sessions/video')
+          href: '/sessions/video',
+          active: pathname?.startsWith('/sessions/video') || false
         }
       ]
     },
@@ -66,13 +66,13 @@ export default function Sidebar() {
       submenu: [
         {
           title: 'All Products',
-          href: '/admin/products',
-          active: pathname === '/admin/products' || pathname?.startsWith('/admin/products/edit/')
+          href: '/products',
+          active: pathname === '/products' || pathname?.startsWith('/products/edit/') || false
         },
         {
           title: 'Categories',
-          href: '/admin/products/categories',
-          active: pathname?.startsWith('/admin/products/categories')
+          href: '/products/categories',
+          active: pathname?.startsWith('/products/categories') || false
         }
       ]
     },
@@ -81,19 +81,19 @@ export default function Sidebar() {
       icon: 'fa-shopping-bag',
       submenu: [
         {
-          title: 'Complete Orders',
-          href: '/admin/orders/complete',
-          active: pathname?.startsWith('/admin/orders/complete')
+          title: 'Complete',
+          href: '/orders/complete',
+          active: pathname?.startsWith('/orders/complete') || false
         },
         {
-          title: 'Pending Orders',
-          href: '/admin/orders/pending',
-          active: pathname?.startsWith('/admin/orders/pending')
+          title: 'Pending',
+          href: '/orders/pending',
+          active: pathname?.startsWith('/orders/pending') || false
         },
         {
-          title: 'History Orders',
-          href: '/admin/orders/history',
-          active: pathname?.startsWith('/admin/orders/history')
+          title: 'History',
+          href: '/orders/history',
+          active: pathname?.startsWith('/orders/history') || false
         }
       ]
     },
@@ -103,18 +103,18 @@ export default function Sidebar() {
       submenu: [
         {
           title: 'Wallets',
-          href: '/admin/finance/wallets',
-          active: pathname?.startsWith('/admin/finance/wallets')
+          href: '/finance/wallets',
+          active: pathname?.startsWith('/finance/wallets') || false
         },
         {
           title: 'Commissions',
-          href: '/admin/finance/commissions',
-          active: pathname?.startsWith('/admin/finance/commissions')
+          href: '/finance/commissions',
+          active: pathname?.startsWith('/finance/commissions') || false
         },
         {
           title: 'Transactions',
-          href: '/admin/finance/transactions',
-          active: pathname?.startsWith('/admin/finance/transactions')
+          href: '/finance/transactions',
+          active: pathname?.startsWith('/finance/transactions') || false
         }
       ]
     },
@@ -124,26 +124,26 @@ export default function Sidebar() {
       submenu: [
         {
           title: 'Send Notification',
-          href: '/admin/notifications/send',
-          active: pathname?.startsWith('/admin/notifications/send')
+          href: '/notifications/send',
+          active: pathname?.startsWith('/notifications/send') || false
         },
         {
           title: 'Notification History',
-          href: '/admin/notifications/history',
-          active: pathname?.startsWith('/admin/notifications/history')
+          href: '/notifications/history',
+          active: pathname?.startsWith('/notifications/history') || false
         },
         {
           title: 'User Preferences',
-          href: '/admin/notifications/preferences',
-          active: pathname?.startsWith('/admin/notifications/preferences')
+          href: '/notifications/preferences',
+          active: pathname?.startsWith('/notifications/preferences') || false
         }
       ]
     },
     {
       title: 'Reports',
       icon: 'fa-chart-line',
-      href: '/admin/reports',
-      active: pathname?.startsWith('/admin/reports')
+      href: '/reports',
+      active: pathname?.startsWith('/reports') || false
     },
     {
       title: 'Settings',
@@ -151,13 +151,13 @@ export default function Sidebar() {
       submenu: [
 				{
           title: 'General',
-          href: '/admin/settings/general',
-          active: pathname?.startsWith('/admin/settings/general')
+          href: '/settings/general',
+          active: pathname?.startsWith('/settings/general') || false
         },
         {
           title: 'Astrologers',
-          href: '/admin/settings/astrologers',
-          active: pathname?.startsWith('/admin/settings/astrologers')
+          href: '/settings/astrologers',
+          active: pathname?.startsWith('/settings/astrologers') || false
         }
       ]
     }
@@ -167,7 +167,7 @@ export default function Sidebar() {
     <div className="nav-left-sidebar sidebar-dark">
       <div className="menu-list">
         <nav className="navbar navbar-expand-lg navbar-light">
-          <Link className="d-xl-none d-lg-none text-white" href="/admin/dashboard">Dashboard</Link>
+          <Link className="d-xl-none d-lg-none text-white" href="/dashboard">Dashboard</Link>
           <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
             aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span className="navbar-toggler-icon"></span>

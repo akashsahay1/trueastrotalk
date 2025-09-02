@@ -7,35 +7,13 @@ const JWT_SECRET = new TextEncoder().encode(
 );
 
 // Public routes that don't require authentication
-const publicRoutes = ['/admin/login'];
+const publicRoutes = ['/', '/login'];
 
-// Admin routes that require authentication
-const adminRoutes = ['/admin'];
+// Admin routes that require authentication - all routes except public ones
+const adminRoutes = ['/dashboard', '/accounts', '/sessions', '/products', '/orders', '/finance', '/notifications', '/reports', '/settings', '/maintenance'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
-  // Handle /admin redirect logic
-  if (pathname === '/admin' || pathname === '/admin/') {
-    const token = request.cookies.get('auth-token')?.value;
-    if (!token) {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
-    }
-    
-    try {
-      const { payload } = await jwtVerify(token, JWT_SECRET);
-      if (payload.user_type === 'administrator') {
-        return NextResponse.redirect(new URL('/admin/dashboard', request.url));
-      } else {
-        return NextResponse.redirect(new URL('/admin/login', request.url));
-      }
-    } catch (error) {
-      console.error('JWT verification failed:', error);
-      const response = NextResponse.redirect(new URL('/admin/login', request.url));
-      response.cookies.delete('auth-token');
-      return response;
-    }
-  }
   
   // Skip middleware for static files and API routes
   if (
@@ -52,11 +30,16 @@ export async function middleware(request: NextRequest) {
 
   // Check if it's a public route
   if (publicRoutes.includes(pathname)) {
-    // If user is already logged in and tries to access login, redirect to dashboard
-    if (token) {
+    // For root path, let client-side authentication handle the logic
+    if (pathname === '/') {
+      return NextResponse.next();
+    }
+    
+    // For /login, redirect to dashboard if user is already logged in
+    if (pathname === '/login' && token) {
       try {
         await jwtVerify(token, JWT_SECRET);
-        return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+        return NextResponse.redirect(new URL('/dashboard', request.url));
       } catch (error) {
 				console.error('JWT verification failed:', error);
         // Token is invalid, let them access login page
@@ -71,7 +54,7 @@ export async function middleware(request: NextRequest) {
   // Check if it's an admin route
   if (adminRoutes.some(route => pathname.startsWith(route))) {
     if (!token) {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
+      return NextResponse.redirect(new URL('/login', request.url));
     }
 
     try {
@@ -79,14 +62,14 @@ export async function middleware(request: NextRequest) {
       
       // Check if user is admin
       if (payload.user_type !== 'administrator') {
-        return NextResponse.redirect(new URL('/admin/login', request.url));
+        return NextResponse.redirect(new URL('/login', request.url));
       }
 
       return NextResponse.next();
     } catch (error) {
 			console.error('JWT verification failed:', error);
       // Token is invalid, redirect to login
-      const response = NextResponse.redirect(new URL('/admin/login', request.url));
+      const response = NextResponse.redirect(new URL('/login', request.url));
       response.cookies.delete('auth-token');
       return response;
     }

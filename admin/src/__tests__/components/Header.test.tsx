@@ -81,7 +81,7 @@ describe('Header Component', () => {
 
     await waitFor(() => {
       expect(localStorageMock.removeItem).toHaveBeenCalledWith('adminUser')
-      expect(mockRouter.push).toHaveBeenCalledWith('/admin/login')
+      expect(mockRouter.push).toHaveBeenCalledWith('/login')
     })
   })
 
@@ -97,7 +97,7 @@ describe('Header Component', () => {
 
     await waitFor(() => {
       expect(localStorageMock.removeItem).toHaveBeenCalledWith('adminUser')
-      expect(mockRouter.push).toHaveBeenCalledWith('/admin/login')
+      expect(mockRouter.push).toHaveBeenCalledWith('/login')
     })
   })
 

@@ -7,7 +7,7 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config({ path: '.env.local' });
 require('dotenv').config({ path: '.env' });
 
-const PORT = process.env.SOCKET_PORT || 4001;
+const PORT = process.env.SOCKET_PORT || 4002;
 const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const DB_NAME = 'trueastrotalkDB';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production-123456789';

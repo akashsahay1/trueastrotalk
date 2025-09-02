@@ -27,8 +27,8 @@ export const envConfig = {
   SESSION_SECRET: getRequiredEnv('SESSION_SECRET'),
 
   // Server - With reasonable defaults
-  PORT: parseInt(getOptionalEnv('PORT', '4000')),
-  SOCKET_PORT: parseInt(getOptionalEnv('SOCKET_PORT', '4001')),
+  PORT: parseInt(getOptionalEnv('PORT', '4001')),
+  SOCKET_PORT: parseInt(getOptionalEnv('SOCKET_PORT', '4002')),
 
   // File Upload - With reasonable defaults
   UPLOAD_DIR: getOptionalEnv('UPLOAD_DIR', 'public/uploads'),
@@ -45,7 +45,7 @@ export const envConfig = {
   },
 
   // URLs
-  NEXTAUTH_URL: getOptionalEnv('NEXTAUTH_URL', 'http://localhost:4000'),
+  NEXTAUTH_URL: getOptionalEnv('NEXTAUTH_URL', 'http://localhost:4001'),
 
   // Payment - REQUIRED for transactions
   RAZORPAY_KEY_ID: getRequiredEnv('RAZORPAY_KEY_ID'),
