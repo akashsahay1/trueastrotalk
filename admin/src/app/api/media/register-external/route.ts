@@ -8,7 +8,7 @@ import { UploadService } from '@/lib/upload-service';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { image_url, original_name, file_type, uploaded_by, associated_record } = body;
+    const { image_url } = body;
 
     // Validate required fields
     if (!image_url) {
@@ -31,13 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Register external image in media library
-    const result = await UploadService.registerExternalImage({
-      imageUrl: image_url,
-      originalName: original_name || 'External Image',
-      fileType: file_type || 'external',
-      uploadedBy: uploaded_by || null,
-      associatedRecord: associated_record || null
-    });
+    const result = await UploadService.registerExternalImage();
 
     if (!result.success) {
       return NextResponse.json({

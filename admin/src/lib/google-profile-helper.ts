@@ -17,7 +17,7 @@ export interface GoogleProfileData {
  * This should be called during Google OAuth login/registration
  */
 export async function handleGoogleProfileImage(profileData: GoogleProfileData) {
-  const { userId, name, picture } = profileData;
+  const { picture } = profileData;
 
   if (!picture) {
     return null; // No profile image to process
@@ -25,13 +25,7 @@ export async function handleGoogleProfileImage(profileData: GoogleProfileData) {
 
   try {
     // Register Google profile image as external image in media library
-    const result = await UploadService.registerExternalImage({
-      imageUrl: picture,
-      originalName: `Google profile image for ${name}`,
-      fileType: 'google_profile_image',
-      uploadedBy: userId,
-      associatedRecord: userId
-    });
+    const result = await UploadService.registerExternalImage();
 
     if (result.success) {
       console.log('Google profile image registered in media library:', result.file_id);

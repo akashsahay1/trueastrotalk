@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Header from '@/components/admin/Header';
 import Sidebar from '@/components/admin/Sidebar';
@@ -49,16 +49,7 @@ export default function ProductsPage() {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [modalAnimating, setModalAnimating] = useState(false);
 
-  useEffect(() => {
-    document.body.className = '';
-    fetchProducts();
-  }, [pagination.page, appliedSearchTerm, appliedCategory, fetchProducts]);
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
@@ -84,7 +75,16 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.page, pagination.limit, appliedSearchTerm, appliedCategory]);
+
+  useEffect(() => {
+    document.body.className = '';
+    fetchProducts();
+  }, [pagination.page, appliedSearchTerm, appliedCategory, fetchProducts]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   const fetchCategories = async () => {
     try {
@@ -418,7 +418,13 @@ export default function ProductsPage() {
             <div className="row">
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                 <Pagination
-                  pagination={pagination}
+                  pagination={{
+                    currentPage: pagination.page,
+                    totalPages: pagination.totalPages,
+                    totalCount: pagination.total,
+                    hasNextPage: pagination.page < pagination.totalPages,
+                    hasPrevPage: pagination.page > 1
+                  }}
                   onPageChange={handlePageChange}
                   loading={loading}
                   className="mt-3"

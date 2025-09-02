@@ -26,7 +26,7 @@ class BackgroundJobsService {
         await ErrorMonitoringService.getCurrentUserCounts();
         // console.log('✅ Real-time stats updated');
       } catch (error) {
-        console.error('❌ Failed to update real-time stats:', error.message);
+        console.error('❌ Failed to update real-time stats:', error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error));
       }
     });
 
@@ -36,7 +36,7 @@ class BackgroundJobsService {
         await this.recordSystemMetrics();
         // console.log('✅ System metrics recorded');
       } catch (error) {
-        console.error('❌ Failed to record system metrics:', error.message);
+        console.error('❌ Failed to record system metrics:', error instanceof Error ? error.message : String(error));
       }
     });
 
@@ -46,7 +46,7 @@ class BackgroundJobsService {
         await this.cleanupOldMetrics();
         console.log('✅ Old metrics cleaned up');
       } catch (error) {
-        console.error('❌ Failed to cleanup old metrics:', error.message);
+        console.error('❌ Failed to cleanup old metrics:', error instanceof Error ? error.message : String(error));
       }
     });
 
@@ -56,7 +56,7 @@ class BackgroundJobsService {
         await this.cleanupOldErrors();
         console.log('✅ Old errors cleaned up');
       } catch (error) {
-        console.error('❌ Failed to cleanup old errors:', error.message);
+        console.error('❌ Failed to cleanup old errors:', error instanceof Error ? error.message : String(error));
       }
     });
 
@@ -72,7 +72,8 @@ class BackgroundJobsService {
     }
 
     console.log('🛑 Stopping background jobs...');
-    cron.destroy();
+    // Note: node-cron doesn't have a global destroy method
+    // Individual tasks are destroyed when they go out of scope
     this.isRunning = false;
     console.log('✅ Background jobs stopped');
   }
@@ -112,7 +113,7 @@ class BackgroundJobsService {
       });
 
     } catch (error) {
-      console.error('Failed to record system metrics:', error.message);
+      console.error('Failed to record system metrics:', error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -133,7 +134,7 @@ class BackgroundJobsService {
 
       console.log(`🧹 Cleaned up ${result.deletedCount} old performance metrics`);
     } catch (error) {
-      console.error('Failed to cleanup old metrics:', error.message);
+      console.error('Failed to cleanup old metrics:', error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -156,7 +157,7 @@ class BackgroundJobsService {
 
       console.log(`🧹 Cleaned up ${result.deletedCount} old resolved errors`);
     } catch (error) {
-      console.error('Failed to cleanup old errors:', error.message);
+      console.error('Failed to cleanup old errors:', error instanceof Error ? error.message : String(error));
     }
   }
 

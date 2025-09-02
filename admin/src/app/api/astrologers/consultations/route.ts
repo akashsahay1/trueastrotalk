@@ -11,6 +11,7 @@ interface SessionData {
   customer_id?: { toString(): string };
   client_name?: string;
   client_image?: string;
+  client_phone?: string;
   astrologer_id?: { toString(): string };
   created_at?: Date;
   updated_at?: Date;
@@ -22,6 +23,17 @@ interface SessionData {
   client_rating?: number;
   astrologer_rating?: number;
   recording_url?: string;
+  scheduled_at?: Date;
+  started_at?: Date;
+  ended_at?: Date;
+  duration_minutes?: number;
+  total_amount?: number;
+  astrologer_earnings?: number;
+  rating?: number;
+  review?: string;
+  notes?: string;
+  astrologer_notes?: string;
+  service_type?: string;
 }
 
 // GET - Astrologer consultations history
@@ -92,13 +104,13 @@ export async function GET(request: NextRequest) {
         client_image: session.client_image || '',
         client_phone: session.client_phone || '',
         type: sessionType,
-        status: mapSessionStatus(session.status),
+        status: mapSessionStatus(session.status || 'unknown'),
         scheduled_time: session.created_at || session.scheduled_at,
         start_time: session.started_at,
         end_time: session.ended_at,
         duration_minutes: session.duration_minutes || 0,
         total_amount: session.total_amount || 0,
-        astrologer_earnings: session.astrologer_earnings || (session.total_amount * 0.7), // 70% commission
+        astrologer_earnings: session.astrologer_earnings || ((session.total_amount || 0) * 0.7), // 70% commission
         rating: session.rating,
         review: session.review,
         notes: session.notes || session.astrologer_notes,
@@ -163,8 +175,8 @@ export async function GET(request: NextRequest) {
 
     // Sort by scheduled_time (most recent first)
     consultations.sort((a, b) => {
-      const dateA = new Date(a.scheduled_time).getTime();
-      const dateB = new Date(b.scheduled_time).getTime();
+      const dateA = a.scheduled_time ? new Date(a.scheduled_time).getTime() : 0;
+      const dateB = b.scheduled_time ? new Date(b.scheduled_time).getTime() : 0;
       return dateB - dateA;
     });
 
@@ -188,7 +200,7 @@ export async function GET(request: NextRequest) {
       .filter(id => id && ObjectId.isValid(id))
     )];
 
-    let clientsData: Record<string, { full_name?: string; profile_image?: string }> = {};
+    let clientsData: Record<string, { name?: string; image?: string; phone?: string; email?: string }> = {};
     if (clientIds.length > 0) {
       const clients = await usersCollection
         .find({ 
@@ -210,7 +222,7 @@ export async function GET(request: NextRequest) {
           email: client.email_address
         };
         return acc;
-      }, {} as Record<string, { full_name?: string; profile_image?: string }>);
+      }, {} as Record<string, { name?: string; image?: string; phone?: string; email?: string }>);
     }
 
     // Enhance consultations with client data

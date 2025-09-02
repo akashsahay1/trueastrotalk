@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { withSecurity, SecurityPresets, AuthenticatedNextRequest } from '@/lib/api-security';
 import { Validator } from '@/lib/validation';
 import DatabaseService from '@/lib/database';
@@ -9,8 +9,8 @@ import { ObjectId } from 'mongodb';
  * This demonstrates how to use the security middleware
  */
 
-// GET - Public endpoint with light rate limiting
-export const GET = withSecurity(async (request: NextRequest) => {
+// GET - Public endpoint with light rate limiting  
+export const GET = withSecurity(async (request: AuthenticatedNextRequest) => {
   try {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q') || '';

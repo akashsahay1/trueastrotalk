@@ -115,11 +115,6 @@ export default function CompleteOrdersPage() {
     setTempToDate(defaultToDate);
   }, []);
 
-  // Fetch orders when applied filters change
-  useEffect(() => {
-    fetchOrders(currentPage);
-  }, [currentPage, appliedSearchTerm, appliedStatusFilter, appliedFromDate, appliedToDate, appliedAmountMin, appliedAmountMax, appliedCustomerFilter, fetchOrders]);
-
   // Fetch orders from API
   const fetchOrders = useCallback(async (page = 1) => {
     try {
@@ -162,6 +157,10 @@ export default function CompleteOrdersPage() {
     }
   }, [appliedSearchTerm, appliedStatusFilter, appliedFromDate, appliedToDate, appliedAmountMin, appliedAmountMax, appliedCustomerFilter]);
 
+  // Fetch orders when applied filters change
+  useEffect(() => {
+    fetchOrders(currentPage);
+  }, [currentPage, appliedSearchTerm, appliedStatusFilter, appliedFromDate, appliedToDate, appliedAmountMin, appliedAmountMax, appliedCustomerFilter, fetchOrders]);
 
   // Bulk status update
   const handleBulkStatusUpdate = async () => {

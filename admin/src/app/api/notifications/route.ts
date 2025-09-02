@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../lib/database';
-import { NotificationType } from '../../../lib/notifications';
+import { NotificationType, NotificationPriority, NotificationChannel } from '../../../lib/notifications';
 import { 
   SecurityMiddleware, 
   InputSanitizer 
@@ -22,11 +22,12 @@ interface NotificationData {
   data?: Record<string, unknown>;
   imageUrl?: string;
   actionUrl?: string;
-  priority?: string;
-  channels?: string[];
+  priority?: NotificationPriority;
+  channels?: NotificationChannel[];
   scheduleAt?: Date;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface NotificationTarget {
   userId: string;
   userType: 'customer' | 'astrologer' | string;
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
     const unreadOnly = searchParams.get('unread_only') === 'true';
     const type = searchParams.get('type');
 
-    const userId = (authenticatedUser as AuthenticatedUser).userId;
+    const userId = (authenticatedUser as unknown as AuthenticatedUser).userId;
     const notificationsCollection = await DatabaseService.getCollection('notifications');
 
     // Build query
@@ -172,7 +173,7 @@ export async function POST(request: NextRequest) {
 
       const usersCollection = await DatabaseService.getCollection('users');
       await usersCollection.updateOne(
-        { _id: new ObjectId((authenticatedUser as AuthenticatedUser).userId) },
+        { _id: new ObjectId((authenticatedUser as unknown as AuthenticatedUser).userId) },
         { 
           $set: { 
             fcm_token: fcm_token,
@@ -182,7 +183,7 @@ export async function POST(request: NextRequest) {
         }
       );
 
-      console.log(`✅ FCM token registered for user ${(authenticatedUser as AuthenticatedUser).userId}`);
+      console.log(`✅ FCM token registered for user ${(authenticatedUser as unknown as AuthenticatedUser).userId}`);
 
       return NextResponse.json({
         success: true,
@@ -191,7 +192,7 @@ export async function POST(request: NextRequest) {
     }
 
     // For sending notifications, only administrators are allowed
-    if ((authenticatedUser as AuthenticatedUser).user_type !== 'administrator') {
+    if ((authenticatedUser as unknown as AuthenticatedUser).user_type !== 'administrator') {
       return NextResponse.json({
         success: false,
         error: 'ACCESS_DENIED',
@@ -233,7 +234,7 @@ export async function POST(request: NextRequest) {
       
       targets = users.map(user => ({
         userId: user._id.toString(),
-        userType: user.user_type as 'customer' | 'astrologer' | string,
+        userType: user.user_type as 'customer' | 'astrologer' | 'administrator',
         fcmToken: user.fcm_token,
         email: user.email_address
       }));
@@ -248,7 +249,7 @@ export async function POST(request: NextRequest) {
       
       targets = users.map(user => ({
         userId: user._id.toString(),
-        userType: user.user_type as 'customer' | 'astrologer' | string,
+        userType: user.user_type as 'customer' | 'astrologer' | 'administrator',
         fcmToken: user.fcm_token,
         email: user.email_address
       }));
@@ -323,7 +324,7 @@ export async function PUT(request: NextRequest) {
     
     const { notification_ids, mark_all_read } = sanitizedBody;
 
-    const userId = (authenticatedUser as AuthenticatedUser).userId;
+    const userId = (authenticatedUser as unknown as AuthenticatedUser).userId;
     const notificationsCollection = await DatabaseService.getCollection('notifications');
 
     const updateQuery: Record<string, unknown> = {

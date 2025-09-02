@@ -30,6 +30,9 @@ interface CallData {
   to?: string;
   roomId?: string;
   callId?: string;
+  targetUserId?: string;
+  callType?: string;
+  reason?: string;
   offer?: RTCSessionDescriptionInit;
   answer?: RTCSessionDescriptionInit;
   candidate?: RTCIceCandidateInit;
@@ -42,16 +45,41 @@ interface CallData {
 
 interface MessageData {
   roomId?: string;
+  sessionId?: string;
   message?: string;
+  content?: string;
+  messageType?: string;
+  imageUrl?: string;
+  voiceUrl?: string;
   from?: string;
   to?: string;
   timestamp?: Date;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface SocketAuth {
   userId?: string;
   userType?: 'user' | 'astrologer';
   token?: string;
+}
+
+interface ChatSessionData {
+  sessionId: string;
+  userId?: string;
+}
+
+interface TypingData {
+  sessionId: string;
+  userId: string;
+}
+
+interface MessagesReadData {
+  sessionId: string;
+  messageIds: string[];
+}
+
+interface OnlineStatusData {
+  userIds: string[];
 }
 
 interface CallSession {
@@ -98,11 +126,12 @@ export const config = {
 };
 
 // Helper function to verify JWT token
-async function verifyToken(token: string): Promise<any> {
+async function verifyToken(token: string): Promise<{ userId: string; userType: string; iat?: number; exp?: number } | null> {
   try {
-    return jwt.verify(token, JWT_SECRET);
-  } catch (error) {
-    throw new Error('Invalid token');
+    const decoded = jwt.verify(token, JWT_SECRET);
+    return typeof decoded === 'object' && decoded !== null ? decoded as { userId: string; userType: string; iat?: number; exp?: number } : null;
+  } catch {
+    return null;
   }
 }
 
@@ -139,10 +168,13 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
         }
         
         const decoded = await verifyToken(token);
-        socket.data.userId = decoded.userId || decoded.id;
-        socket.data.userType = decoded.role === 'astrologer' ? 'astrologer' : 'user';
+        if (!decoded) {
+          return next(new Error('Invalid token'));
+        }
+        socket.data.userId = decoded.userId || (decoded as Record<string, unknown>).id as string;
+        socket.data.userType = (decoded as Record<string, unknown>).role === 'astrologer' ? 'astrologer' : 'user';
         next();
-      } catch (error) {
+      } catch {
         next(new Error('Authentication failed'));
       }
     });
@@ -151,7 +183,7 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
       console.log('User connected:', socket.id, 'UserId:', socket.data.userId);
 
       // Auto-authenticate on connection
-      handleAuthentication(socket, io);
+      handleAuthentication(socket);
 
       // Chat handlers
       socket.on('join_chat_session', (data) => handleJoinChatSession(socket, data));
@@ -183,7 +215,7 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
 
 // Handler functions
 
-async function handleAuthentication(socket: Socket, io: ServerIO) {
+async function handleAuthentication(socket: Socket) {
   try {
     const userId = socket.data.userId;
     const userType = socket.data.userType;
@@ -252,7 +284,7 @@ async function handleAuthentication(socket: Socket, io: ServerIO) {
   }
 }
 
-async function handleJoinChatSession(socket: Socket, data: any) {
+async function handleJoinChatSession(socket: Socket, data: ChatSessionData) {
   try {
     const { sessionId } = data;
     socket.join(`chat_${sessionId}`);
@@ -279,7 +311,7 @@ async function handleJoinChatSession(socket: Socket, data: any) {
   }
 }
 
-async function handleLeaveChatSession(socket: Socket, data: any) {
+async function handleLeaveChatSession(socket: Socket, data: ChatSessionData) {
   try {
     const { sessionId } = data;
     socket.leave(`chat_${sessionId}`);
@@ -289,11 +321,15 @@ async function handleLeaveChatSession(socket: Socket, data: any) {
   }
 }
 
-async function handleSendMessage(socket: Socket, io: ServerIO, data: any) {
+async function handleSendMessage(socket: Socket, io: ServerIO, data: MessageData) {
   try {
     const { sessionId, content, messageType = 'text', imageUrl, voiceUrl } = data;
     const senderId = socket.data.userId;
     const senderType = socket.data.userType;
+    
+    if (!sessionId) {
+      return;
+    }
     
     const { client, db } = await getDbConnection();
     
@@ -328,7 +364,7 @@ async function handleSendMessage(socket: Socket, io: ServerIO, data: any) {
       sender_id: senderId,
       sender_name: senderName,
       sender_type: senderType,
-      message_type: messageType,
+      message_type: messageType as 'text' | 'image' | 'system' | 'voice',
       content: content || '',
       image_url: imageUrl,
       voice_url: voiceUrl,
@@ -380,7 +416,7 @@ async function handleSendMessage(socket: Socket, io: ServerIO, data: any) {
   }
 }
 
-async function handleTypingStart(socket: Socket, io: ServerIO, data: any) {
+async function handleTypingStart(socket: Socket, io: ServerIO, data: TypingData) {
   const { sessionId } = data;
   const userId = socket.data.userId;
   const userType = socket.data.userType;
@@ -392,7 +428,7 @@ async function handleTypingStart(socket: Socket, io: ServerIO, data: any) {
   });
 }
 
-async function handleTypingStop(socket: Socket, io: ServerIO, data: any) {
+async function handleTypingStop(socket: Socket, io: ServerIO, data: TypingData) {
   const { sessionId } = data;
   const userId = socket.data.userId;
   const userType = socket.data.userType;
@@ -404,10 +440,9 @@ async function handleTypingStop(socket: Socket, io: ServerIO, data: any) {
   });
 }
 
-async function handleMarkMessagesRead(socket: Socket, io: ServerIO, data: any) {
+async function handleMarkMessagesRead(socket: Socket, io: ServerIO, data: MessagesReadData) {
   try {
     const { sessionId, messageIds } = data;
-    const userId = socket.data.userId;
     const userType = socket.data.userType;
     
     const { client, db } = await getDbConnection();
@@ -442,7 +477,7 @@ async function handleMarkMessagesRead(socket: Socket, io: ServerIO, data: any) {
   }
 }
 
-async function handleInitiateCall(socket: Socket, io: ServerIO, data: any) {
+async function handleInitiateCall(socket: Socket, io: ServerIO, data: CallData) {
   try {
     const { targetUserId, callType = 'voice' } = data;
     const callerId = socket.data.userId;
@@ -530,7 +565,7 @@ async function handleInitiateCall(socket: Socket, io: ServerIO, data: any) {
       caller_type: callerType,
       caller_name: caller.full_name, // Add caller name to session
       target_name: target.full_name, // Add target name to session
-      call_type: callType,
+      call_type: callType as 'voice' | 'video',
       status: 'ringing',
       rate_per_minute: callerType === 'astrologer' 
         ? (callType === 'video' ? caller.video_rate : caller.call_rate) 
@@ -548,7 +583,7 @@ async function handleInitiateCall(socket: Socket, io: ServerIO, data: any) {
       userId: callSession.user_id as string,
       astrologerId: callSession.astrologer_id as string,
       status: 'ringing',
-      callType,
+      callType: callType as 'voice' | 'video',
       iceCandidates: []
     });
     
@@ -558,7 +593,7 @@ async function handleInitiateCall(socket: Socket, io: ServerIO, data: any) {
       callerId,
       callerName: caller.full_name, // Direct access - no fallbacks needed
       callerType,
-      callType,
+      callType: callType as 'voice' | 'video',
       callerAvatar: caller?.profile_picture,
       timestamp: new Date()
     });
@@ -578,10 +613,15 @@ async function handleInitiateCall(socket: Socket, io: ServerIO, data: any) {
   }
 }
 
-async function handleAnswerCall(socket: Socket, io: ServerIO, data: any) {
+async function handleAnswerCall(socket: Socket, io: ServerIO, data: CallData) {
   try {
     const { sessionId } = data;
     const userId = socket.data.userId;
+    
+    if (!sessionId) {
+      socket.emit('call_error', { error: 'Session ID required' });
+      return;
+    }
     
     const call = activeCalls.get(sessionId);
     if (!call) {
@@ -619,9 +659,14 @@ async function handleAnswerCall(socket: Socket, io: ServerIO, data: any) {
   }
 }
 
-async function handleRejectCall(socket: Socket, io: ServerIO, data: any) {
+async function handleRejectCall(socket: Socket, io: ServerIO, data: CallData) {
   try {
     const { sessionId, reason = 'busy' } = data;
+    
+    if (!sessionId) {
+      socket.emit('call_error', { error: 'Session ID required' });
+      return;
+    }
     
     const call = activeCalls.get(sessionId);
     if (!call) {
@@ -657,7 +702,7 @@ async function handleRejectCall(socket: Socket, io: ServerIO, data: any) {
   }
 }
 
-async function handleEndCall(socket: Socket, io: ServerIO, data: any) {
+async function handleEndCall(socket: Socket, io: ServerIO, data: CallData) {
   try {
     const { sessionId } = data;
     
@@ -749,7 +794,7 @@ async function handleEndCall(socket: Socket, io: ServerIO, data: any) {
   }
 }
 
-async function handleWebRTCOffer(socket: Socket, io: ServerIO, data: any) {
+async function handleWebRTCOffer(socket: Socket, io: ServerIO, data: CallData) {
   try {
     const { sessionId, offer, targetUserId } = data;
     
@@ -770,7 +815,7 @@ async function handleWebRTCOffer(socket: Socket, io: ServerIO, data: any) {
   }
 }
 
-async function handleWebRTCAnswer(socket: Socket, io: ServerIO, data: any) {
+async function handleWebRTCAnswer(socket: Socket, io: ServerIO, data: CallData) {
   try {
     const { sessionId, answer, targetUserId } = data;
     
@@ -791,7 +836,7 @@ async function handleWebRTCAnswer(socket: Socket, io: ServerIO, data: any) {
   }
 }
 
-async function handleWebRTCIceCandidate(socket: Socket, io: ServerIO, data: any) {
+async function handleWebRTCIceCandidate(socket: Socket, io: ServerIO, data: CallData) {
   try {
     const { sessionId, candidate, targetUserId } = data;
     
@@ -812,7 +857,7 @@ async function handleWebRTCIceCandidate(socket: Socket, io: ServerIO, data: any)
   }
 }
 
-async function handleWebRTCRenegotiate(socket: Socket, io: ServerIO, data: any) {
+async function handleWebRTCRenegotiate(socket: Socket, io: ServerIO, data: CallData) {
   try {
     const { sessionId, offer, targetUserId } = data;
     
@@ -828,7 +873,7 @@ async function handleWebRTCRenegotiate(socket: Socket, io: ServerIO, data: any) 
   }
 }
 
-async function handleGetOnlineStatus(socket: Socket, data: any) {
+async function handleGetOnlineStatus(socket: Socket, data: OnlineStatusData) {
   try {
     const { userIds } = data;
     const onlineStatuses: Record<string, boolean> = {};

@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
       success_count: successCount,
       failed_count: targets.length - successCount,
       filters,
-      sent_by: (authenticatedUser as AuthenticatedUser).userId,
+      sent_by: (authenticatedUser as unknown as AuthenticatedUser).userId,
       created_at: new Date()
     });
 

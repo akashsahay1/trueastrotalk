@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Header from '@/components/admin/Header';
 import Sidebar from '@/components/admin/Sidebar';
@@ -34,12 +34,7 @@ export default function CategoriesPage() {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [modalAnimating, setModalAnimating] = useState(false);
 
-  useEffect(() => {
-    document.body.className = '';
-    fetchCategories();
-  }, [pagination.page, searchTerm, fetchCategories]);
-
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
@@ -64,8 +59,12 @@ export default function CategoriesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.page, pagination.limit, searchTerm]);
 
+  useEffect(() => {
+    document.body.className = '';
+    fetchCategories();
+  }, [pagination.page, searchTerm, fetchCategories]);
 
   const handleDelete = async (id: string) => {
     const confirmed = await confirmDialogs.deleteItem('category');
@@ -333,7 +332,13 @@ export default function CategoriesPage() {
             <div className="row">
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                 <Pagination
-                  pagination={pagination}
+                  pagination={{
+                    currentPage: pagination.page,
+                    totalPages: pagination.totalPages,
+                    totalCount: pagination.total,
+                    hasNextPage: pagination.page < pagination.totalPages,
+                    hasPrevPage: pagination.page > 1
+                  }}
                   onPageChange={handlePageChange}
                   loading={loading}
                   className="mt-3"

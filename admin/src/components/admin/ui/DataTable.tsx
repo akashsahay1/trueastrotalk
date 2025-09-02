@@ -111,7 +111,7 @@ export default function DataTable<T extends TableDataItem>({
           )}
           {columns.map((column) => (
             <th
-              key={column.key}
+              key={String(column.key)}
               className={`${column.className || ''} ${getResponsiveClass(column.responsive)}`}
               style={{ width: column.width }}
             >
@@ -151,7 +151,7 @@ export default function DataTable<T extends TableDataItem>({
               )}
               {columns.map((column) => (
                 <td
-                  key={column.key}
+                  key={String(column.key)}
                   className={`${column.className || ''} ${getResponsiveClass(column.responsive)}`}
                   data-label={column.label}
                 >

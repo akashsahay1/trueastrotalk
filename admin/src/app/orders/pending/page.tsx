@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/admin/Header';
 import Sidebar from '@/components/admin/Sidebar';
 import Link from 'next/link';
@@ -100,7 +100,7 @@ export default function PendingOrdersPage() {
   }, []);
 
   // Fetch orders from API
-  const fetchOrders = async (page = 1, search = '', status = 'all') => {
+  const fetchOrders = useCallback(async (page = 1, search = '', status = 'all') => {
     try {
       setLoading(true);
       setError(null);
@@ -139,7 +139,7 @@ export default function PendingOrdersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [ordersPerPage, fromDate, toDate, amountMin, amountMax, customerFilter]);
 
   // Initial data load
   useEffect(() => {

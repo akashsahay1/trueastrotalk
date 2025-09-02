@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SecurityMiddleware, InputSanitizer } from './security';
-import { ErrorHandler, ErrorCode } from './error-handler';
+import { ErrorHandler } from './error-handler';
 import * as crypto from 'crypto';
 
 // Authenticated user type based on JWT payload
@@ -26,9 +26,9 @@ export interface AuthenticatedNextRequest extends NextRequest {
   user?: AuthenticatedUser;
 }
 
-// Handler context type for route handlers
+// Handler context type for route handlers (Next.js expects this structure)
 export interface RouteHandlerContext {
-  params?: Record<string, string | string[]>;
+  params?: Promise<Record<string, string | string[]>>;
 }
 
 export interface SecurityOptions {
@@ -100,10 +100,10 @@ class CSRFProtection {
  * Main security middleware wrapper
  */
 export function withSecurity(
-  handler: (request: AuthenticatedNextRequest, context?: RouteHandlerContext) => Promise<NextResponse>,
+  handler: (request: AuthenticatedNextRequest) => Promise<NextResponse>,
   options: SecurityOptions = DEFAULT_SECURITY_OPTIONS
 ) {
-  return async (request: NextRequest, context?: RouteHandlerContext): Promise<NextResponse> => {
+  return async (request: NextRequest): Promise<NextResponse> => {
     try {
       const securityOptions = { ...DEFAULT_SECURITY_OPTIONS, ...options };
       const ip = request.headers.get('x-forwarded-for') || 
@@ -197,10 +197,10 @@ export function withSecurity(
             
             // Add authenticated user to request if available
             if (authenticatedUser) {
-              (sanitizedRequest as AuthenticatedNextRequest).user = authenticatedUser;
+              (sanitizedRequest as AuthenticatedNextRequest).user = authenticatedUser as unknown as AuthenticatedUser;
             }
             
-            return await handler(sanitizedRequest, context);
+            return await handler(sanitizedRequest);
           }
         } catch (error) {
           console.error('Input validation error:', error);
@@ -214,11 +214,11 @@ export function withSecurity(
       
       // Add authenticated user to request if available
       if (authenticatedUser) {
-        (request as AuthenticatedNextRequest).user = authenticatedUser;
+        (request as AuthenticatedNextRequest).user = authenticatedUser as unknown as AuthenticatedUser;
       }
       
       // 5. Execute the handler
-      const response = await handler(request, context);
+      const response = await handler(request);
       
       // 6. Add security headers to response
       response.headers.set('X-Content-Type-Options', 'nosniff');

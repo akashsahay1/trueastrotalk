@@ -172,7 +172,7 @@ const AirDatePickerComponent: React.FC<AirDatePickerProps> = ({
         pickerRef.current = null;
       }
     };
-  }, [onChange, placeholder, uniqueId, maxDate, minDate]);
+  }, [onChange, placeholder, uniqueId, maxDate, minDate, value]);
 
   // Update value when prop changes (separate from initialization)
   useEffect(() => {
