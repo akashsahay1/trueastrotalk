@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient, ObjectId } from 'mongodb';
 import { jwtVerify } from 'jose';
-import { withSecurity, SecurityPresets } from '@/lib/api-security';
+import { withSecurity } from '@/lib/api-security';
 
 // Helper function to get base URL for images
 function getBaseUrl(request: NextRequest): string {

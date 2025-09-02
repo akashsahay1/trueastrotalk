@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withSecurity, SecurityPresets } from '@/lib/api-security';
+import { withSecurity, SecurityPresets, AuthenticatedNextRequest } from '@/lib/api-security';
 import { Validator } from '@/lib/validation';
 import DatabaseService from '@/lib/database';
+import { ObjectId } from 'mongodb';
 
 /**
  * Example of properly secured API endpoint
@@ -31,7 +32,7 @@ export const GET = withSecurity(async (request: NextRequest) => {
 }, SecurityPresets.public);
 
 // POST - Admin-only endpoint with full security
-export const POST = withSecurity(async (request: NextRequest) => {
+export const POST = withSecurity(async (request: AuthenticatedNextRequest) => {
   try {
     // The security middleware has already:
     // 1. Applied rate limiting
@@ -72,7 +73,7 @@ export const POST = withSecurity(async (request: NextRequest) => {
     }
     
     // Get authenticated user (added by security middleware)
-    const authenticatedUser = (request as any).user;
+    const authenticatedUser = request.user;
     
     // Perform secure database operation
     const collection = await DatabaseService.getCollection('secure_items');
@@ -80,7 +81,7 @@ export const POST = withSecurity(async (request: NextRequest) => {
       name,
       description,
       category,
-      created_by: authenticatedUser.userId,
+      created_by: authenticatedUser?.id,
       created_at: new Date(),
       updated_at: new Date(),
     });
@@ -93,7 +94,7 @@ export const POST = withSecurity(async (request: NextRequest) => {
         name,
         description,
         category,
-        created_by: authenticatedUser.full_name || authenticatedUser.name,
+        created_by: authenticatedUser?.name || 'Unknown',
       }
     });
     
@@ -108,7 +109,7 @@ export const POST = withSecurity(async (request: NextRequest) => {
 }, SecurityPresets.admin);
 
 // PUT - Manager-level endpoint  
-export const PUT = withSecurity(async (request: NextRequest) => {
+export const PUT = withSecurity(async (request: AuthenticatedNextRequest) => {
   try {
     const body = await request.json();
     const { id, status } = body;
@@ -135,15 +136,15 @@ export const PUT = withSecurity(async (request: NextRequest) => {
       }, { status: 400 });
     }
     
-    const authenticatedUser = (request as any).user;
+    const authenticatedUser = request.user;
     
     const collection = await DatabaseService.getCollection('secure_items');
     const result = await collection.updateOne(
-      { _id: new (require('mongodb')).ObjectId(id) },
+      { _id: new ObjectId(id) },
       {
         $set: {
           status,
-          updated_by: authenticatedUser.userId,
+          updated_by: authenticatedUser?.id,
           updated_at: new Date(),
         }
       }
@@ -174,7 +175,7 @@ export const PUT = withSecurity(async (request: NextRequest) => {
 }, SecurityPresets.manager);
 
 // DELETE - Admin-only with strict validation
-export const DELETE = withSecurity(async (request: NextRequest) => {
+export const DELETE = withSecurity(async (request: AuthenticatedNextRequest) => {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
@@ -204,13 +205,13 @@ export const DELETE = withSecurity(async (request: NextRequest) => {
       }, { status: 400 });
     }
     
-    const authenticatedUser = (request as any).user;
+    const authenticatedUser = request.user;
     
     const collection = await DatabaseService.getCollection('secure_items');
     
     // Check if item exists first
     const existingItem = await collection.findOne({ 
-      _id: new (require('mongodb')).ObjectId(id) 
+      _id: new ObjectId(id) 
     });
     
     if (!existingItem) {
@@ -222,10 +223,10 @@ export const DELETE = withSecurity(async (request: NextRequest) => {
     }
     
     // Log the deletion for audit purposes
-    console.log(`🗑️ Admin ${authenticatedUser.userId} deleting item ${id}`);
+    console.log(`🗑️ Admin ${authenticatedUser?.id} deleting item ${id}`);
     
     const result = await collection.deleteOne({ 
-      _id: new (require('mongodb')).ObjectId(id) 
+      _id: new ObjectId(id) 
     });
     
     return NextResponse.json({

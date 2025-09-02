@@ -2,16 +2,15 @@
  * Background jobs for real-time monitoring and data collection
  */
 
-import ErrorMonitoringService from './error-monitoring-service';
-import cron from 'node-cron';
+import * as cron from 'node-cron';
 
-export class BackgroundJobsService {
-  private static isRunning = false;
+class BackgroundJobsService {
+  static isRunning = false;
 
   /**
    * Start all background jobs
    */
-  static start(): void {
+  static start() {
     if (this.isRunning) {
       console.log('⚠️ Background jobs are already running');
       return;
@@ -23,10 +22,11 @@ export class BackgroundJobsService {
     // Update real-time user statistics every 30 seconds
     cron.schedule('*/30 * * * * *', async () => {
       try {
+        const { default: ErrorMonitoringService } = await import('./error-monitoring-service.js');
         await ErrorMonitoringService.getCurrentUserCounts();
         // console.log('✅ Real-time stats updated');
       } catch (error) {
-        console.error('❌ Failed to update real-time stats:', error);
+        console.error('❌ Failed to update real-time stats:', error.message);
       }
     });
 
@@ -36,7 +36,7 @@ export class BackgroundJobsService {
         await this.recordSystemMetrics();
         // console.log('✅ System metrics recorded');
       } catch (error) {
-        console.error('❌ Failed to record system metrics:', error);
+        console.error('❌ Failed to record system metrics:', error.message);
       }
     });
 
@@ -46,7 +46,7 @@ export class BackgroundJobsService {
         await this.cleanupOldMetrics();
         console.log('✅ Old metrics cleaned up');
       } catch (error) {
-        console.error('❌ Failed to cleanup old metrics:', error);
+        console.error('❌ Failed to cleanup old metrics:', error.message);
       }
     });
 
@@ -56,7 +56,7 @@ export class BackgroundJobsService {
         await this.cleanupOldErrors();
         console.log('✅ Old errors cleaned up');
       } catch (error) {
-        console.error('❌ Failed to cleanup old errors:', error);
+        console.error('❌ Failed to cleanup old errors:', error.message);
       }
     });
 
@@ -66,13 +66,13 @@ export class BackgroundJobsService {
   /**
    * Stop all background jobs
    */
-  static stop(): void {
+  static stop() {
     if (!this.isRunning) {
       return;
     }
 
     console.log('🛑 Stopping background jobs...');
-    // Note: node-cron doesn't have a destroy method, jobs are stopped individually
+    cron.destroy();
     this.isRunning = false;
     console.log('✅ Background jobs stopped');
   }
@@ -80,8 +80,10 @@ export class BackgroundJobsService {
   /**
    * Record system performance metrics
    */
-  private static async recordSystemMetrics(): Promise<void> {
+  static async recordSystemMetrics() {
     try {
+      const { default: ErrorMonitoringService } = await import('./error-monitoring-service.js');
+      
       // Get current memory usage
       const memoryUsage = process.memoryUsage();
       await ErrorMonitoringService.recordPerformanceMetric({
@@ -110,19 +112,19 @@ export class BackgroundJobsService {
       });
 
     } catch (error) {
-      console.error('Failed to record system metrics:', error);
+      console.error('Failed to record system metrics:', error.message);
     }
   }
 
   /**
    * Cleanup old performance metrics (older than 30 days)
    */
-  private static async cleanupOldMetrics(): Promise<void> {
+  static async cleanupOldMetrics() {
     try {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const { default: DatabaseService } = await import('./database');
+      const { default: DatabaseService } = await import('./database.js');
       const collection = await DatabaseService.getCollection('performance_metrics');
       
       const result = await collection.deleteMany({
@@ -131,19 +133,19 @@ export class BackgroundJobsService {
 
       console.log(`🧹 Cleaned up ${result.deletedCount} old performance metrics`);
     } catch (error) {
-      console.error('Failed to cleanup old metrics:', error);
+      console.error('Failed to cleanup old metrics:', error.message);
     }
   }
 
   /**
    * Cleanup old error logs (older than 90 days)
    */
-  private static async cleanupOldErrors(): Promise<void> {
+  static async cleanupOldErrors() {
     try {
       const ninetyDaysAgo = new Date();
       ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-      const { default: DatabaseService } = await import('./database');
+      const { default: DatabaseService } = await import('./database.js');
       const collection = await DatabaseService.getCollection('app_errors');
       
       // Only delete resolved errors older than 90 days
@@ -154,14 +156,14 @@ export class BackgroundJobsService {
 
       console.log(`🧹 Cleaned up ${result.deletedCount} old resolved errors`);
     } catch (error) {
-      console.error('Failed to cleanup old errors:', error);
+      console.error('Failed to cleanup old errors:', error.message);
     }
   }
 
   /**
    * Get status of background jobs
    */
-  static getStatus(): { running: boolean; jobs: string[] } {
+  static getStatus() {
     const jobs = [
       'Real-time user stats (every 30 seconds)',
       'System metrics (every minute)',
@@ -176,4 +178,4 @@ export class BackgroundJobsService {
   }
 }
 
-export default BackgroundJobsService;
+module.exports = BackgroundJobsService;

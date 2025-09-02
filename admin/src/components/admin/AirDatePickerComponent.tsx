@@ -3,6 +3,20 @@
 import { useEffect, useRef, useId } from 'react';
 import 'air-datepicker/air-datepicker.css';
 
+// Type for AirDatepicker instance
+interface AirDatepickerInstance {
+  destroy: () => void;
+  selectDate: (date: Date, options?: { silent?: boolean }) => void;
+  clear: () => void;
+  show: () => void;
+  hide: () => void;
+}
+
+// Type for input element with datepicker property
+interface DatePickerInput extends HTMLInputElement {
+  airdatepicker?: unknown;
+}
+
 interface AirDatePickerProps {
   className?: string;
   placeholder?: string;
@@ -23,7 +37,7 @@ const AirDatePickerComponent: React.FC<AirDatePickerProps> = ({
   disabled = false
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const pickerRef = useRef<any>(null);
+  const pickerRef = useRef<AirDatepickerInstance | null>(null);
   const uniqueId = useId();
 
   useEffect(() => {
@@ -83,7 +97,7 @@ const AirDatePickerComponent: React.FC<AirDatePickerProps> = ({
         // Clear any existing datepickers on this input
         if (inputRef.current) {
           // Remove any existing datepicker data
-          delete (inputRef.current as any).airdatepicker;
+          delete (inputRef.current as DatePickerInput).airdatepicker;
         }
 
         // Initialize Air Datepicker with proper options
@@ -186,8 +200,8 @@ const AirDatePickerComponent: React.FC<AirDatePickerProps> = ({
       if (pickerRef.current) {
         try {
           // Air Datepicker should have a show method
-          if (typeof (pickerRef.current as any).show === 'function') {
-            (pickerRef.current as any).show();
+          if (pickerRef.current && typeof pickerRef.current.show === 'function') {
+            pickerRef.current.show();
           } else {
             console.log('No show method found, focusing input instead');
             inputRef.current?.focus();

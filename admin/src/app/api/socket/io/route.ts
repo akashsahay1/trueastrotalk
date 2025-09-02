@@ -1,5 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { Server as NetServer } from 'http';
+import { NextResponse } from 'next/server';
 import { Server as ServerIO } from 'socket.io';
 
 // Global type for socket storage

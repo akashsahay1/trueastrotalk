@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Get performance summary (GET)
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const summary = await ErrorMonitoringService.getPerformanceSummary();
 

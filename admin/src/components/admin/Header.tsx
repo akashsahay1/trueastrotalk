@@ -13,7 +13,7 @@ interface UserInfo {
 export default function Header() {
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
-  const [userInfo, setUserInfo] = useState<UserInfo>({
+  const [userInfo] = useState<UserInfo>({
     full_name: 'Administrator',
     user_type: 'Administrator'
   });

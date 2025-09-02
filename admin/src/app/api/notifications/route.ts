@@ -7,6 +7,33 @@ import {
   InputSanitizer 
 } from '../../../lib/security';
 
+// Type definitions for notifications
+interface AuthenticatedUser {
+  userId: string;
+  user_type: string;
+  email?: string;
+  name?: string;
+}
+
+interface NotificationData {
+  type: NotificationType;
+  title: string;
+  body: string;
+  data?: Record<string, unknown>;
+  imageUrl?: string;
+  actionUrl?: string;
+  priority?: string;
+  channels?: string[];
+  scheduleAt?: Date;
+}
+
+interface NotificationTarget {
+  userId: string;
+  userType: 'customer' | 'astrologer' | string;
+  fcmToken?: string;
+  email?: string;
+}
+
 // GET - Get user's notifications
 export async function GET(request: NextRequest) {
   try {
@@ -32,7 +59,7 @@ export async function GET(request: NextRequest) {
     const unreadOnly = searchParams.get('unread_only') === 'true';
     const type = searchParams.get('type');
 
-    const userId = authenticatedUser.userId;
+    const userId = (authenticatedUser as AuthenticatedUser).userId;
     const notificationsCollection = await DatabaseService.getCollection('notifications');
 
     // Build query
@@ -145,7 +172,7 @@ export async function POST(request: NextRequest) {
 
       const usersCollection = await DatabaseService.getCollection('users');
       await usersCollection.updateOne(
-        { _id: new ObjectId(authenticatedUser.userId as string) },
+        { _id: new ObjectId((authenticatedUser as AuthenticatedUser).userId) },
         { 
           $set: { 
             fcm_token: fcm_token,
@@ -155,7 +182,7 @@ export async function POST(request: NextRequest) {
         }
       );
 
-      console.log(`✅ FCM token registered for user ${authenticatedUser.userId}`);
+      console.log(`✅ FCM token registered for user ${(authenticatedUser as AuthenticatedUser).userId}`);
 
       return NextResponse.json({
         success: true,
@@ -164,7 +191,7 @@ export async function POST(request: NextRequest) {
     }
 
     // For sending notifications, only administrators are allowed
-    if (authenticatedUser.user_type !== 'administrator') {
+    if ((authenticatedUser as AuthenticatedUser).user_type !== 'administrator') {
       return NextResponse.json({
         success: false,
         error: 'ACCESS_DENIED',
@@ -174,7 +201,7 @@ export async function POST(request: NextRequest) {
 
     // Send notification (admin only)
     const { target_user_ids, target_user_type, notification } = notificationData;
-    const notificationObj = notification as Record<string, unknown>;
+    const notificationObj = notification as NotificationData;
 
     if (!notificationObj || !notificationObj.type || !notificationObj.title || !notificationObj.body) {
       return NextResponse.json({
@@ -206,7 +233,7 @@ export async function POST(request: NextRequest) {
       
       targets = users.map(user => ({
         userId: user._id.toString(),
-        userType: user.user_type,
+        userType: user.user_type as 'customer' | 'astrologer' | string,
         fcmToken: user.fcm_token,
         email: user.email_address
       }));
@@ -221,7 +248,7 @@ export async function POST(request: NextRequest) {
       
       targets = users.map(user => ({
         userId: user._id.toString(),
-        userType: user.user_type,
+        userType: user.user_type as 'customer' | 'astrologer' | string,
         fcmToken: user.fcm_token,
         email: user.email_address
       }));
@@ -247,7 +274,7 @@ export async function POST(request: NextRequest) {
     // Send notifications using NotificationService
     const successCount = await NotificationService.sendBulkNotifications(
       targets,
-      notificationObj as any
+      notificationObj
     );
 
     console.log(`✅ Notification sent to ${successCount}/${targets.length} users`);
@@ -296,7 +323,7 @@ export async function PUT(request: NextRequest) {
     
     const { notification_ids, mark_all_read } = sanitizedBody;
 
-    const userId = authenticatedUser.userId;
+    const userId = (authenticatedUser as AuthenticatedUser).userId;
     const notificationsCollection = await DatabaseService.getCollection('notifications');
 
     const updateQuery: Record<string, unknown> = {

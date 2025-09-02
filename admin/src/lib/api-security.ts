@@ -3,10 +3,33 @@ import { SecurityMiddleware, InputSanitizer } from './security';
 import { ErrorHandler, ErrorCode } from './error-handler';
 import * as crypto from 'crypto';
 
+// Authenticated user type based on JWT payload
+export interface AuthenticatedUser {
+  id: string;
+  email: string;
+  user_type: 'administrator' | 'manager' | 'customer' | 'astrologer';
+  name?: string;
+  phone?: string;
+  iat?: number;
+  exp?: number;
+  iss?: string;
+  aud?: string;
+}
+
 /**
  * Comprehensive API Security Middleware
  * Provides rate limiting, authentication, CSRF protection, and input validation
  */
+
+// Extended NextRequest type with authenticated user
+export interface AuthenticatedNextRequest extends NextRequest {
+  user?: AuthenticatedUser;
+}
+
+// Handler context type for route handlers
+export interface RouteHandlerContext {
+  params?: Record<string, string | string[]>;
+}
 
 export interface SecurityOptions {
   requireAuth?: boolean;
@@ -77,10 +100,10 @@ class CSRFProtection {
  * Main security middleware wrapper
  */
 export function withSecurity(
-  handler: (request: NextRequest, context?: any) => Promise<NextResponse>,
+  handler: (request: AuthenticatedNextRequest, context?: RouteHandlerContext) => Promise<NextResponse>,
   options: SecurityOptions = DEFAULT_SECURITY_OPTIONS
 ) {
-  return async (request: NextRequest, context?: any): Promise<NextResponse> => {
+  return async (request: NextRequest, context?: RouteHandlerContext): Promise<NextResponse> => {
     try {
       const securityOptions = { ...DEFAULT_SECURITY_OPTIONS, ...options };
       const ip = request.headers.get('x-forwarded-for') || 
@@ -174,7 +197,7 @@ export function withSecurity(
             
             // Add authenticated user to request if available
             if (authenticatedUser) {
-              (sanitizedRequest as any).user = authenticatedUser;
+              (sanitizedRequest as AuthenticatedNextRequest).user = authenticatedUser;
             }
             
             return await handler(sanitizedRequest, context);
@@ -191,7 +214,7 @@ export function withSecurity(
       
       // Add authenticated user to request if available
       if (authenticatedUser) {
-        (request as any).user = authenticatedUser;
+        (request as AuthenticatedNextRequest).user = authenticatedUser;
       }
       
       // 5. Execute the handler

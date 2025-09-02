@@ -2,11 +2,11 @@
  * API endpoint for reports summary dashboard
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import ErrorMonitoringService from '../../../../lib/error-monitoring-service';
 
 // Get comprehensive reports summary for dashboard (GET)
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const [errorSummary, performanceSummary, realtimeStats] = await Promise.all([
       ErrorMonitoringService.getErrorSummary(),

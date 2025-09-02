@@ -141,7 +141,7 @@ export class UploadService {
    * @deprecated External URLs are no longer supported. All files must be uploaded locally.
    * This method now returns an error.
    */
-  static async registerExternalImage(_options: ExternalImageOptions): Promise<UploadResult> {
+  static async registerExternalImage(): Promise<UploadResult> {
     console.warn('registerExternalImage is deprecated: External URLs are no longer supported');
     return {
       success: false,

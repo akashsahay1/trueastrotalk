@@ -52,7 +52,7 @@ export default function ProductsPage() {
   useEffect(() => {
     document.body.className = '';
     fetchProducts();
-  }, [pagination.page, appliedSearchTerm, appliedCategory]);
+  }, [pagination.page, appliedSearchTerm, appliedCategory, fetchProducts]);
 
   useEffect(() => {
     fetchCategories();
@@ -188,10 +188,10 @@ export default function ProductsPage() {
     }
   };
 
-  const handleSearch = () => {
-    setPagination(prev => ({ ...prev, page: 1 }));
-    fetchProducts();
-  };
+  // const handleSearch = () => {
+  //   setPagination(prev => ({ ...prev, page: 1 }));
+  //   fetchProducts();
+  // };
 
   const handlePageChange = (newPage: number) => {
     setPagination(prev => ({ ...prev, page: newPage }));
@@ -328,11 +328,11 @@ export default function ProductsPage() {
                           </td>
                           <td>
                             {product.featured_image ? (
-                              <img
+                              <Image
                                 src={product.featured_image}
                                 alt={product.name}
-                                width="50"
-                                height="50"
+                                width={50}
+                                height={50}
                                 className="img-thumbnail"
                                 style={{ objectFit: 'cover' }}
                                 onError={(e) => {

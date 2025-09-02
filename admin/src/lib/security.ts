@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import Joi from 'joi';
 import { NextRequest } from 'next/server';
 import crypto from 'crypto';
-import { jwtVerify } from 'jose';
+// import { jwtVerify } from 'jose';
 
 // Security configuration
 const JWT_SECRET = process.env.JWT_SECRET;

@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       // ObjectId format (24 character hex string)
       try {
         mediaFile = await mediaCollection.findOne({ _id: new ObjectId(mediaId) });
-      } catch (error) {
+      } catch {
         await client.close();
         return NextResponse.json({
           success: false,

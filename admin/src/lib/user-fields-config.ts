@@ -516,9 +516,9 @@ export function getRequiredFieldsForUserType(userType: string): string[] {
 }
 
 // Helper function to get default values for a user type
-export function getDefaultValuesForUserType(userType: string): Record<string, any> {
+export function getDefaultValuesForUserType(userType: string): Record<string, unknown> {
   const groups = getFieldGroupsForUserType(userType);
-  const defaults: Record<string, any> = {};
+  const defaults: Record<string, unknown> = {};
   
   groups.forEach(group => {
     group.fields.forEach(field => {

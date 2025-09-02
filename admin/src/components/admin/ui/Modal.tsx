@@ -149,7 +149,7 @@ export function ConfirmModal({
 interface FilterModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onApply: (filters: any) => void;
+  onApply: (filters: Record<string, string>) => void;
   onClear: () => void;
   title?: string;
   children: React.ReactNode;

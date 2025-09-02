@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import ErrorMonitoringService from '../../../../lib/error-monitoring-service';
 
 // Get current real-time user counts (GET)
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const stats = await ErrorMonitoringService.getCurrentUserCounts();
 

@@ -31,7 +31,7 @@ export interface PerformanceMetric {
   _id?: ObjectId;
   metric_type: 'response_time' | 'error_rate' | 'active_users' | 'app_crashes' | 'api_calls' | 'memory_usage';
   value: number;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   timestamp: Date;
 }
 

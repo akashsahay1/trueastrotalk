@@ -11,6 +11,36 @@ import {
   InputSanitizer 
 } from '../../../../lib/security';
 
+// Define filter types for bulk notifications
+interface NotificationFilters {
+  wallet_balance?: {
+    $gte?: number;
+    $lte?: number;
+    $gt?: number;
+    $lt?: number;
+  };
+  last_active?: {
+    $gte?: string | Date;
+    $lte?: string | Date;
+  };
+  consultation_count?: {
+    $gte?: number;
+    $lte?: number;
+  };
+  registration_date?: {
+    $gte?: string | Date;
+    $lte?: string | Date;
+  };
+}
+
+// Type for authenticated user from SecurityMiddleware
+interface AuthenticatedUser {
+  userId: string;
+  user_type: string;
+  email?: string;
+  name?: string;
+}
+
 // POST - Send bulk notifications to customers or astrologers
 export async function POST(request: NextRequest) {
   try {
@@ -123,7 +153,7 @@ export async function POST(request: NextRequest) {
       // - { "wallet_balance": { "$gte": 100 } } - Users with wallet balance >= 100
       // - { "last_active": { "$gte": "2024-01-01" } } - Recently active users
       // - { "consultation_count": { "$gte": 5 } } - Users with 5+ consultations
-      const filterObj = filters as Record<string, any>;
+      const filterObj = filters as NotificationFilters;
       if (filterObj.wallet_balance) {
         query.wallet_balance = filterObj.wallet_balance;
       }
@@ -188,7 +218,7 @@ export async function POST(request: NextRequest) {
       success_count: successCount,
       failed_count: targets.length - successCount,
       filters,
-      sent_by: authenticatedUser.userId,
+      sent_by: (authenticatedUser as AuthenticatedUser).userId,
       created_at: new Date()
     });
 

@@ -144,7 +144,7 @@ export default function PendingOrdersPage() {
   // Initial data load
   useEffect(() => {
     fetchOrders(currentPage, searchTerm, statusFilter);
-  }, [currentPage, statusFilter, fromDate, toDate, amountMin, amountMax, customerFilter]);
+  }, [currentPage, statusFilter, fromDate, toDate, amountMin, amountMax, customerFilter, fetchOrders, searchTerm]);
 
   // Search handler with debounce
   useEffect(() => {
@@ -157,7 +157,7 @@ export default function PendingOrdersPage() {
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
+  }, [searchTerm, currentPage, fetchOrders, statusFilter]);
 
   // Bulk status update
   const handleBulkStatusUpdate = async () => {
@@ -261,37 +261,37 @@ export default function PendingOrdersPage() {
   };
 
   // Update order status
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
-    try {
-      const response = await fetch('/api/admin/orders', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          order_id: orderId,
-          status: newStatus,
-          updated_by: 'admin'
-        }),
-      });
+  // const updateOrderStatus = async (orderId: string, newStatus: string) => {
+  //   try {
+  //     const response = await fetch('/api/admin/orders', {
+  //       method: 'PUT',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({
+  //         order_id: orderId,
+  //         status: newStatus,
+  //         updated_by: 'admin'
+  //       }),
+  //     });
 
-      const data = await response.json();
+  //     const data = await response.json();
       
-      if (data.success) {
-        // Refresh orders list
-        fetchOrders(currentPage, searchTerm, statusFilter);
-        // Update selected order if modal is open
-        if (selectedOrder && selectedOrder._id === orderId) {
-          setSelectedOrder({...selectedOrder, status: newStatus as Order['status']});
-        }
-      } else {
-        alert('Failed to update order status: ' + data.error);
-      }
-    } catch (err) {
-      alert('Error updating order status');
-      console.error('Update order error:', err);
-    }
-  };
+  //     if (data.success) {
+  //       // Refresh orders list
+  //       fetchOrders(currentPage, searchTerm, statusFilter);
+  //       // Update selected order if modal is open
+  //       if (selectedOrder && selectedOrder._id === orderId) {
+  //         setSelectedOrder({...selectedOrder, status: newStatus as Order['status']});
+  //       }
+  //     } else {
+  //       alert('Failed to update order status: ' + data.error);
+  //     }
+  //   } catch (err) {
+  //     alert('Error updating order status');
+  //     console.error('Update order error:', err);
+  //   }
+  // };
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
@@ -317,10 +317,10 @@ export default function PendingOrdersPage() {
 
   const totalPages = Math.ceil(totalOrders / ordersPerPage);
 
-  const openModal = () => {
-    setShowFilterModal(true);
-    setTimeout(() => setModalAnimating(true), 10);
-  };
+  // const openModal = () => {
+  //   setShowFilterModal(true);
+  //   setTimeout(() => setModalAnimating(true), 10);
+  // };
 
   const closeModal = () => {
     setModalAnimating(false);

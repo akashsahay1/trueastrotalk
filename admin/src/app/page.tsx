@@ -26,7 +26,7 @@ export default function HomePage() {
           router.replace('/dashboard');
           return;
         }
-      } catch (error) {
+      } catch {
         console.log('Not authenticated');
       }
       

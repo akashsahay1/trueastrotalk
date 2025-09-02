@@ -568,8 +568,6 @@ function AddUserPageContent() {
 
   const isAstrologer = formData.user_type === 'astrologer';
   const isCustomer = formData.user_type === 'customer';
-  const isAdmin = formData.user_type === 'administrator';
-  const isManager = formData.user_type === 'manager';
 
   return (
     <div className="dashboard-main-wrapper">

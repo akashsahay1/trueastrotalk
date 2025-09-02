@@ -2,17 +2,20 @@
 
 import React from 'react';
 
-export interface Column<T = any> {
-  key: string;
+// Base type for table data items
+type TableDataItem = Record<string, unknown>;
+
+export interface Column<T extends TableDataItem = TableDataItem> {
+  key: keyof T | string;
   label: string;
   sortable?: boolean;
   width?: string;
   className?: string;
   responsive?: 'always' | 'sm' | 'md' | 'lg' | 'xl';
-  render?: (value: any, item: T, index: number) => React.ReactNode;
+  render?: (value: unknown, item: T, index: number) => React.ReactNode;
 }
 
-export interface TableAction<T = any> {
+export interface TableAction<T extends TableDataItem = TableDataItem> {
   label: string;
   icon?: string;
   className?: string;
@@ -20,7 +23,7 @@ export interface TableAction<T = any> {
   condition?: (item: T) => boolean;
 }
 
-interface DataTableProps<T = any> {
+interface DataTableProps<T extends TableDataItem = TableDataItem> {
   data: T[];
   columns: Column<T>[];
   actions?: TableAction<T>[];
@@ -28,7 +31,7 @@ interface DataTableProps<T = any> {
   selectable?: boolean;
   selectedItems?: string[];
   onSelectionChange?: (selectedIds: string[]) => void;
-  idField?: string;
+  idField?: keyof T | string;
   emptyMessage?: string;
   className?: string;
   responsive?: boolean;
@@ -37,7 +40,7 @@ interface DataTableProps<T = any> {
   hover?: boolean;
 }
 
-export default function DataTable<T extends Record<string, any>>({
+export default function DataTable<T extends TableDataItem>({
   data,
   columns,
   actions = [],
@@ -59,7 +62,7 @@ export default function DataTable<T extends Record<string, any>>({
     if (selectedItems.length === data.length) {
       onSelectionChange([]);
     } else {
-      onSelectionChange(data.map(item => item[idField]));
+      onSelectionChange(data.map(item => String(item[idField as keyof T])));
     }
   };
 
@@ -135,13 +138,13 @@ export default function DataTable<T extends Record<string, any>>({
           </tr>
         ) : data.length > 0 ? (
           data.map((item, index) => (
-            <tr key={item[idField] || index}>
+            <tr key={String(item[idField as keyof T]) || index}>
               {selectable && (
                 <td className="text-center">
                   <input
                     type="checkbox"
-                    checked={selectedItems.includes(item[idField])}
-                    onChange={() => handleSelectItem(item[idField])}
+                    checked={selectedItems.includes(String(item[idField as keyof T]))}
+                    onChange={() => handleSelectItem(String(item[idField as keyof T]))}
                     className="table-checkbox"
                   />
                 </td>
@@ -153,8 +156,8 @@ export default function DataTable<T extends Record<string, any>>({
                   data-label={column.label}
                 >
                   {column.render ? 
-                    column.render(item[column.key], item, index) :
-                    item[column.key]
+                    column.render(item[column.key as keyof T], item, index) :
+                    String(item[column.key as keyof T] ?? '')
                   }
                 </td>
               ))}

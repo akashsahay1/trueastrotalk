@@ -1,6 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 
+// Type definitions for astrologer options
+interface AstrologerOptionValue {
+  name?: string;
+  value?: string;
+  isActive?: boolean;
+}
+
+type OptionValue = string | AstrologerOptionValue;
+
+interface AstrologerOption {
+  type: string;
+  values: OptionValue[];
+}
+
 // GET - Fetch astrologer options (public endpoint - no authentication required)
 export async function GET(request: NextRequest) {
   try {
@@ -39,11 +53,11 @@ export async function GET(request: NextRequest) {
       for (const option of options) {
         if (option.values && Array.isArray(option.values)) {
           // Filter for active values only if they have isActive property
-          const activeValues = option.values.filter((value: any) => {
+          const activeValues = option.values.filter((value: OptionValue) => {
             if (typeof value === 'string') return true;
-            return value.isActive !== false;
-          }).map((value: any) => {
-            return typeof value === 'string' ? value : value.name || value.value;
+            return (value as AstrologerOptionValue).isActive !== false;
+          }).map((value: OptionValue) => {
+            return typeof value === 'string' ? value : (value as AstrologerOptionValue).name || (value as AstrologerOptionValue).value || '';
           });
           
           result[option.type] = activeValues;

@@ -10,60 +10,60 @@ import Image from 'next/image';
 import { validateForm, getProductFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/client-validation';
 import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
 
-interface Product {
-  _id: string;
-  name: string;
-  description: string;
-  price: number;
-  compare_price?: number;
-  cost_price?: number;
-  category: string;
-  brand?: string;
-  sku?: string;
-  barcode?: string;
-  
-  // Images
-  primary_image?: string;
-  image_url?: string;
-  images?: string[];
-  image_urls?: string[];
-  
-  // Details
-  material?: string;
-  weight?: number;
-  dimensions?: string;
-  color?: string;
-  size?: string;
-  
-  // Status
-  stock_quantity: number;
-  is_active: boolean;
-  is_featured?: boolean;
-  is_bestseller?: boolean;
-  status?: string;
-  
-  // Shipping
-  shipping_weight?: number;
-  shipping_cost?: number;
-  free_shipping?: boolean;
-  shipping_class?: string;
-  
-  // Tags
-  tags?: string[];
-  
-  // Additional
-  warranty?: string;
-  return_policy?: string;
-  care_instructions?: string;
-  
-  // Reviews (read-only)
-  rating?: number;
-  total_reviews?: number;
-  total_sales?: number;
-  
-  created_at: string;
-  updated_at: string;
-}
+// interface Product {
+//   _id: string;
+//   name: string;
+//   description: string;
+//   price: number;
+//   compare_price?: number;
+//   cost_price?: number;
+//   category: string;
+//   brand?: string;
+//   sku?: string;
+//   barcode?: string;
+//   
+//   // Images
+//   primary_image?: string;
+//   image_url?: string;
+//   images?: string[];
+//   image_urls?: string[];
+//   
+//   // Details
+//   material?: string;
+//   weight?: number;
+//   dimensions?: string;
+//   color?: string;
+//   size?: string;
+//   
+//   // Status
+//   stock_quantity: number;
+//   is_active: boolean;
+//   is_featured?: boolean;
+//   is_bestseller?: boolean;
+//   status?: string;
+//   
+//   // Shipping
+//   shipping_weight?: number;
+//   shipping_cost?: number;
+//   free_shipping?: boolean;
+//   shipping_class?: string;
+//   
+//   // Tags
+//   tags?: string[];
+//   
+//   // Additional
+//   warranty?: string;
+//   return_policy?: string;
+//   care_instructions?: string;
+//   
+//   // Reviews (read-only)
+//   rating?: number;
+//   total_reviews?: number;
+//   total_sales?: number;
+//   
+//   created_at: string;
+//   updated_at: string;
+// }
 
 interface Category {
   _id: string;
@@ -75,7 +75,7 @@ export default function EditProductPage() {
   const params = useParams();
   const productId = params?.id as string;
   
-  const [product, setProduct] = useState<Product | null>(null);
+  // const [product, setProduct] = useState<Product | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -143,7 +143,7 @@ export default function EditProductPage() {
       if (response.ok) {
         const data = await response.json();
         const productData = data.product;
-        setProduct(productData);
+        // setProduct(productData);
         
         // Convert tags array to string
         const tagsString = Array.isArray(productData.tags) 

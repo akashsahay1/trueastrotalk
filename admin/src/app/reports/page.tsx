@@ -69,7 +69,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [logsLoading, setLogsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<string>('');
+  // const [lastUpdated, setLastUpdated] = useState<string>('');
   const [showDetailedLogs, setShowDetailedLogs] = useState(false);
 
   // Fetch reports data
@@ -86,7 +86,7 @@ export default function ReportsPage() {
       if (result.success) {
         setReportsData(result.data);
         setError(null);
-        setLastUpdated(new Date().toLocaleTimeString());
+        // setLastUpdated(new Date().toLocaleTimeString());
       } else {
         throw new Error(result.error || 'Unknown error occurred');
       }

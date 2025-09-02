@@ -99,7 +99,7 @@ function TransactionsContent() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filters]);
 
   useEffect(() => {
     document.body.className = '';

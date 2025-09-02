@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/admin/Header';
 import Sidebar from '@/components/admin/Sidebar';
 import Link from 'next/link';
@@ -118,10 +118,10 @@ export default function CompleteOrdersPage() {
   // Fetch orders when applied filters change
   useEffect(() => {
     fetchOrders(currentPage);
-  }, [currentPage, appliedSearchTerm, appliedStatusFilter, appliedFromDate, appliedToDate, appliedAmountMin, appliedAmountMax, appliedCustomerFilter]);
+  }, [currentPage, appliedSearchTerm, appliedStatusFilter, appliedFromDate, appliedToDate, appliedAmountMin, appliedAmountMax, appliedCustomerFilter, fetchOrders]);
 
   // Fetch orders from API
-  const fetchOrders = async (page = 1) => {
+  const fetchOrders = useCallback(async (page = 1) => {
     try {
       setLoading(true);
       setError(null);
@@ -160,7 +160,7 @@ export default function CompleteOrdersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [appliedSearchTerm, appliedStatusFilter, appliedFromDate, appliedToDate, appliedAmountMin, appliedAmountMax, appliedCustomerFilter]);
 
 
   // Bulk status update
@@ -265,37 +265,37 @@ export default function CompleteOrdersPage() {
   };
 
   // Update order status
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
-    try {
-      const response = await fetch('/api/admin/orders', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          order_id: orderId,
-          status: newStatus,
-          updated_by: 'admin'
-        }),
-      });
+  // const updateOrderStatus = async (orderId: string, newStatus: string) => {
+  //   try {
+  //     const response = await fetch('/api/admin/orders', {
+  //       method: 'PUT',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({
+  //         order_id: orderId,
+  //         status: newStatus,
+  //         updated_by: 'admin'
+  //       }),
+  //     });
 
-      const data = await response.json();
+  //     const data = await response.json();
       
-      if (data.success) {
-        // Refresh orders list
-        fetchOrders(currentPage);
-        // Update selected order if modal is open
-        if (selectedOrder && selectedOrder._id === orderId) {
-          setSelectedOrder({...selectedOrder, status: newStatus as Order['status']});
-        }
-      } else {
-        alert('Failed to update order status: ' + data.error);
-      }
-    } catch (err) {
-      alert('Error updating order status');
-      console.error('Update order error:', err);
-    }
-  };
+  //     if (data.success) {
+  //       // Refresh orders list
+  //       fetchOrders(currentPage);
+  //       // Update selected order if modal is open
+  //       if (selectedOrder && selectedOrder._id === orderId) {
+  //         setSelectedOrder({...selectedOrder, status: newStatus as Order['status']});
+  //       }
+  //     } else {
+  //       alert('Failed to update order status: ' + data.error);
+  //     }
+  //   } catch (err) {
+  //     alert('Error updating order status');
+  //     console.error('Update order error:', err);
+  //   }
+  // };
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {

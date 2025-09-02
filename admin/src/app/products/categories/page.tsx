@@ -37,7 +37,7 @@ export default function CategoriesPage() {
   useEffect(() => {
     document.body.className = '';
     fetchCategories();
-  }, [pagination.page, searchTerm]);
+  }, [pagination.page, searchTerm, fetchCategories]);
 
   const fetchCategories = async () => {
     try {
@@ -127,19 +127,19 @@ export default function CategoriesPage() {
     }
   };
 
-  const handleSearch = () => {
-    setPagination(prev => ({ ...prev, page: 1 }));
-    fetchCategories();
-  };
+  // const handleSearch = () => {
+  //   setPagination(prev => ({ ...prev, page: 1 }));
+  //   fetchCategories();
+  // };
 
   const handlePageChange = (newPage: number) => {
     setPagination(prev => ({ ...prev, page: newPage }));
   };
 
-  const openModal = () => {
-    setShowFilterModal(true);
-    setTimeout(() => setModalAnimating(true), 10);
-  };
+  // const openModal = () => {
+  //   setShowFilterModal(true);
+  //   setTimeout(() => setModalAnimating(true), 10);
+  // };
 
   const closeModal = () => {
     setModalAnimating(false);
