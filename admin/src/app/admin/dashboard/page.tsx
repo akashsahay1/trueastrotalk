@@ -1,7 +1,7 @@
 'use client';
 
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
+import Header from '@/components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -181,7 +181,7 @@ export default function DashboardPage() {
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                 <div className="card">
                   <h5 className="card-header">Recent Customers</h5>
-                  <div className="card-body p-0">
+                  <div className="card-body">
                     <div className="table-responsive">
                       <table className="table">
                         <thead className="bg-light">

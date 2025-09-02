@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
+import Header from '@/components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
 import Link from 'next/link';
 
 interface OrderItem {
@@ -375,77 +375,6 @@ export default function PendingOrdersPage() {
               </div>
             </div>
 
-            {/* Order Statistics */}
-            <div className="ecommerce-widget">
-              <div className="row">
-                <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-primary shadow-sm h-100">
-                    <div className="card-body">
-                      <h5 className="text-muted mb-4">Total Pending Orders</h5>
-                      <div className="d-flex justify-content-between">
-                        <div className="metric-value">
-                          <h1 className="font-weight-bold text-primary">{totalOrders.toLocaleString()}</h1>
-                        </div>
-                        <div className="metric-label align-self-center text-primary">
-                          <i className="fas fa-clock fa-2x"></i>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-primary shadow-sm h-100">
-                    <div className="card-body">
-                      <h5 className="text-muted mb-4">Delivered Orders</h5>
-                      <div className="d-flex justify-content-between">
-                        <div className="metric-value">
-                          <h1 className="font-weight-bold text-success">
-                            {orders.filter(order => order.status === 'delivered').length}
-                          </h1>
-                        </div>
-                        <div className="metric-label align-self-center text-success">
-                          <i className="fas fa-check-circle fa-2x"></i>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-primary shadow-sm h-100">
-                    <div className="card-body">
-                      <h5 className="text-muted mb-4">Pending Orders</h5>
-                      <div className="d-flex justify-content-between">
-                        <div className="metric-value">
-                          <h1 className="font-weight-bold text-warning">
-                            {orders.filter(order => ['placed', 'confirmed', 'processing'].includes(order.status)).length}
-                          </h1>
-                        </div>
-                        <div className="metric-label align-self-center text-warning">
-                          <i className="fas fa-clock fa-2x"></i>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-primary shadow-sm h-100">
-                    <div className="card-body">
-                      <h5 className="text-muted mb-4">Revenue (This Page)</h5>
-                      <div className="d-flex justify-content-between">
-                        <div className="metric-value">
-                          <h1 className="font-weight-bold text-info">
-                            ₹{orders.reduce((sum, order) => sum + order.total_amount, 0).toLocaleString()}
-                          </h1>
-                        </div>
-                        <div className="metric-label align-self-center text-info">
-                          <i className="fas fa-rupee-sign fa-2x"></i>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {/* Filters and Search */}
             <div className="row">
@@ -497,7 +426,7 @@ export default function PendingOrdersPage() {
                       </div>
                     ) : (
                       <div className="table-responsive">
-                        <table className="table table-striped table-hover">
+                        <table className="table table-striped table-hover m-0">
                           <thead className="thead-light">
                             <tr>
                               <th className="text-center">
@@ -602,7 +531,7 @@ export default function PendingOrdersPage() {
                               <tr>
                                 <td colSpan={9} className="text-center py-4">
                                   <i className="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
-                                  <p className="text-muted">No orders found</p>
+                                  <p className="text-muted m-0">No orders found</p>
                                 </td>
                               </tr>
                             )}
@@ -718,7 +647,7 @@ export default function PendingOrdersPage() {
                       
                       <h6>Order Items</h6>
                       <div className="table-responsive">
-                        <table className="table table-sm">
+                        <table className="table table-sm m-0">
                           <thead>
                             <tr>
                               <th>Product</th>

@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient, ObjectId } from 'mongodb';
-import { withSecurity, SecurityPresets } from '@/lib/api-security';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const DB_NAME = 'trueastrotalk';
 
-export const GET = withSecurity(async (request: NextRequest) => {
+export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const page = parseInt(url.searchParams.get('page') || '1');
@@ -126,4 +125,4 @@ export const GET = withSecurity(async (request: NextRequest) => {
       { status: 500 }
     );
   }
-}, SecurityPresets.admin);
+}

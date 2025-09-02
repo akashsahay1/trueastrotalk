@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient } from 'mongodb';
+import { generateCategoryId } from '@/lib/custom-id';
 
 const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const DB_NAME = 'trueastrotalkDB';
@@ -93,6 +94,7 @@ export async function POST(request: NextRequest) {
 
     // Create category document
     const categoryData = {
+      category_id: generateCategoryId(),
       name: name.trim(),
       description: description || '',
       is_active: is_active !== undefined ? is_active : true,

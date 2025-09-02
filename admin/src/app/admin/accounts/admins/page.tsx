@@ -1,7 +1,7 @@
 'use client';
 
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
+import Header from '@/components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -140,7 +140,7 @@ export default function AdminsPage() {
         });
       }
 
-      const response = await fetch(`/api/users?${params}`);
+      const response = await fetch(`/api/admin/users?${params}`);
       const data = await response.json();
 
       if (response.ok) {
@@ -228,7 +228,7 @@ export default function AdminsPage() {
     setDeleting('bulk');
     try {
       const deletePromises = selectedUsers.map(userId =>
-        fetch(`/api/users/${userId}`, { method: 'DELETE' })
+        fetch(`/api/admin/users?id=${userId}`, { method: 'DELETE' })
       );
 
       const results = await Promise.allSettled(deletePromises);
@@ -258,7 +258,7 @@ export default function AdminsPage() {
 
     setDeleting(userId);
     try {
-      const response = await fetch(`/api/users/${userId}`, {
+      const response = await fetch(`/api/admin/users?id=${userId}`, {
         method: 'DELETE'
       });
 
@@ -369,7 +369,7 @@ export default function AdminsPage() {
                         <i className="fas fa-filter mr-1"></i>
                         Filters {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
                       </button>
-                      <Link href="/admin/accounts/add-user?type=admin" className="btn btn-primary">Add</Link>
+                      <Link href="/admin/accounts/add-user?type=administrator" className="btn btn-primary">Add New</Link>
                     </div>
                     {/* Users Table */}
                     <div className="table-responsive">

@@ -5,7 +5,9 @@ class Astrologer {
   final String fullName;
   final String emailAddress;
   final String? phoneNumber;
-  final String? profileImage;
+  final String? profileImageId; // Reference to media collection
+  final String? socialProfileImageUrl; // External URL from Google OAuth
+  final String? profileImage; // Resolved image URL (computed field)
   final String? bio;
   final List<String> qualifications;
   final List<String> languages;
@@ -29,6 +31,8 @@ class Astrologer {
     required this.fullName,
     required this.emailAddress,
     this.phoneNumber,
+    this.profileImageId,
+    this.socialProfileImageUrl,
     this.profileImage,
     this.bio,
     required this.qualifications,
@@ -55,7 +59,9 @@ class Astrologer {
       fullName: json['full_name']?.toString() ?? '',
       emailAddress: json['email_address']?.toString() ?? '',
       phoneNumber: json['phone_number']?.toString(),
-      profileImage: json['profile_image']?.toString(),
+      profileImageId: json['profile_image_id']?.toString(),
+      socialProfileImageUrl: json['social_profile_image_url']?.toString(),
+      profileImage: json['profile_image']?.toString(), // This will be the resolved URL from backend
       bio: json['bio']?.toString(),
       qualifications: _parseStringList(json['qualifications']) ?? [],
       languages: _parseStringList(json['languages']) ?? [],
@@ -82,7 +88,9 @@ class Astrologer {
       'full_name': fullName,
       'email_address': emailAddress,
       'phone_number': phoneNumber,
-      'profile_image': profileImage,
+      'profile_image_id': profileImageId,
+      'social_profile_image_url': socialProfileImageUrl,
+      'profile_image': profileImage, // Include resolved URL if available
       'bio': bio,
       'qualifications': qualifications,
       'languages': languages,

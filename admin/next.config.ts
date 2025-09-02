@@ -43,6 +43,11 @@ const nextConfig: NextConfig = {
     // Optimize CSS is now handled automatically
   },
   
+  // Support for CSS modules and global CSS
+  sassOptions: {
+    includePaths: ['./src/styles'],
+  },
+  
   // Headers for performance and security
   async headers() {
     return [
@@ -85,6 +90,7 @@ const nextConfig: NextConfig = {
     config.resolve.alias = {
       ...config.resolve.alias,
       'punycode': 'punycode/',
+      '@': require('path').resolve(__dirname, 'src'),
     };
     
     // Bundle analyzer

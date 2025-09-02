@@ -1,7 +1,7 @@
 'use client';
 
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
+import Header from '@/components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
 import { useEffect, useState } from 'react';
 import { successMessages, errorMessages, confirmMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
 import Link from 'next/link';

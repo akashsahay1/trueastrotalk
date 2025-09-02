@@ -1,7 +1,7 @@
 'use client';
 
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
+import Header from '@/components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
 import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -105,7 +105,7 @@ function TransactionsContent() {
     document.body.className = '';
     
     // Get user_id from URL params if present
-    const userId = searchParams.get('user_id') || '';
+    const userId = searchParams?.get('user_id') || '';
     
     fetchTransactions(1, '', userId, {
       search: '',
@@ -117,7 +117,7 @@ function TransactionsContent() {
   }, [searchParams, fetchTransactions]);
 
   const handlePageChange = (page: number) => {
-    const userId = searchParams.get('user_id') || '';
+    const userId = searchParams?.get('user_id') || '';
     fetchTransactions(page, search, userId, filters);
   };
 
@@ -147,13 +147,13 @@ function TransactionsContent() {
       dateTo: ''
     };
     setFilters(clearedFilters);
-    const userId = searchParams.get('user_id') || '';
+    const userId = searchParams?.get('user_id') || '';
     fetchTransactions(1, search, userId, clearedFilters);
     closeModal();
   };
 
   const applyFilters = () => {
-    const userId = searchParams.get('user_id') || '';
+    const userId = searchParams?.get('user_id') || '';
     fetchTransactions(1, search, userId, filters);
     closeModal();
   };
@@ -191,7 +191,7 @@ function TransactionsContent() {
       if (response.ok) {
         alert(`Transaction ${actionType}d successfully`);
         // Refresh the transactions list
-        const userId = searchParams.get('user_id') || '';
+        const userId = searchParams?.get('user_id') || '';
         fetchTransactions(pagination.currentPage, search, userId, filters);
         closeDetailsModal();
       } else {

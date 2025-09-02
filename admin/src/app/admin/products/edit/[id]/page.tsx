@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
-import MediaLibrary from '@/components/MediaLibrary';
+import Header from '@/components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
+import MediaLibrary from '@/components/admin/MediaLibrary';
 import Image from 'next/image';
 import { validateForm, getProductFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/client-validation';
 import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
@@ -73,7 +73,7 @@ interface Category {
 export default function EditProductPage() {
   const router = useRouter();
   const params = useParams();
-  const productId = params.id as string;
+  const productId = params?.id as string;
   
   const [product, setProduct] = useState<Product | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);

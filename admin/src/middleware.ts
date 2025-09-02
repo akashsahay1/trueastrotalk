@@ -15,6 +15,28 @@ const adminRoutes = ['/admin'];
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
+  // Handle /admin redirect logic
+  if (pathname === '/admin' || pathname === '/admin/') {
+    const token = request.cookies.get('auth-token')?.value;
+    if (!token) {
+      return NextResponse.redirect(new URL('/admin/login', request.url));
+    }
+    
+    try {
+      const { payload } = await jwtVerify(token, JWT_SECRET);
+      if (payload.user_type === 'administrator') {
+        return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+      } else {
+        return NextResponse.redirect(new URL('/admin/login', request.url));
+      }
+    } catch (error) {
+      console.error('JWT verification failed:', error);
+      const response = NextResponse.redirect(new URL('/admin/login', request.url));
+      response.cookies.delete('auth-token');
+      return response;
+    }
+  }
+  
   // Skip middleware for static files and API routes
   if (
     pathname.startsWith('/_next/') ||
@@ -70,10 +92,8 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Redirect root to admin login
-  if (pathname === '/') {
-    return NextResponse.redirect(new URL('/admin/login', request.url));
-  }
+  // Allow root path and other frontend routes to pass through
+  // Frontend routes should be handled by Next.js pages
 
   return NextResponse.next();
 }

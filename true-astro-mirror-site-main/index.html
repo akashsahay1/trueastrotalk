@@ -1,0 +1,347 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Performance optimization - preconnect to external domains -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
+    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
+    
+    <!-- Critical resource preloads -->
+    <link rel="preload" href="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=350&h=350&fit=crop&crop=face" as="image" fetchpriority="high">
+    <link rel="preload" href="/src/main.tsx" as="script">
+    
+    <!-- Primary SEO Meta Tags with Astrology Keywords -->
+    <title>True Astrotalk - Best Online Astrology Consultation | Expert Astrology Services India</title>
+    <meta name="title" content="True Astrotalk - Best Online Astrology Consultation | Expert Astrology Services India" />
+    <meta name="description" content="Get accurate astrology predictions from India's top astrology experts. Professional astrology guidance for love, career, marriage, finance. Free chat with certified Vedic astrology consultants. 24/7 online astrology consultation available." />
+    <meta name="keywords" content="astrology, online astrologer, horoscope, birth chart, kundali matching, vedic astrology, palmistry, tarot reading, numerology, astrology consultation, best astrologer india, astrology services, astrology guidance, astrology predictions" />
+    <meta name="author" content="True Astrotalk" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://trueastrotalk.com/astrology/" />
+
+    <!-- Open Graph / Facebook with Astrology Keywords -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://trueastrotalk.com/astrology/" />
+    <meta property="og:title" content="True Astrotalk - Best Online Astrology Consultation | Expert Astrology Services India" />
+    <meta property="og:description" content="Get accurate astrology predictions from India's top astrology experts. Professional astrology guidance for love, career, marriage, finance. Free chat with certified Vedic astrology consultants." />
+    <meta property="og:image" content="https://trueastrotalk.com/lovable-uploads/e7ea263c-3fc3-4c24-a313-de804c9f1d3f.png" />
+    <meta property="og:site_name" content="True Astrotalk - Astrology Services" />
+
+    <!-- Twitter with Astrology Keywords -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://trueastrotalk.com/astrology/" />
+    <meta property="twitter:title" content="True Astrotalk - Best Online Astrology Consultation | Expert Astrology Services India" />
+    <meta property="twitter:description" content="Get accurate astrology predictions from India's top astrology experts. Professional astrology guidance for love, career, marriage, finance. Free chat with certified Vedic astrology consultants." />
+    <meta property="twitter:image" content="https://trueastrotalk.com/lovable-uploads/e7ea263c-3fc3-4c24-a313-de804c9f1d3f.png" />
+    <meta name="twitter:site" content="@trueastrotalk" />
+
+    <!-- Additional SEO Meta Tags -->
+    <meta name="language" content="English" />
+    <meta name="revisit-after" content="7 days" />
+    <meta name="distribution" content="global" />
+    <meta name="rating" content="general" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    
+    <!-- Favicon -->
+    <link rel="icon" href="/lovable-uploads/e7ea263c-3fc3-4c24-a313-de804c9f1d3f.png" type="image/png">
+    <link rel="apple-touch-icon" href="/lovable-uploads/e7ea263c-3fc3-4c24-a313-de804c9f1d3f.png">
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Schema.org markup for Google+ -->
+    <meta itemprop="name" content="True Astrotalk - Best Online Astrology Consultation">
+    <meta itemprop="description" content="Get accurate astrology predictions from India's top astrology experts. Professional astrology guidance for love, career, marriage, finance.">
+    <meta itemprop="image" content="https://trueastrotalk.com/lovable-uploads/e7ea263c-3fc3-4c24-a313-de804c9f1d3f.png">
+    
+    <!-- Critical CSS to prevent layout shift -->
+    <style>
+      /* Reset and base styles to prevent CLS */
+      * { 
+        box-sizing: border-box; 
+        margin: 0; 
+        padding: 0; 
+      }
+      
+      html, body {
+        height: 100%;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        line-height: 1.6;
+        font-display: swap;
+        scroll-behavior: smooth;
+      }
+      
+      #root {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      /* Prevent layout shift for hero section */
+      .hero-section { 
+        min-height: 100vh; 
+        background: linear-gradient(135deg, #dbeafe, #fce7f3); 
+        contain: layout style paint;
+        display: flex;
+        align-items: center;
+      }
+      
+      /* Optimize images to prevent CLS */
+      img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        aspect-ratio: attr(width) / attr(height);
+      }
+      
+      /* Loading placeholder to maintain layout */
+      .loading-placeholder { 
+        background: #f1f5f9; 
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; 
+        contain: layout style paint;
+        aspect-ratio: 1;
+      }
+      
+      @keyframes pulse { 
+        0%, 100% { opacity: 1; } 
+        50% { opacity: 0.5; } 
+      }
+      
+      /* Performance optimizations */
+      .gpu-accelerated {
+        transform: translateZ(0);
+        backface-visibility: hidden;
+        perspective: 1000px;
+      }
+      
+      /* Optimize animations */
+      .animate-pulse {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        will-change: opacity;
+      }
+      
+      /* Prevent font swapping CLS */
+      @font-face {
+        font-family: 'Inter';
+        font-display: swap;
+        src: local('Inter');
+      }
+      
+      /* Container query for responsive design */
+      .container {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1rem;
+      }
+      
+      /* Grid layout to prevent CLS */
+      .grid {
+        display: grid;
+        gap: 1rem;
+      }
+      
+      .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+      .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      
+      @media (min-width: 768px) {
+        .md\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .md\\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      }
+      
+      @media (min-width: 1024px) {
+        .lg\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .lg\\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .lg\\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      }
+      
+      /* Button base styles to prevent CLS */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+      }
+      
+      /* Text sizing to prevent CLS */
+      .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+      .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+      .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+      .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+      
+      /* Spacing utilities to prevent CLS */
+      .p-4 { padding: 1rem; }
+      .p-8 { padding: 2rem; }
+      .mb-4 { margin-bottom: 1rem; }
+      .mb-8 { margin-bottom: 2rem; }
+      .mt-8 { margin-top: 2rem; }
+      
+      /* Card styles to prevent CLS */
+      .card {
+        background: white;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        height: fit-content;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Enhanced Schema.org structured data with Astrology focus -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "True Astrotalk - Professional Astrology Services",
+      "url": "https://trueastrotalk.com/astrology/",
+      "logo": "https://trueastrotalk.com/lovable-uploads/e7ea263c-3fc3-4c24-a313-de804c9f1d3f.png",
+      "description": "India's most trusted online astrology platform providing expert astrology consultations, horoscope readings, and Vedic astrology guidance",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+91-9999999999",
+        "contactType": "customer service",
+        "availableLanguage": ["English", "Hindi"]
+      },
+      "sameAs": [
+        "https://www.facebook.com/trueastrotalk",
+        "https://www.instagram.com/trueastrotalk",
+        "https://twitter.com/trueastrotalk"
+      ],
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "reviewCount": "15000",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      "offers": {
+        "@type": "Offer",
+        "description": "Professional astrology consultation services including birth chart reading, horoscope analysis, and Vedic astrology guidance",
+        "availability": "https://schema.org/InStock",
+        "category": "Astrology Services"
+      },
+      "serviceType": "Astrology Consultation",
+      "areaServed": "India",
+      "knowsAbout": ["Vedic Astrology", "Horoscope Reading", "Birth Chart Analysis", "Numerology", "Tarot Reading", "Palmistry"]
+    }
+    </script>
+    
+    <!-- Professional Service Schema for Astrology -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ProfessionalService",
+      "name": "True Astrotalk Astrology Services",
+      "url": "https://trueastrotalk.com/astrology/",
+      "description": "Professional astrology consultation services providing accurate horoscope readings, birth chart analysis, and Vedic astrology guidance by certified astrologers",
+      "serviceType": "Astrology Consultation",
+      "provider": {
+        "@type": "Organization",
+        "name": "True Astrotalk"
+      },
+      "areaServed": {
+        "@type": "Country",
+        "name": "India"
+      },
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Astrology Services",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Birth Chart Analysis",
+              "description": "Detailed astrology birth chart reading and analysis"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Horoscope Reading",
+              "description": "Daily, weekly, and monthly astrology horoscope predictions"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Marriage Compatibility",
+              "description": "Astrology-based marriage compatibility and relationship guidance"
+            }
+          }
+        ]
+      }
+    }
+    </script>
+    
+    <!-- WebSite Schema for Search Box -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "True Astrotalk - Astrology Services",
+      "url": "https://trueastrotalk.com/astrology/",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://trueastrotalk.com/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      },
+      "about": {
+        "@type": "Thing",
+        "name": "Astrology",
+        "description": "Ancient science of astrology providing life guidance through celestial body analysis"
+      }
+    }
+    </script>
+
+    <!-- FAQ Schema for Astrology -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is astrology and how does it work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Astrology is an ancient science that studies the influence of celestial bodies on human life. It works by analyzing planetary positions at the time of birth to provide insights into personality, career, relationships, and life events."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How accurate are astrology predictions?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Professional astrology predictions by certified astrologers can achieve up to 99% accuracy when based on precise birth details and experienced analysis of birth charts and planetary positions."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What astrology services do you offer?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "We offer comprehensive astrology services including birth chart analysis, horoscope readings, marriage compatibility, career guidance, health predictions, financial consultation, and remedial solutions through gemstones and mantras."
+          }
+        }
+      ]
+    }
+    </script>
+  </body>
+</html>

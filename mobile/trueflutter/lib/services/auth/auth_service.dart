@@ -611,7 +611,7 @@ class AuthService {
   }
 
   bool get needsProfileCompletion {
-    return _currentUser?.role == UserRole.astrologer && _currentUser?.accountStatus == AccountStatus.profileIncomplete;
+    return _currentUser?.role == UserRole.astrologer && _currentUser?.accountStatus == AccountStatus.inactive;
   }
 
   bool get isAstrologerVerified {

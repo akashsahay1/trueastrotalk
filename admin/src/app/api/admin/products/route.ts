@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient, ObjectId } from 'mongodb';
 import { UploadService } from '@/lib/upload-service';
+import { generateProductId } from '@/lib/custom-id';
 
 const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const DB_NAME = 'trueastrotalkDB';
@@ -161,6 +162,7 @@ export async function POST(request: NextRequest) {
 
     // Create product document
     const productData = {
+      product_id: generateProductId(),
       name,
       description: description || '',
       price: parseFloat(price),

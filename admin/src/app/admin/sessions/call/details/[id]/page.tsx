@@ -1,7 +1,7 @@
 'use client';
 
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
+import Header from '@/components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -34,10 +34,10 @@ export default function CallSessionDetailPage() {
 
   useEffect(() => {
     document.body.className = '';
-    if (params.id) {
-      fetchSessionDetail(params.id as string);
+    if (params?.id) {
+      fetchSessionDetail(params?.id as string);
     }
-  }, [params.id]);
+  }, [params?.id]);
 
   useEffect(() => {
     if (session) {

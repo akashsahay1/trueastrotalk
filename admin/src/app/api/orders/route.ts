@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../lib/database';
 import '../../../lib/security';
+import { generateOrderId } from '../../../lib/custom-id';
 
 // Type definitions
 interface OrderItem {
@@ -312,6 +313,7 @@ export async function POST(request: NextRequest) {
 
     // Generate order
     const orderData = {
+      order_id: generateOrderId(),
       user_id: user_id,
       order_number: generateOrderNumber(),
       status: 'pending',

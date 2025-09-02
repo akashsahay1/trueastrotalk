@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
+import Link from 'next/link';import Header from '@/components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
 import { validateForm, getCategoryFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/client-validation';
 import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
 
@@ -122,7 +122,7 @@ export default function AddCategoryPage() {
                     <h5 className="mb-0">Category Information</h5>
                   </div>
                   <div className="card-body">
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmit} id="categoryForm">
                       <div className="form-group">
                         <label>Category Name *</label>
                         <input
@@ -157,36 +157,27 @@ export default function AddCategoryPage() {
                           <option value="false">Inactive</option>
                         </select>
                       </div>
-
-                      <div className="form-row">
-                        <div className="col-12">
-                          <button
-                            type="button"
-                            className="btn btn-secondary mr-2"
-                            onClick={() => router.push('/admin/products/categories')}
-                            disabled={loading}
-                          >
-                            <i className="fas fa-arrow-left mr-1"></i>Cancel
-                          </button>
-                          <button
-                            type="submit"
-                            className="btn btn-primary"
-                            disabled={loading}
-                          >
-                            {loading ? (
-                              <>
-                                <i className="fas fa-spinner fa-spin mr-1"></i>Adding Category...
-                              </>
-                            ) : (
-                              <>
-                                <i className="fas fa-save mr-1"></i>Add Category
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </div>
                     </form>
                   </div>
+                </div>
+                
+                <div className="mt-3">
+                  <button
+                    type="submit"
+                    form="categoryForm"
+                    className="btn btn-primary"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <i className="fas fa-spinner fa-spin mr-1"></i>Adding Category...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-save mr-1"></i>Add Category
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             </div>

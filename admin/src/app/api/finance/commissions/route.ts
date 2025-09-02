@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient } from 'mongodb';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalk';
+const DB_NAME = 'trueastrotalkDB';
 
 export async function GET(request: NextRequest) {
   try {
@@ -63,9 +63,9 @@ export async function GET(request: NextRequest) {
       const chatRevenue = chatSessions.reduce((sum, s) => sum + (s.total_amount || 0), 0);
       const videoRevenue = videoSessions.reduce((sum, s) => sum + (s.total_amount || 0), 0);
       
-      const callCommission = callRevenue * (astrologer.commission_rates?.call_rate || 70) / 100;
-      const chatCommission = chatRevenue * (astrologer.commission_rates?.chat_rate || 65) / 100;
-      const videoCommission = videoRevenue * (astrologer.commission_rates?.video_rate || 75) / 100;
+      const callCommission = callRevenue * (astrologer.commission_percentage?.call || 70) / 100;
+      const chatCommission = chatRevenue * (astrologer.commission_percentage?.chat || 65) / 100;
+      const videoCommission = videoRevenue * (astrologer.commission_percentage?.video || 75) / 100;
       
       const totalRevenue = callRevenue + chatRevenue + videoRevenue;
       const totalCommission = callCommission + chatCommission + videoCommission;
@@ -78,25 +78,25 @@ export async function GET(request: NextRequest) {
         email: astrologer.email_address,
         phone: astrologer.phone_number,
         status: astrologer.account_status,
-        commission_rates: astrologer.commission_rates,
+        commission_percentage: astrologer.commission_percentage,
         sessions: {
           call: {
             count: callSessions.length,
             revenue: callRevenue,
             commission: callCommission,
-            rate: astrologer.commission_rates?.call_rate || 70
+            rate: astrologer.commission_percentage?.call || 70
           },
           chat: {
             count: chatSessions.length,
             revenue: chatRevenue,
             commission: chatCommission,
-            rate: astrologer.commission_rates?.chat_rate || 65
+            rate: astrologer.commission_percentage?.chat || 65
           },
           video: {
             count: videoSessions.length,
             revenue: videoRevenue,
             commission: videoCommission,
-            rate: astrologer.commission_rates?.video_rate || 75
+            rate: astrologer.commission_percentage?.video || 75
           }
         },
         total_sessions: astrologerSessions.length,

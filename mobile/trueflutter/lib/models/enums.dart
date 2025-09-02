@@ -6,11 +6,11 @@ enum UserType {
   astrologer,
 }
 
-// User role enumeration 
+// User role enumeration (matches database user_type field)
 enum UserRole {
   customer,
   astrologer,
-  admin,
+  administrator, // Changed from 'admin' to match database
   manager,
 }
 
@@ -25,15 +25,12 @@ enum AuthType {
   other, // For future auth methods
 }
 
-// Account status enumeration
+// Account status enumeration (matches database account_status field)
 enum AccountStatus {
-  pending,
-  profileIncomplete,
-  submitted,
-  verified,
   active,
+  inactive,
   suspended,
-  rejected,
+  banned,
 }
 
 // Verification status enumeration
@@ -41,7 +38,6 @@ enum VerificationStatus {
   pending,
   verified,
   rejected,
-  unverified, // Keep for backward compatibility
 }
 
 // Consultation type enumeration
@@ -90,8 +86,8 @@ extension UserRoleExtension on UserRole {
         return 'Customer';
       case UserRole.astrologer:
         return 'Astrologer';
-      case UserRole.admin:
-        return 'Admin';
+      case UserRole.administrator:
+        return 'Administrator';
       case UserRole.manager:
         return 'Manager';
     }
@@ -103,7 +99,7 @@ extension UserRoleExtension on UserRole {
         return 'Customer';
       case UserRole.astrologer:
         return 'Astrologer';
-      case UserRole.admin:
+      case UserRole.administrator:
         return 'Administrator';
       case UserRole.manager:
         return 'Manager';
@@ -113,11 +109,11 @@ extension UserRoleExtension on UserRole {
   String get value {
     switch (this) {
       case UserRole.customer:
-        return 'customer'; // Server expects 'customer'
+        return 'customer';
       case UserRole.astrologer:
         return 'astrologer';
-      case UserRole.admin:
-        return 'admin';
+      case UserRole.administrator:
+        return 'administrator'; // Match database field exactly
       case UserRole.manager:
         return 'manager';
     }
@@ -129,13 +125,14 @@ extension UserRoleExtension on UserRole {
         return UserRole.customer;
       case 'astrologer':
         return UserRole.astrologer;
-      case 'admin':
-        return UserRole.admin;
+      case 'administrator':
+      case 'admin': // Handle both for API compatibility
+        return UserRole.administrator;
       case 'manager':
         return UserRole.manager;
       default:
         debugPrint('⚠️ Unknown user role: $value, defaulting to customer');
-        return UserRole.customer; // Default to customer instead of throwing
+        return UserRole.customer;
     }
   }
 }
@@ -143,58 +140,40 @@ extension UserRoleExtension on UserRole {
 extension AccountStatusExtension on AccountStatus {
   String get name {
     switch (this) {
-      case AccountStatus.pending:
-        return 'Pending';
-      case AccountStatus.profileIncomplete:
-        return 'Profile Incomplete';
-      case AccountStatus.submitted:
-        return 'Submitted';
-      case AccountStatus.verified:
-        return 'Verified';
       case AccountStatus.active:
         return 'Active';
+      case AccountStatus.inactive:
+        return 'Inactive';
       case AccountStatus.suspended:
         return 'Suspended';
-      case AccountStatus.rejected:
-        return 'Rejected';
+      case AccountStatus.banned:
+        return 'Banned';
     }
   }
 
   String get value {
     switch (this) {
-      case AccountStatus.pending:
-        return 'pending';
-      case AccountStatus.profileIncomplete:
-        return 'profile_incomplete';
-      case AccountStatus.submitted:
-        return 'submitted';
-      case AccountStatus.verified:
-        return 'verified';
       case AccountStatus.active:
         return 'active';
+      case AccountStatus.inactive:
+        return 'inactive';
       case AccountStatus.suspended:
         return 'suspended';
-      case AccountStatus.rejected:
-        return 'rejected';
+      case AccountStatus.banned:
+        return 'banned';
     }
   }
 
   static AccountStatus fromString(String value) {
     switch (value.toLowerCase()) {
-      case 'pending':
-        return AccountStatus.pending;
-      case 'profile_incomplete':
-        return AccountStatus.profileIncomplete;
-      case 'submitted':
-        return AccountStatus.submitted;
-      case 'verified':
-        return AccountStatus.verified;
       case 'active':
         return AccountStatus.active;
+      case 'inactive':
+        return AccountStatus.inactive;
       case 'suspended':
         return AccountStatus.suspended;
-      case 'rejected':
-        return AccountStatus.rejected;
+      case 'banned':
+        return AccountStatus.banned;
       default:
         debugPrint('⚠️ Unknown account status: $value, defaulting to active');
         return AccountStatus.active; // Default to active instead of throwing
@@ -249,8 +228,6 @@ extension VerificationStatusExtension on VerificationStatus {
         return 'Verified';
       case VerificationStatus.rejected:
         return 'Rejected';
-      case VerificationStatus.unverified:
-        return 'Unverified';
     }
   }
 
@@ -262,8 +239,6 @@ extension VerificationStatusExtension on VerificationStatus {
         return 'verified';
       case VerificationStatus.rejected:
         return 'rejected';
-      case VerificationStatus.unverified:
-        return 'unverified';
     }
   }
 
@@ -275,10 +250,8 @@ extension VerificationStatusExtension on VerificationStatus {
         return VerificationStatus.verified;
       case 'rejected':
         return VerificationStatus.rejected;
-      case 'unverified':
-        return VerificationStatus.unverified;
       default:
-        return VerificationStatus.pending; // Default to pending instead of throwing
+        return VerificationStatus.pending; // Default to pending
     }
   }
 }

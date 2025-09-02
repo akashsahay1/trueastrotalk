@@ -1,7 +1,7 @@
 'use client';
 
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
+import Header from '@/components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { successMessages, errorMessages } from '@/lib/sweetalert';
@@ -213,7 +213,7 @@ export default function NotificationPreferencesPage() {
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                 <div className="card">
                   <h5 className="card-header">User Notification Preferences</h5>
-                  <div className="card-body p-0">
+                  <div className="card-body">
                     <div className="table-responsive">
                       <table className="table table-striped">
                         <thead>

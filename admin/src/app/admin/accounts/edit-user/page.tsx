@@ -1,19 +1,20 @@
 'use client';
 
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
-import MediaLibrary from '@/components/MediaLibrary';
+import Header from '@/components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
+import MediaLibrary from '@/components/admin/MediaLibrary';
 import { useEffect, useState, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { validateForm, getUserFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/client-validation';
 import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
-import AirDatePickerComponent from '@/components/AirDatePickerComponent';
+import AirDatePickerComponent from '@/components/admin/AirDatePickerComponent';
 
 interface FormData {
   profile_image_id: string;
   social_auth_profile_image: string;
+  pan_card_id: string; // Reference to media collection for PAN card document
   full_name: string;
   email_address: string;
   password: string;
@@ -31,6 +32,7 @@ interface FormData {
   zip: string;
   account_status: string;
   is_online: boolean;
+  is_featured: boolean;
   verification_status: string;
   verification_status_message: string;
   qualifications: string[];
@@ -41,29 +43,38 @@ interface FormData {
     chat_rate: number;
     video_rate: number;
   };
+  commission_percentage: {
+    call: number;
+    chat: number;
+    video: number;
+  };
   experience_years: number;
   bio: string;
-}
-
-interface AstrologerOptions {
-  languages: string[];
-  skills: string[];
+  // Bank details for astrologer payouts
+  bank_details: {
+    account_holder_name: string;
+    account_number: string;
+    bank_name: string;
+    ifsc_code: string;
+  };
 }
 
 function EditUserContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const userId = searchParams.get('id');
+  const userId = searchParams?.get('id');
 
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+  const [defaultCommission, setDefaultCommission] = useState(25);
 
   const [formData, setFormData] = useState<FormData>({
     profile_image_id: '',
     social_auth_profile_image: '',
+    pan_card_id: '',
     full_name: '',
     email_address: '',
     password: '',
@@ -81,6 +92,7 @@ function EditUserContent() {
     zip: '',
     account_status: 'active',
     is_online: false,
+    is_featured: false,
     verification_status: 'pending',
     verification_status_message: '',
     qualifications: [],
@@ -91,40 +103,44 @@ function EditUserContent() {
       chat_rate: 0,
       video_rate: 0
     },
+    commission_percentage: {
+      call: defaultCommission,
+      chat: defaultCommission,
+      video: defaultCommission
+    },
     experience_years: 0,
-    bio: ''
+    bio: '',
+    bank_details: {
+      account_holder_name: '',
+      account_number: '',
+      bank_name: '',
+      ifsc_code: ''
+    }
   });
 
-  const [qualificationInput, setQualificationInput] = useState('');
   const [imagePreview, setImagePreview] = useState('');
   const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
+  const [panCardUploading, setPanCardUploading] = useState(false);
+  const [panCardPreview, setPanCardPreview] = useState('');
+  const [showPanCardLibrary, setShowPanCardLibrary] = useState(false);
 
-  // Dropdown states for languages and skills
-  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
-  const [showSkillDropdown, setShowSkillDropdown] = useState(false);
+  // Define user type booleans for conditional rendering
+  const isAstrologer = formData.user_type === 'astrologer';
+  const isCustomer = formData.user_type === 'customer';
+  const isAdmin = formData.user_type === 'administrator';
+  const isManager = formData.user_type === 'manager';
 
-  // Astrologer options from API
-  const [astrologerOptions, setAstrologerOptions] = useState<AstrologerOptions>({
-    languages: [],
-    skills: []
-  });
-  const [optionsLoading, setOptionsLoading] = useState(true);
-
-  const loadAstrologerOptions = async () => {
+  const loadAdminSettings = async () => {
     try {
-      setOptionsLoading(true);
-      const response = await fetch('/api/astrologer-options/active');
+      const response = await fetch('/api/admin/settings/general');
       const data = await response.json();
-
-      if (response.ok) {
-        setAstrologerOptions(data.data);
-      } else {
-        console.error('Failed to load astrologer options:', data.error);
+      
+      if (response.ok && data.config?.commission?.defaultRate) {
+        const defaultRate = data.config.commission.defaultRate;
+        setDefaultCommission(defaultRate);
       }
     } catch (error) {
-      console.error('Error loading astrologer options:', error);
-    } finally {
-      setOptionsLoading(false);
+      console.error('Failed to load admin settings:', error);
     }
   };
 
@@ -139,7 +155,6 @@ function EditUserContent() {
       if (response.ok) {
         const user = data.user;
 
-        // Format dates for input fields
         const formatDate = (dateString: string) => {
           if (!dateString) return '';
           try {
@@ -149,36 +164,29 @@ function EditUserContent() {
           }
         };
 
-        // Format time for input fields (ensures HH:MM format)
         const formatTime = (timeString: string) => {
           if (!timeString) return '';
-          
-          // If it's already in HH:MM format, return as is
           if (/^\d{2}:\d{2}$/.test(timeString)) {
             return timeString;
           }
-          
-          // If it's in HH:MM:SS format, remove seconds
           if (/^\d{2}:\d{2}:\d{2}$/.test(timeString)) {
             return timeString.substring(0, 5);
           }
-          
-          // If it's a Date object or timestamp, extract time
           try {
             const date = new Date(timeString);
             if (!isNaN(date.getTime())) {
               return date.toTimeString().substring(0, 5);
             }
           } catch {
-            // Fallback for any other format
+            // Fallback
           }
-          
           return timeString;
         };
 
         setFormData({
           profile_image_id: user.profile_image_id || '',
           social_auth_profile_image: user.social_auth_profile_image || '',
+          pan_card_id: user.pan_card_id || '',
           full_name: user.full_name || '',
           email_address: user.email_address || '',
           password: '', // Keep password empty for security
@@ -196,6 +204,7 @@ function EditUserContent() {
           zip: user.zip || '',
           account_status: user.account_status || 'active',
           is_online: user.is_online || false,
+          is_featured: user.is_featured || false,
           verification_status: user.verification_status || 'pending',
           verification_status_message: user.verification_status_message || '',
           qualifications: user.qualifications ? (Array.isArray(user.qualifications) ? user.qualifications : user.qualifications.split(',').map((s: string) => s.trim()).filter((s: string) => s)) : [],
@@ -206,13 +215,27 @@ function EditUserContent() {
             chat_rate: user.commission_rates?.chat_rate || user.chat_rate || 0,
             video_rate: user.commission_rates?.video_rate || user.video_rate || 0
           },
+          commission_percentage: {
+            call: user.commission_percentage?.call || defaultCommission,
+            chat: user.commission_percentage?.chat || defaultCommission,
+            video: user.commission_percentage?.video || defaultCommission
+          },
           experience_years: user.experience_years || 0,
-          bio: user.bio || ''
+          bio: user.bio || '',
+          bank_details: {
+            account_holder_name: user.bank_details?.account_holder_name || '',
+            account_number: user.bank_details?.account_number || '',
+            bank_name: user.bank_details?.bank_name || '',
+            ifsc_code: user.bank_details?.ifsc_code || ''
+          }
         });
 
-        // Set image preview if profile image exists
         if (user.profile_image) {
           setImagePreview(user.profile_image);
+        }
+        
+        if (user.pan_card_image) {
+          setPanCardPreview(user.pan_card_image);
         }
       } else {
         setError(data.error || 'Failed to fetch user data');
@@ -223,7 +246,7 @@ function EditUserContent() {
     } finally {
       setFetchLoading(false);
     }
-  }, [userId]);
+  }, [userId, defaultCommission]);
 
   useEffect(() => {
     document.body.className = '';
@@ -234,7 +257,7 @@ function EditUserContent() {
       return;
     }
 
-    loadAstrologerOptions();
+    loadAdminSettings();
     fetchUser();
   }, [userId, fetchUser]);
 
@@ -247,14 +270,7 @@ function EditUserContent() {
         ...prev,
         [name]: checked
       }));
-    } else if (type === 'time' || type === 'date') {
-      // Special handling for time and date inputs - preserve the value as-is
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
     } else if (name.includes('.')) {
-      // Handle nested objects like commission_rates.call_rate
       const [parent, child] = name.split('.');
       setFormData(prev => ({
         ...prev,
@@ -271,50 +287,31 @@ function EditUserContent() {
     }
   };
 
-  const addQualification = () => {
-    if (qualificationInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        qualifications: [...prev.qualifications, qualificationInput.trim()]
-      }));
-      setQualificationInput('');
-    }
-  };
-
-  const removeQualification = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      qualifications: prev.qualifications.filter((_, i) => i !== index)
-    }));
-  };
-
-  const toggleLanguage = (language: string) => {
-    setFormData(prev => ({
-      ...prev,
-      languages: prev.languages.includes(language)
-        ? prev.languages.filter(l => l !== language)
-        : [...prev.languages, language]
-    }));
-  };
-
-  const toggleSkill = (skill: string) => {
-    setFormData(prev => ({
-      ...prev,
-      skills: prev.skills.includes(skill)
-        ? prev.skills.filter(s => s !== skill)
-        : [...prev.skills, skill]
-    }));
-  };
-
   const handleImageSelect = (imageUrl: string, mediaId?: string) => {
     setFormData(prev => ({
       ...prev,
-      profile_image_id: mediaId || '', // Store media ID instead of URL
-      // Clear social auth profile image if switching to media library
+      profile_image_id: mediaId || '',
       social_auth_profile_image: ''
     }));
-    setImagePreview(imageUrl); // Still use URL for preview
-    setError(''); // Clear any previous errors
+    setImagePreview(imageUrl);
+    setError('');
+  };
+
+  const handlePanCardSelect = (imageUrl: string, mediaId?: string) => {
+    setFormData(prev => ({
+      ...prev,
+      pan_card_id: mediaId || ''
+    }));
+    setPanCardPreview(imageUrl);
+    setShowPanCardLibrary(false);
+  };
+
+  const removePanCard = () => {
+    setFormData(prev => ({
+      ...prev,
+      pan_card_id: ''
+    }));
+    setPanCardPreview('');
   };
 
   const openMediaLibrary = () => {
@@ -331,138 +328,105 @@ function EditUserContent() {
   };
 
   const validateUserForm = () => {
-    // Clear previous validation errors
     clearValidationErrors();
 
-    // Prepare form data for validation
-    const formDataForValidation = {
-      full_name: formData.full_name,
-      email_address: formData.email_address,
-      phone_number: formData.phone_number,
-      city: formData.city,
-      state: formData.state,
-      user_type: formData.user_type,
-      account_status: formData.account_status
-    };
-
-    // Get validation rules
-    const rules = getUserFormRules();
-
-    // Validate form
-    const validation = validateForm(formDataForValidation, rules);
-
-    // Additional custom validations for edit user
     const customErrors: {[key: string]: string} = {};
 
-    // Date of birth validation
-    if (!formData.date_of_birth) {
-      customErrors.date_of_birth = 'Date of birth is required';
-    } else {
-      const birthDate = new Date(formData.date_of_birth);
-      const today = new Date();
-      const minAge = new Date(today.getFullYear() - 100, today.getMonth(), today.getDate());
-      const maxAge = new Date(today.getFullYear() - 13, today.getMonth(), today.getDate());
+    // Basic validations for all user types
+    if (!formData.full_name.trim()) {
+      customErrors.full_name = 'Full name is required';
+    }
 
-      if (birthDate > maxAge) {
-        customErrors.date_of_birth = 'User must be at least 13 years old';
-      } else if (birthDate < minAge) {
-        customErrors.date_of_birth = 'Please enter a valid birth date';
+    if (!formData.email_address.trim()) {
+      customErrors.email_address = 'Email address is required';
+    }
+
+    // Password validation for edit (optional unless changing)
+    if (formData.password && formData.password.length < 6) {
+      customErrors.password = 'Password must be at least 6 characters';
+    }
+
+    // Customer-specific validations
+    if (formData.user_type === 'customer') {
+      if (!formData.date_of_birth) {
+        customErrors.date_of_birth = 'Date of birth is required';
       }
-    }
-
-    // Gender validation
-    if (!formData.gender) {
-      customErrors.gender = 'Gender is required';
-    }
-
-    // Country validation
-    if (!formData.country.trim()) {
-      customErrors.country = 'Country is required';
-    }
-
-    // Astrologer-specific validation
-    if (formData.user_type === 'astrologer') {
-      // Birth time validation for astrologers
       if (!formData.birth_time) {
-        customErrors.birth_time = 'Birth time is required for astrologers';
-      } else {
-        // Validate time format - now expects dropdown selection
-        const validTimeFormats = [
-          '12:00 AM', '12:30 AM', '01:00 AM', '01:30 AM', '02:00 AM', '02:30 AM',
-          '03:00 AM', '03:30 AM', '04:00 AM', '04:30 AM', '05:00 AM', '05:30 AM',
-          '06:00 AM', '06:30 AM', '07:00 AM', '07:30 AM', '08:00 AM', '08:30 AM',
-          '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
-          '12:00 PM', '12:30 PM', '01:00 PM', '01:30 PM', '02:00 PM', '02:30 PM',
-          '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM', '05:00 PM', '05:30 PM',
-          '06:00 PM', '06:30 PM', '07:00 PM', '07:30 PM', '08:00 PM', '08:30 PM',
-          '09:00 PM', '09:30 PM', '10:00 PM', '10:30 PM', '11:00 PM', '11:30 PM'
-        ];
-        if (!validTimeFormats.includes(formData.birth_time.trim())) {
-          customErrors.birth_time = 'Please select a valid time from the dropdown';
-        }
+        customErrors.birth_time = 'Birth time is required';
       }
-
-      // Birth place validation for astrologers
       if (!formData.birth_place.trim()) {
-        customErrors.birth_place = 'Birth place is required for astrologers';
+        customErrors.birth_place = 'Birth place is required';
       }
-
-      // Address validation for astrologers
       if (!formData.address.trim()) {
-        customErrors.address = 'Address is required for astrologers';
+        customErrors.address = 'Address is required';
       }
-
-      // ZIP code validation for astrologers
+      if (!formData.city.trim()) {
+        customErrors.city = 'City is required';
+      }
+      if (!formData.state.trim()) {
+        customErrors.state = 'State is required';
+      }
+      if (!formData.country.trim()) {
+        customErrors.country = 'Country is required';
+      }
       if (!formData.zip.trim()) {
-        customErrors.zip = 'ZIP code is required for astrologers';
-      }
-
-      if (formData.experience_years < 0 || formData.experience_years > 50) {
-        customErrors.experience_years = 'Experience must be between 0 and 50 years';
-      }
-
-      // Basic commission rates validation
-      const validateRate = (rate: number, fieldName: string, displayName: string) => {
-        if (rate < 0) {
-          customErrors[fieldName] = `${displayName} must be a positive number`;
-        }
-      };
-
-      validateRate(formData.commission_rates.call_rate, 'call_rate', 'Call rate');
-      validateRate(formData.commission_rates.chat_rate, 'chat_rate', 'Chat rate');
-      validateRate(formData.commission_rates.video_rate, 'video_rate', 'Video rate');
-
-      if (formData.languages.length === 0) {
-        customErrors.languages = 'At least one language is required for astrologers';
-      }
-
-      if (formData.skills.length === 0) {
-        customErrors.skills = 'At least one skill is required for astrologers';
-      }
-
-      if (formData.qualifications.length === 0) {
-        customErrors.qualifications = 'At least one qualification is required for astrologers';
-      }
-
-      if (!formData.bio || formData.bio.trim().length === 0) {
-        customErrors.bio = 'Professional bio is required for astrologers';
+        customErrors.zip = 'ZIP code is required';
       }
     }
 
-    // Convert validation errors to field errors format
-    const validationFieldErrors = displayFieldErrors(validation.errors);
-    
-    // Combine all errors
-    const allErrors = { ...validationFieldErrors, ...customErrors };
+    // Astrologer-specific validations
+    if (formData.user_type === 'astrologer') {
+      if (!formData.address.trim()) {
+        customErrors.address = 'Address is required';
+      }
+      if (!formData.city.trim()) {
+        customErrors.city = 'City is required';
+      }
+      if (!formData.state.trim()) {
+        customErrors.state = 'State is required';
+      }
+      if (!formData.country.trim()) {
+        customErrors.country = 'Country is required';
+      }
+      if (!formData.zip.trim()) {
+        customErrors.zip = 'ZIP code is required';
+      }
+      if (formData.commission_rates.call_rate <= 0) {
+        customErrors.call_rate = 'Call rate must be greater than 0';
+      }
+      if (formData.commission_rates.chat_rate <= 0) {
+        customErrors.chat_rate = 'Chat rate must be greater than 0';
+      }
+      if (formData.commission_rates.video_rate <= 0) {
+        customErrors.video_rate = 'Video rate must be greater than 0';
+      }
+      
+      // PAN Card validation
+      if (!formData.pan_card_id || formData.pan_card_id.trim() === '') {
+        customErrors.pan_card = 'PAN card upload is required for astrologers';
+      }
+      
+      // Bank details validation
+      if (!formData.bank_details.account_holder_name.trim()) {
+        customErrors.bank_account_holder_name = 'Account holder name is required';
+      }
+      if (!formData.bank_details.account_number.trim()) {
+        customErrors.bank_account_number = 'Account number is required';
+      }
+      if (!formData.bank_details.bank_name.trim()) {
+        customErrors.bank_bank_name = 'Bank name is required';
+      }
+      if (!formData.bank_details.ifsc_code.trim()) {
+        customErrors.bank_ifsc_code = 'IFSC code is required';
+      } else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.bank_details.ifsc_code)) {
+        customErrors.bank_ifsc_code = 'Invalid IFSC code format';
+      }
+    }
 
-    // Display errors on form fields
-    if (Object.keys(allErrors).length > 0) {
-      setFieldErrors(allErrors);
-
-      // Show first error in SweetAlert
-      const firstError = Object.values(allErrors)[0];
+    if (Object.keys(customErrors).length > 0) {
+      setFieldErrors(customErrors);
+      const firstError = Object.values(customErrors)[0];
       errorMessages.updateFailed(`Validation Error: ${firstError}`);
-
       return false;
     }
 
@@ -476,12 +440,10 @@ function EditUserContent() {
     setSuccess('');
     setFieldErrors({});
 
-    // Validate form first
     if (!validateUserForm()) {
       return;
     }
 
-    // Show loading alert
     showLoadingAlert('Updating user...');
     setLoading(true);
 
@@ -493,14 +455,13 @@ function EditUserContent() {
         },
         body: JSON.stringify({
           ...formData,
-          qualifications: formData.qualifications.join(','), // Keep as qualifications for backend
+          qualifications: formData.qualifications.join(','),
           skills: formData.skills.join(','),
           languages: formData.languages.join(','),
-          commission_rates: {
-            call_rate: formData.commission_rates.call_rate,
-            chat_rate: formData.commission_rates.chat_rate,
-            video_rate: formData.commission_rates.video_rate,
-          },
+          call_rate: formData.commission_rates.call_rate,
+          chat_rate: formData.commission_rates.chat_rate,
+          video_rate: formData.commission_rates.video_rate,
+          commission_percentage: formData.commission_percentage,
         }),
       });
 
@@ -510,16 +471,13 @@ function EditUserContent() {
         closeSweetAlert();
         await successMessages.updated('User');
 
-        // Redirect to appropriate page
-        let redirectPath = '/admin/accounts/customers'; // default
+        let redirectPath = '/admin/accounts/customers';
         if (formData.user_type === 'administrator') {
           redirectPath = '/admin/accounts/admins';
         } else if (formData.user_type === 'manager') {
           redirectPath = '/admin/accounts/managers';
         } else if (formData.user_type === 'astrologer') {
           redirectPath = '/admin/accounts/astrologers';
-        } else if (formData.user_type === 'customer') {
-          redirectPath = '/admin/accounts/customers';
         }
 
         router.push(redirectPath);
@@ -538,24 +496,17 @@ function EditUserContent() {
     }
   };
 
-  const isAstrologer = formData.user_type === 'astrologer';
-
   if (fetchLoading) {
     return (
       <div className="dashboard-main-wrapper">
         <Header />
         <Sidebar />
-
         <div className="dashboard-wrapper">
           <div className="dashboard-ecommerce">
             <div className="container-fluid dashboard-content">
-              <div className="row">
-                <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12 mb-4">
-                  <div className="text-center p-5">
-                    <i className="fas fa-spinner fa-spin fa-3x text-primary"></i>
-                    <p className="mt-3">Loading user data...</p>
-                  </div>
-                </div>
+              <div className="text-center p-5">
+                <i className="fas fa-spinner fa-spin fa-3x text-primary"></i>
+                <p className="mt-3">Loading user data...</p>
               </div>
             </div>
           </div>
@@ -569,16 +520,11 @@ function EditUserContent() {
       <div className="dashboard-main-wrapper">
         <Header />
         <Sidebar />
-
         <div className="dashboard-wrapper">
           <div className="dashboard-ecommerce">
             <div className="container-fluid dashboard-content">
-              <div className="row">
-                <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
-                  <div className="alert alert-danger">
-                    User ID is required to edit a user.
-                  </div>
-                </div>
+              <div className="alert alert-danger">
+                User ID is required to edit a user.
               </div>
             </div>
           </div>
@@ -597,7 +543,7 @@ function EditUserContent() {
           <div className="container-fluid dashboard-content">
             {/* Page Header */}
             <div className="row">
-              <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+              <div className="col-xl-12">
                 <div className="page-header">
                   <h2 className="pageheader-title">Edit User</h2>
                   <p className="pageheader-text">Update user account information</p>
@@ -618,7 +564,6 @@ function EditUserContent() {
               </div>
             </div>
 
-            {/* Error and Success Messages */}
             {error && (
               <div className="row">
                 <div className="col-xl-12">
@@ -629,530 +574,585 @@ function EditUserContent() {
               </div>
             )}
 
-            {success && (
-              <div className="row">
-                <div className="col-xl-12">
-                  <div className="alert alert-success" role="alert">
-                    {success}
-                  </div>
-                </div>
-              </div>
-            )}
-
             <form onSubmit={handleSubmit}>
-
               <div className="row">
-                <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12 col-12 mb-4">
-									{/* Basic Information Card */}
+                <div className="col-xl-8 col-lg-8 col-md-12 col-sm-12 col-12">
+                  
+                  {/* Basic Information Card - Always Visible */}
                   <div className="card mb-4">
                     <h5 className="card-header">Basic Information</h5>
                     <div className="card-body">
-
-                      {/* Profile Image Upload */}
-                      <div className="form-group row">
-                        <div className="col-12 mb-4">
-                          <label className="label">Profile Image</label>
+                      <div className="row">
+                        {/* Profile Image */}
+                        <div className="col-md-12 mb-4">
+                          <label className="label">Profile Image (Optional)</label>
                           <div className="d-flex align-items-start">
                             <div className="mr-3 text-center">
                               <div className="position-relative">
-                                {imagePreview || formData.profile_image_id || formData.social_auth_profile_image ? (
+                                {imagePreview ? (
                                   <>
-                                    <Image src={imagePreview} alt="Profile Preview" className="rounded-circle" style={{ objectFit: 'cover', cursor: 'pointer', border: '2px solid #dee2e6' }} onClick={openMediaLibrary} title="Click to change image" width={80} height={80} />
-                                    <button type="button" className="btn btn-danger btn-sm position-absolute" style={{ top: '-5px', right: '-5px', width: '25px', height: '25px', borderRadius: '50%', padding: '0', fontSize: '14px' }} onClick={removeImage} title="Remove Image">
-                                      ×
-                                    </button>
+                                    <Image
+                                      src={imagePreview}
+                                      alt="Profile Preview"
+                                      width={80}
+                                      height={80}
+                                      className="rounded-circle"
+                                      style={{ width: '80px', height: '80px', objectFit: 'cover', cursor: 'pointer', border: '2px solid #dee2e6' }}
+                                      onClick={openMediaLibrary}
+                                    />
+                                    <button
+                                      type="button"
+                                      className="btn btn-danger btn-sm position-absolute"
+                                      style={{ top: '-5px', right: '-5px', width: '25px', height: '25px', borderRadius: '50%', padding: '0' }}
+                                      onClick={removeImage}
+                                    >×</button>
                                   </>
                                 ) : (
-                                  <div
-                                    className="rounded-circle bg-light d-flex align-items-center justify-content-center text-muted position-relative" style={{ width: '80px', height: '80px', cursor: 'pointer', border: '2px dashed #dee2e6', transition: 'all 0.3s ease' }} onClick={openMediaLibrary} onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#1877F2'; e.currentTarget.style.backgroundColor = '#f8f9fa'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#dee2e6'; e.currentTarget.style.backgroundColor = '#f8f9fa'; }} title="Click to select image from media library"
+                                  <div 
+                                    className="rounded-circle bg-light d-flex align-items-center justify-content-center"
+                                    style={{ width: '80px', height: '80px', cursor: 'pointer', border: '2px dashed #dee2e6' }}
+                                    onClick={openMediaLibrary}
                                   >
                                     <i className="fas fa-plus fa-lg text-primary"></i>
                                   </div>
                                 )}
                               </div>
-                              {(formData.profile_image_id || formData.social_auth_profile_image) && (
-                                <div className="mt-2 text-success text-center">
-                                  <i className="fas fa-check-circle mr-1"></i>
-                                  <small>Image Added!</small>
-                                </div>
-                              )}
                             </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="form-group row">
-                        <div className="col-6 mb-4">
+                        {/* User Type */}
+                        <div className="col-md-6 mb-4">
                           <label className="label">User Type <span className="text-danger">*</span></label>
-                          <select className="custom-select" name="user_type" value={formData.user_type} onChange={handleInputChange} required>
+                          <select 
+                            className="custom-select" 
+                            name="user_type" 
+                            value={formData.user_type} 
+                            onChange={handleInputChange} 
+                            required
+                          >
                             <option value="customer">Customer</option>
                             <option value="astrologer">Astrologer</option>
                             <option value="administrator">Administrator</option>
                             <option value="manager">Manager</option>
                           </select>
                         </div>
-                        <div className="col-6 mb-4">
-                          <label className="label">Account Status <span className="text-danger">*</span></label>
-                          <select className="custom-select" name="account_status" value={formData.account_status} onChange={handleInputChange} required>
+
+                        {/* Full Name */}
+                        <div className="col-md-6 mb-4">
+                          <label className="label">Full Name <span className="text-danger">*</span></label>
+                          <input 
+                            type="text" 
+                            className={`form-control ${fieldErrors.full_name ? 'is-invalid' : ''}`}
+                            name="full_name" 
+                            value={formData.full_name} 
+                            onChange={handleInputChange} 
+                            required 
+                          />
+                          {fieldErrors.full_name && (
+                            <div className="invalid-feedback">{fieldErrors.full_name}</div>
+                          )}
+                        </div>
+
+                        {/* Email Address */}
+                        <div className="col-md-6 mb-4">
+                          <label className="label">Email Address <span className="text-danger">*</span></label>
+                          <input 
+                            type="email" 
+                            className={`form-control ${fieldErrors.email_address ? 'is-invalid' : ''}`}
+                            name="email_address" 
+                            value={formData.email_address} 
+                            onChange={handleInputChange} 
+                            required 
+                          />
+                          {fieldErrors.email_address && (
+                            <div className="invalid-feedback">{fieldErrors.email_address}</div>
+                          )}
+                        </div>
+
+                        {/* Password */}
+                        <div className="col-md-6 mb-4">
+                          <label className="label">
+                            Password (Leave empty to keep current)
+                          </label>
+                          <input 
+                            type="password" 
+                            className={`form-control ${fieldErrors.password ? 'is-invalid' : ''}`}
+                            name="password" 
+                            value={formData.password} 
+                            onChange={handleInputChange}
+                            placeholder="Enter new password or leave empty"
+                          />
+                          {fieldErrors.password && (
+                            <div className="invalid-feedback">{fieldErrors.password}</div>
+                          )}
+                        </div>
+
+                        {/* Auth Type - Only for Customers */}
+                        {isCustomer && (
+                          <div className="col-md-6 mb-4">
+                            <label className="label">Authentication Type</label>
+                            <select 
+                              className="custom-select" 
+                              name="auth_type" 
+                              value={formData.auth_type} 
+                              onChange={handleInputChange}
+                            >
+                              <option value="email">Email</option>
+                              <option value="phone">Phone</option>
+                              <option value="google">Google</option>
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Customer Information Card */}
+                  <div className={`card mb-4 ${!isCustomer ? 'd-none' : ''}`}>
+                    <h5 className="card-header">Customer Information</h5>
+                    <div className="card-body">
+                      <div className="row">
+                        <div className="col-md-4 mb-4">
+                          <label className="label">Birth Date <span className="text-danger">*</span></label>
+                          <AirDatePickerComponent
+                            className={`form-control ${fieldErrors.date_of_birth ? 'is-invalid' : ''}`}
+                            placeholder="Select birth date"
+                            value={formData.date_of_birth}
+                            onChange={(date: string) => {
+                              setFormData(prev => ({
+                                ...prev,
+                                date_of_birth: date
+                              }));
+                            }}
+                            maxDate={new Date()}
+                            minDate={new Date('1900-01-01')}
+                          />
+                          {fieldErrors.date_of_birth && (
+                            <div className="invalid-feedback d-block">{fieldErrors.date_of_birth}</div>
+                          )}
+                        </div>
+
+                        <div className="col-md-4 mb-4">
+                          <label className="label">Birth Time <span className="text-danger">*</span></label>
+                          <input 
+                            type="text" 
+                            className={`form-control ${fieldErrors.birth_time ? 'is-invalid' : ''}`}
+                            name="birth_time" 
+                            value={formData.birth_time} 
+                            onChange={handleInputChange} 
+                            placeholder="07:30 AM"
+                          />
+                          {fieldErrors.birth_time && (
+                            <div className="invalid-feedback">{fieldErrors.birth_time}</div>
+                          )}
+                        </div>
+
+                        <div className="col-md-4 mb-4">
+                          <label className="label">Birth Place <span className="text-danger">*</span></label>
+                          <input 
+                            type="text" 
+                            className={`form-control ${fieldErrors.birth_place ? 'is-invalid' : ''}`}
+                            name="birth_place" 
+                            value={formData.birth_place} 
+                            onChange={handleInputChange}
+                          />
+                          {fieldErrors.birth_place && (
+                            <div className="invalid-feedback">{fieldErrors.birth_place}</div>
+                          )}
+                        </div>
+
+                        <div className="col-md-12 mb-4">
+                          <label className="label">Address <span className="text-danger">*</span></label>
+                          <textarea 
+                            className={`form-control ${fieldErrors.address ? 'is-invalid' : ''}`}
+                            name="address"
+                            value={formData.address}
+                            onChange={handleInputChange}
+                            rows={2}
+                          />
+                          {fieldErrors.address && (
+                            <div className="invalid-feedback">{fieldErrors.address}</div>
+                          )}
+                        </div>
+
+                        <div className="col-md-3 mb-4">
+                          <label className="label">Country <span className="text-danger">*</span></label>
+                          <input 
+                            type="text" 
+                            className={`form-control ${fieldErrors.country ? 'is-invalid' : ''}`}
+                            name="country"
+                            value={formData.country}
+                            onChange={handleInputChange}
+                          />
+                          {fieldErrors.country && (
+                            <div className="invalid-feedback">{fieldErrors.country}</div>
+                          )}
+                        </div>
+
+                        <div className="col-md-3 mb-4">
+                          <label className="label">State <span className="text-danger">*</span></label>
+                          <input 
+                            type="text" 
+                            className={`form-control ${fieldErrors.state ? 'is-invalid' : ''}`}
+                            name="state"
+                            value={formData.state}
+                            onChange={handleInputChange}
+                          />
+                          {fieldErrors.state && (
+                            <div className="invalid-feedback">{fieldErrors.state}</div>
+                          )}
+                        </div>
+
+                        <div className="col-md-3 mb-4">
+                          <label className="label">City <span className="text-danger">*</span></label>
+                          <input 
+                            type="text" 
+                            className={`form-control ${fieldErrors.city ? 'is-invalid' : ''}`}
+                            name="city"
+                            value={formData.city}
+                            onChange={handleInputChange}
+                          />
+                          {fieldErrors.city && (
+                            <div className="invalid-feedback">{fieldErrors.city}</div>
+                          )}
+                        </div>
+
+                        <div className="col-md-3 mb-4">
+                          <label className="label">ZIP Code <span className="text-danger">*</span></label>
+                          <input 
+                            type="text" 
+                            className={`form-control ${fieldErrors.zip ? 'is-invalid' : ''}`}
+                            name="zip"
+                            value={formData.zip}
+                            onChange={handleInputChange}
+                          />
+                          {fieldErrors.zip && (
+                            <div className="invalid-feedback">{fieldErrors.zip}</div>
+                          )}
+                        </div>
+
+                        <div className="col-md-6 mb-4">
+                          <label className="label">Account Status</label>
+                          <select 
+                            className="custom-select" 
+                            name="account_status" 
+                            value={formData.account_status} 
+                            onChange={handleInputChange}
+                          >
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
                             <option value="banned">Banned</option>
                           </select>
                         </div>
-                        <div className="col-6 mb-4">
-                          <label className="label">Gender <span className="text-danger">*</span></label>
-                          <select className="custom-select" name="gender" value={formData.gender} onChange={handleInputChange} required>
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
-                            <option value="other">Other</option>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Astrologer Information Card */}
+                  <div className={`card mb-4 ${!isAstrologer ? 'd-none' : ''}`}>
+                    <h5 className="card-header">Astrologer Information</h5>
+                    <div className="card-body">
+                      <div className="row">
+                        <div className="col-md-12 mb-4">
+                          <label className="label">Address <span className="text-danger">*</span></label>
+                          <textarea 
+                            className={`form-control ${fieldErrors.address ? 'is-invalid' : ''}`}
+                            name="address"
+                            value={formData.address}
+                            onChange={handleInputChange}
+                            rows={2}
+                          />
+                          {fieldErrors.address && (
+                            <div className="invalid-feedback">{fieldErrors.address}</div>
+                          )}
+                        </div>
+
+                        <div className="col-md-3 mb-4">
+                          <label className="label">Country <span className="text-danger">*</span></label>
+                          <input 
+                            type="text" 
+                            className={`form-control ${fieldErrors.country ? 'is-invalid' : ''}`}
+                            name="country"
+                            value={formData.country}
+                            onChange={handleInputChange}
+                          />
+                          {fieldErrors.country && (
+                            <div className="invalid-feedback">{fieldErrors.country}</div>
+                          )}
+                        </div>
+
+                        <div className="col-md-3 mb-4">
+                          <label className="label">State <span className="text-danger">*</span></label>
+                          <input 
+                            type="text" 
+                            className={`form-control ${fieldErrors.state ? 'is-invalid' : ''}`}
+                            name="state"
+                            value={formData.state}
+                            onChange={handleInputChange}
+                          />
+                          {fieldErrors.state && (
+                            <div className="invalid-feedback">{fieldErrors.state}</div>
+                          )}
+                        </div>
+
+                        <div className="col-md-3 mb-4">
+                          <label className="label">City <span className="text-danger">*</span></label>
+                          <input 
+                            type="text" 
+                            className={`form-control ${fieldErrors.city ? 'is-invalid' : ''}`}
+                            name="city"
+                            value={formData.city}
+                            onChange={handleInputChange}
+                          />
+                          {fieldErrors.city && (
+                            <div className="invalid-feedback">{fieldErrors.city}</div>
+                          )}
+                        </div>
+
+                        <div className="col-md-3 mb-4">
+                          <label className="label">ZIP Code <span className="text-danger">*</span></label>
+                          <input 
+                            type="text" 
+                            className={`form-control ${fieldErrors.zip ? 'is-invalid' : ''}`}
+                            name="zip"
+                            value={formData.zip}
+                            onChange={handleInputChange}
+                          />
+                          {fieldErrors.zip && (
+                            <div className="invalid-feedback">{fieldErrors.zip}</div>
+                          )}
+                        </div>
+
+                        <div className="col-md-6 mb-4">
+                          <label className="label">Account Status</label>
+                          <select 
+                            className="custom-select" 
+                            name="account_status" 
+                            value={formData.account_status} 
+                            onChange={handleInputChange}
+                          >
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="banned">Banned</option>
                           </select>
                         </div>
-                        <div className="col-6 mb-4">
-                          <label className="label">Authentication Type</label>
-                          <select className="custom-select" name="auth_type" value={formData.auth_type} onChange={handleInputChange}>
-                            <option value="email">Email</option>
-                            <option value="phone">Phone</option>
-                            <option value="google">Google</option>
+
+                        <div className="col-md-6 mb-4">
+                          <label className="label">Verification Status</label>
+                          <select 
+                            className="custom-select"
+                            name="verification_status"
+                            value={formData.verification_status}
+                            onChange={handleInputChange}
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="verified">Verified</option>
+                            <option value="rejected">Rejected</option>
                           </select>
                         </div>
-                        <div className="col-6 mb-4">
-                          <label className="label">Full Name <span className="text-danger">*</span></label>
-                          <input type="text" className={`form-control ${fieldErrors.full_name ? 'is-invalid' : ''}`} name="full_name" value={formData.full_name} onChange={handleInputChange} placeholder="" required />
-                          {fieldErrors.full_name && (
-                            <div className="invalid-feedback d-block">
-                              {fieldErrors.full_name}
+
+                        <div className="col-md-12 mb-4">
+                          <div className="form-check">
+                            <input 
+                              className="form-check-input" 
+                              type="checkbox" 
+                              id="is_featured"
+                              name="is_featured"
+                              checked={formData.is_featured}
+                              onChange={handleInputChange}
+                            />
+                            <label className="form-check-label" htmlFor="is_featured">
+                              Featured Astrologer
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* PAN Card Upload */}
+                        <div className={`col-md-12 mb-4 ${!isAstrologer ? 'd-none' : ''}`}>
+                          <label className="label">PAN Card <span className="text-danger">*</span></label>
+                          <div className="mb-3">
+                            {panCardPreview ? (
+                              <div className="position-relative" style={{ cursor: 'pointer' }} onClick={() => setShowPanCardLibrary(true)}>
+                                <Image
+                                  src={panCardPreview}
+                                  alt='PAN Card Preview'
+                                  width={400}
+                                  height={250}
+                                  className='img-thumbnail'
+                                  style={{ width: '100%', height: 'auto', maxWidth: '400px', objectFit: 'cover' }}
+                                />
+                                <button
+                                  type="button"
+                                  className="btn btn-danger btn-sm position-absolute"
+                                  style={{ top: '10px', right: '10px' }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removePanCard();
+                                  }}
+                                >
+                                  <i className="fas fa-times"></i> Remove
+                                </button>
+                              </div>
+                            ) : (
+                              <div 
+                                className="bg-light d-flex align-items-center justify-content-center"
+                                style={{ 
+                                  width: '100%', 
+                                  height: '200px', 
+                                  cursor: 'pointer', 
+                                  border: '2px dashed #dee2e6',
+                                  borderRadius: '8px'
+                                }}
+                                onClick={() => setShowPanCardLibrary(true)}
+                              >
+                                <div className="text-center">
+                                  <i className="fas fa-file-upload fa-3x text-primary mb-2"></i>
+                                  <div className="text-primary font-weight-bold">Click to upload PAN Card</div>
+                                  <small className="text-muted">JPG, PNG files supported</small>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          {fieldErrors.pan_card && (
+                            <div className="text-danger small">
+                              <i className="fas fa-exclamation-circle"></i> {fieldErrors.pan_card}
                             </div>
                           )}
-                        </div>
-                        <div className="col-6 mb-4">
-                          <label className="label">Password (Leave empty for unchanged)</label>
-                          <input type="password" className="form-control" name="password" value={formData.password} onChange={handleInputChange} placeholder="" />
-                        </div>
-                        <div className="col-6 mb-4">
-                          <label className="label">Email Address <span className="text-danger">*</span></label>
-                          <input type="email" className={`form-control ${fieldErrors.email_address ? 'is-invalid' : ''}`} name="email_address" value={formData.email_address} onChange={handleInputChange} placeholder="" required />
-                          {fieldErrors.email_address && (
-                            <div className="invalid-feedback d-block">
-                              {fieldErrors.email_address}
-                            </div>
-                          )}
-                        </div>
-                        <div className="col-6 mb-4">
-                          <label className="label">Phone Number <span className="text-danger">*</span></label>
-                          <input type="tel" className={`form-control ${fieldErrors.phone_number ? 'is-invalid' : ''}`} name="phone_number" value={formData.phone_number} onChange={handleInputChange} placeholder="" required />
-                          {fieldErrors.phone_number && (
-                            <div className="invalid-feedback d-block">
-                              {fieldErrors.phone_number}
-                            </div>
-                          )}
+                          <small className="text-muted">Click to select PAN card from media library</small>
                         </div>
                       </div>
                     </div>
                   </div>
-									{/* Personal Information Card */}
-									<div className="card mb-4">
-											<h5 className="card-header">Personal Information</h5>
-											<div className="card-body">
-												<div className="form-group row">
-													<div className="col-4 mb-4">
-														<label className="label">Birth Date {isAstrologer && <span className="text-danger">*</span>}</label>
-														<AirDatePickerComponent
-															className={`form-control ${fieldErrors.date_of_birth ? 'is-invalid' : ''}`}
-															placeholder="Select birth date"
-															value={formData.date_of_birth}
-															onChange={(date: string) => {
-																setFormData(prev => ({
-																	...prev,
-																	date_of_birth: date
-																}));
-															}}
-															maxDate={new Date()}
-															minDate={new Date('1900-01-01')}
-														/>
-														{fieldErrors.date_of_birth && (
-															<div className="invalid-feedback d-block">
-																{fieldErrors.date_of_birth}
-															</div>
-														)}
-													</div>
-													<div className="col-4 mb-4">
-														<label className="label">Birth Time {isAstrologer && <span className="text-danger">*</span>}</label>
-														<select 
-															className={`form-control ${fieldErrors.birth_time ? 'is-invalid' : ''}`} 
-															name="birth_time" 
-															value={formData.birth_time} 
-															onChange={handleInputChange} 
-															required={isAstrologer}
-														>
-															<option value="">Select time</option>
-															<option value="12:00 AM">12:00 AM</option>
-															<option value="12:30 AM">12:30 AM</option>
-															<option value="01:00 AM">01:00 AM</option>
-															<option value="01:30 AM">01:30 AM</option>
-															<option value="02:00 AM">02:00 AM</option>
-															<option value="02:30 AM">02:30 AM</option>
-															<option value="03:00 AM">03:00 AM</option>
-															<option value="03:30 AM">03:30 AM</option>
-															<option value="04:00 AM">04:00 AM</option>
-															<option value="04:30 AM">04:30 AM</option>
-															<option value="05:00 AM">05:00 AM</option>
-															<option value="05:30 AM">05:30 AM</option>
-															<option value="06:00 AM">06:00 AM</option>
-															<option value="06:30 AM">06:30 AM</option>
-															<option value="07:00 AM">07:00 AM</option>
-															<option value="07:30 AM">07:30 AM</option>
-															<option value="08:00 AM">08:00 AM</option>
-															<option value="08:30 AM">08:30 AM</option>
-															<option value="09:00 AM">09:00 AM</option>
-															<option value="09:30 AM">09:30 AM</option>
-															<option value="10:00 AM">10:00 AM</option>
-															<option value="10:30 AM">10:30 AM</option>
-															<option value="11:00 AM">11:00 AM</option>
-															<option value="11:30 AM">11:30 AM</option>
-															<option value="12:00 PM">12:00 PM</option>
-															<option value="12:30 PM">12:30 PM</option>
-															<option value="01:00 PM">01:00 PM</option>
-															<option value="01:30 PM">01:30 PM</option>
-															<option value="02:00 PM">02:00 PM</option>
-															<option value="02:30 PM">02:30 PM</option>
-															<option value="03:00 PM">03:00 PM</option>
-															<option value="03:30 PM">03:30 PM</option>
-															<option value="04:00 PM">04:00 PM</option>
-															<option value="04:30 PM">04:30 PM</option>
-															<option value="05:00 PM">05:00 PM</option>
-															<option value="05:30 PM">05:30 PM</option>
-															<option value="06:00 PM">06:00 PM</option>
-															<option value="06:30 PM">06:30 PM</option>
-															<option value="07:00 PM">07:00 PM</option>
-															<option value="07:30 PM">07:30 PM</option>
-															<option value="08:00 PM">08:00 PM</option>
-															<option value="08:30 PM">08:30 PM</option>
-															<option value="09:00 PM">09:00 PM</option>
-															<option value="09:30 PM">09:30 PM</option>
-															<option value="10:00 PM">10:00 PM</option>
-															<option value="10:30 PM">10:30 PM</option>
-															<option value="11:00 PM">11:00 PM</option>
-															<option value="11:30 PM">11:30 PM</option>
-														</select>
-														{fieldErrors.birth_time && (
-															<div className="invalid-feedback d-block">
-																{fieldErrors.birth_time}
-															</div>
-														)}
-													</div>
-													<div className="col-4 mb-4">
-														<label className="label">Birth Place {isAstrologer && <span className="text-danger">*</span>}</label>
-														<input 
-															type="text" 
-															className={`form-control ${fieldErrors.birth_place ? 'is-invalid' : ''}`} 
-															name="birth_place" 
-															value={formData.birth_place} 
-															onChange={handleInputChange} 
-															placeholder="" 
-															required={isAstrologer} 
-														/>
-														{fieldErrors.birth_place && (
-															<div className="invalid-feedback d-block">
-																{fieldErrors.birth_place}
-															</div>
-														)}
-													</div>
-													{/* Address Information */}
-													<div className="col-6 mb-4">
-														<label className="label">Country {isAstrologer && <span className="text-danger">*</span>}</label>
-														<input type="text" className="form-control" name="country" value={formData.country} onChange={handleInputChange} placeholder="" required={isAstrologer} />
-													</div>
-													<div className="col-6 mb-4">
-														<label className="label">State {isAstrologer && <span className="text-danger">*</span>}</label>
-														<input type="text" className="form-control" name="state" value={formData.state} onChange={handleInputChange} placeholder="" required={isAstrologer} />
-													</div>
-													<div className="col-6 mb-4">
-														<label className="label">City {isAstrologer && <span className="text-danger">*</span>}</label>
-														<input type="text" className="form-control" name="city" value={formData.city} onChange={handleInputChange} placeholder="" required={isAstrologer} />
-													</div>
-													<div className="col-6 mb-4">
-														<label className="label">ZIP Code {isAstrologer && <span className="text-danger">*</span>}</label>
-														<input type="text" className="form-control" name="zip" value={formData.zip} onChange={handleInputChange} placeholder="" required={isAstrologer} />
-													</div>
-													<div className="col-12 mb-4">
-														<label className="label">Address {isAstrologer && <span className="text-danger">*</span>}</label>
-														<textarea className="form-control" name="address" value={formData.address} onChange={handleInputChange} placeholder="" rows={3} required={isAstrologer} />
-													</div>
-												{/* Astrologer Professional Information */}
-												{isAstrologer && (
-													<>
-														{/* Professional Bio */}
-															<div className="col-12 mb-4">
-																<label className="label">About Me <span className="text-danger">*</span></label>
-																<textarea className={`form-control ${fieldErrors.bio ? 'is-invalid' : ''}`} name="bio" value={formData.bio} onChange={handleInputChange} placeholder="" rows={4} required={isAstrologer} />
-																{fieldErrors.bio && (
-																	<div className="invalid-feedback">
-																		{fieldErrors.bio}
-																	</div>
-																)}
-															</div>
-															<div className="col-6 mb-4">
-																<label className="label">Experience Years <span className="text-danger">*</span></label>
-																<input type="number" className={`form-control ${fieldErrors.experience_years ? 'is-invalid' : ''}`} name="experience_years" value={formData.experience_years} onChange={handleInputChange} placeholder="" min="1" required={isAstrologer} />
-																{fieldErrors.experience_years && (
-																	<div className="invalid-feedback d-block">
-																		{fieldErrors.experience_years}
-																	</div>
-																)}
-															</div>
-															<div className="col-6 mb-4">
-																<label className="label">Languages <span className="text-danger">*</span></label>
-																<div className="dropdown">
-																	<input type="text" className="form-control dropdown-toggle" value={formData.languages.join(', ') || 'Select languages...'} onFocus={() => setShowLanguageDropdown(true)} readOnly style={{ cursor: 'pointer' }} data-toggle="dropdown" />
-																	{showLanguageDropdown && (
-																		<div className="dropdown-menu show w-100" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-																			<div className="px-3 py-2">
-																				<div className="d-flex justify-content-between align-items-center mb-2">
-																					<small className="text-muted">Select Languages</small>
-																					<button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setShowLanguageDropdown(false)}>
-																						<i className="fas fa-times"></i>
-																					</button>
-																				</div>
-																				{optionsLoading ? (
-																					<div className="text-center py-2">
-																						<i className="fas fa-spinner fa-spin"></i>
-																						<small className="d-block text-muted">Loading...</small>
-																					</div>
-																				) : (
-																					<div style={{ maxHeight: '150px', overflowY: 'auto' }}>
-																						{astrologerOptions.languages.map((language) => (
-																							<div key={language} className="form-check">
-																								<input type="checkbox" className="form-check-input" id={`lang-${language}`} checked={formData.languages.includes(language)} onChange={() => toggleLanguage(language)} />
-																								<label className="form-check-label" htmlFor={`lang-${language}`}>
-																									{language}
-																								</label>
-																							</div>
-																						))}
-																					</div>
-																				)}
-																			</div>
-																		</div>
-																	)}
-																</div>
-																{formData.languages.length > 0 && (
-																	<div className="mt-2">
-																		<div className="d-flex flex-wrap">
-																			{formData.languages.map((lang, index) => (
-																				<span key={index} className="badge badge-success mr-1 mb-1">
-																					{lang}
-																					<button type="button" className="btn btn-sm ml-1 p-0" style={{ background: 'none', border: 'none', color: 'white' }} onClick={() => toggleLanguage(lang)}>
-																						×
-																					</button>
-																				</span>
-																			))}
-																		</div>
-																	</div>
-																)}
-																{fieldErrors.languages && (
-																	<div className="text-danger small mt-1">
-																		{fieldErrors.languages}
-																	</div>
-																)}
-															</div>
-															<div className="col-6 mb-4">
-																<label className="label">Qualifications <span className="text-danger">*</span></label>
-																<div className="input-group mb-2">
-																	<input type="text" className="form-control" value={qualificationInput} onChange={(e) => setQualificationInput(e.target.value)} placeholder="Add qualification" onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addQualification())} />
-																	<div className="input-group-append">
-																		<button type="button" className="btn btn-outline-primary" onClick={addQualification}>
-																			<i className="fas fa-plus"></i>
-																		</button>
-																	</div>
-																</div>
-																<div className="d-flex flex-wrap">
-																	{formData.qualifications.map((qual, index) => (
-																		<span key={index} className="badge badge-primary mr-2 mb-2">
-																			{qual}
-																			<button
-																				type="button"
-																				className="btn btn-sm ml-1 p-0"
-																				style={{ background: 'none', border: 'none', color: 'white' }}
-																				onClick={() => removeQualification(index)}
-																			>
-																				×
-																			</button>
-																		</span>
-																	))}
-																</div>
-																{fieldErrors.qualifications && (
-																	<div className="text-danger small mt-1">
-																		{fieldErrors.qualifications}
-																	</div>
-																)}
-															</div>
-															<div className="col-6 mb-4">
-																<label className="label">Skills <span className="text-danger">*</span></label>
-																<div className="dropdown">
-																	<input
-																		type="text"
-																		className="form-control dropdown-toggle"
-																		value={formData.skills.join(', ') || 'Select skills...'}
-																		onFocus={() => setShowSkillDropdown(true)}
-																		readOnly
-																		style={{ cursor: 'pointer' }}
-																		data-toggle="dropdown"
-																	/>
-																	{showSkillDropdown && (
-																		<div className="dropdown-menu show w-100" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-																			<div className="px-3 py-2">
-																				<div className="d-flex justify-content-between align-items-center mb-2">
-																					<button
-																						type="button"
-																						className="btn btn-sm btn-outline-secondary"
-																						onClick={() => setShowSkillDropdown(false)}
-																					>
-																						<i className="fas fa-times"></i>
-																					</button>
-																				</div>
-																				{optionsLoading ? (
-																					<div className="text-center py-2">
-																						<i className="fas fa-spinner fa-spin"></i>
-																						<small className="d-block text-muted">Loading...</small>
-																					</div>
-																				) : (
-																					<div style={{ maxHeight: '150px', overflowY: 'auto' }}>
-																						{astrologerOptions.skills.map((skill) => (
-																							<div key={skill} className="form-check">
-																								<input
-																									type="checkbox"
-																									className="form-check-input"
-																									id={`skill-${skill}`}
-																									checked={formData.skills.includes(skill)}
-																									onChange={() => toggleSkill(skill)}
-																								/>
-																								<label className="form-check-label" htmlFor={`skill-${skill}`}>
-																									{skill}
-																								</label>
-																							</div>
-																						))}
-																					</div>
-																				)}
-																			</div>
-																		</div>
-																	)}
-																</div>
-																{formData.skills.length > 0 && (
-																	<div className="mt-2">
-																		<div className="d-flex flex-wrap">
-																			{formData.skills.map((skill, index) => (
-																				<span key={index} className="badge badge-info mr-1 mb-1">
-																					{skill}
-																					<button
-																						type="button"
-																						className="btn btn-sm ml-1 p-0"
-																						style={{ background: 'none', border: 'none', color: 'white' }}
-																						onClick={() => toggleSkill(skill)}
-																					>
-																						×
-																					</button>
-																				</span>
-																			))}
-																		</div>
-																	</div>
-																)}
-																{fieldErrors.skills && (
-																	<div className="text-danger small mt-1">
-																		{fieldErrors.skills}
-																	</div>
-																)}
-															</div>
-															<div className="col-4 mb-4">
-																<label className="label">Call Rate (₹/min) <span className="text-danger">*</span></label>
-																<input type="number" className={`form-control ${fieldErrors.call_rate ? 'is-invalid' : ''}`} name="commission_rates.call_rate" value={formData.commission_rates.call_rate} onChange={handleInputChange} placeholder="" min="0" required={isAstrologer} />
-																{fieldErrors.call_rate && (
-																	<div className="invalid-feedback d-block">
-																		{fieldErrors.call_rate}
-																	</div>
-																)}
-															</div>
-															<div className="col-4 mb-4">
-																<label className="label">Chat Rate (₹/min) <span className="text-danger">*</span></label>
-																<input type="number" className={`form-control ${fieldErrors.chat_rate ? 'is-invalid' : ''}`} name="commission_rates.chat_rate" value={formData.commission_rates.chat_rate} onChange={handleInputChange} placeholder="" min="0" required={isAstrologer} />
-																{fieldErrors.chat_rate && (
-																	<div className="invalid-feedback d-block">
-																		{fieldErrors.chat_rate}
-																	</div>
-																)}
-															</div>
-															<div className="col-4 mb-4">
-																<label className="label">Video Rate (₹/min) <span className="text-danger">*</span></label>
-																<input type="number" className={`form-control ${fieldErrors.video_rate ? 'is-invalid' : ''}`} name="commission_rates.video_rate" value={formData.commission_rates.video_rate} onChange={handleInputChange} placeholder="" min="0" required={isAstrologer} />
-																{fieldErrors.video_rate && (
-																	<div className="invalid-feedback d-block">
-																		{fieldErrors.video_rate}
-																	</div>
-																)}
-															</div>
-													</>
-												)}
-											</div>
-											</div>
-									</div>
-									{/* Account Settings Card */}
-									<div className="card mb-4">
-										<h5 className="card-header">Account Settings</h5>
-										<div className="card-body">
 
-											<div className="form-group row">
-												<div className="col-4 mb-4">
-													<label className="label">Verification Status</label>
-													<select className="custom-select" name="verification_status" value={formData.verification_status} onChange={handleInputChange}>
-														<option value="pending">Pending</option>
-														<option value="verified">Verified</option>
-														<option value="rejected">Rejected</option>
-													</select>
-												</div>
-												<div className="col-4 mb-4">
-													<div className="form-check mt-4">
-														<input className="form-check-input" type="checkbox" id="is_online" name="is_online" checked={formData.is_online} onChange={handleInputChange} />
-														<label className="form-check-label" htmlFor="is_online">
-															Currently Online
-														</label>
-													</div>
-												</div>
-											</div>
+                  {/* Astrologer Rates & Commission Card */}
+                  <div className={`card mb-4 ${!isAstrologer ? 'd-none' : ''}`}>
+                    <h5 className="card-header">Rates & Commission</h5>
+                    <div className="card-body">
+                      <div className="row">
+                        <div className="col-md-4 mb-4">
+                          <label className="label">Call Rate (₹/min) <span className="text-danger">*</span></label>
+                          <input 
+                            type="number" 
+                            className={`form-control ${fieldErrors.call_rate ? 'is-invalid' : ''}`}
+                            name="commission_rates.call_rate"
+                            value={formData.commission_rates.call_rate}
+                            onChange={handleInputChange}
+                            min="0"
+                          />
+                          {fieldErrors.call_rate && (
+                            <div className="invalid-feedback">{fieldErrors.call_rate}</div>
+                          )}
+                        </div>
 
-											<div className="form-group row">
-												<div className="col-12 mb-4">
-													<label className="label">Verification Status Message</label>
-													<textarea className="form-control" name="verification_status_message" value={formData.verification_status_message} onChange={handleInputChange} placeholder="" rows={3} />
-													<small className="form-text text-muted">
-														This message will be shown to the user regarding their verification status
-													</small>
-												</div>
-											</div>
-										</div>
-									</div>
-									<div className="row">
-										<div className="col-12 mb-4">
-											<button type="submit" className="btn btn-primary" disabled={loading}>
-												{loading ? (
-													<>
-														<i className="fas fa-spinner fa-spin mr-2"></i> Updating...
-													</>
-												) : (
-													<>
-														Update Account
-													</>
-												)}
-											</button>
-										</div>
-									</div>
+                        <div className="col-md-4 mb-4">
+                          <label className="label">Chat Rate (₹/min) <span className="text-danger">*</span></label>
+                          <input 
+                            type="number" 
+                            className={`form-control ${fieldErrors.chat_rate ? 'is-invalid' : ''}`}
+                            name="commission_rates.chat_rate"
+                            value={formData.commission_rates.chat_rate}
+                            onChange={handleInputChange}
+                            min="0"
+                          />
+                          {fieldErrors.chat_rate && (
+                            <div className="invalid-feedback">{fieldErrors.chat_rate}</div>
+                          )}
+                        </div>
+
+                        <div className="col-md-4 mb-4">
+                          <label className="label">Video Rate (₹/min) <span className="text-danger">*</span></label>
+                          <input 
+                            type="number" 
+                            className={`form-control ${fieldErrors.video_rate ? 'is-invalid' : ''}`}
+                            name="commission_rates.video_rate"
+                            value={formData.commission_rates.video_rate}
+                            onChange={handleInputChange}
+                            min="0"
+                          />
+                          {fieldErrors.video_rate && (
+                            <div className="invalid-feedback">{fieldErrors.video_rate}</div>
+                          )}
+                        </div>
+
+                        <div className="col-md-4 mb-4">
+                          <label className="label">Call Commission (%)</label>
+                          <input 
+                            type="number" 
+                            className="form-control"
+                            name="commission_percentage.call"
+                            value={formData.commission_percentage.call}
+                            onChange={handleInputChange}
+                            min="0"
+                            max="100"
+                          />
+                          <small className="text-muted">Platform commission percentage</small>
+                        </div>
+
+                        <div className="col-md-4 mb-4">
+                          <label className="label">Chat Commission (%)</label>
+                          <input 
+                            type="number" 
+                            className="form-control"
+                            name="commission_percentage.chat"
+                            value={formData.commission_percentage.chat}
+                            onChange={handleInputChange}
+                            min="0"
+                            max="100"
+                          />
+                          <small className="text-muted">Platform commission percentage</small>
+                        </div>
+
+                        <div className="col-md-4 mb-4">
+                          <label className="label">Video Commission (%)</label>
+                          <input 
+                            type="number" 
+                            className="form-control"
+                            name="commission_percentage.video"
+                            value={formData.commission_percentage.video}
+                            onChange={handleInputChange}
+                            min="0"
+                            max="100"
+                          />
+                          <small className="text-muted">Platform commission percentage</small>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="row">
+                    <div className="col-12">
+                      <button type="submit" className="btn btn-primary" disabled={loading}>
+                        {loading ? (
+                          <><i className="fas fa-spinner fa-spin mr-2"></i>Updating...</>
+                        ) : (
+                          <>Update Account</>
+                        )}
+                      </button>
+                      <Link href="/admin/accounts/customers" className="btn btn-secondary ml-2">
+                        Cancel
+                      </Link>
+                    </div>
+                  </div>
+
                 </div>
               </div>
-          	</form>
+            </form>
 
-            {/* Media Library Modal */}
+            {/* Media Library Modals */}
             <MediaLibrary
               isOpen={isMediaLibraryOpen}
               onClose={() => setIsMediaLibraryOpen(false)}
               onSelect={handleImageSelect}
               selectedImage={imagePreview}
+            />
+            
+            <MediaLibrary
+              isOpen={showPanCardLibrary}
+              onClose={() => setShowPanCardLibrary(false)}
+              onSelect={handlePanCardSelect}
+              selectedImage={panCardPreview}
             />
           </div>
         </div>
@@ -1167,17 +1167,12 @@ export default function EditUserPage() {
       <div className="dashboard-main-wrapper">
         <Header />
         <Sidebar />
-
         <div className="dashboard-wrapper">
           <div className="dashboard-ecommerce">
             <div className="container-fluid dashboard-content">
-              <div className="row">
-                <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12 mb-4">
-                  <div className="text-center p-5">
-                    <i className="fas fa-spinner fa-spin fa-3x text-primary"></i>
-                    <p className="mt-3">Loading page...</p>
-                  </div>
-                </div>
+              <div className="text-center p-5">
+                <i className="fas fa-spinner fa-spin fa-3x text-primary"></i>
+                <p className="mt-3">Loading page...</p>
               </div>
             </div>
           </div>

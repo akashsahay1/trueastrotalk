@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
+import Header from '@/components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
 import { confirmDialogs, errorMessages } from '@/lib/sweetalert';
 
 interface Category {
@@ -234,9 +234,6 @@ export default function CategoriesPage() {
                     )}
                   </button>
                 )}
-                <Link href="/admin/products" className="btn btn-outline-secondary mr-2">
-                  <i className="fas fa-arrow-left mr-1"></i>Back to Products
-                </Link>
                 <button 
                   className="btn btn-outline-secondary mr-2"
                   onClick={() => setShowFilterModal(true)}
@@ -244,7 +241,7 @@ export default function CategoriesPage() {
                   <i className="fas fa-filter mr-1"></i>
                   Filters {searchTerm && <span className="badge badge-primary ml-1">•</span>}
                 </button>
-                <Link href="/admin/products/categories/add" className="btn btn-primary">Add</Link>
+                <Link href="/admin/products/categories/add" className="btn btn-primary">Add New</Link>
               </div>
 
               {/* Categories Table */}

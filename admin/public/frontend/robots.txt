@@ -1,0 +1,31 @@
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://trueastrotalk.com/sitemap.xml
+
+# Specific rules for search engines
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Slurp
+Allow: /
+Crawl-delay: 1
+
+# Disallow admin areas (if any)
+Disallow: /admin/
+Disallow: /private/
+Disallow: /*.json$
+Disallow: /*.xml$
+
+# Allow important pages
+Allow: /about/
+Allow: /services/
+Allow: /horoscope/
+Allow: /astrology/

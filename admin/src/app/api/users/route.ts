@@ -53,6 +53,7 @@ async function resolveProfileImage(user: Record<string, unknown>, mediaCollectio
   return null;
 }
 
+
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 );

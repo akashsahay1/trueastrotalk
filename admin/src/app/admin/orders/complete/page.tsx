@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
+import Header from '@/components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
 import Link from 'next/link';
 
 interface OrderItem {
@@ -64,8 +64,24 @@ export default function CompleteOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  // Applied filters (active filters)
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
+  const [appliedStatusFilter, setAppliedStatusFilter] = useState<string>('all');
+  const [appliedFromDate, setAppliedFromDate] = useState<string>('');
+  const [appliedToDate, setAppliedToDate] = useState<string>('');
+  const [appliedAmountMin, setAppliedAmountMin] = useState<string>('');
+  const [appliedAmountMax, setAppliedAmountMax] = useState<string>('');
+  const [appliedCustomerFilter, setAppliedCustomerFilter] = useState<string>('');
+  
+  // Temporary filters (in modal)
+  const [tempSearchTerm, setTempSearchTerm] = useState('');
+  const [tempStatusFilter, setTempStatusFilter] = useState<string>('all');
+  const [tempFromDate, setTempFromDate] = useState<string>('');
+  const [tempToDate, setTempToDate] = useState<string>('');
+  const [tempAmountMin, setTempAmountMin] = useState<string>('');
+  const [tempAmountMax, setTempAmountMax] = useState<string>('');
+  const [tempCustomerFilter, setTempCustomerFilter] = useState<string>('');
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [totalOrders, setTotalOrders] = useState(0);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -76,11 +92,6 @@ export default function CompleteOrdersPage() {
   const [exportFormat, setExportFormat] = useState<'csv' | 'excel'>('csv');
   const [bulkUpdating, setBulkUpdating] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [fromDate, setFromDate] = useState<string>('');
-  const [toDate, setToDate] = useState<string>('');
-  const [amountMin, setAmountMin] = useState<string>('');
-  const [amountMax, setAmountMax] = useState<string>('');
-  const [customerFilter, setCustomerFilter] = useState<string>('');
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [modalAnimating, setModalAnimating] = useState(false);
@@ -95,12 +106,22 @@ export default function CompleteOrdersPage() {
     const today = new Date();
     const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
     
-    setFromDate(thirtyDaysAgo.toISOString().split('T')[0]);
-    setToDate(today.toISOString().split('T')[0]);
+    const defaultFromDate = thirtyDaysAgo.toISOString().split('T')[0];
+    const defaultToDate = today.toISOString().split('T')[0];
+    
+    setAppliedFromDate(defaultFromDate);
+    setAppliedToDate(defaultToDate);
+    setTempFromDate(defaultFromDate);
+    setTempToDate(defaultToDate);
   }, []);
 
+  // Fetch orders when applied filters change
+  useEffect(() => {
+    fetchOrders(currentPage);
+  }, [currentPage, appliedSearchTerm, appliedStatusFilter, appliedFromDate, appliedToDate, appliedAmountMin, appliedAmountMax, appliedCustomerFilter]);
+
   // Fetch orders from API
-  const fetchOrders = async (page = 1, search = '', status = 'all') => {
+  const fetchOrders = async (page = 1) => {
     try {
       setLoading(true);
       setError(null);
@@ -110,13 +131,13 @@ export default function CompleteOrdersPage() {
         limit: ordersPerPage.toString(),
         type: 'complete',
         payment_status: 'paid',
-        ...(search && { search }),
-        ...(status !== 'all' && { status }),
-        ...(fromDate && { from_date: fromDate }),
-        ...(toDate && { to_date: toDate }),
-        ...(amountMin && { amount_min: amountMin }),
-        ...(amountMax && { amount_max: amountMax }),
-        ...(customerFilter && { customer: customerFilter }),
+        ...(appliedSearchTerm && { search: appliedSearchTerm }),
+        ...(appliedStatusFilter !== 'all' && { status: appliedStatusFilter }),
+        ...(appliedFromDate && { from_date: appliedFromDate }),
+        ...(appliedToDate && { to_date: appliedToDate }),
+        ...(appliedAmountMin && { amount_min: appliedAmountMin }),
+        ...(appliedAmountMax && { amount_max: appliedAmountMax }),
+        ...(appliedCustomerFilter && { customer: appliedCustomerFilter }),
       });
 
       const response = await fetch(`/api/admin/orders?${queryParams}`);
@@ -141,23 +162,6 @@ export default function CompleteOrdersPage() {
     }
   };
 
-  // Initial data load
-  useEffect(() => {
-    fetchOrders(currentPage, searchTerm, statusFilter);
-  }, [currentPage, statusFilter, fromDate, toDate, amountMin, amountMax, customerFilter]);
-
-  // Search handler with debounce
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (currentPage === 1) {
-        fetchOrders(1, searchTerm, statusFilter);
-      } else {
-        setCurrentPage(1);
-      }
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
 
   // Bulk status update
   const handleBulkStatusUpdate = async () => {
@@ -186,7 +190,7 @@ export default function CompleteOrdersPage() {
         setSelectedOrders([]);
         setBulkStatus('');
         setShowBulkModal(false);
-        fetchOrders(currentPage, searchTerm, statusFilter);
+        fetchOrders(currentPage);
       } else {
         alert(data.message || 'Failed to update orders');
       }
@@ -206,13 +210,13 @@ export default function CompleteOrdersPage() {
       const queryParams = new URLSearchParams({
         type: 'complete',
         format: exportFormat,
-        ...(searchTerm && { search: searchTerm }),
-        ...(statusFilter !== 'all' && { status: statusFilter }),
-        ...(fromDate && { from_date: fromDate }),
-        ...(toDate && { to_date: toDate }),
-        ...(amountMin && { amount_min: amountMin }),
-        ...(amountMax && { amount_max: amountMax }),
-        ...(customerFilter && { customer: customerFilter }),
+        ...(appliedSearchTerm && { search: appliedSearchTerm }),
+        ...(appliedStatusFilter !== 'all' && { status: appliedStatusFilter }),
+        ...(appliedFromDate && { from_date: appliedFromDate }),
+        ...(appliedToDate && { to_date: appliedToDate }),
+        ...(appliedAmountMin && { amount_min: appliedAmountMin }),
+        ...(appliedAmountMax && { amount_max: appliedAmountMax }),
+        ...(appliedCustomerFilter && { customer: appliedCustomerFilter }),
       });
 
       const response = await fetch(`/api/admin/orders/export?${queryParams}`);
@@ -279,7 +283,7 @@ export default function CompleteOrdersPage() {
       
       if (data.success) {
         // Refresh orders list
-        fetchOrders(currentPage, searchTerm, statusFilter);
+        fetchOrders(currentPage);
         // Update selected order if modal is open
         if (selectedOrder && selectedOrder._id === orderId) {
           setSelectedOrder({...selectedOrder, status: newStatus as Order['status']});
@@ -318,6 +322,14 @@ export default function CompleteOrdersPage() {
   const totalPages = Math.ceil(totalOrders / ordersPerPage);
 
   const openModal = () => {
+    // Copy current applied filters to temporary filters when opening modal
+    setTempSearchTerm(appliedSearchTerm);
+    setTempStatusFilter(appliedStatusFilter);
+    setTempFromDate(appliedFromDate);
+    setTempToDate(appliedToDate);
+    setTempAmountMin(appliedAmountMin);
+    setTempAmountMax(appliedAmountMax);
+    setTempCustomerFilter(appliedCustomerFilter);
     setShowFilterModal(true);
     setTimeout(() => setModalAnimating(true), 10);
   };
@@ -328,20 +340,43 @@ export default function CompleteOrdersPage() {
   };
 
   const clearFilters = () => {
+    // Set default date range to last 30 days
     const today = new Date();
     const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
-    setFromDate(thirtyDaysAgo.toISOString().split('T')[0]);
-    setToDate(today.toISOString().split('T')[0]);
-    setSearchTerm('');
-    setStatusFilter('all');
-    setAmountMin('');
-    setAmountMax('');
-    setCustomerFilter('');
+    const defaultFromDate = thirtyDaysAgo.toISOString().split('T')[0];
+    const defaultToDate = today.toISOString().split('T')[0];
+    
+    // Clear both temporary and applied filters
+    setTempSearchTerm('');
+    setTempStatusFilter('all');
+    setTempFromDate(defaultFromDate);
+    setTempToDate(defaultToDate);
+    setTempAmountMin('');
+    setTempAmountMax('');
+    setTempCustomerFilter('');
+    
+    setAppliedSearchTerm('');
+    setAppliedStatusFilter('all');
+    setAppliedFromDate(defaultFromDate);
+    setAppliedToDate(defaultToDate);
+    setAppliedAmountMin('');
+    setAppliedAmountMax('');
+    setAppliedCustomerFilter('');
+    
     setCurrentPage(1);
     closeModal();
   };
 
   const applyFilters = () => {
+    // Apply temporary filters to applied filters
+    setAppliedSearchTerm(tempSearchTerm);
+    setAppliedStatusFilter(tempStatusFilter);
+    setAppliedFromDate(tempFromDate);
+    setAppliedToDate(tempToDate);
+    setAppliedAmountMin(tempAmountMin);
+    setAppliedAmountMax(tempAmountMax);
+    setAppliedCustomerFilter(tempCustomerFilter);
+    
     setCurrentPage(1);
     closeModal();
   };
@@ -375,77 +410,6 @@ export default function CompleteOrdersPage() {
               </div>
             </div>
 
-            {/* Order Statistics */}
-            <div className="ecommerce-widget">
-              <div className="row">
-                <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-primary shadow-sm h-100">
-                    <div className="card-body">
-                      <h5 className="text-muted mb-4">Total Orders</h5>
-                      <div className="d-flex justify-content-between">
-                        <div className="metric-value">
-                          <h1 className="font-weight-bold">{totalOrders.toLocaleString()}</h1>
-                        </div>
-                        <div className="metric-label align-self-center text-primary">
-                          <i className="fas fa-shopping-cart fa-2x"></i>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-primary shadow-sm h-100">
-                    <div className="card-body">
-                      <h5 className="text-muted mb-4">Delivered Orders</h5>
-                      <div className="d-flex justify-content-between">
-                        <div className="metric-value">
-                          <h1 className="font-weight-bold text-success">
-                            {orders.filter(order => order.status === 'delivered').length}
-                          </h1>
-                        </div>
-                        <div className="metric-label align-self-center text-success">
-                          <i className="fas fa-check-circle fa-2x"></i>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-primary shadow-sm h-100">
-                    <div className="card-body">
-                      <h5 className="text-muted mb-4">Pending Orders</h5>
-                      <div className="d-flex justify-content-between">
-                        <div className="metric-value">
-                          <h1 className="font-weight-bold text-warning">
-                            {orders.filter(order => ['placed', 'confirmed', 'processing'].includes(order.status)).length}
-                          </h1>
-                        </div>
-                        <div className="metric-label align-self-center text-warning">
-                          <i className="fas fa-clock fa-2x"></i>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-primary shadow-sm h-100">
-                    <div className="card-body">
-                      <h5 className="text-muted mb-4">Revenue (This Page)</h5>
-                      <div className="d-flex justify-content-between">
-                        <div className="metric-value">
-                          <h1 className="font-weight-bold text-info">
-                            ₹{orders.reduce((sum, order) => sum + order.total_amount, 0).toLocaleString()}
-                          </h1>
-                        </div>
-                        <div className="metric-label align-self-center text-info">
-                          <i className="fas fa-rupee-sign fa-2x"></i>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {/* Filters and Search */}
             <div className="row">
@@ -454,6 +418,13 @@ export default function CompleteOrdersPage() {
                   <div className="card-header d-flex justify-content-between align-items-center">
                     <h5 className="mb-0">Complete Orders List</h5>
                     <div>
+                      <button 
+                        className="btn btn-outline-secondary btn-sm mr-2"
+                        onClick={openModal}
+                      >
+                        <i className="fas fa-filter mr-1"></i>
+                        Filters {(appliedSearchTerm || appliedStatusFilter !== 'all' || appliedAmountMin || appliedAmountMax || appliedCustomerFilter) && <span className="badge badge-primary ml-1">•</span>}
+                      </button>
                       <button
                         className="btn btn-outline-success btn-sm mr-2"
                         onClick={() => setShowExportModal(true)}
@@ -474,118 +445,6 @@ export default function CompleteOrdersPage() {
                     </div>
                   </div>
                   <div className="card-body">
-                    {/* Basic Filters */}
-                    <div className="row mb-3">
-                      <div className="col-md-2">
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="Search orders..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                      </div>
-                      <div className="col-md-2">
-                        <select
-                          className="form-control"
-                          value={statusFilter}
-                          onChange={(e) => setStatusFilter(e.target.value)}
-                        >
-                          <option value="all">All Statuses</option>
-                          <option value="pending">Pending</option>
-                          <option value="confirmed">Confirmed</option>
-                          <option value="processing">Processing</option>
-                          <option value="shipped">Shipped</option>
-                          <option value="delivered">Delivered</option>
-                          <option value="cancelled">Cancelled</option>
-                        </select>
-                      </div>
-                      <div className="col-md-2">
-                        <input
-                          type="date"
-                          className="form-control"
-                          placeholder="From Date"
-                          value={fromDate}
-                          onChange={(e) => setFromDate(e.target.value)}
-                        />
-                      </div>
-                      <div className="col-md-2">
-                        <input
-                          type="date"
-                          className="form-control"
-                          placeholder="To Date"
-                          value={toDate}
-                          onChange={(e) => setToDate(e.target.value)}
-                        />
-                      </div>
-                      <div className="col-md-2">
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="Customer..."
-                          value={customerFilter}
-                          onChange={(e) => setCustomerFilter(e.target.value)}
-                        />
-                      </div>
-                      <div className="col-md-2">
-                        <button
-                          className="btn btn-primary btn-block"
-                          onClick={() => fetchOrders(1, searchTerm, statusFilter)}
-                          disabled={loading}
-                        >
-                          <i className="fas fa-search mr-1"></i>
-                          Search
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Advanced Filters */}
-                    <div className="row mb-3">
-                      <div className="col-md-2">
-                        <input
-                          type="number"
-                          className="form-control"
-                          placeholder="Min Amount (₹)"
-                          value={amountMin}
-                          onChange={(e) => setAmountMin(e.target.value)}
-                        />
-                      </div>
-                      <div className="col-md-2">
-                        <input
-                          type="number"
-                          className="form-control"
-                          placeholder="Max Amount (₹)"
-                          value={amountMax}
-                          onChange={(e) => setAmountMax(e.target.value)}
-                        />
-                      </div>
-                      <div className="col-md-8">
-                        <div className="d-flex justify-content-between align-items-center">
-                          <button
-                            className="btn btn-outline-secondary"
-                            onClick={() => {
-                              const today = new Date();
-                              const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
-                              setFromDate(thirtyDaysAgo.toISOString().split('T')[0]);
-                              setToDate(today.toISOString().split('T')[0]);
-                              setSearchTerm('');
-                              setStatusFilter('all');
-                              setAmountMin('');
-                              setAmountMax('');
-                              setCustomerFilter('');
-                            }}
-                          >
-                            <i className="fas fa-undo mr-1"></i>
-                            Reset Filters
-                          </button>
-                          <small className="text-muted">
-                            <i className="fas fa-info-circle mr-1"></i>
-                            Showing complete orders from last 30 days by default
-                          </small>
-                        </div>
-                      </div>
-                    </div>
-
                     {error && (
                       <div className="alert alert-danger" role="alert">
                         {error}
@@ -601,7 +460,7 @@ export default function CompleteOrdersPage() {
                       </div>
                     ) : (
                       <div className="table-responsive">
-                        <table className="table table-striped table-hover">
+                        <table className="table table-striped table-hover m-0">
                           <thead className="thead-light">
                             <tr>
                               <th className="text-center">
@@ -706,7 +565,7 @@ export default function CompleteOrdersPage() {
                               <tr>
                                 <td colSpan={9} className="text-center py-4">
                                   <i className="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
-                                  <p className="text-muted">No orders found</p>
+                                  <p className="text-muted m-0">No orders found</p>
                                 </td>
                               </tr>
                             )}
@@ -822,7 +681,7 @@ export default function CompleteOrdersPage() {
                       
                       <h6>Order Items</h6>
                       <div className="table-responsive">
-                        <table className="table table-sm">
+                        <table className="table table-sm m-0">
                           <thead>
                             <tr>
                               <th>Product</th>
@@ -1052,8 +911,8 @@ export default function CompleteOrdersPage() {
                               type="text" 
                               className="form-control form-control-sm" 
                               placeholder="Search by order number, customer name"
-                              value={searchTerm}
-                              onChange={(e) => setSearchTerm(e.target.value)}
+                              value={tempSearchTerm}
+                              onChange={(e) => setTempSearchTerm(e.target.value)}
                             />
                           </div>
                         </div>
@@ -1064,8 +923,8 @@ export default function CompleteOrdersPage() {
                             <label>Status</label>
                             <select 
                               className="form-control form-control-sm"
-                              value={statusFilter}
-                              onChange={(e) => setStatusFilter(e.target.value)}
+                              value={tempStatusFilter}
+                              onChange={(e) => setTempStatusFilter(e.target.value)}
                             >
                               <option value="all">All Statuses</option>
                               <option value="pending">Pending</option>
@@ -1085,8 +944,8 @@ export default function CompleteOrdersPage() {
                             <input 
                               type="date" 
                               className="form-control form-control-sm"
-                              value={fromDate}
-                              onChange={(e) => setFromDate(e.target.value)}
+                              value={tempFromDate}
+                              onChange={(e) => setTempFromDate(e.target.value)}
                             />
                           </div>
                         </div>
@@ -1097,8 +956,8 @@ export default function CompleteOrdersPage() {
                             <input 
                               type="date" 
                               className="form-control form-control-sm"
-                              value={toDate}
-                              onChange={(e) => setToDate(e.target.value)}
+                              value={tempToDate}
+                              onChange={(e) => setTempToDate(e.target.value)}
                             />
                           </div>
                         </div>
@@ -1111,8 +970,8 @@ export default function CompleteOrdersPage() {
                               type="text" 
                               className="form-control form-control-sm"
                               placeholder="Customer name or email"
-                              value={customerFilter}
-                              onChange={(e) => setCustomerFilter(e.target.value)}
+                              value={tempCustomerFilter}
+                              onChange={(e) => setTempCustomerFilter(e.target.value)}
                             />
                           </div>
                         </div>
@@ -1125,8 +984,8 @@ export default function CompleteOrdersPage() {
                               type="number" 
                               className="form-control form-control-sm"
                               placeholder="0"
-                              value={amountMin}
-                              onChange={(e) => setAmountMin(e.target.value)}
+                              value={tempAmountMin}
+                              onChange={(e) => setTempAmountMin(e.target.value)}
                             />
                           </div>
                         </div>
@@ -1138,8 +997,8 @@ export default function CompleteOrdersPage() {
                               type="number" 
                               className="form-control form-control-sm"
                               placeholder="No limit"
-                              value={amountMax}
-                              onChange={(e) => setAmountMax(e.target.value)}
+                              value={tempAmountMax}
+                              onChange={(e) => setTempAmountMax(e.target.value)}
                             />
                           </div>
                         </div>

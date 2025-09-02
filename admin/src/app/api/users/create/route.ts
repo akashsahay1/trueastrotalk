@@ -5,6 +5,7 @@ import { omit } from '@/utils/omit';
 import { envConfig, envHelpers } from '@/lib/env-config';
 import { emailService } from '@/lib/email-service';
 import { withSecurity, SecurityPresets } from '@/lib/api-security';
+import { generateUserId } from '@/lib/custom-id';
 
 function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
@@ -55,17 +56,18 @@ export const POST = withSecurity(async (request: NextRequest) => {
         zip, 
         qualifications, 
         skills, 
-        commission_rates 
+        call_rate,
+        chat_rate,
+        video_rate 
       } = body;
 
       if (!date_of_birth || !birth_time || !birth_place || !address || 
           !city || !state || !country || !zip || 
           !qualifications || qualifications.length === 0 ||
           !skills || skills.length === 0 ||
-          !commission_rates || 
-          !commission_rates.call_rate || 
-          !commission_rates.chat_rate || 
-          !commission_rates.video_rate) {
+          !call_rate || 
+          !chat_rate || 
+          !video_rate) {
         return NextResponse.json(
           { error: 'Missing required fields for astrologer account' },
           { status: 400 }
@@ -96,6 +98,7 @@ export const POST = withSecurity(async (request: NextRequest) => {
 
     // Prepare user data
     const userData = {
+      user_id: generateUserId(),
       profile_image: body.profile_image || '',
       full_name,
       email_address,
@@ -120,16 +123,17 @@ export const POST = withSecurity(async (request: NextRequest) => {
       verified_by: body.verification_status === 'verified' ? 'admin' : null,
       qualifications: body.qualifications || [],
       skills: body.skills || [],
-      // Save rates both as direct fields and in commission_rates object for compatibility
-      call_rate: body.commission_rates?.call_rate || 0,
-      chat_rate: body.commission_rates?.chat_rate || 0,
-      video_rate: body.commission_rates?.video_rate || 0,
-      commission_rates: body.commission_rates || {
-        call_rate: 0,
-        chat_rate: 0,
-        video_rate: 0
-      },
+      // Service rates charged to customers
+      call_rate: body.call_rate || 50,
+      chat_rate: body.chat_rate || 30,
+      video_rate: body.video_rate || 80,
       wallet_balance: 0,
+      // Commission percentage that astrologer receives
+      commission_percentage: {
+        call: 70,  // Astrologer gets 70% of call revenue
+        chat: 65,  // Astrologer gets 65% of chat revenue
+        video: 75  // Astrologer gets 75% of video revenue
+      },
       total_sessions: 0,
       total_earnings: 0,
       rating: 0,

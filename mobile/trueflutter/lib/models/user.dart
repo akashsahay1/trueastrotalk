@@ -479,14 +479,14 @@ class User {
   // Helper getters
   bool get isCustomer => role == UserRole.customer;
   bool get isAstrologer => role == UserRole.astrologer;
-  bool get isAdmin => role == UserRole.admin;
+  bool get isAdmin => role == UserRole.administrator;
   bool get isManager => role == UserRole.manager;
 
   bool get isEmailVerified => verificationStatus == VerificationStatus.verified;
-  bool get isPending => accountStatus == AccountStatus.pending;
   bool get isActive => accountStatus == AccountStatus.active;
+  bool get isInactive => accountStatus == AccountStatus.inactive;
   bool get isSuspended => accountStatus == AccountStatus.suspended;
-  bool get isRejected => accountStatus == AccountStatus.rejected;
+  bool get isBanned => accountStatus == AccountStatus.banned;
 
   // For astrologers
   bool get canProvideConsultations => isAstrologer && isActive && isEmailVerified && (isOnline ?? false);
@@ -500,7 +500,7 @@ class User {
         return 'Customer';
       case UserRole.astrologer:
         return 'Astrologer';
-      case UserRole.admin:
+      case UserRole.administrator:
         return 'Administrator';
       case UserRole.manager:
         return 'Manager';
@@ -509,20 +509,14 @@ class User {
 
   String get displayStatus {
     switch (accountStatus) {
-      case AccountStatus.pending:
-        return 'Pending';
-      case AccountStatus.profileIncomplete:
-        return 'Profile Incomplete';
-      case AccountStatus.submitted:
-        return 'Under Review';
-      case AccountStatus.verified:
-        return 'Verified';
       case AccountStatus.active:
         return 'Active';
+      case AccountStatus.inactive:
+        return 'Inactive';
       case AccountStatus.suspended:
         return 'Suspended';
-      case AccountStatus.rejected:
-        return 'Rejected';
+      case AccountStatus.banned:
+        return 'Banned';
     }
   }
 
@@ -534,8 +528,6 @@ class User {
         return 'Verified';
       case VerificationStatus.rejected:
         return 'Rejected';
-      case VerificationStatus.unverified:
-        return 'Unverified';
     }
   }
 

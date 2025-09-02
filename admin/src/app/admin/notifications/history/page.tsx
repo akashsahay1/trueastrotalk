@@ -1,7 +1,7 @@
 'use client';
 
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
+import Header from '@/components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 
@@ -186,7 +186,7 @@ export default function NotificationHistoryPage() {
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                 <div className="card">
                   <h5 className="card-header">Notification History</h5>
-                  <div className="card-body p-0">
+                  <div className="card-body">
                     <div className="table-responsive">
                       <table className="table table-striped m-0">
                         <thead>

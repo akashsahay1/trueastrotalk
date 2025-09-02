@@ -178,31 +178,32 @@ export async function PUT(
         zip, 
         qualifications, 
         skills, 
-        commission_rates 
+        call_rate,
+        chat_rate,
+        video_rate 
       } = body;
 
       if (!date_of_birth || !birth_time || !birth_place || !address || 
           !city || !state || !country || !zip || 
           !qualifications || qualifications.length === 0 ||
           !skills || skills.length === 0 ||
-          !commission_rates || 
-          !commission_rates.call_rate || 
-          !commission_rates.chat_rate || 
-          !commission_rates.video_rate) {
+          !call_rate || 
+          !chat_rate || 
+          !video_rate) {
         return NextResponse.json(
           { error: 'Missing required fields for astrologer account' },
           { status: 400 }
         );
       }
 
-      // Database-level validation: Ensure rates are under 50
-      const callRate = parseFloat(commission_rates.call_rate);
-      const chatRate = parseFloat(commission_rates.chat_rate);
-      const videoRate = parseFloat(commission_rates.video_rate);
+      // Database-level validation: Ensure rates are reasonable
+      const callRate = parseFloat(call_rate);
+      const chatRate = parseFloat(chat_rate);
+      const videoRate = parseFloat(video_rate);
 
-      if (callRate >= 50 || chatRate >= 50 || videoRate >= 50) {
+      if (callRate >= 200 || chatRate >= 200 || videoRate >= 200) {
         return NextResponse.json(
-          { error: 'All rates must be under ₹50 per minute for astrologers' },
+          { error: 'All rates must be under ₹200 per minute for astrologers' },
           { status: 400 }
         );
       }
@@ -249,15 +250,15 @@ export async function PUT(
           const mediaCollection = db.collection('media');
           const defaultAvatar = await mediaCollection.findOne({ original_name: 'default_astrologer_avatar.jpg' });
           if (defaultAvatar) {
-            profileImageUpdates.profile_image_id = defaultAvatar._id;
+            profileImageUpdates.profile_image_id = defaultAvatar.media_id;
           }
         } catch (error) {
           console.error('Error finding default avatar:', error);
         }
       }
-    } else if (body.profile_image_id && typeof body.profile_image_id === 'string' && body.profile_image_id.trim() !== '' && ObjectId.isValid(body.profile_image_id)) {
-      // Regular profile image ID from media library
-      profileImageUpdates.profile_image_id = new ObjectId(body.profile_image_id);
+    } else if (body.profile_image_id && typeof body.profile_image_id === 'string' && body.profile_image_id.trim() !== '') {
+      // Use media_id directly (no longer using ObjectId for profile images)
+      profileImageUpdates.profile_image_id = body.profile_image_id.trim();
       // Remove social auth profile image if switching away from Google
       if (existingUser.social_auth_profile_image) {
         profileImageUpdates.social_auth_profile_image = null;
@@ -297,15 +298,10 @@ export async function PUT(
       // Standardize on qualifications (not specializations) to match mobile
       qualifications: body.qualifications || [],
       skills: body.skills || [],
-      // Save rates both as direct fields and in commission_rates object for compatibility
-      call_rate: body.commission_rates?.call_rate || 0,
-      chat_rate: body.commission_rates?.chat_rate || 0,
-      video_rate: body.commission_rates?.video_rate || 0,
-      commission_rates: {
-        call_rate: body.commission_rates?.call_rate || 0,
-        chat_rate: body.commission_rates?.chat_rate || 0,
-        video_rate: body.commission_rates?.video_rate || 0
-      },
+      // Service rates charged to customers
+      call_rate: body.call_rate || 50,
+      chat_rate: body.chat_rate || 30,
+      video_rate: body.video_rate || 80,
       experience_years: body.experience_years || 0,
       updated_at: new Date()
     };

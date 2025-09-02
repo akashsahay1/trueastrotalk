@@ -1,12 +1,12 @@
 'use client';
 
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
+import Header from '@/components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert';
-import AirDatePickerComponent from '@/components/AirDatePickerComponent';
+import AirDatePickerComponent from '@/components/admin/AirDatePickerComponent';
 
 interface User {
   _id: string;
@@ -434,7 +434,7 @@ export default function AstrologersPage() {
                         <i className="fas fa-filter mr-1"></i>
                         Filters {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
                       </button>
-                      <Link href="/admin/accounts/add-user?type=astrologer" className="btn btn-primary">Add</Link>
+                      <Link href="/admin/accounts/add-user?type=astrologer" className="btn btn-primary">Add New</Link>
                     </div>
                     {/* Users Table */}
                     <div className="table-responsive">

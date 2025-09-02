@@ -1,7 +1,7 @@
 'use client';
 
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
+import Header from '@/components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -308,7 +308,7 @@ export default function CustomersPage() {
                         <i className="fas fa-filter mr-1"></i>
                         Filters {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
                       </button>
-                      <Link href="/admin/accounts/add-user" className="btn btn-primary">Add New</Link>
+                      <Link href="/admin/accounts/add-user?type=customer" className="btn btn-primary">Add New</Link>
                     </div>
                     {/* Users Table */}
                     <div className="table-responsive">

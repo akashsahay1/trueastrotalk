@@ -7,6 +7,7 @@ import {
   ValidationSchemas, 
   InputSanitizer
 } from '../../../../lib/security';
+import { generateUserId } from '../../../../lib/custom-id';
 
 /**
  * Validate Google ID Token for registration
@@ -273,6 +274,7 @@ export async function POST(request: NextRequest) {
     const now = new Date();
     const userData: Record<string, unknown> = {
       _id: new ObjectId(),
+      user_id: generateUserId(),
       full_name: (full_name as string).trim(),
       email_address: cleanEmail,
       phone_number: phone_number ? InputSanitizer.sanitizePhoneNumber(phone_number as string) : '',

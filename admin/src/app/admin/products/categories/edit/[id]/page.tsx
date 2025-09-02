@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
+import Link from 'next/link';import Header from '@/components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
 import { validateForm, getCategoryFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/client-validation';
 import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
 
@@ -20,7 +20,7 @@ interface Category {
 export default function EditCategoryPage() {
   const router = useRouter();
   const params = useParams();
-  const categoryId = params.id as string;
+  const categoryId = params?.id as string;
   
   const [category, setCategory] = useState<Category | null>(null);
   const [loading, setLoading] = useState(true);

@@ -531,6 +531,11 @@ label {
   user-select: none;
 }
 
+/* Global checkbox cursor styling */
+input[type="checkbox"] {
+  cursor: pointer !important;
+}
+
 /* Make sure select fields have pointer cursor */
 select {
   cursor: pointer !important;
@@ -641,15 +646,6 @@ select {
 /* Media Library Custom Styles */
 .media-actions-cell {
   white-space: nowrap;
-}
-
-.media-select-btn {
-  width: 70px;
-  margin-right: 4px;
-}
-
-.media-delete-btn {
-  float: right;
 }
 
 .modal-footer-buttons .btn:not(:last-child) {

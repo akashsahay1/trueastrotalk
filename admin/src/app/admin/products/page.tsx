@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
+import Header from '@/components/admin/Header';
+import Sidebar from '@/components/admin/Sidebar';
 import Image from 'next/image';
 import { confirmDialogs, errorMessages } from '@/lib/sweetalert';
 
@@ -37,8 +37,12 @@ export default function ProductsPage() {
   const [categories, setCategories] = useState<string[]>([]);
   const [pagination, setPagination] = useState<Pagination>({ total: 0, page: 1, limit: 20, totalPages: 0 });
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
+  // Applied filters (active filters)
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
+  const [appliedCategory, setAppliedCategory] = useState('');
+  // Temporary filters (in modal)
+  const [tempSearchTerm, setTempSearchTerm] = useState('');
+  const [tempCategory, setTempCategory] = useState('');
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -47,7 +51,7 @@ export default function ProductsPage() {
   useEffect(() => {
     document.body.className = '';
     fetchProducts();
-  }, [pagination.page, searchTerm, selectedCategory]);
+  }, [pagination.page, appliedSearchTerm, appliedCategory]);
 
   useEffect(() => {
     fetchCategories();
@@ -59,8 +63,8 @@ export default function ProductsPage() {
       const params = new URLSearchParams({
         page: pagination.page.toString(),
         limit: pagination.limit.toString(),
-        ...(searchTerm && { search: searchTerm }),
-        ...(selectedCategory && { category: selectedCategory })
+        ...(appliedSearchTerm && { search: appliedSearchTerm }),
+        ...(appliedCategory && { category: appliedCategory })
       });
       
       const response = await fetch(`/api/admin/products?${params}`);
@@ -145,6 +149,9 @@ export default function ProductsPage() {
   };
 
   const openModal = () => {
+    // Copy current applied filters to temporary filters when opening modal
+    setTempSearchTerm(appliedSearchTerm);
+    setTempCategory(appliedCategory);
     setShowFilterModal(true);
     setTimeout(() => setModalAnimating(true), 10);
   };
@@ -155,13 +162,19 @@ export default function ProductsPage() {
   };
 
   const clearFilters = () => {
-    setSearchTerm('');
-    setSelectedCategory('');
+    // Clear both temporary and applied filters
+    setTempSearchTerm('');
+    setTempCategory('');
+    setAppliedSearchTerm('');
+    setAppliedCategory('');
     setPagination(prev => ({ ...prev, page: 1 }));
     closeModal();
   };
 
   const applyFilters = () => {
+    // Apply temporary filters to applied filters
+    setAppliedSearchTerm(tempSearchTerm);
+    setAppliedCategory(tempCategory);
     setPagination(prev => ({ ...prev, page: 1 }));
     closeModal();
   };
@@ -265,12 +278,12 @@ export default function ProductsPage() {
                       </Link>
                       <button 
                         className="btn btn-outline-secondary mr-2"
-                        onClick={() => setShowFilterModal(true)}
+                        onClick={openModal}
                       >
                         <i className="fas fa-filter mr-1"></i>
-                        Filters {(searchTerm || selectedCategory) && <span className="badge badge-primary ml-1">•</span>}
+                        Filters {(appliedSearchTerm || appliedCategory) && <span className="badge badge-primary ml-1">•</span>}
                       </button>
-                      <Link href="/admin/products/add" className="btn btn-primary">Add</Link>
+                      <Link href="/admin/products/add" className="btn btn-primary">Add New</Link>
                     </div>
 
                     {/* Products Table */}
@@ -476,8 +489,8 @@ export default function ProductsPage() {
                     type="text" 
                     className="form-control form-control-sm" 
                     placeholder="Search by product name or description"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    value={tempSearchTerm}
+                    onChange={(e) => setTempSearchTerm(e.target.value)}
                   />
                 </div>
 
@@ -486,8 +499,8 @@ export default function ProductsPage() {
                   <label>Category</label>
                   <select 
                     className="form-control form-control-sm"
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    value={tempCategory}
+                    onChange={(e) => setTempCategory(e.target.value)}
                   >
                     <option value="">All Categories</option>
                     {categories.map(category => (
