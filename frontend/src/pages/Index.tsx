@@ -1,5 +1,13 @@
 
 import React from "react";
+
+// Global types for Bootstrap and jQuery
+declare global {
+  interface Window {
+    $: any;
+    jQuery: any;
+  }
+}
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,22 +65,28 @@ const Index: React.FC = () => {
     }
   ];
 
-  // Auto-slide functionality - ensure this runs after component mounts
+  // Bootstrap carousel functionality
   React.useEffect(() => {
-    console.log("Setting up hero slide interval");
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => {
-        const next = (prev + 1) % heroSlides.length;
-        console.log("Hero slide changing from", prev, "to", next);
-        return next;
+    // Initialize Bootstrap carousel
+    const carousel = document.getElementById('heroCarousel');
+    if (carousel && window.$ && window.$.fn.carousel) {
+      window.$('#heroCarousel').carousel({
+        interval: 10000,
+        ride: 'carousel'
       });
-    }, 10000);
+      
+      // Listen for slide events to update current slide state
+      window.$('#heroCarousel').on('slid.bs.carousel', function (e) {
+        setCurrentSlide(e.to);
+      });
+    }
 
     return () => {
-      console.log("Cleaning up hero slide interval");
-      clearInterval(interval);
+      if (window.$) {
+        window.$('#heroCarousel').off('slid.bs.carousel');
+      }
     };
-  }, [heroSlides.length]);
+  }, []);
 
   const currentSlideData = heroSlides[currentSlide];
 
@@ -262,111 +276,141 @@ const Index: React.FC = () => {
     <div className="min-h-screen" style={{ backgroundColor: '#1877f2' }}>
       <Header />
       
-      {/* Hero Section with Auto-Sliding */}
-      <section className="relative min-h-screen" style={{ backgroundColor: '#1877f2' }}>
-        <div className="container mx-auto px-4 py-20">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center min-h-[80vh]">
-            
-            {/* Left Side Content */}
-            <div className="space-y-8">
-              <h1 className="text-4xl lg:text-6xl font-bold text-white leading-tight">
-                {currentSlideData.title.split(' ').slice(0, 2).join(' ')}<br />
-                <span className="text-yellow-300">{currentSlideData.title.split(' ').slice(2).join(' ')}</span>
-              </h1>
-              
-              <p className="text-xl text-white/90 leading-relaxed max-w-md">
-                {currentSlideData.subtitle}
-              </p>
-
-              {/* Statistics Card */}
-              <div className="bg-white rounded-2xl p-6 shadow-lg max-w-sm">
-                <div className="text-4xl font-bold text-green-600 mb-2">
-                  {currentSlideData.stats.clients}
-                </div>
-                <div className="text-gray-700 font-medium mb-3">Happy Clients</div>
-                <div className="flex items-center">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400 mr-1" />
-                  ))}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-4">
-                <Button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 text-lg">
-                  <MessageCircle className="mr-2 h-5 w-5" />
-                  Chat Now
-                </Button>
-                <Button variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600 px-8 py-3 text-lg">
-                  <Phone className="mr-2 h-5 w-5" />
-                  Call Now
-                </Button>
-              </div>
-            </div>
-
-            {/* Right Side - Astrologer Image with Badges */}
-            <div className="relative flex items-center justify-center">
-              <div className="relative">
-                {/* Main Astrologer Image */}
-                <div className="w-80 h-80 rounded-full overflow-hidden border-8 border-white shadow-2xl">
-                  <LazyImage
-                    src={currentSlideData.image}
-                    alt="Expert Astrologer"
-                    className="w-full h-full object-cover"
-                    width={320}
-                    height={320}
-                  />
-                </div>
-
-                {/* Experience Badge - Top Right */}
-                <div className="absolute -top-4 -right-8 bg-orange-500 text-white rounded-full px-6 py-4 shadow-lg">
-                  <div className="text-3xl font-bold">{currentSlideData.stats.experience}</div>
-                  <div className="text-sm font-medium">Years Experience</div>
-                </div>
-
-                {/* Success Rate Badge - Bottom Left */}
-                <div className="absolute -bottom-6 -left-8 bg-green-500 text-white rounded-full w-28 h-28 flex flex-col items-center justify-center shadow-lg">
-                  <div className="text-2xl font-bold">{currentSlideData.stats.success}</div>
-                  <div className="text-sm">Success</div>
-                </div>
-              </div>
-
-              {/* Expert Astrologer Card - Right Side */}
-              <div className="absolute -right-4 top-1/2 transform -translate-y-1/2 bg-white rounded-2xl p-6 shadow-xl max-w-xs">
-                <div className="bg-purple-600 text-white px-4 py-2 rounded-full text-sm font-bold mb-4 text-center">
-                  EXPERT ASTROLOGER
-                </div>
-                
-                <h3 className="text-gray-900 font-bold mb-4">Our Services</h3>
-                <div className="space-y-3">
-                  {currentSlideData.services.map((service, index) => (
-                    <div key={index} className="flex items-center text-gray-700">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                      <span className="text-sm">{service}</span>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="mt-6 pt-4 border-t border-gray-200">
-                  <div className="text-3xl font-bold text-orange-500">{currentSlideData.stats.accuracy}</div>
-                  <div className="text-sm text-gray-600">Accuracy</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Slide Indicators */}
-          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-3">
+      {/* Hero Section with Bootstrap Carousel */}
+      <section className="hero-slider" style={{ backgroundColor: '#1877f2', minHeight: '100vh', position: 'relative' }}>
+        <div id="heroCarousel" className="carousel slide" data-ride="carousel" data-interval="10000">
+          {/* Carousel Indicators */}
+          <ol className="carousel-indicators" style={{ position: 'absolute', bottom: '30px', left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
             {heroSlides.map((_, index) => (
-              <button
+              <li
                 key={index}
-                onClick={() => setCurrentSlide(index)}
-                className={`w-3 h-3 rounded-full transition-all ${
-                  index === currentSlide ? 'bg-white' : 'bg-white/50'
-                }`}
+                data-target="#heroCarousel"
+                data-slide-to={index}
+                className={index === currentSlide ? 'active' : ''}
+                style={{
+                  width: '12px',
+                  height: '12px',
+                  borderRadius: '50%',
+                  backgroundColor: index === currentSlide ? '#fff' : 'rgba(255,255,255,0.5)',
+                  margin: '0 5px',
+                  cursor: 'pointer'
+                }}
               />
             ))}
+          </ol>
+
+          {/* Carousel Inner */}
+          <div className="carousel-inner" style={{ height: '100vh' }}>
+            {heroSlides.map((slide, index) => (
+              <div key={index} className={`carousel-item ${index === currentSlide ? 'active' : ''}`} style={{ height: '100vh' }}>
+                <div className="container" style={{ height: '100%', display: 'flex', alignItems: 'center', padding: '0 15px' }}>
+                  <div className="row align-items-center" style={{ width: '100%', minHeight: '80vh' }}>
+                    
+                    {/* Left Side Content */}
+                    <div className="col-lg-6">
+                      <div className="hero-content" style={{ padding: '2rem 0' }}>
+                        <h1 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 'bold', color: '#fff', lineHeight: '1.2', marginBottom: '1.5rem' }}>
+                          {slide.title.split(' ').slice(0, 2).join(' ')}<br />
+                          <span style={{ color: '#ffd700' }}>{slide.title.split(' ').slice(2).join(' ')}</span>
+                        </h1>
+                        
+                        <p style={{ fontSize: '1.25rem', color: 'rgba(255,255,255,0.9)', lineHeight: '1.6', maxWidth: '400px', marginBottom: '2rem' }}>
+                          {slide.subtitle}
+                        </p>
+
+                        {/* Statistics Card */}
+                        <div style={{ backgroundColor: '#fff', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', maxWidth: '300px', marginBottom: '2rem' }}>
+                          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#28a745', marginBottom: '0.5rem' }}>
+                            {slide.stats.clients}
+                          </div>
+                          <div style={{ color: '#6c757d', fontWeight: '500', marginBottom: '1rem' }}>Happy Clients</div>
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            {[...Array(5)].map((_, i) => (
+                              <span key={i} style={{ color: '#ffc107', fontSize: '1.2rem', marginRight: '2px' }}>★</span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                          <button className="btn" style={{ backgroundColor: '#fd7e14', borderColor: '#fd7e14', color: '#fff', padding: '0.75rem 2rem', fontSize: '1.1rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <MessageCircle size={20} />
+                            Chat Now
+                          </button>
+                          <button className="btn btn-outline-light" style={{ padding: '0.75rem 2rem', fontSize: '1.1rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Phone size={20} />
+                            Call Now
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Side - Astrologer Image with Badges */}
+                    <div className="col-lg-6">
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                        <div style={{ position: 'relative' }}>
+                          {/* Main Astrologer Image */}
+                          <div style={{ width: '320px', height: '320px', borderRadius: '50%', overflow: 'hidden', border: '8px solid #fff', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+                            <LazyImage
+                              src={slide.image}
+                              alt="Expert Astrologer"
+                              className="w-full h-full object-cover"
+                              width={320}
+                              height={320}
+                            />
+                          </div>
+
+                          {/* Experience Badge - Top Right */}
+                          <div style={{ position: 'absolute', top: '-16px', right: '-32px', backgroundColor: '#fd7e14', color: '#fff', borderRadius: '50%', padding: '1.5rem', boxShadow: '0 10px 20px rgba(0,0,0,0.1)', textAlign: 'center', minWidth: '80px' }}>
+                            <div style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>{slide.stats.experience}</div>
+                            <div style={{ fontSize: '0.8rem', fontWeight: '500' }}>Years Experience</div>
+                          </div>
+
+                          {/* Success Rate Badge - Bottom Left */}
+                          <div style={{ position: 'absolute', bottom: '-24px', left: '-32px', backgroundColor: '#28a745', color: '#fff', borderRadius: '50%', width: '112px', height: '112px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 20px rgba(0,0,0,0.1)' }}>
+                            <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{slide.stats.success}</div>
+                            <div style={{ fontSize: '0.8rem' }}>Success</div>
+                          </div>
+                        </div>
+
+                        {/* Expert Astrologer Card - Right Side */}
+                        <div style={{ position: 'absolute', right: '-16px', top: '50%', transform: 'translateY(-50%)', backgroundColor: '#fff', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 15px 35px rgba(0,0,0,0.1)', maxWidth: '280px' }}>
+                          <div style={{ backgroundColor: '#6f42c1', color: '#fff', padding: '0.5rem 1rem', borderRadius: '25px', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '1rem', textAlign: 'center' }}>
+                            EXPERT ASTROLOGER
+                          </div>
+                          
+                          <h3 style={{ color: '#343a40', fontWeight: 'bold', marginBottom: '1rem', fontSize: '1.1rem' }}>Our Services</h3>
+                          <div style={{ marginBottom: '1rem' }}>
+                            {slide.services.map((service, serviceIndex) => (
+                              <div key={serviceIndex} style={{ display: 'flex', alignItems: 'center', color: '#6c757d', marginBottom: '0.5rem' }}>
+                                <div style={{ width: '8px', height: '8px', backgroundColor: '#007bff', borderRadius: '50%', marginRight: '0.75rem' }}></div>
+                                <span style={{ fontSize: '0.9rem' }}>{service}</span>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #e9ecef' }}>
+                            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#fd7e14' }}>{slide.stats.accuracy}</div>
+                            <div style={{ fontSize: '0.8rem', color: '#6c757d' }}>Accuracy</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
+
+          {/* Carousel Controls */}
+          <a className="carousel-control-prev" href="#heroCarousel" role="button" data-slide="prev" style={{ width: '5%' }}>
+            <span className="carousel-control-prev-icon" aria-hidden="true" style={{ backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: '50%', width: '40px', height: '40px' }}></span>
+            <span className="sr-only">Previous</span>
+          </a>
+          <a className="carousel-control-next" href="#heroCarousel" role="button" data-slide="next" style={{ width: '5%' }}>
+            <span className="carousel-control-next-icon" aria-hidden="true" style={{ backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: '50%', width: '40px', height: '40px' }}></span>
+            <span className="sr-only">Next</span>
+          </a>
         </div>
       </section>
 
