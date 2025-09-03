@@ -30,8 +30,6 @@ export default function RootLayout({
         {/* Socket.IO Client */}
         <Script src="https://cdn.socket.io/4.8.1/socket.io.min.js" strategy="afterInteractive" />
         
-        {/* Socket.IO Test Script */}
-        <Script src="/test-socket.js" strategy="lazyOnload" />
         
         {/* Required jQuery Plugins for Theme */}
         <Script src="/assets/libs/jquery-sparkline/jquery.sparkline.min.js" strategy="afterInteractive" />
