@@ -706,6 +706,12 @@ async function handleEndCall(socket: Socket, io: ServerIO, data: CallData) {
   try {
     const { sessionId } = data;
     
+    if (!sessionId) {
+      console.error('End call: sessionId is required');
+      socket.emit('call_error', { error: 'Session ID is required' });
+      return;
+    }
+    
     const call = activeCalls.get(sessionId);
     if (!call) {
       // Call might have already ended
@@ -798,8 +804,14 @@ async function handleWebRTCOffer(socket: Socket, io: ServerIO, data: CallData) {
   try {
     const { sessionId, offer, targetUserId } = data;
     
+    if (!sessionId) {
+      console.error('WebRTC offer: sessionId is required');
+      socket.emit('call_error', { error: 'Session ID is required' });
+      return;
+    }
+    
     const call = activeCalls.get(sessionId);
-    if (call) {
+    if (call && offer) {
       call.offer = offer;
     }
     
@@ -819,8 +831,14 @@ async function handleWebRTCAnswer(socket: Socket, io: ServerIO, data: CallData) 
   try {
     const { sessionId, answer, targetUserId } = data;
     
+    if (!sessionId) {
+      console.error('WebRTC answer: sessionId is required');
+      socket.emit('call_error', { error: 'Session ID is required' });
+      return;
+    }
+    
     const call = activeCalls.get(sessionId);
-    if (call) {
+    if (call && answer) {
       call.answer = answer;
     }
     
@@ -839,6 +857,18 @@ async function handleWebRTCAnswer(socket: Socket, io: ServerIO, data: CallData) 
 async function handleWebRTCIceCandidate(socket: Socket, io: ServerIO, data: CallData) {
   try {
     const { sessionId, candidate, targetUserId } = data;
+    
+    if (!sessionId) {
+      console.error('WebRTC ICE candidate: sessionId is required');
+      socket.emit('call_error', { error: 'Session ID is required' });
+      return;
+    }
+    
+    if (!candidate) {
+      console.error('WebRTC ICE candidate: candidate is required');
+      socket.emit('call_error', { error: 'ICE candidate is required' });
+      return;
+    }
     
     const call = activeCalls.get(sessionId);
     if (call) {
