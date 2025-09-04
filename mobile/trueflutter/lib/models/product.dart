@@ -39,8 +39,14 @@ class Product {
       primaryImageUrl = imagesList.first;
     }
     
+    // Validate that product_id exists - if not, this is a data integrity issue
+    final productId = json['product_id'] as String?;
+    if (productId == null || productId.isEmpty) {
+      throw Exception('Product missing required product_id field. Data: ${json.toString()}');
+    }
+    
     return Product(
-      id: json['_id'] ?? '',
+      id: productId,
       name: json['name'] ?? '',
       description: json['description'] ?? '',
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
@@ -56,7 +62,7 @@ class Product {
 
   Map<String, dynamic> toJson() {
     return {
-      '_id': id,
+      'product_id': id, // Send product_id instead of _id
       'name': name,
       'description': description,
       'price': price,

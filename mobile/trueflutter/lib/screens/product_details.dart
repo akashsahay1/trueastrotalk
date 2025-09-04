@@ -468,8 +468,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           ),
           child: Column(
             children: [
-              _buildDetailRow('Product ID', widget.product.id),
-              const Divider(),
               _buildDetailRow('Category', widget.product.category),
               const Divider(),
               _buildDetailRow('Stock Quantity', '${widget.product.stockQuantity} units'),

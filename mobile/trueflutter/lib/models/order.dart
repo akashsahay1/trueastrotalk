@@ -255,10 +255,10 @@ class Order {
 
   // Getters
   int get totalItems => items.fold(0, (sum, item) => sum + item.quantity);
-  String get formattedSubtotal => '₹${subtotal.toStringAsFixed(0)}';
-  String get formattedShipping => '₹${shippingCost.toStringAsFixed(0)}';
-  String get formattedTax => '₹${taxAmount.toStringAsFixed(0)}';
-  String get formattedTotal => '₹${totalAmount.toStringAsFixed(0)}';
+  String get formattedSubtotal => '₹${subtotal.toStringAsFixed(2)}';
+  String get formattedShipping => '₹${shippingCost.toStringAsFixed(2)}';
+  String get formattedTax => '₹${taxAmount.toStringAsFixed(2)}';
+  String get formattedTotal => '₹${totalAmount.toStringAsFixed(2)}';
   
   String get statusDisplayName {
     switch (status) {

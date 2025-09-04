@@ -567,7 +567,7 @@ class _CartScreenState extends State<CartScreen> {
             
             _buildSummaryRow('Subtotal', summary['formatted_subtotal']),
             _buildSummaryRow('Shipping', summary['formatted_shipping']),
-            _buildSummaryRow('Tax (GST)', summary['formatted_tax']),
+            _buildSummaryRow('Tax (GST ${summary['gst_rate']?.toStringAsFixed(0) ?? '18'}%)', summary['formatted_tax']),
             
             const Divider(),
             

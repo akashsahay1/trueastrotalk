@@ -26,9 +26,17 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   bool _isLoading = true;
   String _selectedCategory = 'All';
   bool _isGridView = true;
+  String _sortBy = 'default';
   
   final TextEditingController _searchController = TextEditingController();
   final List<String> _categories = ['All', 'Gemstones', 'Jewelry', 'Books', 'Spiritual Items', 'Puja Items'];
+  final Map<String, String> _sortOptions = {
+    'default': 'Relevance',
+    'name_asc': 'Name (A-Z)',
+    'name_desc': 'Name (Z-A)',
+    'price_asc': 'Price (Low to High)',
+    'price_desc': 'Price (High to Low)',
+  };
 
   @override
   void initState() {
@@ -100,7 +108,30 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             
         return matchesSearch && matchesCategory;
       }).toList();
+      
+      // Apply sorting
+      _sortProducts();
     });
+  }
+  
+  void _sortProducts() {
+    switch (_sortBy) {
+      case 'name_asc':
+        _filteredProducts.sort((a, b) => a.name.compareTo(b.name));
+        break;
+      case 'name_desc':
+        _filteredProducts.sort((a, b) => b.name.compareTo(a.name));
+        break;
+      case 'price_asc':
+        _filteredProducts.sort((a, b) => a.price.compareTo(b.price));
+        break;
+      case 'price_desc':
+        _filteredProducts.sort((a, b) => b.price.compareTo(a.price));
+        break;
+      default:
+        // Keep default order
+        break;
+    }
   }
 
   void _onCategorySelected(String category) {
@@ -157,20 +188,21 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                   right: 8,
                   top: 8,
                   child: Container(
-                    padding: const EdgeInsets.all(2),
+                    width: 18,
+                    height: 18,
                     decoration: BoxDecoration(
                       color: AppColors.error,
-                      borderRadius: BorderRadius.circular(10),
+                      shape: BoxShape.circle,
                     ),
-                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                    child: Text(
-                      '${_cartService.totalItems}',
-                      style: const TextStyle(
-                        color: AppColors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                    child: Center(
+                      child: Text(
+                        '${_cartService.totalItems}',
+                        style: const TextStyle(
+                          color: AppColors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
@@ -182,7 +214,10 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
         children: [
           // Search Bar
           Container(
-            padding: const EdgeInsets.all(Dimensions.paddingLg),
+            padding: const EdgeInsets.symmetric(
+              horizontal: Dimensions.paddingLg,
+              vertical: Dimensions.paddingMd,
+            ),
             color: AppColors.white,
             child: TextField(
               controller: _searchController,
@@ -213,16 +248,57 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             ),
           ),
 
-          // Category Filter
+          // Sort and Category Filter Row
           Container(
             height: 50,
             color: AppColors.white,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingLg),
-              itemCount: _categories.length,
-              separatorBuilder: (context, index) => const SizedBox(width: Dimensions.spacingSm),
-              itemBuilder: (context, index) {
+            child: Row(
+              children: [
+                // Sort Dropdown
+                Container(
+                  padding: const EdgeInsets.only(left: Dimensions.paddingLg),
+                  child: DropdownButton<String>(
+                    value: _sortBy,
+                    underline: Container(),
+                    icon: const Icon(Icons.arrow_drop_down, color: AppColors.grey600, size: 24),
+                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.grey600),
+                    onChanged: (String? value) {
+                      if (value != null) {
+                        setState(() {
+                          _sortBy = value;
+                          _sortProducts();
+                        });
+                      }
+                    },
+                    items: _sortOptions.entries.map((entry) {
+                      return DropdownMenuItem<String>(
+                        value: entry.key,
+                        child: Text(
+                          entry.value,
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: _sortBy == entry.key ? AppColors.primary : AppColors.grey600,
+                            fontWeight: _sortBy == entry.key ? FontWeight.w600 : FontWeight.normal,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(width: Dimensions.spacingMd),
+                Container(
+                  width: 1,
+                  height: 30,
+                  color: AppColors.borderLight,
+                ),
+                const SizedBox(width: Dimensions.spacingMd),
+                // Category Filter
+                Expanded(
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSm),
+                    itemCount: _categories.length,
+                    separatorBuilder: (context, index) => const SizedBox(width: Dimensions.spacingSm),
+                    itemBuilder: (context, index) {
                 final category = _categories[index];
                 final isSelected = _selectedCategory == category;
                 
@@ -238,7 +314,10 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                   ),
                 );
-              },
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
 
@@ -289,7 +368,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
         crossAxisCount: 2,
         crossAxisSpacing: Dimensions.spacingMd,
         mainAxisSpacing: Dimensions.spacingMd,
-        childAspectRatio: 0.75,
+        childAspectRatio: 0.65,
       ),
       itemCount: _filteredProducts.length,
       itemBuilder: (context, index) => ProductCard(

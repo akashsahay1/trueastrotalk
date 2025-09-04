@@ -49,8 +49,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   File? _selectedProfileImage;
   bool _isLoading = false;
   bool _isUpdating = false;
-  String? _profileImageUrl;
-  String? _googlePhotoUrl;
 
   // Dynamic options loaded from API (matching signup flow)
   List<String> _availableLanguages = [];
@@ -116,19 +114,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _loadGooglePhotoUrl() async {
-    try {
-      final photoUrl = await _authService.getGooglePhotoUrl();
-      if (mounted) {
-        setState(() {
-          _googlePhotoUrl = photoUrl;
-        });
-        debugPrint('📱 Loaded Google photo URL: $_googlePhotoUrl');
-      }
-    } catch (e) {
-      debugPrint('❌ Failed to load Google photo URL: $e');
-    }
-  }
 
   Future<void> _loadUserProfile() async {
     setState(() {
@@ -156,12 +141,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _birthPlaceController.text = user.placeOfBirth ?? '';
         _birthTimeController.text = user.timeOfBirth ?? '';
         _selectedBirthDate = user.dateOfBirth;
-        _profileImageUrl = user.profilePicture;
 
-        // Load Google photo URL if user is Google authenticated
-        if (user.authType == AuthType.google) {
-          _loadGooglePhotoUrl();
-        }
 
         setState(() {
           // Populate address fields for all users (customers and astrologers)
@@ -445,7 +425,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       setState(() {
         _currentUser = updatedUser;
-        _profileImageUrl = updatedUser.profilePicture; // Update profile image URL from server response
         _selectedProfileImage = null; // Clear selected image after successful upload
       });
 
@@ -1037,57 +1016,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileImage() {
-    // For Google users, prioritize Google photo URL
-    if (_currentUser?.authType == AuthType.google) {
-      if (_googlePhotoUrl?.isNotEmpty == true) {
-        debugPrint('🌐 Showing Google profile image: $_googlePhotoUrl');
-        return Image.network(
-          _googlePhotoUrl!,
-          width: 120,
-          height: 120,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            debugPrint('❌ Failed to load Google image: $error');
-            return _buildGoogleFallbackAvatar();
-          },
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) {
-              return child;
-            }
-            return Container(
-              width: 120,
-              height: 120,
-              color: AppColors.grey100,
-              child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-            );
-          },
-        );
-      } else {
-        debugPrint('🔍 Google user without photo URL, showing Google fallback');
-        return _buildGoogleFallbackAvatar();
-      }
-    }
-
-    // For non-Google users, show selected image first
+    // Show selected local image first (when user is changing profile image)
     if (_selectedProfileImage != null) {
       debugPrint('📱 Showing selected local image');
       return Image.file(_selectedProfileImage!, width: 120, height: 120, fit: BoxFit.cover);
     }
 
-    // Show existing server profile image for non-Google users
-    if (_profileImageUrl?.isNotEmpty == true) {
-      debugPrint('🖼️ Loading server profile image: $_profileImageUrl');
-      // Handle server image URLs
-      String imageUrl = _profileImageUrl!;
+    // Use profile picture from user model (includes social_profile_image for Google users)
+    if (_currentUser?.profilePicture?.isNotEmpty == true) {
+      debugPrint('🖼️ Loading profile image: ${_currentUser!.profilePicture}');
+      String imageUrl = _currentUser!.profilePicture!;
 
+      // Handle server image URLs - construct full URL if needed for non-HTTP URLs
       if (!imageUrl.startsWith('http')) {
-        // If it's a relative path, prepend the server URL
         final baseUrl = Config.baseUrlSync.replaceAll('/api', '');
         if (!imageUrl.startsWith('/')) {
           imageUrl = '/$imageUrl';
         }
         imageUrl = baseUrl + imageUrl;
-        debugPrint('🔗 Constructed server image URL: $imageUrl');
+        debugPrint('🔗 Constructed image URL: $imageUrl');
       }
 
       return Image.network(
@@ -1095,9 +1042,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         width: 120,
         height: 120,
         fit: BoxFit.cover,
-        headers: {'Accept': 'image/*'},
+        headers: imageUrl.startsWith('http') ? null : {'Accept': 'image/*'},
         errorBuilder: (context, error, stackTrace) {
-          debugPrint('❌ Failed to load server image: $error');
+          debugPrint('❌ Failed to load profile image: $error');
           return _buildFallbackAvatar();
         },
         loadingBuilder: (context, child, loadingProgress) {
@@ -1114,33 +1061,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    // Show fallback avatar for non-Google users
-    debugPrint('👤 No profile image, showing fallback avatar');
+    // No profile image available - show fallback avatar
+    debugPrint('📷 No profile image, showing fallback');
     return _buildFallbackAvatar();
   }
 
-  Widget _buildGoogleFallbackAvatar() {
-    final name = _currentUser?.name ?? 'User';
-    final initials = name.isNotEmpty ? name.split(' ').map((n) => n.isNotEmpty ? n[0] : '').take(2).join().toUpperCase() : 'U';
-
-    return Container(
-      width: 120,
-      height: 120,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF4285F4), Color(0xFF34A853)], // Google blue to green
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Center(
-        child: Text(
-          initials,
-          style: AppTextStyles.heading2.copyWith(color: AppColors.white, fontWeight: FontWeight.bold),
-        ),
-      ),
-    );
-  }
 
   Widget _buildFallbackAvatar() {
     final name = _currentUser?.name ?? 'User';

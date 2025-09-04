@@ -168,6 +168,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _processRazorpayPayment(double totalAmount, Address shippingAddress) async {
+    Order? pendingOrder;
     try {
       // Ensure PaymentConfig is initialized
       if (PaymentConfig.instance.razorpayKeyId?.isEmpty ?? true) {
@@ -175,8 +176,28 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         await PaymentConfig.instance.initialize();
       }
       
-      // Create Razorpay order on backend first
-      debugPrint('🔄 Creating Razorpay order for ₹$totalAmount');
+      // Step 1: Create order in database with 'pending' status FIRST
+      debugPrint('📝 Creating pending order in database before payment...');
+      pendingOrder = await _createOrder(
+        shippingAddress, 
+        PaymentMethod.razorpay,
+        paymentDetails: {
+          'status': 'pending_payment',
+          'amount': totalAmount,
+        },
+      );
+      
+      if (pendingOrder == null) {
+        throw Exception('Failed to create order. Please try again.');
+      }
+      
+      // Always use orderNumber for user-facing displays, use id only for API calls
+      final orderNumber = pendingOrder.orderNumber ?? 'PENDING';
+      final orderId = pendingOrder.id ?? pendingOrder.orderNumber ?? 'unknown'; // For API calls
+      debugPrint('✅ Pending order created with number: $orderNumber (ID: $orderId)');
+      
+      // Step 2: Create Razorpay payment order
+      debugPrint('🔄 Creating Razorpay payment order for ₹$totalAmount');
       
       final authService = getIt<AuthService>();
       final userApiService = getIt<UserApiService>();
@@ -186,19 +207,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         throw Exception('Authentication required');
       }
       
-      // Generate unique receipt for the order
-      final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      final shortUserId = _currentUser!.id.length > 8 
-          ? _currentUser!.id.substring(_currentUser!.id.length - 8) 
-          : _currentUser!.id;
-      final receipt = 'order_${shortUserId}_$timestamp';
-      final finalReceipt = receipt.length > 40 ? receipt.substring(0, 40) : receipt;
+      // Use order number in receipt for tracking
+      final receipt = 'order_$orderNumber'.length > 40 
+          ? 'order_$orderNumber'.substring(0, 40) 
+          : 'order_$orderNumber';
       
-      // Create Razorpay order on backend
       final orderData = await userApiService.createRazorpayOrder(
         token,
         amount: totalAmount,
-        receipt: finalReceipt,
+        receipt: receipt,
         purpose: 'product_purchase',
         orderType: 'order',
       );
@@ -206,29 +223,63 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final razorpayOrderId = orderData['id'] as String;
       debugPrint('✅ Razorpay order created: $razorpayOrderId');
       
+      // Store the pending order ID and number for use in callbacks
+      final capturedOrderId = orderId; // For API calls
+      final capturedOrderNumber = orderNumber; // For user display
+      final capturedOrder = pendingOrder;
+      
       // Initialize Razorpay with callbacks
       _razorpayService.initializeRazorpay(
         onPaymentSuccess: (PaymentSuccessResponse response) async {
           debugPrint('🎉 Payment successful: ${response.paymentId}');
           
-          // Create order with payment details
-          final orderResult = await _createOrder(
-            shippingAddress, 
-            PaymentMethod.razorpay,
+          // Step 3: Update order status to 'paid' after successful payment
+          final updateResult = await _updateOrderPaymentStatus(
+            orderId: capturedOrderId,
             paymentDetails: {
-              'payment_id': response.paymentId,
-              'razorpay_order_id': response.orderId,
-              'razorpay_payment_id': response.paymentId,
+              'payment_id': response.paymentId ?? '',
+              'razorpay_order_id': response.orderId ?? '',
+              'razorpay_payment_id': response.paymentId ?? '',
+              'status': 'processing', // Order is paid and processing
+              'payment_status': 'paid',
               'amount': totalAmount,
             },
           );
           
-          if (orderResult != null) {
-            _navigateToOrderSuccess(orderResult);
+          if (updateResult) {
+            debugPrint('✅ Order payment status updated successfully');
+            // Clear cart after successful payment
+            await _cartService.clearCart();
+            _navigateToOrderSuccess(capturedOrder);
+          } else {
+            // Payment succeeded but order update failed - needs manual intervention
+            debugPrint('⚠️ Payment succeeded but order update failed');
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Payment successful! Order #$capturedOrderNumber. If you face any issues, please contact support with this order number.'),
+                  backgroundColor: AppColors.success,
+                  duration: const Duration(seconds: 10),
+                ),
+              );
+            }
+            // Still clear cart and navigate to success as payment was successful
+            await _cartService.clearCart();
+            _navigateToOrderSuccess(capturedOrder);
           }
         },
         onPaymentError: (PaymentFailureResponse response) {
           debugPrint('❌ Payment failed: ${response.message}');
+          // Update order status to payment_failed
+          _updateOrderPaymentStatus(
+            orderId: capturedOrderId,
+            paymentDetails: {
+              'status': 'payment_failed',
+              'payment_status': 'failed',
+              'failure_reason': response.message ?? 'Unknown error',
+            },
+          );
+          
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -250,7 +301,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         userEmail: _currentUser?.email ?? '',
         userContact: _currentUser?.phone ?? '',
         customerName: _currentUser?.name ?? 'Customer',
-        description: 'Order Payment - ${widget.cart.items.length} items',
+        description: 'Order #$orderNumber - ${widget.cart.items.length} items',
       );
 
       // Open checkout
@@ -258,36 +309,90 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       _razorpayService.openCheckout(options);
     } catch (e) {
       debugPrint('❌ Razorpay payment setup failed: $e');
-      throw Exception('Razorpay payment failed: $e');
+      
+      // If order was created but payment setup failed, update its status
+      if (pendingOrder != null) {
+        final failedOrderId = pendingOrder.id ?? ''; // Use internal ID for API call
+        if (failedOrderId.isNotEmpty) {
+          _updateOrderPaymentStatus(
+            orderId: failedOrderId,
+            paymentDetails: {
+              'status': 'payment_setup_failed',
+              'error': e.toString(),
+            },
+          );
+        }
+      }
+      
+      throw Exception('Payment setup failed: $e');
+    }
+  }
+
+  // New method to update order payment status
+  Future<bool> _updateOrderPaymentStatus({required String orderId, required Map<String, dynamic> paymentDetails}) async {
+    try {
+      final result = await _ordersApiService.updateOrderStatus(
+        orderId: orderId,
+        status: paymentDetails['status'] ?? 'processing',
+      );
+      
+      return result['success'] == true;
+    } catch (e) {
+      debugPrint('❌ Failed to update order payment status: $e');
+      return false;
     }
   }
 
   Future<Order?> _createOrder(Address shippingAddress, PaymentMethod paymentMethod, {Map<String, dynamic>? paymentDetails}) async {
-    // Prepare order items
-    final orderItems = widget.cart.items.map((item) => item.toJson()).toList();
+    try {
+      // Prepare order items
+      final orderItems = widget.cart.items.map((item) => item.toJson()).toList();
 
-    // Create order via API
-    final result = await _ordersApiService.createOrder(
-      userId: _currentUser!.id,
-      items: orderItems,
-      shippingAddress: shippingAddress,
-      paymentMethod: paymentMethod.name,
-      paymentDetails: paymentDetails,
-    );
+      // Create order via API - use custom user_id, not MongoDB ObjectId
+      final userId = _currentUser!.id; // Use the id field which contains custom user_id
+      debugPrint('🛒 Creating order for user_id: $userId');
+      final result = await _ordersApiService.createOrder(
+        userId: userId,
+        items: orderItems,
+        shippingAddress: shippingAddress,
+        paymentMethod: paymentMethod.name,
+        paymentDetails: paymentDetails,
+      );
 
-    if (result['success']) {
-      final order = result['order'] as Order;
-      
-      // Send order confirmation email
-      if (_currentUser?.email?.isNotEmpty == true) {
-        _sendOrderConfirmationEmail(order);
+      if (result['success']) {
+        final order = result['order'] as Order;
+        
+        // Send order confirmation email
+        if (_currentUser?.email?.isNotEmpty == true) {
+          _sendOrderConfirmationEmail(order);
+        }
+        
+        // Clear cart after successful order
+        await _cartService.clearCart();
+        return order;
+      } else {
+        // Check if it's a product not found error
+        final errorMessage = result['error'] ?? 'Failed to create order';
+        if (errorMessage.contains('Product') && errorMessage.contains('not found')) {
+          // Remove invalid products from cart and show a more user-friendly error
+          debugPrint('⚠️ Some products in cart are no longer available');
+          
+          // Extract product ID from error message if possible
+          final regex = RegExp(r'Product ([a-f0-9]{24})');
+          final match = regex.firstMatch(errorMessage);
+          if (match != null) {
+            final invalidProductId = match.group(1);
+            debugPrint('🗑️ Removing invalid product: $invalidProductId');
+            await _cartService.removeFromCart(invalidProductId!);
+          }
+          
+          throw Exception('Some items in your cart are no longer available. Please review your cart and try again.');
+        }
+        throw Exception(errorMessage);
       }
-      
-      // Clear cart after successful order
-      await _cartService.clearCart();
-      return order;
-    } else {
-      throw Exception(result['error'] ?? 'Failed to create order');
+    } catch (e) {
+      debugPrint('❌ Error creating order: $e');
+      rethrow;
     }
   }
 
@@ -438,7 +543,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           const Divider(height: 24),
           _buildSummaryRow('Subtotal', summary['formatted_subtotal']),
           _buildSummaryRow('Shipping', summary['formatted_shipping']),
-          _buildSummaryRow('Tax (GST)', summary['formatted_tax']),
+          _buildSummaryRow('Tax (GST ${summary['gst_rate']?.toStringAsFixed(0) ?? '18'}%)', summary['formatted_tax']),
           const Divider(height: 16),
           _buildSummaryRow('Total', summary['formatted_total'], isTotal: true),
         ],

@@ -288,7 +288,7 @@ class _ProductCardState extends State<ProductCard> {
         children: [
           // Product Image - Proportional height
           Expanded(
-            flex: 3,
+            flex: 4,
             child: InkWell(
               onTap: widget.onTap,
               borderRadius: const BorderRadius.only(topLeft: Radius.circular(Dimensions.radiusMd), topRight: Radius.circular(Dimensions.radiusMd)),
@@ -312,7 +312,7 @@ class _ProductCardState extends State<ProductCard> {
                   child: Text(
                     widget.product.name,
                     style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: AppColors.textPrimaryLight),
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),

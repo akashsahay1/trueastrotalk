@@ -732,16 +732,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             ),
             const SizedBox(height: Dimensions.spacingMd),
-            _buildSummaryRow('Subtotal', '₹${subtotal.toStringAsFixed(0)}'),
+            _buildSummaryRow('Subtotal', '₹${subtotal.toStringAsFixed(2)}'),
             _buildSummaryRow(
               'Shipping',
-              shipping == 0 ? 'FREE' : '₹${shipping.toStringAsFixed(0)}',
+              shipping == 0 ? 'FREE' : '₹${shipping.toStringAsFixed(2)}',
             ),
-            _buildSummaryRow('Tax (GST)', '₹${tax.toStringAsFixed(0)}'),
+            _buildSummaryRow('Tax (GST 18%)', '₹${tax.toStringAsFixed(2)}'),
             const Divider(),
             _buildSummaryRow(
               'Total',
-              '₹${total.toStringAsFixed(0)}',
+              '₹${total.toStringAsFixed(2)}',
               isTotal: true,
             ),
             if (shipping == 0 && subtotal >= 500) ...[

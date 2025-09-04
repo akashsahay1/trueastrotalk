@@ -8,6 +8,7 @@ import '../services/service_locator.dart';
 import '../services/api/orders_api_service.dart';
 import '../services/local/local_storage_service.dart';
 import 'order_details.dart';
+import 'products_list.dart';
 
 class OrdersListScreen extends StatefulWidget {
   const OrdersListScreen({super.key});
@@ -47,8 +48,9 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
     });
 
     try {
-      // Get user ID from local storage
-      final userId = _localStorage.getString('user_id') ?? 'user123';
+      // Get custom user ID from local storage (not MongoDB ObjectId)
+      final userId = _localStorage.getUserId() ?? 'user123';
+      debugPrint('🔍 Loading orders for user_id: $userId');
       
       // Fetch orders from API
       final result = await _ordersApiService.getOrders(
@@ -257,7 +259,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
     if (result == true) {
       // Call API to cancel order
       try {
-        final userId = _localStorage.getString('user_id') ?? 'user123';
+        final userId = _localStorage.getUserId() ?? 'user123';
         final cancelResult = await _ordersApiService.cancelOrder(
           orderId: order.id ?? '',
           userId: userId,
@@ -398,7 +400,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
             const SizedBox(height: Dimensions.spacingLg),
             ElevatedButton(
               onPressed: () {
-                Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const ProductsListScreen()));
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,

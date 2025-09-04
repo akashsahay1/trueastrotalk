@@ -8,7 +8,9 @@ import '../services/service_locator.dart';
 import 'astrologer_details.dart';
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key});
+  final int? initialTabIndex;
+  
+  const HistoryScreen({super.key, this.initialTabIndex});
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -27,7 +29,11 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(
+      length: 3, 
+      vsync: this, 
+      initialIndex: widget.initialTabIndex ?? 0,
+    );
     _authService = getIt<AuthService>();
     _userApiService = getIt<UserApiService>();
     _loadConsultationHistory();

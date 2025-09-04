@@ -225,6 +225,12 @@ class _LoginScreenState extends State<LoginScreen>
       debugPrint('🚨 Exception details: $e');
       
       if (mounted) {
+        // Check if user cancelled Google Sign-In - silently ignore
+        if (e.toString().contains('USER_CANCELLED')) {
+          debugPrint('🚫 User cancelled Google Sign-In - no error message shown');
+          return;
+        }
+        
         // Check if this is actually a GoogleSignUpRequiredException that wasn't caught properly
         if (e is GoogleSignUpRequiredException) {
           debugPrint('🎯 Found GoogleSignUpRequiredException in generic catch block');
@@ -269,6 +275,7 @@ class _LoginScreenState extends State<LoginScreen>
         // Don't show error for user cancellation or signup flow
         if (!e.toString().contains('needs to complete signup') && 
             !e.toString().contains('USER_NOT_REGISTERED') &&
+            !e.toString().contains('USER_CANCELLED') &&
             appError.userMessage.isNotEmpty) {
           _triggerErrorHaptic();
           ErrorHandler.showError(context, appError);

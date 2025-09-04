@@ -106,6 +106,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
       }
     } catch (e) {
       if (mounted) {
+        // Check if user cancelled Google Sign-In - silently ignore
+        if (e.toString().contains('USER_CANCELLED')) {
+          debugPrint('🚫 User cancelled Google Sign-In - no error message shown');
+          return;
+        }
+        
         String errorMessage = e.toString().replaceAll('Exception: ', '');
         _showErrorSnackBar(errorMessage);
       }

@@ -274,7 +274,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
             // Price breakdown
             _buildPriceRow('Subtotal', widget.order.formattedSubtotal),
             _buildPriceRow('Shipping', widget.order.formattedShipping),
-            _buildPriceRow('Tax (GST)', widget.order.formattedTax),
+            _buildPriceRow('Tax (GST 18%)', widget.order.formattedTax),
             
             const Divider(),
             

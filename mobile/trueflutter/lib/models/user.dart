@@ -594,12 +594,11 @@ class User {
   }
 
   static String? _getProfilePicture(Map<String, dynamic> json) {
-    // Try different profile picture fields, but skip empty strings
+    // Priority order: social_profile_image (for Google users), then profile_picture/profile_image
     final fields = [
+      'social_profile_image',
       'profile_picture', 
-      'profile_image', 
-      'google_photo_url', 
-      'photoUrl'
+      'profile_image'
     ];
     
     for (final field in fields) {

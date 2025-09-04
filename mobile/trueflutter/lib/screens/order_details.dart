@@ -522,7 +522,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             
             _buildSummaryRow('Subtotal', widget.order.formattedSubtotal),
             _buildSummaryRow('Shipping', widget.order.formattedShipping),
-            _buildSummaryRow('Tax (GST)', widget.order.formattedTax),
+            _buildSummaryRow('Tax (GST 18%)', widget.order.formattedTax),
             
             const Divider(),
             

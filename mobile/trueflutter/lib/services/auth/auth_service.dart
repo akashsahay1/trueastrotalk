@@ -412,6 +412,19 @@ class AuthService {
       throw Exception('Platform error during Google Sign-In: ${e.message}');
     } catch (e) {
       debugPrint('🚨 AuthService: Generic exception in signInWithGoogle: ${e.runtimeType} - $e');
+      
+      // Check if user cancelled Google Sign-In
+      final errorString = e.toString().toLowerCase();
+      if (errorString.contains('canceled') || 
+          errorString.contains('cancelled') || 
+          errorString.contains('aborted_by_user') ||
+          errorString.contains('cancelled by user') ||
+          e.toString().contains('GoogleSignInExceptionCode.canceled')) {
+        debugPrint('🚫 User cancelled Google Sign-In - no error message needed');
+        // Return silently without throwing an exception or showing error
+        return Future.error('USER_CANCELLED');
+      }
+      
       // If it's a GoogleSignUpRequiredException, rethrow it as-is
       if (e is GoogleSignUpRequiredException) {
         debugPrint('🎯 AuthService: Rethrowing GoogleSignUpRequiredException');
@@ -449,10 +462,6 @@ class AuthService {
       debugPrint('   User profile picture from backend: ${user.profilePicture}');
       debugPrint('   Auth type: ${user.authType}');
 
-      // For Google users, save the Google photo URL separately for use in UI
-      if (user.authType == AuthType.google && profileImageUrl != null && profileImageUrl.isNotEmpty) {
-        await _saveGooglePhotoUrl(profileImageUrl);
-      }
 
       await _saveAuthData(user, token, refreshToken);
       return user;
@@ -587,6 +596,7 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('user_data', jsonEncode(user.toJson()));
     await _localStorage.saveUserMap(user.toJson()); // Save to local storage for socket service
+    await _localStorage.saveUserId(user.id); // Save user ID for API calls
   }
 
   Future<void> _clearAuthData() async {
@@ -604,7 +614,6 @@ class AuthService {
     
     await _localStorage.removeAuthToken();
     await _localStorage.clearUserMap();
-    await _clearGooglePhotoUrl();
     
     // Clear PaymentConfig credentials
     PaymentConfig.instance.clearCredentials();
@@ -653,21 +662,4 @@ class AuthService {
     return await _userApiService.updateUserProfileImage(userId, imageUrl);
   }
 
-  // Save Google photo URL locally for Google users
-  Future<void> _saveGooglePhotoUrl(String googlePhotoUrl) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('google_photo_url', googlePhotoUrl);
-  }
-
-  // Get saved Google photo URL for Google users
-  Future<String?> getGooglePhotoUrl() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('google_photo_url');
-  }
-
-  // Clear Google photo URL (when user signs out or switches to non-Google auth)
-  Future<void> _clearGooglePhotoUrl() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('google_photo_url');
-  }
 }

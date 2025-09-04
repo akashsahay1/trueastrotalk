@@ -21,7 +21,7 @@ class OrdersApiService {
       final response = await _dio.get(
         ApiEndpoints.orders,
         queryParameters: {
-          'userId': userId,
+          'userId': userId, // This should be custom user_id like 'user_1756540752442_2s0gyae9'
           'userType': userType,
           if (status != null) 'status': status,
           'limit': limit,
@@ -243,6 +243,7 @@ class OrdersApiService {
     required String userId,
     required List<Map<String, dynamic>> items,
     required Address shippingAddress,
+    double gstRate = 18.0,
   }) async {
     try {
       // This could be a separate endpoint or calculated client-side
@@ -253,7 +254,7 @@ class OrdersApiService {
       }
 
       final double shipping = subtotal >= 500 ? 0 : 50; // Free shipping above ₹500
-      final double tax = subtotal * 0.18; // 18% GST
+      final double tax = subtotal * (gstRate / 100); // Dynamic GST
       final double total = subtotal + shipping + tax;
 
       return {

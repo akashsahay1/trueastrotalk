@@ -6,7 +6,6 @@ import '../services/auth/auth_service.dart';
 import '../services/api/user_api_service.dart';
 import '../services/service_locator.dart';
 import '../models/user.dart' as app_user;
-import '../models/enums.dart';
 import '../models/astrologer.dart';
 import '../models/product.dart';
 import '../config/config.dart';
@@ -25,9 +24,7 @@ import 'help.dart';
 import 'products_list.dart';
 import 'product_details.dart';
 import 'cart.dart';
-import 'chat_list.dart';
 import 'chat_screen.dart';
-import 'call_list.dart';
 import '../services/cart_service.dart';
 import '../services/chat/chat_service.dart';
 import '../services/socket/socket_service.dart';
@@ -866,7 +863,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
             // Show "Call History" button when no active call
             return FloatingActionButton.extended(
               onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(builder: (context) => const CallListScreen()));
+                Navigator.of(context).push(MaterialPageRoute(builder: (context) => const HistoryScreen(initialTabIndex: 1))); // Index 1 = Calls tab
               },
               icon: const Icon(Icons.history, color: AppColors.white),
               label: Text('Call History', style: AppTextStyles.buttonMedium.copyWith(color: AppColors.white)),
@@ -896,7 +893,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
             // Show "My Chats" button when no active call
             return FloatingActionButton.extended(
               onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(builder: (context) => const ChatListScreen()));
+                Navigator.of(context).push(MaterialPageRoute(builder: (context) => const HistoryScreen(initialTabIndex: 2))); // Index 2 = Chats tab
               },
               icon: const Icon(Icons.chat_bubble_outline, color: AppColors.white),
               label: Text('My Chats', style: AppTextStyles.buttonMedium.copyWith(color: AppColors.white)),
@@ -1447,53 +1444,20 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildProfileImage() {
-    // For Google users, prioritize Google photo URL from local storage
-    if (_currentUser?.authType == AuthType.google) {
-      return FutureBuilder<String?>(
-        future: _authService.getGooglePhotoUrl(),
-        builder: (context, snapshot) {
-          final googlePhotoUrl = snapshot.data;
-
-          if (googlePhotoUrl?.isNotEmpty == true) {
-            debugPrint('🌐 Home: Showing Google profile image: $googlePhotoUrl');
-            return Image.network(
-              googlePhotoUrl!,
-              width: 70,
-              height: 70,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                debugPrint('❌ Home: Failed to load Google image: $error');
-                return _buildGoogleFallbackAvatar();
-              },
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) {
-                  return child;
-                }
-                return _buildLoadingAvatar();
-              },
-            );
-          } else {
-            debugPrint('🔍 Home: Google user without photo URL, showing Google fallback');
-            return _buildGoogleFallbackAvatar();
-          }
-        },
-      );
-    }
-
-    // For non-Google users, show server profile image
+    // Use profile picture from user model (which now prioritizes social_profile_image)
     if (_currentUser?.profilePicture?.isNotEmpty == true) {
-      debugPrint('🖼️ Home: Loading server profile image: ${_currentUser!.profilePicture}');
+      debugPrint('🖼️ Home: Loading profile image: ${_currentUser!.profilePicture}');
 
       String imageUrl = _currentUser!.profilePicture!;
 
-      // Handle server image URLs - construct full URL if needed
+      // Handle server image URLs - construct full URL if needed for non-HTTP URLs
       if (!imageUrl.startsWith('http')) {
         final baseUrl = Config.baseUrlSync.replaceAll('/api', '');
         if (!imageUrl.startsWith('/')) {
           imageUrl = '/$imageUrl';
         }
         imageUrl = baseUrl + imageUrl;
-        debugPrint('🔗 Home: Constructed server image URL: $imageUrl');
+        debugPrint('🔗 Home: Constructed image URL: $imageUrl');
       }
 
       return Image.network(
@@ -1501,9 +1465,9 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         width: 70,
         height: 70,
         fit: BoxFit.cover,
-        headers: {'Accept': 'image/*'},
+        headers: imageUrl.startsWith('http') ? null : {'Accept': 'image/*'},
         errorBuilder: (context, error, stackTrace) {
-          debugPrint('❌ Home: Failed to load server image: $error');
+          debugPrint('❌ Home: Failed to load profile image: $error');
           return _buildFallbackAvatar();
         },
         loadingBuilder: (context, child, loadingProgress) {
@@ -1515,8 +1479,8 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       );
     }
 
-    // Show fallback avatar for non-Google users without images
-    debugPrint('👤 Home: No profile image, showing fallback avatar');
+    // No profile image available - show fallback avatar
+    debugPrint('📷 Home: No profile image, showing fallback');
     return _buildFallbackAvatar();
   }
 
@@ -1540,30 +1504,6 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildGoogleFallbackAvatar() {
-    // Create a nice gradient avatar for Google users
-    final name = _currentUser?.name ?? '';
-    final initials = name.isNotEmpty ? name.split(' ').map((n) => n.isNotEmpty ? n[0] : '').take(2).join().toUpperCase() : 'G';
-
-    return Container(
-      width: 70,
-      height: 70,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF4285F4), Color(0xFF34A853)], // Google blue to green
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        shape: BoxShape.circle,
-      ),
-      child: Center(
-        child: Text(
-          initials,
-          style: AppTextStyles.heading4.copyWith(color: AppColors.white, fontWeight: FontWeight.bold),
-        ),
-      ),
-    );
-  }
 
   // Astrologer-specific screens
   Widget _buildAstrologerHomeContent() {

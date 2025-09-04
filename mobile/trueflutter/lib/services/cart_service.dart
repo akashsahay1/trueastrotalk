@@ -5,6 +5,7 @@ import '../models/product.dart';
 import 'local/local_storage_service.dart';
 import 'api/cart_api_service.dart';
 import 'api/products_api_service.dart';
+import 'api/app_config_service.dart';
 import 'auth/auth_service.dart';
 import 'service_locator.dart';
 
@@ -17,12 +18,26 @@ class CartService extends ChangeNotifier {
   Cart _cart = Cart.empty();
   bool _isLoading = false;
   String? _error;
+  double _gstRate = 18.0; // Default GST rate, will be updated from config
   
   CartService(this._localStorage, this._cartApiService, this._productsApiService);
   
   // Initialize cart - call this after LocalStorageService is initialized
   Future<void> initialize() async {
     await _loadCart();
+    await _loadGSTRate();
+  }
+
+  // Load GST rate from app configuration
+  Future<void> _loadGSTRate() async {
+    try {
+      final appConfigService = getIt<AppConfigService>();
+      _gstRate = await appConfigService.getGSTRate();
+      debugPrint('✅ GST rate loaded: $_gstRate%');
+    } catch (e) {
+      debugPrint('❌ Failed to load GST rate: $e - using default 18%');
+      _gstRate = 18.0; // Keep default on error
+    }
   }
 
   // Getters
@@ -35,6 +50,7 @@ class CartService extends ChangeNotifier {
   bool get isNotEmpty => _cart.isNotEmpty;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  double get gstRate => _gstRate;
 
   // Load cart from API or local storage
   Future<void> _loadCart() async {
@@ -423,9 +439,9 @@ class CartService extends ChangeNotifier {
     return 50.0; // ₹50 shipping fee
   }
 
-  // Calculate tax (can be customized based on location, product type, etc.)
+  // Calculate tax using dynamic GST rate from configuration
   double calculateTax() {
-    return totalPrice * 0.18; // 18% GST
+    return totalPrice * (_gstRate / 100); // Dynamic GST rate
   }
 
   // Calculate final total including shipping and tax
@@ -445,10 +461,11 @@ class CartService extends ChangeNotifier {
       'tax': calculateTax(),
       'total': getFinalTotal(),
       'total_items': totalItems,
-      'formatted_subtotal': formattedTotalPrice,
-      'formatted_shipping': '₹${calculateShipping().toStringAsFixed(0)}',
-      'formatted_tax': '₹${calculateTax().toStringAsFixed(0)}',
-      'formatted_total': getFormattedFinalTotal(),
+      'formatted_subtotal': '₹${totalPrice.toStringAsFixed(2)}',
+      'formatted_shipping': '₹${calculateShipping().toStringAsFixed(2)}',
+      'formatted_tax': '₹${calculateTax().toStringAsFixed(2)}',
+      'formatted_total': '₹${getFinalTotal().toStringAsFixed(2)}',
+      'gst_rate': _gstRate,
     };
   }
 
