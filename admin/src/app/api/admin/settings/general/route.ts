@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
           },
           commission: {
             defaultRate: 25,
+            gstRate: 18,
             minimumPayout: 1000
           },
           created_at: new Date().toISOString(),
@@ -180,6 +181,7 @@ export async function POST(request: NextRequest) {
         },
         commission: {
           defaultRate: body.commission?.defaultRate || 25,
+          gstRate: body.commission?.gstRate || 18,
           minimumPayout: body.commission?.minimumPayout || 1000
         },
         updated_at: new Date().toISOString()

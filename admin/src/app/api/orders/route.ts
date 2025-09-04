@@ -11,6 +11,7 @@ interface OrderItem {
   product_image?: string | null;
   price: number;
   quantity: number;
+  total_price?: number;
   category?: string;
 }
 
@@ -303,15 +304,26 @@ export async function POST(request: NextRequest) {
       const itemTotal = Number(product.price) * Number(item.quantity);
       subtotal += itemTotal;
 
-      // Don't store image paths - they will be resolved dynamically when orders are fetched
+      // Store product image for order display - preserve from cart or resolve from product
+      let productImageUrl = item.product_image; // Use image from cart if available
+      
+      // If no image from cart, try to resolve from product's image_id
+      if (!productImageUrl && product.image_id) {
+        const resolvedImageUrl = await resolveMediaUrl(request, product.image_id);
+        if (resolvedImageUrl) {
+          productImageUrl = resolvedImageUrl;
+          console.log(`🖼️ Order creation: Resolved image for ${product.name}: ${product.image_id} -> ${resolvedImageUrl}`);
+        }
+      }
+      
       validatedItems.push({
         product_id: item.product_id, // This should be custom product_id like 'product_1756540783734_wxtlznqe'
         product_name: product.name,
         price: Number(product.price),
         quantity: Number(item.quantity),
         total_price: itemTotal,
-        category: product.category
-        // No product_image stored - will be resolved dynamically from product_id
+        category: product.category,
+        product_image: productImageUrl // Store the resolved product image
       });
     }
 

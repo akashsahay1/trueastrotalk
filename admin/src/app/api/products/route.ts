@@ -126,6 +126,7 @@ export async function GET(request: NextRequest) {
         
         return {
           _id: product._id.toString(),
+          product_id: product.product_id, // Include custom product_id
           name: product.name,
           description: product.description,
           price: product.price,

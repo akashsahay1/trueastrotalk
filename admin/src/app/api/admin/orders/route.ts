@@ -219,7 +219,8 @@ export async function GET(request: NextRequest) {
           // If no product_image stored, try to get it from products collection
           try {
             const productsCollection = await DatabaseService.getCollection('products');
-            const product = await productsCollection.findOne({ _id: new ObjectId(item.product_id) });
+            // Look up product by custom product_id, not MongoDB ObjectId
+            const product = await productsCollection.findOne({ product_id: item.product_id });
             
             if (product && product.image_id) {
               const resolvedImageUrl = await resolveMediaUrl(request, product.image_id);

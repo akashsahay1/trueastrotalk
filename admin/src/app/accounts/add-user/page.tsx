@@ -116,6 +116,11 @@ function AddUserPageContent() {
   const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
   const [showProfileImageLibrary, setShowProfileImageLibrary] = useState(false);
   const [showPanCardLibrary, setShowPanCardLibrary] = useState(false);
+  
+  // Astrologer options state
+  const [availableSkills, setAvailableSkills] = useState<string[]>([]);
+  const [availableLanguages, setAvailableLanguages] = useState<string[]>([]);
+  const [qualificationInput, setQualificationInput] = useState('');
 
   // Define user type booleans for conditional rendering
   const isAstrologer = formData.user_type === 'astrologer';
@@ -134,8 +139,62 @@ function AddUserPageContent() {
         ...prev,
         user_type: userType
       }));
+      
+      // Load astrologer options if astrologer type
+      if (userType === 'astrologer') {
+        loadAstrologerOptions();
+      }
     }
   }, [searchParams]);
+
+  // Load astrologer options when user type changes to astrologer
+  useEffect(() => {
+    if (formData.user_type === 'astrologer') {
+      loadAstrologerOptions();
+    }
+  }, [formData.user_type]);
+
+  // Initialize select2 for Skills and Languages
+  useEffect(() => {
+    if (typeof window !== 'undefined' && formData.user_type === 'astrologer') {
+      // Access jQuery through window object
+      const windowWithJQuery = window as typeof window & { $?: unknown };
+      if (!windowWithJQuery.$ || typeof windowWithJQuery.$ !== 'function') return;
+      
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const $ = windowWithJQuery.$ as any;
+      
+      // Initialize select2 for skills
+      const skillsSelect = $('#skills-select');
+      if (skillsSelect.length && !skillsSelect.hasClass('select2-hidden-accessible')) {
+        skillsSelect.select2({
+          placeholder: 'Select skills...',
+          allowClear: true,
+          closeOnSelect: false
+        });
+      }
+
+      // Initialize select2 for languages  
+      const languagesSelect = $('#languages-select');
+      if (languagesSelect.length && !languagesSelect.hasClass('select2-hidden-accessible')) {
+        languagesSelect.select2({
+          placeholder: 'Select languages...',
+          allowClear: true,
+          closeOnSelect: false
+        });
+      }
+
+      // Cleanup function
+      return () => {
+        if (skillsSelect.length && skillsSelect.hasClass('select2-hidden-accessible')) {
+          skillsSelect.select2('destroy');
+        }
+        if (languagesSelect.length && languagesSelect.hasClass('select2-hidden-accessible')) {
+          languagesSelect.select2('destroy');
+        }
+      };
+    }
+  }, [formData.user_type, availableSkills, availableLanguages]);
 
   const loadAdminSettings = async () => {
     try {
@@ -156,6 +215,20 @@ function AddUserPageContent() {
       }
     } catch (error) {
       console.error('Failed to load admin settings:', error);
+    }
+  };
+
+  const loadAstrologerOptions = async () => {
+    try {
+      const response = await fetch('/api/astrologer-options/active');
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setAvailableSkills(data.data.skills || []);
+        setAvailableLanguages(data.data.languages || []);
+      }
+    } catch (error) {
+      console.error('Failed to load astrologer options:', error);
     }
   };
 
@@ -221,6 +294,27 @@ function AddUserPageContent() {
     }));
     setPanCardPreview('');
     setFieldErrors(prev => ({ ...prev, pan_card: '' }));
+  };
+
+
+  const addQualification = () => {
+    const qualification = qualificationInput.trim();
+    if (qualification && !formData.qualifications.includes(qualification)) {
+      // Capitalize first letter
+      const capitalizedQualification = qualification.charAt(0).toUpperCase() + qualification.slice(1);
+      setFormData(prev => ({
+        ...prev,
+        qualifications: [...prev.qualifications, capitalizedQualification]
+      }));
+      setQualificationInput('');
+    }
+  };
+
+  const removeQualification = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      qualifications: prev.qualifications.filter((_, i) => i !== index)
+    }));
   };
 
   const validateUserForm = () => {
@@ -834,6 +928,122 @@ function AddUserPageContent() {
                           </div>
                         </div>
 
+                        {/* Bio */}
+                        <div className="col-md-12 mb-4">
+                          <label className="label">Bio</label>
+                          <textarea 
+                            className="form-control"
+                            name="bio"
+                            value={formData.bio}
+                            onChange={handleInputChange}
+                            rows={3}
+                            placeholder="Brief description about the astrologer..."
+                          />
+                          <small className="text-muted">Professional background and specialization</small>
+                        </div>
+
+                        {/* Experience Years & Skills Row */}
+                        <div className="col-6 mb-4">
+                          <label className="label">Experience Years</label>
+                          <input 
+                            type="number" 
+                            className="form-control"
+                            name="experience_years"
+                            value={formData.experience_years}
+                            onChange={handleInputChange}
+                            min="0"
+                            max="50"
+                          />
+                          <small className="text-muted">Years of experience in astrology</small>
+                        </div>
+
+                        <div className="col-6 mb-4">
+                          <label className="label">Skills</label>
+                          <select 
+                            className="form-control select2-multiple" 
+                            multiple 
+                            id="skills-select"
+                            value={formData.skills}
+                            onChange={(e) => {
+                              const selectedValues = Array.from((e.target as HTMLSelectElement).selectedOptions, option => option.value);
+                              setFormData(prev => ({
+                                ...prev,
+                                skills: selectedValues
+                              }));
+                            }}
+                          >
+                            {availableSkills.map((skill) => (
+                              <option key={skill} value={skill}>{skill}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Languages & Qualifications Row */}
+                        <div className="col-6 mb-4">
+                          <label className="label">Languages</label>
+                          <select 
+                            className="form-control select2-multiple" 
+                            multiple 
+                            id="languages-select"
+                            value={formData.languages}
+                            onChange={(e) => {
+                              const selectedValues = Array.from((e.target as HTMLSelectElement).selectedOptions, option => option.value);
+                              setFormData(prev => ({
+                                ...prev,
+                                languages: selectedValues
+                              }));
+                            }}
+                          >
+                            {availableLanguages.map((language) => (
+                              <option key={language} value={language}>{language}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="col-6 mb-4">
+                          <label className="label">Qualifications</label>
+                          <div className="qualifications-tag-input">
+                            <div 
+                              className="select2-selection select2-selection--multiple form-control" 
+                              onClick={(e) => {
+                                const input = e.currentTarget.querySelector('input');
+                                if (input) input.focus();
+                              }}
+                            >
+                              {formData.qualifications.map((qual, index) => (
+                                <span key={index} className="select2-selection__choice">
+                                  <span 
+                                    className="select2-selection__choice__remove" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      removeQualification(index);
+                                    }}
+                                  >
+                                    ×
+                                  </span>
+                                  {qual}
+                                </span>
+                              ))}
+                              <input 
+                                type="text" 
+                                className="select2-search__field"
+                                value={qualificationInput} 
+                                onChange={(e) => setQualificationInput(e.target.value)} 
+                                placeholder={formData.qualifications.length === 0 ? "Add qualifications..." : ""} 
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    addQualification();
+                                  }
+                                  if (e.key === 'Backspace' && qualificationInput === '' && formData.qualifications.length > 0) {
+                                    removeQualification(formData.qualifications.length - 1);
+                                  }
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
                         {/* PAN Card Upload */}
                         <div className="col-md-12 mb-4">
                           <label className="label">PAN Card <span className="text-danger">*</span></label>
@@ -846,7 +1056,7 @@ function AddUserPageContent() {
                                   width={400}
                                   height={250}
                                   className='img-thumbnail'
-                                  style={{ width: '100%', height: 'auto', maxWidth: '400px', objectFit: 'cover' }}
+                                  style={{ width: '100%', height: 'auto', objectFit: 'cover' }}
                                 />
                                 <button
                                   type="button"
@@ -1066,9 +1276,6 @@ function AddUserPageContent() {
                           <>Create Account</>
                         )}
                       </button>
-                      <Link href="/accounts/customers" className="btn btn-secondary ml-2">
-                        Cancel
-                      </Link>
                     </div>
                   </div>
 

@@ -19,6 +19,7 @@ interface AppConfig {
   };
   commission: {
     defaultRate: number;
+    gstRate: number;
     minimumPayout: number;
   };
 }
@@ -39,6 +40,7 @@ export default function GeneralSettingsPage() {
     },
     commission: {
       defaultRate: 25,
+      gstRate: 18,
       minimumPayout: 1000
     }
   });
@@ -181,7 +183,21 @@ export default function GeneralSettingsPage() {
                   <div className="card-body">
                     <form onSubmit={(e) => { e.preventDefault(); saveConfig(); }}>
                       <div className="row">
-                        <div className="col-md-6">
+                        <div className="col-md-4">
+                          <div className="form-group">
+                            <label htmlFor="razorpayEnvironment">Environment</label>
+                            <select
+                              className="form-control"
+                              id="razorpayEnvironment"
+                              value={config.razorpay.environment}
+                              onChange={(e) => handleConfigChange('razorpay', 'environment', e.target.value)}
+                            >
+                              <option value="test">Test</option>
+                              <option value="live">Live</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="col-md-4">
                           <div className="form-group">
                             <label htmlFor="razorpayKeyId">Razorpay Key ID <span className="text-danger">*</span></label>
                             <input
@@ -195,7 +211,7 @@ export default function GeneralSettingsPage() {
                             />
                           </div>
                         </div>
-                        <div className="col-md-6">
+                        <div className="col-md-4">
                           <div className="form-group">
                             <label htmlFor="razorpayKeySecret">Razorpay Key Secret <span className="text-danger">*</span></label>
                             <input
@@ -207,22 +223,6 @@ export default function GeneralSettingsPage() {
                               placeholder="Enter Razorpay secret key"
                               required
                             />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="row">
-                        <div className="col-md-6">
-                          <div className="form-group">
-                            <label htmlFor="razorpayEnvironment">Environment</label>
-                            <select
-                              className="form-control"
-                              id="razorpayEnvironment"
-                              value={config.razorpay.environment}
-                              onChange={(e) => handleConfigChange('razorpay', 'environment', e.target.value)}
-                            >
-                              <option value="test">Test</option>
-                              <option value="live">Live</option>
-                            </select>
                           </div>
                         </div>
                       </div>
@@ -292,7 +292,7 @@ export default function GeneralSettingsPage() {
                   </div>
                   <div className="card-body">
                     <div className="row">
-                      <div className="col-md-6">
+                      <div className="col-md-4">
                         <div className="form-group">
                           <label htmlFor="commissionRate">Default Commission Rate (%)</label>
                           <input
@@ -306,7 +306,21 @@ export default function GeneralSettingsPage() {
                           />
                         </div>
                       </div>
-                      <div className="col-md-6">
+                      <div className="col-md-4">
+                        <div className="form-group">
+                          <label htmlFor="gstRate">GST (%)</label>
+                          <input
+                            type="number"
+                            className="form-control"
+                            id="gstRate"
+                            value={config.commission.gstRate}
+                            onChange={(e) => handleConfigChange('commission', 'gstRate', parseInt(e.target.value) || 0)}
+                            min="0"
+                            max="50"
+                          />
+                        </div>
+                      </div>
+                      <div className="col-md-4">
                         <div className="form-group">
                           <label htmlFor="minimumPayout">Minimum Payout (₹)</label>
                           <input

@@ -79,7 +79,8 @@ export async function GET(request: NextRequest) {
           minSupportedVersion: config.app?.minSupportedVersion || '1.0.0'
         },
         commission: {
-          defaultRate: config.commission?.defaultRate || 25
+          defaultRate: config.commission?.defaultRate || 25,
+          gstRate: config.commission?.gstRate || 18
           // Note: minimumPayout is internal business logic, not needed by app
         }
       };

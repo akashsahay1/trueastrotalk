@@ -192,29 +192,34 @@ export async function POST(request: NextRequest) {
 
     const razorpayOrder = await razorpayResponse.json();
 
-    // Store payment order in database for tracking
-    const paymentsCollection = await DatabaseService.getCollection('payment_orders');
-    const paymentRecord = {
+    // Store transaction in unified transactions collection
+    const transactionsCollection = await DatabaseService.getCollection('transactions');
+    const transactionRecord = {
       _id: new ObjectId(),
-      razorpay_order_id: razorpayOrder.id,
-      user_id: new ObjectId(user.userId as string),
+      user_id: user.userId as string,
+      user_type: user.user_type as string,
+      transaction_type: purpose === 'wallet_recharge' ? 'credit' : 'debit',
       amount: amount,
-      amount_paise: amountInPaise,
       currency,
+      status: 'pending',
+      payment_method: 'razorpay',
+      payment_id: null, // Will be updated after successful payment
+      razorpay_order_id: razorpayOrder.id,
+      reference_id: secureReceipt,
+      description: `${(purpose as string).replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())} - ${order_type}`,
       purpose,
       order_type,
-      receipt: secureReceipt,
-      status: 'created',
-      created_at: new Date(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
       created_by_ip: ip,
       user_agent: request.headers.get('user-agent') || '',
       metadata: {
         user_email: user.email,
-        user_type: user.user_type
+        amount_paise: amountInPaise
       }
     };
 
-    await paymentsCollection.insertOne(paymentRecord);
+    await transactionsCollection.insertOne(transactionRecord);
 
     console.log(`✅ Payment order created successfully: ${razorpayOrder.id} for user ${user.userId}`);
 

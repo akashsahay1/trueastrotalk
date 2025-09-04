@@ -50,26 +50,26 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Get payment order from database
-    const paymentsCollection = await DatabaseService.getCollection('payment_orders');
-    const paymentOrder = await paymentsCollection.findOne({
+    // Get transaction from unified transactions collection
+    const transactionsCollection = await DatabaseService.getCollection('transactions');
+    const paymentTransaction = await transactionsCollection.findOne({
       razorpay_order_id: razorpay_order_id,
-      user_id: new ObjectId(user.userId as string),
-      status: 'created'
+      user_id: user.userId as string,
+      status: 'pending'
     });
 
-    if (!paymentOrder) {
-      console.log(`❌ Payment order not found: ${razorpay_order_id} for user ${user.userId}`);
+    if (!paymentTransaction) {
+      console.log(`❌ Payment transaction not found: ${razorpay_order_id} for user ${user.userId}`);
       return NextResponse.json({
         success: false,
-        error: 'PAYMENT_ORDER_NOT_FOUND',
-        message: 'Payment order not found or already processed'
+        error: 'PAYMENT_TRANSACTION_NOT_FOUND',
+        message: 'Payment transaction not found or already processed'
       }, { status: 404 });
     }
 
     // Verify amount matches
-    if (Math.abs((paymentOrder.amount as number) - amount) > 0.01) {
-      console.log(`❌ Amount mismatch for order ${razorpay_order_id}: expected ${paymentOrder.amount}, got ${amount}`);
+    if (Math.abs((paymentTransaction.amount as number) - amount) > 0.01) {
+      console.log(`❌ Amount mismatch for order ${razorpay_order_id}: expected ${paymentTransaction.amount}, got ${amount}`);
       return NextResponse.json({
         success: false,
         error: 'AMOUNT_MISMATCH',
@@ -120,15 +120,15 @@ export async function POST(request: NextRequest) {
     if (!isSignatureValid) {
       console.log(`❌ Invalid signature for payment ${razorpay_payment_id}`);
       
-      // Mark payment as failed
-      await paymentsCollection.updateOne(
-        { _id: paymentOrder._id },
+      // Mark transaction as failed
+      await transactionsCollection.updateOne(
+        { _id: paymentTransaction._id },
         { 
           $set: { 
             status: 'failed',
             failure_reason: 'Invalid signature',
-            updated_at: new Date(),
-            razorpay_payment_id: razorpay_payment_id
+            updated_at: new Date().toISOString(),
+            payment_id: razorpay_payment_id
           }
         }
       );
@@ -172,14 +172,14 @@ export async function POST(request: NextRequest) {
       if (paymentDetails.status !== 'captured' && paymentDetails.status !== 'authorized') {
         console.log(`❌ Payment ${razorpay_payment_id} status is ${paymentDetails.status}`);
         
-        await paymentsCollection.updateOne(
-          { _id: paymentOrder._id },
+        await transactionsCollection.updateOne(
+          { _id: paymentTransaction._id },
           { 
             $set: { 
               status: 'failed',
               failure_reason: `Payment status: ${paymentDetails.status}`,
-              updated_at: new Date(),
-              razorpay_payment_id: razorpay_payment_id,
+              updated_at: new Date().toISOString(),
+              payment_id: razorpay_payment_id,
               razorpay_payment_details: paymentDetails
             }
           }
@@ -199,14 +199,14 @@ export async function POST(request: NextRequest) {
       if (apiAmountInPaise !== expectedAmountInPaise) {
         console.log(`❌ API amount mismatch for payment ${razorpay_payment_id}: expected ${expectedAmountInPaise}, got ${apiAmountInPaise}`);
         
-        await paymentsCollection.updateOne(
-          { _id: paymentOrder._id },
+        await transactionsCollection.updateOne(
+          { _id: paymentTransaction._id },
           { 
             $set: { 
               status: 'failed',
               failure_reason: 'Amount mismatch with Razorpay API',
-              updated_at: new Date(),
-              razorpay_payment_id: razorpay_payment_id,
+              updated_at: new Date().toISOString(),
+              payment_id: razorpay_payment_id,
               razorpay_payment_details: paymentDetails
             }
           }
@@ -222,18 +222,17 @@ export async function POST(request: NextRequest) {
 
     // Payment verification successful - process the payment
     const usersCollection = await DatabaseService.getCollection('users');
-    const transactionsCollection = await DatabaseService.getCollection('wallet_transactions');
     
-    // Update payment order status
-    await paymentsCollection.updateOne(
-      { _id: paymentOrder._id },
+    // Update transaction status to completed
+    await transactionsCollection.updateOne(
+      { _id: paymentTransaction._id },
       { 
         $set: { 
           status: 'completed',
-          razorpay_payment_id: razorpay_payment_id,
+          payment_id: razorpay_payment_id,
           razorpay_signature: razorpay_signature,
-          verified_at: new Date(),
-          updated_at: new Date(),
+          verified_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
           ...(paymentDetails && { razorpay_payment_details: paymentDetails })
         }
       }
@@ -249,25 +248,9 @@ export async function POST(request: NextRequest) {
           $set: { updated_at: new Date() }
         } as Record<string, unknown>
       );
-
-      // Create wallet transaction record
-      await transactionsCollection.insertOne({
-        _id: new ObjectId(),
-        user_id: new ObjectId(user.userId as string),
-        transaction_type: 'credit',
-        amount: amount,
-        purpose: 'wallet_recharge',
-        payment_method: 'razorpay',
-        razorpay_order_id: razorpay_order_id,
-        razorpay_payment_id: razorpay_payment_id,
-        status: 'completed',
-        created_at: new Date(),
-        metadata: {
-          ip_address: ip,
-          user_agent: request.headers.get('user-agent') || ''
-        }
-      });
     }
+    // Note: Transaction record is already created and updated above
+    // No need for additional transaction record creation
 
     console.log(`✅ Payment verified and processed successfully: ${razorpay_payment_id} for user ${user.userId}`);
 

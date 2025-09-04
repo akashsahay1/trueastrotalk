@@ -466,7 +466,7 @@ label {
   border: 1px solid #ced4da;
   border-radius: 0.375rem;
   padding: 0.375rem 2.25rem 0.375rem 0.75rem;
-  font-size: 1rem;
+  font-size: 0.875rem;
   line-height: 1.5;
   color: #495057;
   width: 100%;
@@ -638,6 +638,158 @@ label.btn-primary:hover {
   font-weight: normal !important;
 }
 
+/* Skills and Languages Select2 Professional Styling */
+#skills-select + .select2-container,
+#languages-select + .select2-container {
+  width: 100% !important;
+}
+
+#skills-select + .select2-container .select2-selection--multiple,
+#languages-select + .select2-container .select2-selection--multiple {
+  min-height: 38px !important;
+  height: auto !important;
+  border: 1px solid #d1d3e2 !important;
+  border-radius: 0.375rem !important;
+  padding: 0.375rem 0.75rem !important;
+  font-size: 0.875rem !important;
+  line-height: 1.5 !important;
+  background-color: #fff !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  flex-wrap: wrap !important;
+  gap: 3px !important;
+}
+
+#skills-select + .select2-container .select2-selection--multiple:focus-within,
+#languages-select + .select2-container .select2-selection--multiple:focus-within {
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 0 0.2rem rgba(24, 119, 242, 0.25) !important;
+  outline: none !important;
+}
+
+#skills-select + .select2-container .select2-selection__rendered,
+#languages-select + .select2-container .select2-selection__rendered {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 3px !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+#skills-select + .select2-container .select2-selection__choice,
+#languages-select + .select2-container .select2-selection__choice {
+  background-color: #007bff !important;
+  border: none !important;
+  border-radius: 3px !important;
+  color: white !important;
+  font-size: 12px !important;
+  margin: 0 !important;
+  padding: 5px 12px !important;
+}
+
+#skills-select + .select2-container .select2-selection__choice__remove,
+#languages-select + .select2-container .select2-selection__choice__remove {
+  color: white !important;
+  margin-right: 5px !important;
+  cursor: pointer !important;
+}
+
+#skills-select + .select2-container .select2-selection__choice__remove:hover,
+#languages-select + .select2-container .select2-selection__choice__remove:hover {
+  color: #ffcccc !important;
+}
+
+/* Override select2 inline search field styling */
+#skills-select + .select2-container .select2-search--inline .select2-search__field,
+#languages-select + .select2-container .select2-search--inline .select2-search__field {
+  box-sizing: border-box !important;
+  border: none !important;
+  font-size: 0.875rem !important;
+  margin-top: 0px !important;
+  padding: 4px 0 !important;
+  background: transparent !important;
+  outline: none !important;
+}
+
+/* Add dropdown arrow indicator */
+#skills-select + .select2-container .select2-selection--multiple::after,
+#languages-select + .select2-container .select2-selection--multiple::after {
+  content: '';
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid #6c757d;
+  pointer-events: none;
+}
+
+/* Qualifications Tag Input Styles - Select2-like appearance */
+.qualifications-tag-input .select2-selection--multiple {
+  min-height: 38px;
+  padding: 5px 12px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  cursor: text;
+}
+
+.qualifications-tag-input .select2-selection__choice {
+  background-color: #007bff;
+  color: white;
+  padding: 2px 12px;
+  border-radius: 3px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.qualifications-tag-input .select2-selection__choice__remove {
+  margin-right: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.qualifications-tag-input .select2-selection__choice__remove:hover {
+  color: #ffcccc;
+}
+
+.qualifications-tag-input .select2-search__field {
+  border: none;
+  outline: none;
+  min-width: 150px;
+  background: transparent;
+  flex: 1;
+  font-size: 0.875rem;
+}
+
+.qualifications-tag-input .select2-search__field::placeholder {
+  color: #6c757d;
+  opacity: 1;
+}
+
+/* Select2 Dropdown Options Custom Styling - Global override for our admin panel */
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+  background-color: var(--primary-color);
+  border-radius: 4px;
+  margin-bottom: 5px;
+}
+
+.select2-container--default .select2-results__option[aria-selected="true"] {
+  background-color: #e6e6f2;
+  border-radius: 4px;
+  margin-bottom: 5px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .splash-container {
@@ -647,5 +799,9 @@ label.btn-primary:hover {
   .card-footer-item {
     width: 100%;
     border-right: none !important;
+  }
+  
+  .qualifications-tag-input .select2-search__field {
+    min-width: 100px;
   }
 }

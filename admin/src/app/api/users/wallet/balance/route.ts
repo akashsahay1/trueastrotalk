@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
+import { MongoClient } from 'mongodb';
 import { jwtVerify } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(
@@ -7,7 +7,7 @@ const JWT_SECRET = new TextEncoder().encode(
 );
 
 const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+const DB_NAME = 'trueastrotalk';
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,8 +51,9 @@ export async function GET(request: NextRequest) {
     const db = client.db(DB_NAME);
     const usersCollection = db.collection('users');
 
+    // Look up user by custom user_id, not MongoDB ObjectId
     const user = await usersCollection.findOne(
-      { _id: new ObjectId(payload.userId as string) },
+      { user_id: payload.userId as string },
       { projection: { wallet_balance: 1, full_name: 1, email_address: 1, user_type: 1 } }
     );
 
@@ -69,7 +70,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        wallet_balance: user.wallet_balance || 0,
+        wallet_balance: user.wallet_balance,
         user_name: user.full_name,
         user_email: user.email_address,
         user_type: user.user_type

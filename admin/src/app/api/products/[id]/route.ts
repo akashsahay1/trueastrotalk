@@ -119,6 +119,7 @@ export async function GET(
         
         return {
           _id: related._id.toString(),
+          product_id: related.product_id, // Include custom product_id
           name: related.name,
           price: related.price,
           original_price: related.original_price,
@@ -133,6 +134,7 @@ export async function GET(
     // Format product for response
     const formattedProduct = {
       _id: product._id.toString(),
+      product_id: product.product_id, // Include custom product_id
       name: product.name,
       description: product.description,
       price: product.price,

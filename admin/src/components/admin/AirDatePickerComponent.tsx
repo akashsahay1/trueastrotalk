@@ -59,7 +59,7 @@ const AirDatePickerComponent: React.FC<AirDatePickerProps> = ({
     };
 
     initPicker();
-  }, [maxDate, minDate, onChange]);
+  }, [maxDate, minDate, onChange, value]);
 
   // Update input value when prop changes
   useEffect(() => {
