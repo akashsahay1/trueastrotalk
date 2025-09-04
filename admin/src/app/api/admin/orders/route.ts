@@ -199,11 +199,12 @@ export async function GET(request: NextRequest) {
       let userInfo = null;
       if (order.user_id) {
         try {
-          const user = await usersCollection.findOne({ _id: new ObjectId(order.user_id) });
+          // Look up user by custom user_id, not MongoDB ObjectId
+          const user = await usersCollection.findOne({ user_id: order.user_id });
           if (user) {
             userInfo = {
               name: user.name || user.full_name || 'Unknown User',
-              email: user.email || null,
+              email: user.email || user.email_address || null,
               phone: user.phone || user.phone_number || null
             };
           }
@@ -348,7 +349,8 @@ export async function PUT(request: NextRequest) {
     if (status && status !== oldStatus && currentOrder.user_id) {
       try {
         const usersCollection = await DatabaseService.getCollection('users');
-        const user = await usersCollection.findOne({ _id: new ObjectId(currentOrder.user_id) });
+        // Look up user by custom user_id, not MongoDB ObjectId
+        const user = await usersCollection.findOne({ user_id: currentOrder.user_id });
         
         if (user && user.email) {
           // Send customer notification

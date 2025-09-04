@@ -35,12 +35,12 @@ export async function GET(request: NextRequest) {
       }, { status: 401 });
     }
 
-    // Verify user is either a customer or astrologer
+    // Verify user is either a customer or astrologer  
     if (payload.user_type !== 'customer' && payload.user_type !== 'astrologer') {
       return NextResponse.json({ 
         success: false,
         error: 'Forbidden',
-        message: 'Access denied. Customer or astrologer account required.' 
+        message: 'Access denied. Valid user account required.' 
       }, { status: 403 });
     }
 
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
 
     const user = await usersCollection.findOne(
       { _id: new ObjectId(payload.userId as string) },
-      { projection: { wallet_balance: 1, full_name: 1, email_address: 1 } }
+      { projection: { wallet_balance: 1, full_name: 1, email_address: 1, user_type: 1 } }
     );
 
     await client.close();
@@ -71,7 +71,8 @@ export async function GET(request: NextRequest) {
       data: {
         wallet_balance: user.wallet_balance || 0,
         user_name: user.full_name,
-        user_email: user.email_address
+        user_email: user.email_address,
+        user_type: user.user_type
       }
     });
 

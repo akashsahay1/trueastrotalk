@@ -36,6 +36,7 @@ class ApiEndpoints {
 
   // Auth endpoints (for future implementation)
   static const String auth = '/auth';
+  static const String users = '/users';
   static const String customers = '/customers';
   static const String astrologers = '/astrologers';
   static const String consultations = '/consultations';
@@ -51,11 +52,13 @@ class ApiEndpoints {
   static const String authStatus = '$auth/status';
   static const String googleAuth = '$auth/google';
 
-  // Customer endpoints
+  // User wallet endpoints (unified for customers and astrologers)
+  static const String userWalletBalance = '$users/wallet/balance';
+  static const String userWalletRecharge = '$users/wallet/recharge';
+  static const String userWalletTransactions = '$users/wallet/transactions';
+  
+  // Customer endpoints  
   static const String customerProfile = '$customers/profile';
-  static const String customerWalletBalance = '$customers/wallet/balance';
-  static const String customerWalletRecharge = '$customers/wallet/recharge';
-  static const String customerWalletTransactions = '$customers/wallet/transactions';
   static const String customerConsultationsBook = '$customers/consultations/book';
   static const String customerConsultationsHistory = '$customers/consultations/history';
 

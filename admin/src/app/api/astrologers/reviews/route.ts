@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       reviews.map(async (review) => {
         const user = await usersCollection.findOne(
           { _id: review.user_id },
-          { projection: { full_name: 1, email: 1, profile_image_id: 1 } }
+          { projection: { full_name: 1, email_address: 1, profile_image_id: 1 } }
         );
 
         // Log missing users for data integrity monitoring
@@ -49,8 +49,8 @@ export async function GET(request: NextRequest) {
           comment: review.comment,
           created_at: review.created_at,
           user: {
-            name: user?.full_name || 'Anonymous Review',
-            email: user?.email || user?.email_address || null,
+            name: user?.full_name,
+            email: user?.email_address,
             profile_image_id: user?.profile_image_id || null
           }
         };

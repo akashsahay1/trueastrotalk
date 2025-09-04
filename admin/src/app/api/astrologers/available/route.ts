@@ -1,44 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../../lib/database';
 // import { InputSanitizer } from '../../../../lib/security';
 
 // Helper function to get base URL for images
 function getBaseUrl(request: NextRequest): string {
+  // For production, use the configured image server URL
+  if (process.env.NODE_ENV === 'production') {
+    return process.env.IMAGE_BASE_URL || 'https://admin.trueastrotalk.com';
+  }
+  
+  // For development, use the request host
   const host = request.headers.get('host');
-  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-  return `${protocol}://${host}`;
+  return `http://${host}`;
 }
 
 // Helper function to resolve profile image
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function resolveProfileImage(user: Record<string, unknown>, mediaCollection: any, baseUrl: string): Promise<string | null> {
+  console.log(`🖼️ Resolving profile image for ${user.full_name}:`);
+  console.log(`   - auth_type: ${user.auth_type}`);
+  console.log(`   - profile_image_id: ${user.profile_image_id}`);
+  console.log(`   - social_auth_profile_image: ${user.social_auth_profile_image}`);
+  
   // Priority 1: If user has Google auth and social_auth_profile_image, use external URL
   if (user.auth_type === 'google' && user.social_auth_profile_image && typeof user.social_auth_profile_image === 'string') {
+    console.log(`   ✅ Using Google profile image: ${user.social_auth_profile_image}`);
     return user.social_auth_profile_image;
   }
   
   // Priority 2: If user has profile_image_id, resolve from media library
   if (user.profile_image_id) {
     try {
-      // Handle both string and ObjectId formats
-      const mediaId = typeof user.profile_image_id === 'string' 
-        ? (ObjectId.isValid(user.profile_image_id) ? new ObjectId(user.profile_image_id) : null)
-        : user.profile_image_id;
+      // The profile_image_id refers to media_id field in media collection, not _id
+      const mediaId = user.profile_image_id.toString();
+      console.log(`   🔍 Looking for media_id: ${mediaId}`);
         
-      if (mediaId) {
-        const mediaFile = await mediaCollection.findOne({ _id: mediaId });
-        
-        if (mediaFile) {
-          return `${baseUrl}${mediaFile.file_path}`;
-        }
+      const mediaFile = await mediaCollection.findOne({ media_id: mediaId });
+      
+      if (mediaFile) {
+        const imageUrl = `${baseUrl}${mediaFile.file_path}`;
+        console.log(`   ✅ Found media file: ${imageUrl}`);
+        return imageUrl;
+      } else {
+        console.log(`   ❌ Media file not found for media_id: ${mediaId}`);
       }
     } catch (error) {
-      console.error('Error resolving media file:', error);
+      console.error('   ❌ Error resolving media file:', error);
     }
   }
   
   // No profile image - return null to indicate no image uploaded
+  console.log(`   ℹ️ No profile image found, returning null`);
   return null;
 }
 
@@ -66,9 +78,8 @@ export async function GET(request: NextRequest) {
     const query: Record<string, unknown> = {
       user_type: 'astrologer', // Only use standardized user_type field
       account_status: 'active',
-      verification_status: 'verified', // Use verification_status instead of is_verified
-      // All users now have profile_image_id, so no need for complex $or query
-      profile_image_id: { $exists: true, $ne: null }
+      verification_status: 'verified' // Use verification_status instead of is_verified
+      // Removed profile_image_id requirement - astrologers can show without images
     };
 
     if (onlineOnly) {
@@ -122,7 +133,9 @@ export async function GET(request: NextRequest) {
           full_name: astrologer.full_name,
           email_address: astrologer.email_address,
           phone_number: astrologer.phone_number,
-          profile_image: resolvedProfileImage,
+          profile_image_id: astrologer.profile_image_id, // Include the media reference ID
+          social_auth_profile_image: astrologer.social_auth_profile_image, // Include social image URL
+          profile_image: resolvedProfileImage, // Include resolved image URL
           bio: astrologer.bio || '',
           qualifications: astrologer.qualifications,
           skills: astrologer.skills,

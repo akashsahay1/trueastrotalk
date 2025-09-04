@@ -33,10 +33,15 @@ class WalletService extends ChangeNotifier {
         return;
       }
 
+      // Use unified wallet balance API for both customers and astrologers
       final response = await _userApiService.getWalletBalance(token);
+      
+      // Admin API returns: { wallet_balance: number, user_name: string, user_email: string }
       _currentBalance = (response['wallet_balance'] ?? 0.0).toDouble();
+      debugPrint('💰 Wallet balance loaded: ₹${_currentBalance.toStringAsFixed(2)}');
     } catch (e) {
       debugPrint('❌ Failed to load wallet balance: $e');
+      debugPrint('❌ Error details: ${e.toString()}');
       _currentBalance = 0.0;
     }
 

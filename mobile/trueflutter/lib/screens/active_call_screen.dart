@@ -1099,9 +1099,15 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     // Get user info for navigation decision
     final currentUser = _authService.currentUser;
     final isAstrologer = currentUser != null && currentUser.isAstrologer;
-    final shouldShowDialog = billingWasActive || (isAstrologer && _callDuration.inSeconds > 0);
+    final hasAstrologerData = widget.callData['astrologer'] != null;
     
-    debugPrint('📱 Navigation decision: isAstrologer=$isAstrologer, shouldShowDialog=$shouldShowDialog');
+    // More robust navigation logic
+    // For customers: always try to go back to astrologer details if data is available
+    // For astrologers: use earnings dialog if call had any duration or billing
+    final shouldShowDialog = billingWasActive || (isAstrologer && _callDuration.inSeconds > 0);
+    final shouldNavigateToAstrologerDetails = !isAstrologer && hasAstrologerData;
+    
+    debugPrint('📱 Navigation decision: isAstrologer=$isAstrologer, shouldShowDialog=$shouldShowDialog, shouldNavigateToAstrologerDetails=$shouldNavigateToAstrologerDetails');
     
     // ALWAYS navigate away immediately - no UI blocking
     if (shouldShowDialog) {
@@ -1112,6 +1118,22 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
         debugPrint('📱 Navigating customer to astrologer details with billing dialog');
         _navigateCustomerToAstrologerDetails(formattedBilled, callDuration, reason);
       }
+    } else if (shouldNavigateToAstrologerDetails) {
+      debugPrint('📱 Navigating customer back to astrologer details (no billing dialog)');
+      _navigateToAstrologerDetailsImmediate();
+      
+      // Show simple completion message
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(reason),
+              backgroundColor: AppColors.info,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      });
     } else {
       debugPrint('📱 Simple navigation back');
       _simpleNavigateBack(reason);
@@ -1120,18 +1142,47 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
 
   /// Simple navigation back with snackbar
   void _simpleNavigateBack(String reason) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(reason),
-          backgroundColor: AppColors.info,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      
-      // Navigate back immediately
-      Navigator.of(context).pop();
+    if (!mounted) return;
+    
+    debugPrint('📱 Simple navigation back with reason: $reason');
+    
+    final currentUser = _authService.currentUser;
+    final isAstrologer = currentUser != null && currentUser.isAstrologer;
+    
+    // For customers, try to navigate back to astrologer details if possible
+    if (!isAstrologer) {
+      final astrologerData = widget.callData['astrologer'];
+      if (astrologerData != null) {
+        debugPrint('📱 Customer: Navigating back to astrologer details after simple call end');
+        _navigateToAstrologerDetailsImmediate();
+        
+        // Show snackbar after navigation
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(reason),
+                backgroundColor: AppColors.info,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        });
+        return;
+      }
     }
+    
+    // Fallback: show snackbar and pop
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(reason),
+        backgroundColor: AppColors.info,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+    
+    // Navigate back immediately
+    Navigator.of(context).pop();
   }
 
   /// Navigate astrologer to history screen with earnings info
@@ -1378,8 +1429,8 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
       final astrologerData = widget.callData['astrologer'];
       if (astrologerData == null) {
         debugPrint('❌ No astrologer data found for navigation');
-        // Navigate back to home instead
-        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+        // Navigate back using pop instead of named route
+        Navigator.of(context).pop();
         return;
       }
       
@@ -1397,8 +1448,8 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
       
     } catch (e) {
       debugPrint('❌ Failed immediate navigation: $e');
-      // Fallback - go to home
-      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+      // Fallback - just pop back
+      Navigator.of(context).pop();
     }
   }
 

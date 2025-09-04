@@ -9,9 +9,11 @@ import '../services/service_locator.dart';
 import '../services/auth/auth_service.dart';
 import '../services/chat/chat_service.dart';
 import '../services/call/call_service.dart';
+import '../services/wallet/wallet_service.dart';
 import '../models/call.dart';
 import 'package:share_plus/share_plus.dart';
 import 'chat_screen.dart';
+import 'wallet.dart';
 
 class AstrologerDetailsScreen extends StatefulWidget {
   final Astrologer? astrologer;
@@ -34,10 +36,15 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
   bool _canAddReview = false;
   bool _hasUserReviewed = false;
   List<Map<String, dynamic>> _reviews = [];
+  
+  late final WalletService _walletService;
 
   @override
   void initState() {
     super.initState();
+    
+    // Initialize services
+    _walletService = getIt<WalletService>();
     
     // Set initial astrologer if provided
     _astrologer = widget.astrologer;
@@ -1056,6 +1063,22 @@ Connect now on True AstroTalk! 🌟
     final callType = await _showCallTypeDialog();
     if (callType == null) return;
 
+    // Check wallet balance for selected call type
+    final callTypeStr = callType == CallType.video ? 'video' : 'voice';
+    final hasSufficientBalance = _walletService.hasSufficientBalanceForCall(_astrologer!, callTypeStr);
+
+    if (!hasSufficientBalance) {
+      final message = _walletService.getInsufficientCallBalanceMessage(_astrologer!, callTypeStr);
+
+      // Show insufficient balance dialog with recharge option
+      final shouldRecharge = await _showInsufficientBalanceDialog(message);
+      if (shouldRecharge == true && mounted) {
+        // Navigate to wallet screen for recharge
+        Navigator.of(context).push(MaterialPageRoute(builder: (context) => const WalletScreen()));
+      }
+      return;
+    }
+
     // Show loading state immediately after dialog closes
     if (mounted) {
       setState(() {
@@ -1186,6 +1209,66 @@ Connect now on True AstroTalk! 🌟
             child: Text(
               'Cancel',
               style: TextStyle(color: Colors.grey[600]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool?> _showInsufficientBalanceDialog(String message) async {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        title: Row(
+          children: [
+            Icon(Icons.account_balance_wallet, color: AppColors.error),
+            const SizedBox(width: 8),
+            const Text(
+              'Insufficient Balance',
+              style: TextStyle(
+                color: Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: TextStyle(
+            color: Colors.black87,
+            fontSize: 14,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false), 
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary, 
+              foregroundColor: AppColors.white,
+              elevation: 2,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min, 
+              children: [
+                const Icon(Icons.add, size: 16), 
+                const SizedBox(width: 4), 
+                const Text(
+                  'Recharge Wallet',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

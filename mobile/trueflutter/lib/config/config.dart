@@ -31,41 +31,41 @@ class Config {
   // API Configuration - Simplified
   static Future<String> get baseUrl async {
     if (isProduction) {
-      return 'https://www.trueastrotalk.com/api';
+      return 'https://admin.trueastrotalk.com/api';
     }
 
     // Development mode - connect to admin panel API
     final ip = await _getLocalIP();
-    return 'http://$ip:4000/api';
+    return 'http://$ip:4001/api';
   }
 
   static Future<String> get socketUrl async {
     if (isProduction) {
-      return 'https://www.trueastrotalk.com';
+      return 'https://admin.trueastrotalk.com';
     }
 
     // Development mode - connect to admin panel
     final ip = await _getLocalIP();
-    return 'http://$ip:4000';
+    return 'http://$ip:4001';
   }
 
   // Synchronous versions for immediate use (uses cached IP or localhost)
   static String get baseUrlSync {
     if (isProduction) {
-      return 'https://www.trueastrotalk.com/api';
+      return 'https://admin.trueastrotalk.com/api';
     }
 
     final ip = _cachedLocalIP ?? (Platform.isAndroid ? '10.0.2.2' : 'localhost');
-    return 'http://$ip:4000/api';
+    return 'http://$ip:4001/api';
   }
 
   static String get socketUrlSync {
     if (isProduction) {
-      return 'https://www.trueastrotalk.com';
+      return 'https://admin.trueastrotalk.com';
     }
 
     final ip = _cachedLocalIP ?? (Platform.isAndroid ? '10.0.2.2' : 'localhost');
-    return 'http://$ip:4000';
+    return 'http://$ip:4001';
   }
 
   // Request timeouts (increased for E2E testing and slower networks)

@@ -11,6 +11,7 @@ interface OrderItem {
   product_image?: string | null;
   price: number;
   quantity: number;
+  category?: string;
 }
 
 // Helper function to resolve media URL from media collection
@@ -92,9 +93,9 @@ export async function GET(request: NextRequest) {
     // Build query
     const query: Record<string, unknown> = {};
     
-    // If not admin view, filter by user
+    // If not admin view, filter by user (using custom user_id)
     if (!adminView && userId) {
-      query.user_id = userId;
+      query.user_id = userId; // This should be custom user_id like 'user_1756540752442_2s0gyae9'
     }
 
     // Admin search functionality
@@ -133,11 +134,12 @@ export async function GET(request: NextRequest) {
       let userInfo = null;
       if (adminView && order.user_id) {
         try {
-          const user = await usersCollection.findOne({ _id: new ObjectId(order.user_id) });
+          // Look up user by custom user_id, not MongoDB ObjectId
+          const user = await usersCollection.findOne({ user_id: order.user_id });
           if (user) {
             userInfo = {
               name: user.name || user.full_name || 'Unknown User',
-              email: user.email || null,
+              email: user.email || user.email_address || null,
               phone: user.phone || user.phone_number || null
             };
           }
@@ -145,26 +147,43 @@ export async function GET(request: NextRequest) {
           console.error(`Failed to fetch user info for user_id ${order.user_id}:`, error);
         }
       }
-      // Resolve product images for each item if needed
+      // Always resolve product images dynamically from product_id (never store paths)
       const itemsWithImages = await Promise.all((order.items || []).map(async (item: OrderItem) => {
-        if (!item.product_image && item.product_id) {
-          // If no product_image stored, try to get it from products collection
-          try {
-            const productsCollection = await DatabaseService.getCollection('products');
-            const product = await productsCollection.findOne({ _id: new ObjectId(item.product_id) });
-            
-            if (product && product.image_id) {
-              const resolvedImageUrl = await resolveMediaUrl(request, product.image_id);
-              if (resolvedImageUrl) {
-                console.log(`🖼️ Order fetch: Resolved missing image for ${item.product_name}: ${product.image_id} -> ${resolvedImageUrl}`);
-                return { ...item, product_image: resolvedImageUrl };
-              }
+        try {
+          const productsCollection = await DatabaseService.getCollection('products');
+          // Look up product by custom product_id, not MongoDB ObjectId
+          const product = await productsCollection.findOne({ product_id: item.product_id });
+          
+          if (product && product.image_id) {
+            const resolvedImageUrl = await resolveMediaUrl(request, product.image_id);
+            if (resolvedImageUrl) {
+              console.log(`🖼️ Order fetch: Resolved image for ${item.product_name}: ${product.image_id} -> ${resolvedImageUrl}`);
+              // Return item without any stored image path, only resolved URL
+              return { 
+                product_id: item.product_id,
+                product_name: item.product_name,
+                price: item.price,
+                quantity: item.quantity,
+                total_price: item.price * item.quantity,
+                category: product.category,
+                product_image: resolvedImageUrl
+              };
             }
-          } catch (error) {
-            console.error(`Failed to resolve image for product ${item.product_id}:`, error);
           }
+        } catch (error) {
+          console.error(`Failed to resolve image for product ${item.product_id}:`, error);
         }
-        return item;
+        
+        // Return item without image if resolution failed
+        return { 
+          product_id: item.product_id,
+          product_name: item.product_name,
+          price: item.price,
+          quantity: item.quantity,
+          total_price: item.price * item.quantity,
+          category: item.category || 'Unknown',
+          product_image: null
+        };
       }));
 
       const baseOrder = {
@@ -258,13 +277,14 @@ export async function POST(request: NextRequest) {
     const validatedItems = [];
 
     for (const item of items) {
+      // Look up product by custom product_id, not MongoDB ObjectId
       const product = await productsCollection.findOne({ 
-        _id: new ObjectId(item.product_id),
+        product_id: item.product_id,
         is_active: true 
       });
 
       if (!product) {
-            return NextResponse.json({
+        return NextResponse.json({
           success: false,
           error: 'Product not found',
           message: `Product ${item.product_id} not found or not available`
@@ -283,25 +303,15 @@ export async function POST(request: NextRequest) {
       const itemTotal = Number(product.price) * Number(item.quantity);
       subtotal += itemTotal;
 
-      // Resolve product image from image_id (media_id)
-      let imageUrl = null;
-      if (product.image_id) {
-        imageUrl = await resolveMediaUrl(request, product.image_id);
-        console.log(`🖼️ Order creation: Product ${product.name} image resolved: ${product.image_id} -> ${imageUrl}`);
-      } else {
-        console.log(`🖼️ Order creation: Product ${product.name} has no image_id`);
-      }
-
+      // Don't store image paths - they will be resolved dynamically when orders are fetched
       validatedItems.push({
-        product_id: item.product_id,
+        product_id: item.product_id, // This should be custom product_id like 'product_1756540783734_wxtlznqe'
         product_name: product.name,
-        product_image: imageUrl, // Use resolved media URL
-        product_price: Number(product.price), // Frontend expects product_price
-        price: Number(product.price), // Keep price for compatibility
+        price: Number(product.price),
         quantity: Number(item.quantity),
-        total_price: itemTotal, // Frontend expects total_price
-        total: itemTotal, // Keep total for compatibility
+        total_price: itemTotal,
         category: product.category
+        // No product_image stored - will be resolved dynamically from product_id
       });
     }
 
@@ -345,10 +355,10 @@ export async function POST(request: NextRequest) {
     const result = await ordersCollection.insertOne(orderData);
     const orderId = result.insertedId.toString();
 
-    // Update product stock
+    // Update product stock using custom product_id
     for (const item of validatedItems) {
       await productsCollection.updateOne(
-        { _id: new ObjectId(item.product_id as string) },
+        { product_id: item.product_id }, // Use custom product_id, not MongoDB ObjectId
         { 
           $inc: { stock_quantity: -(item.quantity as number) },
           $set: { updated_at: new Date() }

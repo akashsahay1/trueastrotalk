@@ -34,7 +34,6 @@ export async function GET(
     const chatSessionsCollection = db.collection('chat_sessions');
     const chatMessagesCollection = db.collection('chat_messages');
     const usersCollection = db.collection('users');
-    const astrologersCollection = db.collection('astrologers');
 
     // Get chat session
     const session = await chatSessionsCollection.findOne({ _id: new ObjectId(sessionId) });
@@ -80,7 +79,7 @@ export async function GET(
     // Get user and astrologer details
     const [user, astrologer] = await Promise.all([
       usersCollection.findOne({ _id: new ObjectId(session.user_id) }),
-      astrologersCollection.findOne({ _id: new ObjectId(session.astrologer_id) })
+      usersCollection.findOne({ _id: new ObjectId(session.astrologer_id), user_type: 'astrologer' })
     ]);
 
     // Mark messages as read for the requesting user
@@ -119,8 +118,8 @@ export async function GET(
       session_id: session._id.toString(),
       user: user ? {
         _id: user._id.toString(),
-        name: user.name,
-        email: user.email,
+        name: user.full_name,
+        email: user.email_address,
         profile_image: user.profile_image
       } : null,
       astrologer: astrologer ? {

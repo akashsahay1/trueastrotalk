@@ -18,6 +18,7 @@ import 'astrologers_call.dart';
 import 'astrologers_chat.dart';
 import 'astrologer_consultations_screen.dart';
 import 'astrologer_earnings_screen.dart';
+import 'orders_list.dart';
 import 'wallet.dart';
 import 'history.dart';
 import 'help.dart';
@@ -459,13 +460,14 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           Container(
             alignment: Alignment.center,
             width: double.infinity,
-            height: 200,
+            height: 260,
             decoration: const BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.zero),
             child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     // Profile Picture with Google Image
                     Container(
@@ -531,6 +533,14 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
               setState(() {
                 _selectedBottomNavIndex = 3; // Wallet is index 3 for customers
               });
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.shopping_bag),
+            title: const Text('My Orders', style: TextStyle(fontSize: 14.0)),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const OrdersListScreen()));
             },
           ),
           ListTile(
@@ -1002,6 +1012,14 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           setState(() {
             _selectedBottomNavIndex = 3;
           });
+        },
+      },
+      {
+        'icon': Icons.shopping_bag,
+        'title': 'My Orders',
+        'subtitle': 'View your order history',
+        'onTap': () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const OrdersListScreen()));
         },
       },
       {'icon': Icons.history, 'title': 'History', 'subtitle': 'View your past consultations', 'onTap': _viewConsultationHistory},
@@ -1626,13 +1644,14 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           Container(
             alignment: Alignment.center,
             width: double.infinity,
-            height: 200,
+            height: 260,
             decoration: const BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.zero),
             child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     // Profile Picture with Google Image
                     Container(

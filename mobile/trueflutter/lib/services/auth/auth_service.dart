@@ -402,6 +402,7 @@ class AuthService {
         }
 
         debugPrint('🔵 AuthService: Processing Google user...');
+        debugPrint('🔑 Google ID Token: ${googleAuth.idToken != null ? 'Present' : 'Missing'}');
         return await _processGoogleUser(googleUser!, googleAuth.idToken!);
       } finally {
         await subscription.cancel();
@@ -460,7 +461,7 @@ class AuthService {
       // Check if this is specifically a USER_NOT_REGISTERED error
       if (loginError.toString().contains('USER_NOT_REGISTERED')) {
         debugPrint('✅ Confirmed USER_NOT_REGISTERED - throwing GoogleSignUpRequiredException');
-        throw GoogleSignUpRequiredException(name: googleUser.displayName ?? googleUser.email.split('@')[0], email: googleUser.email, accessToken: '', idToken: idToken);
+        throw GoogleSignUpRequiredException(name: googleUser.displayName ?? googleUser.email.split('@')[0], email: googleUser.email, accessToken: idToken, idToken: idToken);
       }
       // For other login errors, rethrow
       debugPrint('❌ Other login error: $loginError');

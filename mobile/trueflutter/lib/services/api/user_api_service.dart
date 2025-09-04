@@ -310,14 +310,22 @@ class UserApiService {
   // Get customer wallet balance
   Future<Map<String, dynamic>> getWalletBalance(String token) async {
     try {
-      final response = await _dio.get(ApiEndpoints.customerWalletBalance, options: Options(headers: {'Authorization': 'Bearer $token'}));
+      debugPrint('🔍 Requesting wallet balance from: ${ApiEndpoints.userWalletBalance}');
+      final response = await _dio.get(ApiEndpoints.userWalletBalance, options: Options(headers: {'Authorization': 'Bearer $token'}));
 
       if (response.statusCode == 200) {
-        return response.data['data'];
+        debugPrint('✅ Wallet balance API response: ${response.data}');
+        if (response.data['success'] == true && response.data['data'] != null) {
+          return response.data['data'];
+        } else {
+          debugPrint('❌ Unexpected response format: ${response.data}');
+          throw Exception('Invalid wallet balance response format');
+        }
       } else {
         throw Exception('Failed to get wallet balance: ${response.data['message']}');
       }
     } on DioException catch (e) {
+      debugPrint('❌ Wallet balance API error: ${e.response?.statusCode} - ${e.response?.data}');
       throw _handleDioException(e);
     }
   }
@@ -327,7 +335,7 @@ class UserApiService {
     try {
       final queryParams = {'limit': limit.toString(), 'offset': offset.toString()};
       final response = await _dio.get(
-        ApiEndpoints.customerWalletTransactions, 
+        ApiEndpoints.userWalletTransactions, 
         queryParameters: queryParams,
         options: Options(headers: {'Authorization': 'Bearer $token'})
       );
@@ -403,7 +411,7 @@ class UserApiService {
       };
 
       final response = await _dio.post(
-        ApiEndpoints.customerWalletRecharge,
+        ApiEndpoints.userWalletRecharge,
         data: requestData,
         options: Options(headers: {'Authorization': 'Bearer $token'})
       );
@@ -426,7 +434,19 @@ class UserApiService {
       final response = await _dio.get(ApiEndpoints.astrologersAvailable, queryParameters: queryParams);
 
       if (response.statusCode == 200) {
-        return response.data['data'];
+        debugPrint('🔍 Astrologers API Response: ${response.data}');
+        
+        final data = response.data['data'];
+        if (data != null && data['astrologers'] is List) {
+          final astrologers = data['astrologers'] as List;
+          debugPrint('📊 Found ${astrologers.length} astrologers');
+          for (int i = 0; i < astrologers.length && i < 3; i++) {
+            final astrologer = astrologers[i];
+            debugPrint('🖼️ Astrologer ${astrologer['full_name']}: profileImage = ${astrologer['profile_image']}');
+          }
+        }
+        
+        return data;
       } else {
         throw Exception('Failed to get astrologers: ${response.data['message']}');
       }
