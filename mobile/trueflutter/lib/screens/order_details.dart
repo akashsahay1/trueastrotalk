@@ -282,8 +282,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   Widget _buildOrderItem(OrderItem item) {
-    return Row(
-      children: [
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: Dimensions.paddingMd),
+      child: Row(
+        children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(Dimensions.radiusSm),
           child: Container(
@@ -343,7 +345,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             ],
           ),
         ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -453,8 +456,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             ),
             const SizedBox(height: Dimensions.spacingMd),
             
-            _buildStatusRow('Payment Method', widget.order.paymentMethodDisplayName),
-            _buildStatusRow('Payment Status', widget.order.paymentStatusDisplayName),
+            _buildPaymentRow('Payment Method', widget.order.paymentMethodDisplayName),
+            _buildPaymentRow('Payment Status', widget.order.paymentStatusDisplayName),
             
             if (widget.order.paymentId != null) ...[
               const SizedBox(height: Dimensions.spacingSm),
@@ -570,6 +573,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   Widget _buildStatusRow(String label, String value) {
+    final isNotAvailable = value == 'Not available';
+    
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -593,6 +598,39 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 color: AppColors.textPrimaryLight,
                 fontWeight: FontWeight.w600,
               ),
+              textAlign: label == 'Order Date' ? TextAlign.right : (isNotAvailable ? TextAlign.right : TextAlign.left),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textSecondaryLight,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          const SizedBox(width: Dimensions.spacingMd),
+          Expanded(
+            child: Text(
+              value,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textPrimaryLight,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.right,
             ),
           ),
         ],

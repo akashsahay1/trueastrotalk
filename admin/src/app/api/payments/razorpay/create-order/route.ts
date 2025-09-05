@@ -192,11 +192,28 @@ export async function POST(request: NextRequest) {
 
     const razorpayOrder = await razorpayResponse.json();
 
+    // Get the user's actual user_id from database (not from JWT which might contain MongoDB ObjectId)
+    const usersCollectionForUserId = await DatabaseService.getCollection('users');
+    let actualUserId = user.userId as string;
+    
+    // If the JWT userId looks like a MongoDB ObjectId, fetch the actual user_id
+    if (typeof user.userId === 'string' && user.userId.length === 24) {
+      try {
+        const userData = await usersCollectionForUserId.findOne({ _id: new ObjectId(user.userId as string) });
+        if (userData && userData.user_id) {
+          actualUserId = userData.user_id;
+          console.log(`🔄 Using actual user_id: ${actualUserId} instead of JWT userId: ${user.userId}`);
+        }
+      } catch (error) {
+        console.log(`⚠️ Could not resolve user_id from JWT, using as-is: ${user.userId}`);
+      }
+    }
+
     // Store transaction in unified transactions collection
     const transactionsCollection = await DatabaseService.getCollection('transactions');
     const transactionRecord = {
       _id: new ObjectId(),
-      user_id: user.userId as string,
+      user_id: actualUserId,
       user_type: user.user_type as string,
       transaction_type: purpose === 'wallet_recharge' ? 'credit' : 'debit',
       amount: amount,

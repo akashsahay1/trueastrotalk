@@ -132,6 +132,16 @@ export async function GET(request: NextRequest) {
       }, { status: 404 });
     }
 
+    // Check for required user_id field (data integrity check)
+    if (!dbUser.user_id) {
+      console.error(`❌ User ${user.userId} missing user_id field - data integrity issue`);
+      return NextResponse.json({
+        success: false,
+        error: 'DATA_INTEGRITY_ERROR',
+        message: 'User account data is incomplete'
+      }, { status: 500 });
+    }
+
     // Check account status
     if (dbUser.account_status === 'inactive') {
       return NextResponse.json({
@@ -152,7 +162,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       user: {
-        id: dbUser._id.toString(),
+        id: dbUser.user_id,
         full_name: dbUser.full_name,
         email_address: dbUser.email_address,
         phone_number: dbUser.phone_number || '',
@@ -448,7 +458,7 @@ export async function PUT(request: NextRequest) {
       success: true,
       message: 'Profile updated successfully',
       user: {
-        id: updatedUser!._id.toString(),
+        id: updatedUser!.user_id,
         full_name: updatedUser!.full_name,
         email_address: updatedUser!.email_address,
         phone_number: updatedUser!.phone_number,

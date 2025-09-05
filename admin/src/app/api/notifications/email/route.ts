@@ -62,7 +62,7 @@ const getEmailTemplate = (type: string, data: Record<string, unknown>) => {
                   ${(data.items as Array<Record<string, unknown>>).map((item) => `
                     <div class="item">
                       <strong>${item.product_name}</strong><br>
-                      Quantity: ${item.quantity} × ₹${item.price} = ₹${item.total}
+                      Quantity: ${item.quantity} × ₹${item.price_at_time} = ₹${item.total_price}
                     </div>
                   `).join('')}
                   

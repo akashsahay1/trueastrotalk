@@ -269,14 +269,18 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
               },
             ),
             
+            const SizedBox(height: Dimensions.spacingMd),
             const Divider(),
+            const SizedBox(height: Dimensions.spacingMd),
             
             // Price breakdown
             _buildPriceRow('Subtotal', widget.order.formattedSubtotal),
             _buildPriceRow('Shipping', widget.order.formattedShipping),
             _buildPriceRow('Tax (GST 18%)', widget.order.formattedTax),
             
+            const SizedBox(height: Dimensions.spacingMd),
             const Divider(),
+            const SizedBox(height: Dimensions.spacingMd),
             
             _buildPriceRow('Total', widget.order.formattedTotal, isTotal: true),
           ],
@@ -384,8 +388,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 120,
+          Expanded(
             child: Text(
               label,
               style: AppTextStyles.bodySmall.copyWith(
@@ -395,14 +398,13 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
             ),
           ),
           const SizedBox(width: Dimensions.spacingMd),
-          Expanded(
-            child: Text(
-              value,
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textPrimaryLight,
-                fontWeight: FontWeight.w600,
-              ),
+          Text(
+            value,
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.textPrimaryLight,
+              fontWeight: FontWeight.w600,
             ),
+            textAlign: TextAlign.right,
           ),
         ],
       ),
@@ -416,7 +418,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
           width: double.infinity,
           child: ElevatedButton(
             onPressed: () {
-              Navigator.pushNamedAndRemoveUntil(context, '/orders', (route) => false);
+              Navigator.pushNamedAndRemoveUntil(context, '/orders', ModalRoute.withName('/home'));
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,

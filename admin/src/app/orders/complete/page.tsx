@@ -9,8 +9,9 @@ interface OrderItem {
   product_id: string;
   product_name: string;
   quantity: number;
-  price: number;
-  image_url?: string;
+  price_at_time: number;
+  total_price: number;
+  product_image?: string;
 }
 
 interface ShippingAddress {
@@ -95,6 +96,12 @@ export default function CompleteOrdersPage() {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [modalAnimating, setModalAnimating] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [editStatus, setEditStatus] = useState('');
+  const [editPaymentStatus, setEditPaymentStatus] = useState('');
+  const [editTrackingNumber, setEditTrackingNumber] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const ordersPerPage = 20;
 
@@ -380,6 +387,62 @@ export default function CompleteOrdersPage() {
     closeModal();
   };
 
+  // Open edit modal
+  const handleEditOrder = (order: Order) => {
+    setEditingOrder(order);
+    setEditStatus(order.status);
+    setEditPaymentStatus(order.payment_status);
+    setEditTrackingNumber(order.tracking_number || '');
+    setShowEditModal(true);
+  };
+
+  // Save order edits
+  const handleSaveEdit = async () => {
+    if (!editingOrder) return;
+
+    try {
+      setSavingEdit(true);
+
+      const response = await fetch('/api/admin/orders', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          order_id: editingOrder._id,
+          status: editStatus,
+          payment_status: editPaymentStatus,
+          tracking_number: editTrackingNumber || undefined
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Order updated successfully!');
+        setShowEditModal(false);
+        setEditingOrder(null);
+        fetchOrders(currentPage);
+      } else {
+        alert('Failed to update order: ' + (data.message || data.error));
+      }
+    } catch (error) {
+      console.error('Error updating order:', error);
+      alert('Error updating order. Please try again.');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  // Close edit modal
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setEditingOrder(null);
+    setEditStatus('');
+    setEditPaymentStatus('');
+    setEditTrackingNumber('');
+  };
+
   return (
     <div className="dashboard-main-wrapper">
       <Header />
@@ -540,10 +603,8 @@ export default function CompleteOrdersPage() {
                                       </button>
                                       <button
                                         className="btn btn-outline-primary btn-sm mr-1"
-                                        title="Edit Status"
-                                        onClick={() => {
-                                          // TODO: Add edit status functionality
-                                        }}
+                                        title="Edit Order"
+                                        onClick={() => handleEditOrder(order)}
                                       >
                                         <i className="fas fa-edit"></i>
                                       </button>
@@ -630,14 +691,14 @@ export default function CompleteOrdersPage() {
             {showOrderModal && selectedOrder && (
               <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={() => setShowOrderModal(false)}>
                 <div className="modal-dialog modal-lg" onClick={(e) => e.stopPropagation()}>
-                  <div className="modal-content">
-                    <div className="modal-header">
+                  <div className="modal-content" style={{maxHeight: '90vh', display: 'flex', flexDirection: 'column'}}>
+                    <div className="modal-header" style={{flexShrink: 0}}>
                       <h5 className="modal-title">Order Details - #{selectedOrder.order_number}</h5>
                       <button className="close" onClick={() => setShowOrderModal(false)}>
                         <span>&times;</span>
                       </button>
                     </div>
-                    <div className="modal-body">
+                    <div className="modal-body" style={{overflowY: 'auto', flexGrow: 1}}>
                       <div className="row">
                         <div className="col-md-6">
                           <h6>Customer Information</h6>
@@ -684,7 +745,7 @@ export default function CompleteOrdersPage() {
                           <thead>
                             <tr>
                               <th>Product</th>
-                              <th>Quantity</th>
+                              <th className="text-center">Quantity</th>
                               <th>Price</th>
                               <th>Total</th>
                             </tr>
@@ -692,10 +753,22 @@ export default function CompleteOrdersPage() {
                           <tbody>
                             {selectedOrder.items.map((item, index) => (
                               <tr key={index}>
-                                <td>{item.product_name}</td>
-                                <td>{item.quantity}</td>
-                                <td>₹{item.price.toLocaleString()}</td>
-                                <td>₹{(item.quantity * item.price).toLocaleString()}</td>
+                                <td>
+                                  <div className="d-flex align-items-center">
+                                    {item.product_image && (
+                                      <img 
+                                        src={item.product_image} 
+                                        alt={item.product_name}
+                                        style={{width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px'}}
+                                        className="mr-2"
+                                      />
+                                    )}
+                                    <span>{item.product_name || 'Unknown Product'}</span>
+                                  </div>
+                                </td>
+                                <td className="text-center">{item.quantity}</td>
+                                <td>₹{item.price_at_time.toLocaleString()}</td>
+                                <td>₹{(item.quantity * item.price_at_time).toLocaleString()}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -734,7 +807,7 @@ export default function CompleteOrdersPage() {
                         </>
                       )}
                     </div>
-                    <div className="modal-footer">
+                    <div className="modal-footer" style={{flexShrink: 0}}>
                       <button className="btn btn-secondary" onClick={() => setShowOrderModal(false)}>
                         Close
                       </button>
@@ -1024,6 +1097,138 @@ export default function CompleteOrdersPage() {
                       >
                         <i className="fas fa-check mr-1"></i>
                         Apply Filters
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Edit Order Modal */}
+            {showEditModal && editingOrder && (
+              <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={() => setShowEditModal(false)}>
+                <div className="modal-dialog modal-lg" onClick={(e) => e.stopPropagation()}>
+                  <div className="modal-content" style={{maxHeight: '90vh', display: 'flex', flexDirection: 'column'}}>
+                    <div className="modal-header" style={{flexShrink: 0}}>
+                      <h5 className="modal-title">Edit Order - #{editingOrder.order_number}</h5>
+                      <button className="close" onClick={handleCloseEditModal}>
+                        <span>&times;</span>
+                      </button>
+                    </div>
+                    <div className="modal-body" style={{overflowY: 'auto', flexGrow: 1}}>
+                      <div className="row">
+                        {/* Order Info */}
+                        <div className="col-md-6">
+                          <h6>Order Information</h6>
+                          <p><strong>Customer:</strong> {editingOrder.user_info?.name || 'Unknown User'}</p>
+                          <p><strong>Total Amount:</strong> ₹{editingOrder.total_amount.toLocaleString()}</p>
+                          <p><strong>Payment Method:</strong> {editingOrder.payment_method}</p>
+                        </div>
+                        
+                        {/* Edit Fields */}
+                        <div className="col-md-6">
+                          <div className="form-group">
+                            <label htmlFor="editStatus">Order Status</label>
+                            <select
+                              id="editStatus"
+                              className="form-control"
+                              value={editStatus}
+                              onChange={(e) => setEditStatus(e.target.value)}
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="confirmed">Confirmed</option>
+                              <option value="processing">Processing</option>
+                              <option value="shipped">Shipped</option>
+                              <option value="delivered">Delivered</option>
+                              <option value="cancelled">Cancelled</option>
+                            </select>
+                          </div>
+                          
+                          <div className="form-group">
+                            <label htmlFor="editPaymentStatus">Payment Status</label>
+                            <select
+                              id="editPaymentStatus"
+                              className="form-control"
+                              value={editPaymentStatus}
+                              onChange={(e) => setEditPaymentStatus(e.target.value)}
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="paid">Paid</option>
+                              <option value="failed">Failed</option>
+                              <option value="refunded">Refunded</option>
+                            </select>
+                          </div>
+                          
+                          <div className="form-group">
+                            <label htmlFor="editTrackingNumber">Tracking Number</label>
+                            <input
+                              type="text"
+                              id="editTrackingNumber"
+                              className="form-control"
+                              placeholder="Enter tracking number (optional)"
+                              value={editTrackingNumber}
+                              onChange={(e) => setEditTrackingNumber(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <hr />
+                      
+                      {/* Order Items Preview */}
+                      <h6>Order Items ({editingOrder.items.length})</h6>
+                      <div className="table-responsive">
+                        <table className="table table-sm">
+                          <thead>
+                            <tr>
+                              <th>Product</th>
+                              <th>Quantity</th>
+                              <th>Price</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {editingOrder.items.slice(0, 3).map((item, index) => (
+                              <tr key={index}>
+                                <td>{item.product_name || 'Unknown Product'}</td>
+                                <td className="text-center">{item.quantity}</td>
+                                <td>₹{item.price_at_time.toLocaleString()}</td>
+                              </tr>
+                            ))}
+                            {editingOrder.items.length > 3 && (
+                              <tr>
+                                <td colSpan={3} className="text-muted">
+                                  ... and {editingOrder.items.length - 3} more item(s)
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    <div className="modal-footer" style={{flexShrink: 0}}>
+                      <button 
+                        className="btn btn-secondary" 
+                        onClick={handleCloseEditModal}
+                        disabled={savingEdit}
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        className="btn btn-primary" 
+                        onClick={handleSaveEdit}
+                        disabled={savingEdit}
+                      >
+                        {savingEdit ? (
+                          <>
+                            <i className="fas fa-spinner fa-spin mr-2"></i>
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <i className="fas fa-save mr-2"></i>
+                            Save Changes
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>

@@ -85,11 +85,11 @@ export async function GET(request: NextRequest) {
 
     switch (orderType) {
       case 'complete':
-        // Complete orders: paid orders from last 30 days
-        query.payment_status = 'paid';
+        // Complete orders: paid/completed orders from last 30 days
+        query.payment_status = { $in: ['paid', 'completed'] };
         if (!fromDate && !toDate) {
           // Default: last 30 days
-          query.created_at = { $gte: thirtyDaysAgo };
+          query.created_at = { $gte: thirtyDaysAgo.toISOString() };
         }
         break;
       
@@ -97,6 +97,7 @@ export async function GET(request: NextRequest) {
         // Pending orders: failed or pending payments (any date)
         query.$or = [
           { payment_status: 'pending' },
+          { payment_status: 'awaiting_payment' },
           { payment_status: 'failed' }
         ];
         break;
@@ -105,7 +106,7 @@ export async function GET(request: NextRequest) {
         // History orders: older than 30 days (any payment status)
         if (!fromDate && !toDate) {
           // Default: older than 30 days
-          query.created_at = { $lt: thirtyDaysAgo };
+          query.created_at = { $lt: thirtyDaysAgo.toISOString() };
         }
         break;
       
@@ -199,11 +200,10 @@ export async function GET(request: NextRequest) {
       let userInfo = null;
       if (order.user_id) {
         try {
-          // Look up user by custom user_id, not MongoDB ObjectId
           const user = await usersCollection.findOne({ user_id: order.user_id });
           if (user) {
             userInfo = {
-              name: user.name || user.full_name || 'Unknown User',
+              name: user.name || user.full_name,
               email: user.email || user.email_address || null,
               phone: user.phone || user.phone_number || null
             };
@@ -213,26 +213,36 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Resolve product images for each item
-      const itemsWithImages = await Promise.all((order.items || []).map(async (item: OrderItem) => {
-        if (!item.product_image && item.product_id) {
-          // If no product_image stored, try to get it from products collection
+      // Resolve product names and images for each item
+      const itemsWithDetails = await Promise.all((order.items || []).map(async (item: OrderItem) => {
+        let updatedItem = { ...item };
+        
+        if (item.product_id) {
           try {
             const productsCollection = await DatabaseService.getCollection('products');
             // Look up product by custom product_id, not MongoDB ObjectId
             const product = await productsCollection.findOne({ product_id: item.product_id });
             
-            if (product && product.image_id) {
-              const resolvedImageUrl = await resolveMediaUrl(request, product.image_id);
-              if (resolvedImageUrl) {
-                return { ...item, product_image: resolvedImageUrl };
+            if (product) {
+              // Resolve product name if missing
+              if (!updatedItem.product_name && product.name) {
+                updatedItem.product_name = product.name;
+              }
+              
+              // Resolve product image if missing
+              if (!updatedItem.product_image && product.image_id) {
+                const resolvedImageUrl = await resolveMediaUrl(request, product.image_id);
+                if (resolvedImageUrl) {
+                  updatedItem.product_image = resolvedImageUrl;
+                }
               }
             }
           } catch (error) {
-            console.error(`Failed to resolve image for product ${item.product_id}:`, error);
+            console.error(`Failed to resolve details for product ${item.product_id}:`, error);
           }
         }
-        return item;
+        
+        return updatedItem;
       }));
 
       return {
@@ -245,7 +255,7 @@ export async function GET(request: NextRequest) {
         subtotal: order.subtotal,
         shipping_cost: order.shipping_cost,
         tax_amount: order.tax_amount,
-        items: itemsWithImages,
+        items: itemsWithDetails,
         shipping_address: order.shipping_address,
         tracking_number: order.tracking_number,
         notes: order.notes,
@@ -353,11 +363,11 @@ export async function PUT(request: NextRequest) {
         // Look up user by custom user_id, not MongoDB ObjectId
         const user = await usersCollection.findOne({ user_id: currentOrder.user_id });
         
-        if (user && user.email) {
+        if (user && (user.email || user.email_address)) {
           // Send customer notification
           await emailService.sendOrderStatusNotification({
             customerName: user.name || user.full_name || 'Valued Customer',
-            customerEmail: user.email,
+            customerEmail: user.email || user.email_address,
             orderNumber: currentOrder.order_number,
             oldStatus: oldStatus,
             newStatus: status,
@@ -370,7 +380,7 @@ export async function PUT(request: NextRequest) {
           // Send admin notification
           await emailService.sendAdminOrderNotification({
             customerName: user.name || user.full_name || 'Unknown User',
-            customerEmail: user.email,
+            customerEmail: user.email || user.email_address,
             orderNumber: currentOrder.order_number,
             oldStatus: oldStatus,
             newStatus: status,
@@ -415,19 +425,33 @@ export async function DELETE(request: NextRequest) {
     }
 
     const ordersCollection = await DatabaseService.getCollection('orders');
+    const transactionsCollection = await DatabaseService.getCollection('transactions');
 
-    // Delete the order
-    const result = await ordersCollection.deleteOne({
-      _id: new ObjectId(order_id as string)
-    });
-
-    if (result.deletedCount === 0) {
+    // Get order details before deletion
+    const order = await ordersCollection.findOne({ _id: new ObjectId(order_id as string) });
+    
+    if (!order) {
       return NextResponse.json({
         success: false,
         error: 'Order not found',
         message: 'Order not found'
       }, { status: 404 });
     }
+
+    // Delete related transaction if it exists
+    if (order.razorpay_order_id) {
+      await transactionsCollection.deleteOne({
+        razorpay_order_id: order.razorpay_order_id
+      });
+      console.log(`🗑️ Deleted related transaction for razorpay_order_id: ${order.razorpay_order_id}`);
+    }
+
+    // Delete the order
+    const result = await ordersCollection.deleteOne({
+      _id: new ObjectId(order_id as string)
+    });
+
+    console.log(`🗑️ Deleted order: ${order.order_number}`);
 
     return NextResponse.json({
       success: true,

@@ -9,8 +9,9 @@ interface OrderItem {
   product_id: string;
   product_name: string;
   quantity: number;
-  price: number;
-  image_url?: string;
+  price_at_time: number;
+  total_price: number;
+  product_image?: string;
 }
 
 interface ShippingAddress {
@@ -84,6 +85,19 @@ export default function PendingOrdersPage() {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [modalAnimating, setModalAnimating] = useState(false);
+  const [validatingPayment, setValidatingPayment] = useState(false);
+  const [movingToComplete, setMovingToComplete] = useState(false);
+  const [paymentValidationResult, setPaymentValidationResult] = useState<{
+    isValid: boolean;
+    message: string;
+  } | null>(null);
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [editStatus, setEditStatus] = useState('');
+  const [editPaymentStatus, setEditPaymentStatus] = useState('');
+  const [editTrackingNumber, setEditTrackingNumber] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const ordersPerPage = 20;
 
@@ -109,7 +123,6 @@ export default function PendingOrdersPage() {
         page: page.toString(),
         limit: ordersPerPage.toString(),
         type: 'pending',
-        payment_status: 'paid',
         ...(search && { search }),
         ...(status !== 'all' && { status }),
         ...(fromDate && { from_date: fromDate }),
@@ -346,6 +359,191 @@ export default function PendingOrdersPage() {
     closeModal();
   };
 
+  // Validate payment with Razorpay
+  const handleValidatePayment = async (order: Order) => {
+    if (!order || !order._id) return;
+    
+    try {
+      setValidatingPayment(true);
+      setPaymentValidationResult(null);
+      
+      const response = await fetch('/api/admin/orders/validate-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          order_id: order._id
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setPaymentValidationResult({
+          isValid: data.data.is_valid,
+          message: data.message
+        });
+        
+        // If payment is valid, refresh the order data
+        if (data.data.is_valid) {
+          fetchOrders(currentPage, searchTerm, statusFilter);
+        }
+      } else {
+        setPaymentValidationResult({
+          isValid: false,
+          message: data.message || 'Validation failed'
+        });
+      }
+    } catch (error) {
+      console.error('Error validating payment:', error);
+      setPaymentValidationResult({
+        isValid: false,
+        message: 'Error validating payment. Please try again.'
+      });
+    } finally {
+      setValidatingPayment(false);
+    }
+  };
+
+  // Move order to complete
+  const handleMoveToComplete = async (order: Order) => {
+    if (!order || !order._id) return;
+    
+    const confirmMove = window.confirm(
+      `Are you sure you want to move order ${order.order_number} to complete status? This will send confirmation emails to both admin and customer.`
+    );
+    
+    if (!confirmMove) return;
+    
+    try {
+      setMovingToComplete(true);
+      
+      const response = await fetch('/api/admin/orders', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          order_id: order._id,
+          status: 'confirmed',
+          payment_status: 'paid'
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Order moved to complete successfully! Confirmation emails have been sent.');
+        setShowOrderModal(false);
+        setPaymentValidationResult(null);
+        fetchOrders(currentPage, searchTerm, statusFilter);
+      } else {
+        alert('Failed to move order to complete: ' + (data.message || data.error));
+      }
+    } catch (error) {
+      console.error('Error moving order to complete:', error);
+      alert('Error moving order to complete. Please try again.');
+    } finally {
+      setMovingToComplete(false);
+    }
+  };
+
+  // Delete order
+  const handleDeleteOrder = async (order: Order) => {
+    if (!order || !order._id) return;
+    
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete order ${order.order_number}? This action cannot be undone.`
+    );
+    
+    if (!confirmDelete) return;
+    
+    try {
+      setDeletingOrderId(order._id);
+      
+      const response = await fetch('/api/admin/orders', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          order_id: order._id
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Order deleted successfully!');
+        fetchOrders(currentPage, searchTerm, statusFilter);
+      } else {
+        alert('Failed to delete order: ' + (data.message || data.error));
+      }
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      alert('Error deleting order. Please try again.');
+    } finally {
+      setDeletingOrderId(null);
+    }
+  };
+
+  // Open edit modal
+  const handleEditOrder = (order: Order) => {
+    setEditingOrder(order);
+    setEditStatus(order.status);
+    setEditPaymentStatus(order.payment_status);
+    setEditTrackingNumber(order.tracking_number || '');
+    setShowEditModal(true);
+  };
+
+  // Save order edits
+  const handleSaveEdit = async () => {
+    if (!editingOrder) return;
+
+    try {
+      setSavingEdit(true);
+
+      const response = await fetch('/api/admin/orders', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          order_id: editingOrder._id,
+          status: editStatus,
+          payment_status: editPaymentStatus,
+          tracking_number: editTrackingNumber || undefined
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Order updated successfully!');
+        setShowEditModal(false);
+        setEditingOrder(null);
+        fetchOrders(currentPage, searchTerm, statusFilter);
+      } else {
+        alert('Failed to update order: ' + (data.message || data.error));
+      }
+    } catch (error) {
+      console.error('Error updating order:', error);
+      alert('Error updating order. Please try again.');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  // Close edit modal
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setEditingOrder(null);
+    setEditStatus('');
+    setEditPaymentStatus('');
+    setEditTrackingNumber('');
+  };
+
   return (
     <div className="dashboard-main-wrapper">
       <Header />
@@ -501,27 +699,29 @@ export default function PendingOrdersPage() {
                                         onClick={() => {
                                           setSelectedOrder(order);
                                           setShowOrderModal(true);
+                                          setPaymentValidationResult(null);
                                         }}
                                       >
                                         <i className="fas fa-eye"></i>
                                       </button>
                                       <button
                                         className="btn btn-outline-primary btn-sm mr-1"
-                                        title="Edit Status"
-                                        onClick={() => {
-                                          // TODO: Add edit status functionality
-                                        }}
+                                        title="Edit Order"
+                                        onClick={() => handleEditOrder(order)}
                                       >
                                         <i className="fas fa-edit"></i>
                                       </button>
                                       <button
                                         className="btn btn-outline-danger btn-sm"
                                         title="Delete Order"
-                                        onClick={() => {
-                                          // TODO: Add delete functionality
-                                        }}
+                                        onClick={() => handleDeleteOrder(order)}
+                                        disabled={deletingOrderId === order._id}
                                       >
-                                        <i className="fas fa-trash"></i>
+                                        {deletingOrderId === order._id ? (
+                                          <i className="fas fa-spinner fa-spin"></i>
+                                        ) : (
+                                          <i className="fas fa-trash"></i>
+                                        )}
                                       </button>
                                     </div>
                                   </td>
@@ -597,14 +797,14 @@ export default function PendingOrdersPage() {
             {showOrderModal && selectedOrder && (
               <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={() => setShowOrderModal(false)}>
                 <div className="modal-dialog modal-lg" onClick={(e) => e.stopPropagation()}>
-                  <div className="modal-content">
-                    <div className="modal-header">
+                  <div className="modal-content" style={{maxHeight: '90vh', display: 'flex', flexDirection: 'column'}}>
+                    <div className="modal-header" style={{flexShrink: 0}}>
                       <h5 className="modal-title">Order Details - #{selectedOrder.order_number}</h5>
                       <button className="close" onClick={() => setShowOrderModal(false)}>
                         <span>&times;</span>
                       </button>
                     </div>
-                    <div className="modal-body">
+                    <div className="modal-body" style={{overflowY: 'auto', flexGrow: 1}}>
                       <div className="row">
                         <div className="col-md-6">
                           <h6>Customer Information</h6>
@@ -651,7 +851,7 @@ export default function PendingOrdersPage() {
                           <thead>
                             <tr>
                               <th>Product</th>
-                              <th>Quantity</th>
+                              <th className="text-center">Quantity</th>
                               <th>Price</th>
                               <th>Total</th>
                             </tr>
@@ -659,10 +859,22 @@ export default function PendingOrdersPage() {
                           <tbody>
                             {selectedOrder.items.map((item, index) => (
                               <tr key={index}>
-                                <td>{item.product_name}</td>
-                                <td>{item.quantity}</td>
-                                <td>₹{item.price.toLocaleString()}</td>
-                                <td>₹{(item.quantity * item.price).toLocaleString()}</td>
+                                <td>
+                                  <div className="d-flex align-items-center">
+                                    {item.product_image && (
+                                      <img 
+                                        src={item.product_image} 
+                                        alt={item.product_name}
+                                        style={{width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px'}}
+                                        className="mr-2"
+                                      />
+                                    )}
+                                    <span>{item.product_name || 'Unknown Product'}</span>
+                                  </div>
+                                </td>
+                                <td className="text-center">{item.quantity}</td>
+                                <td>₹{item.price_at_time.toLocaleString()}</td>
+                                <td>₹{(item.quantity * item.price_at_time).toLocaleString()}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -701,10 +913,62 @@ export default function PendingOrdersPage() {
                         </>
                       )}
                     </div>
-                    <div className="modal-footer">
+                    <div className="modal-footer" style={{flexShrink: 0}}>
+                      {/* Payment validation result */}
+                      {paymentValidationResult && (
+                        <div className={`alert ${paymentValidationResult.isValid ? 'alert-success' : 'alert-warning'} mr-auto`}>
+                          <i className={`fas ${paymentValidationResult.isValid ? 'fa-check-circle' : 'fa-exclamation-triangle'} mr-2`}></i>
+                          {paymentValidationResult.message}
+                        </div>
+                      )}
+                      
                       <button className="btn btn-secondary" onClick={() => setShowOrderModal(false)}>
                         Close
                       </button>
+                      
+                      {/* Only show validation buttons for orders with Razorpay payment method */}
+                      {selectedOrder?.payment_method === 'razorpay' && selectedOrder?.payment_status !== 'paid' && (
+                        <>
+                          <button 
+                            className="btn btn-info mr-2" 
+                            onClick={() => handleValidatePayment(selectedOrder)}
+                            disabled={validatingPayment}
+                          >
+                            {validatingPayment ? (
+                              <>
+                                <i className="fas fa-spinner fa-spin mr-2"></i>
+                                Validating...
+                              </>
+                            ) : (
+                              <>
+                                <i className="fas fa-search-dollar mr-2"></i>
+                                Validate Payment
+                              </>
+                            )}
+                          </button>
+                          
+                          {paymentValidationResult?.isValid && (
+                            <button 
+                              className="btn btn-success mr-2" 
+                              onClick={() => handleMoveToComplete(selectedOrder)}
+                              disabled={movingToComplete}
+                            >
+                              {movingToComplete ? (
+                                <>
+                                  <i className="fas fa-spinner fa-spin mr-2"></i>
+                                  Processing...
+                                </>
+                              ) : (
+                                <>
+                                  <i className="fas fa-check mr-2"></i>
+                                  Move to Complete
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </>
+                      )}
+                      
                       <button className="btn btn-primary" onClick={() => window.print()}>
                         <i className="fas fa-print mr-2"></i>Print Order
                       </button>
@@ -991,6 +1255,138 @@ export default function PendingOrdersPage() {
                       >
                         <i className="fas fa-check mr-1"></i>
                         Apply Filters
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Edit Order Modal */}
+            {showEditModal && editingOrder && (
+              <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={() => setShowEditModal(false)}>
+                <div className="modal-dialog modal-lg" onClick={(e) => e.stopPropagation()}>
+                  <div className="modal-content" style={{maxHeight: '90vh', display: 'flex', flexDirection: 'column'}}>
+                    <div className="modal-header" style={{flexShrink: 0}}>
+                      <h5 className="modal-title">Edit Order - #{editingOrder.order_number}</h5>
+                      <button className="close" onClick={handleCloseEditModal}>
+                        <span>&times;</span>
+                      </button>
+                    </div>
+                    <div className="modal-body" style={{overflowY: 'auto', flexGrow: 1}}>
+                      <div className="row">
+                        {/* Order Info */}
+                        <div className="col-md-6">
+                          <h6>Order Information</h6>
+                          <p><strong>Customer:</strong> {editingOrder.user_info?.name || 'Unknown User'}</p>
+                          <p><strong>Total Amount:</strong> ₹{editingOrder.total_amount.toLocaleString()}</p>
+                          <p><strong>Payment Method:</strong> {editingOrder.payment_method}</p>
+                        </div>
+                        
+                        {/* Edit Fields */}
+                        <div className="col-md-6">
+                          <div className="form-group">
+                            <label htmlFor="editStatus">Order Status</label>
+                            <select
+                              id="editStatus"
+                              className="form-control"
+                              value={editStatus}
+                              onChange={(e) => setEditStatus(e.target.value)}
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="confirmed">Confirmed</option>
+                              <option value="processing">Processing</option>
+                              <option value="shipped">Shipped</option>
+                              <option value="delivered">Delivered</option>
+                              <option value="cancelled">Cancelled</option>
+                            </select>
+                          </div>
+                          
+                          <div className="form-group">
+                            <label htmlFor="editPaymentStatus">Payment Status</label>
+                            <select
+                              id="editPaymentStatus"
+                              className="form-control"
+                              value={editPaymentStatus}
+                              onChange={(e) => setEditPaymentStatus(e.target.value)}
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="paid">Paid</option>
+                              <option value="failed">Failed</option>
+                              <option value="refunded">Refunded</option>
+                            </select>
+                          </div>
+                          
+                          <div className="form-group">
+                            <label htmlFor="editTrackingNumber">Tracking Number</label>
+                            <input
+                              type="text"
+                              id="editTrackingNumber"
+                              className="form-control"
+                              placeholder="Enter tracking number (optional)"
+                              value={editTrackingNumber}
+                              onChange={(e) => setEditTrackingNumber(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <hr />
+                      
+                      {/* Order Items Preview */}
+                      <h6>Order Items ({editingOrder.items.length})</h6>
+                      <div className="table-responsive">
+                        <table className="table table-sm">
+                          <thead>
+                            <tr>
+                              <th>Product</th>
+                              <th>Quantity</th>
+                              <th>Price</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {editingOrder.items.slice(0, 3).map((item, index) => (
+                              <tr key={index}>
+                                <td>{item.product_name || 'Unknown Product'}</td>
+                                <td className="text-center">{item.quantity}</td>
+                                <td>₹{item.price_at_time.toLocaleString()}</td>
+                              </tr>
+                            ))}
+                            {editingOrder.items.length > 3 && (
+                              <tr>
+                                <td colSpan={3} className="text-muted">
+                                  ... and {editingOrder.items.length - 3} more item(s)
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    <div className="modal-footer" style={{flexShrink: 0}}>
+                      <button 
+                        className="btn btn-secondary" 
+                        onClick={handleCloseEditModal}
+                        disabled={savingEdit}
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        className="btn btn-primary" 
+                        onClick={handleSaveEdit}
+                        disabled={savingEdit}
+                      >
+                        {savingEdit ? (
+                          <>
+                            <i className="fas fa-spinner fa-spin mr-2"></i>
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <i className="fas fa-save mr-2"></i>
+                            Save Changes
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>

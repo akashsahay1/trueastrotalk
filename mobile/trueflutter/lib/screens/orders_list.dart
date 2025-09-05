@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 import '../common/constants/dimensions.dart';
+import '../config/config.dart';
 import '../models/order.dart';
 import '../models/address.dart';
 import '../services/service_locator.dart';
@@ -25,7 +26,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
   List<Order> _allOrders = [];
   bool _isLoading = true;
 
-  final List<String> _tabs = ['All', 'Pending', 'Shipped', 'Delivered', 'Cancelled'];
+  final List<String> _tabs = ['All', 'Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled'];
 
   @override
   void initState() {
@@ -51,6 +52,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
       // Get custom user ID from local storage (not MongoDB ObjectId)
       final userId = _localStorage.getUserId() ?? 'user123';
       debugPrint('🔍 Loading orders for user_id: $userId');
+      debugPrint('🌐 API call: ${Config.baseUrl}/api/orders?userId=$userId');
       
       // Fetch orders from API
       final result = await _ordersApiService.getOrders(
@@ -60,9 +62,11 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
       
       if (result['success']) {
         _allOrders = result['orders'];
+        debugPrint('✅ API Success: Loaded ${_allOrders.length} real orders from API');
       } else {
         // Fallback to sample data if API fails
         _allOrders = _getSampleOrders();
+        debugPrint('❌ API Failed: Using ${_allOrders.length} sample orders. Error: ${result['error']}');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(result['error'] ?? 'Failed to load orders')),
@@ -70,8 +74,9 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
         }
       }
     } catch (e) {
-      debugPrint('Error loading orders: $e');
+      debugPrint('❌ Exception loading orders: $e');
       _allOrders = _getSampleOrders();
+      debugPrint('🔄 Using ${_allOrders.length} sample orders due to exception');
     } finally {
       setState(() {
         _isLoading = false;
@@ -184,18 +189,71 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
         expectedDeliveryDate: DateTime.now().add(const Duration(days: 7)),
         createdAt: DateTime.now().subtract(const Duration(hours: 2)),
       ),
+      Order(
+        id: '4',
+        orderNumber: 'ORD-2024-004',
+        userId: 'user1',
+        items: [
+          OrderItem(
+            productId: 'p5',
+            productName: 'Meditation Cushion',
+            productPrice: 1299,
+            category: 'Spiritual Items',
+            quantity: 1,
+            totalPrice: 1299,
+          ),
+        ],
+        subtotal: 1299,
+        shippingCost: 50,
+        taxAmount: 233.82,
+        totalAmount: 1582.82,
+        status: OrderStatus.confirmed,
+        paymentStatus: PaymentStatus.completed,
+        paymentMethod: PaymentMethod.razorpay,
+        paymentId: 'pay_1111222233',
+        shippingAddress: sampleAddress,
+        orderDate: DateTime.now().subtract(const Duration(hours: 12)),
+        expectedDeliveryDate: DateTime.now().add(const Duration(days: 5)),
+        createdAt: DateTime.now().subtract(const Duration(hours: 12)),
+      ),
+      Order(
+        id: '5',
+        orderNumber: 'ORD-2024-005',
+        userId: 'user1',
+        items: [
+          OrderItem(
+            productId: 'p6',
+            productName: 'Cancelled Item',
+            productPrice: 599,
+            category: 'Test',
+            quantity: 1,
+            totalPrice: 599,
+          ),
+        ],
+        subtotal: 599,
+        shippingCost: 50,
+        taxAmount: 107.82,
+        totalAmount: 756.82,
+        status: OrderStatus.cancelled,
+        paymentStatus: PaymentStatus.failed,
+        paymentMethod: PaymentMethod.razorpay,
+        shippingAddress: sampleAddress,
+        orderDate: DateTime.now().subtract(const Duration(days: 1)),
+        createdAt: DateTime.now().subtract(const Duration(days: 1)),
+      ),
     ];
   }
 
-  List<Order> _getFilteredOrders() {
-    final selectedTab = _tabs[_tabController.index];
-    
-    switch (selectedTab) {
+  List<Order> _getFilteredOrdersForTab(String tabName) {
+    switch (tabName) {
       case 'All':
         return _allOrders;
       case 'Pending':
         return _allOrders.where((order) => 
-          order.status == OrderStatus.pending || 
+          order.status == OrderStatus.pending
+        ).toList();
+      case 'Confirmed':
+        return _allOrders.where((order) => 
           order.status == OrderStatus.confirmed ||
           order.status == OrderStatus.processing
         ).toList();
@@ -348,16 +406,16 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
           ? const Center(child: CircularProgressIndicator())
           : TabBarView(
               controller: _tabController,
-              children: _tabs.map((tab) => _buildOrdersList()).toList(),
+              children: _tabs.map((tab) => _buildOrdersList(tab)).toList(),
             ),
     );
   }
 
-  Widget _buildOrdersList() {
-    final filteredOrders = _getFilteredOrders();
+  Widget _buildOrdersList(String tabName) {
+    final filteredOrders = _getFilteredOrdersForTab(tabName);
     
     if (filteredOrders.isEmpty) {
-      return _buildEmptyState();
+      return _buildEmptyState(tabName);
     }
 
     return RefreshIndicator(
@@ -372,8 +430,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
     );
   }
 
-  Widget _buildEmptyState() {
-    final selectedTab = _tabs[_tabController.index];
+  Widget _buildEmptyState(String selectedTab) {
     
     return Center(
       child: Column(
@@ -393,6 +450,8 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
           Text(
             selectedTab == 'All' 
                 ? 'You haven\'t placed any orders yet'
+                : selectedTab == 'Confirmed'
+                ? 'No confirmed orders yet'
                 : 'No orders found in this category',
             style: AppTextStyles.bodyMedium.copyWith(color: AppColors.grey400),
           ),
@@ -434,19 +493,15 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Order header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Order #${order.orderNumber}',
-                    style: AppTextStyles.bodyLarge.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimaryLight,
-                    ),
-                  ),
-                  _buildStatusChip(order.status),
-                ],
+              Text(
+                'Order #${order.orderNumber}',
+                style: AppTextStyles.bodyLarge.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimaryLight,
+                ),
               ),
+              const SizedBox(height: Dimensions.spacingXs),
+              _buildStatusChip(order.status),
               const SizedBox(height: Dimensions.spacingSm),
               
               Text(

@@ -398,7 +398,7 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
       const response = NextResponse.json({
         success: true,
         user: {
-          id: user._id.toString(),
+          id: user.user_id || user._id.toString(), // Use custom user_id if available, fallback to ObjectId
           full_name: user.full_name,
           email: user.email_address,
           user_type: user.user_type,
@@ -432,7 +432,7 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
         message: 'Login successful',
         data: {
           user: {
-            id: user._id.toString(),
+            id: user.user_id || user._id.toString(), // Use custom user_id if available, fallback to ObjectId
             full_name: user.full_name,
             email_address: user.email_address,
             phone_number: user.phone_number || '',

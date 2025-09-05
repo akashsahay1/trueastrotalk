@@ -82,23 +82,29 @@ class _CartScreenState extends State<CartScreen> {
         surfaceTintColor: AppColors.white,
         title: Text(
           'Remove Item',
-          style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimaryLight),
+          style: AppTextStyles.heading5.copyWith(
+            color: AppColors.textPrimaryLight,
+            letterSpacing: 0,
+          ),
         ),
         content: Text(
           'Are you sure you want to remove this item from your cart?',
-          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight),
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.textSecondaryLight,
+            letterSpacing: 0,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
               'Cancel',
-              style: TextStyle(color: AppColors.textSecondaryLight),
+              style: TextStyle(color: AppColors.textSecondaryLight, letterSpacing: 0),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Remove', style: TextStyle(color: AppColors.error)),
+            child: const Text('Remove', style: TextStyle(color: AppColors.error, letterSpacing: 0)),
           ),
         ],
       ),
@@ -136,23 +142,29 @@ class _CartScreenState extends State<CartScreen> {
         surfaceTintColor: AppColors.white,
         title: Text(
           'Clear Cart',
-          style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimaryLight),
+          style: AppTextStyles.heading5.copyWith(
+            color: AppColors.textPrimaryLight,
+            letterSpacing: 0,
+          ),
         ),
         content: Text(
           'Are you sure you want to remove all items from your cart?',
-          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight),
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.textSecondaryLight,
+            letterSpacing: 0,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
               'Cancel',
-              style: TextStyle(color: AppColors.textSecondaryLight),
+              style: TextStyle(color: AppColors.textSecondaryLight, letterSpacing: 0),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Clear All', style: TextStyle(color: AppColors.error)),
+            child: const Text('Clear All', style: TextStyle(color: AppColors.error, letterSpacing: 0)),
           ),
         ],
       ),
@@ -210,7 +222,10 @@ class _CartScreenState extends State<CartScreen> {
       appBar: AppBar(
         title: Text(
           'Shopping Cart (${_cartService.totalItems})',
-          style: AppTextStyles.heading4.copyWith(color: AppColors.white),
+          style: AppTextStyles.heading4.copyWith(
+            color: AppColors.white,
+            letterSpacing: 0,
+          ),
         ),
         backgroundColor: AppColors.primary,
         elevation: 0,
@@ -258,12 +273,18 @@ class _CartScreenState extends State<CartScreen> {
           const SizedBox(height: Dimensions.spacingMd),
           Text(
             'Your cart is empty',
-            style: AppTextStyles.heading5.copyWith(color: AppColors.grey600),
+            style: AppTextStyles.heading5.copyWith(
+              color: AppColors.grey600,
+              letterSpacing: 0,
+            ),
           ),
           const SizedBox(height: Dimensions.spacingSm),
           Text(
             'Add some products to get started',
-            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.grey400),
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.grey400,
+              letterSpacing: 0,
+            ),
           ),
           const SizedBox(height: Dimensions.spacingLg),
           ElevatedButton(
@@ -344,6 +365,7 @@ class _CartScreenState extends State<CartScreen> {
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textPrimaryLight,
                                 fontSize: 16,
+                                letterSpacing: 0,
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -379,15 +401,18 @@ class _CartScreenState extends State<CartScreen> {
                             color: AppColors.primary,
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
+                            letterSpacing: 0,
                           ),
                         ),
                       ),
                       const SizedBox(height: 12),
                       Text(
                         item.formattedUnitPrice,
-                        style: AppTextStyles.bodySmall.copyWith(
+                        style: const TextStyle(
                           color: AppColors.grey600,
                           fontSize: 13,
+                          letterSpacing: 0.0,
+                          fontWeight: FontWeight.normal,
                         ),
                       ),
                     ],
@@ -411,14 +436,18 @@ class _CartScreenState extends State<CartScreen> {
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.grey600,
                         fontSize: 12,
+                        letterSpacing: 0,
                       ),
                     ),
                     Text(
                       item.formattedTotalPrice,
-                      style: AppTextStyles.heading6.copyWith(
+                      style: const TextStyle(
+                        fontFamily: 'Roboto', // Explicitly set font family
                         fontWeight: FontWeight.bold,
                         color: AppColors.primary,
-                        fontSize: 20,
+                        fontSize: 15, // Reduced from 20 to 15
+                        letterSpacing: 0.0,
+                        height: 1.4,
                       ),
                     ),
                   ],
@@ -499,6 +528,7 @@ class _CartScreenState extends State<CartScreen> {
               style: AppTextStyles.bodyMedium.copyWith(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
+                letterSpacing: 0,
               ),
             ),
           ),
@@ -561,6 +591,7 @@ class _CartScreenState extends State<CartScreen> {
               style: AppTextStyles.heading6.copyWith(
                 color: AppColors.textPrimaryLight,
                 fontWeight: FontWeight.bold,
+                letterSpacing: 0,
               ),
             ),
             const SizedBox(height: Dimensions.spacingMd),
@@ -606,6 +637,7 @@ class _CartScreenState extends State<CartScreen> {
                             'Proceed to Checkout',
                             style: AppTextStyles.bodyLarge.copyWith(
                               fontWeight: FontWeight.w600,
+                              letterSpacing: 0,
                             ),
                           ),
                         ],
@@ -629,6 +661,7 @@ class _CartScreenState extends State<CartScreen> {
             style: AppTextStyles.bodyMedium.copyWith(
               color: isTotal ? AppColors.textPrimaryLight : AppColors.textSecondaryLight,
               fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+              letterSpacing: 0,
             ),
           ),
           Text(
@@ -636,6 +669,7 @@ class _CartScreenState extends State<CartScreen> {
             style: AppTextStyles.bodyMedium.copyWith(
               color: isTotal ? AppColors.primary : AppColors.textPrimaryLight,
               fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
+              letterSpacing: 0,
             ),
           ),
         ],

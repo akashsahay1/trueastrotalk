@@ -52,15 +52,27 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   late final CallService _callService;
 
   app_user.User? _currentUser;
-  double _walletBalance = 0.0;
   List<Astrologer> _featuredAstrologers = [];
   List<Product> _featuredProducts = [];
 
   bool _isLoading = true;
-  bool _isLoadingWallet = true;
   bool _isLoadingAstrologers = true;
   bool _isLoadingProducts = true;
   int _selectedBottomNavIndex = 0;
+
+  // Carousel state
+  late PageController _carouselController;
+  int _currentCarouselIndex = 0;
+  final List<String> _carouselImages = [
+    'assets/images/slide1.png',
+    'assets/images/slide2.png',
+    'assets/images/slide3.png',
+    'assets/images/slide4.png',
+  ];
+
+  // Infinite scroll setup
+  final int _infinitePageCount = 10000;
+  late int _initialPage;
 
   // Astrologer-specific data
   bool _isLoadingDashboard = true;
@@ -87,6 +99,10 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     // Initialize notifications
     _initializeNotifications();
 
+    // Initialize carousel with infinite scroll
+    _initialPage = (_infinitePageCount / 2).floor();
+    _carouselController = PageController(initialPage: _initialPage);
+
     _loadData();
   }
 
@@ -94,6 +110,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   void dispose() {
     _cartService.removeListener(_onCartChanged);
     _socketService.disconnect();
+    _carouselController.dispose();
     super.dispose();
   }
 
@@ -132,19 +149,24 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       // First load user data to determine user type
       await _loadUserData();
 
-      debugPrint('📱 User loaded: ${_currentUser?.name}, isAstrologer: ${_currentUser?.isAstrologer}');
+      debugPrint(
+        '📱 User loaded: ${_currentUser?.name}, isAstrologer: ${_currentUser?.isAstrologer}',
+      );
 
       // Initialize Socket.IO connection after user is loaded
       _initializeSocketConnection();
 
-      // Initialize wallet service for all users
-      await _walletService.initialize();
+      // Initialize wallet service for all users (but don't load balance for display)
+      // await _walletService.initialize(); // Removed to prevent 404 errors on home screen
 
       // Then load type-specific data
       if (_currentUser?.isAstrologer == true) {
         await _loadAstrologerDashboard();
       } else {
-        await Future.wait([_loadWalletBalance(), _loadFeaturedAstrologers(), _loadFeaturedProducts()]);
+        await Future.wait([
+          _loadFeaturedAstrologers(),
+          _loadFeaturedProducts(),
+        ]);
       }
     } catch (e) {
       debugPrint('❌ Error in _loadData: $e');
@@ -152,7 +174,6 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       setState(() {
         _isLoading = false;
         _isLoadingDashboard = false;
-        _isLoadingWallet = false;
         _isLoadingAstrologers = false;
         _isLoadingProducts = false;
       });
@@ -167,7 +188,6 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       } else {
         // Reload all customer data in parallel
         await Future.wait([
-          _loadWalletBalance(),
           _loadFeaturedAstrologers(),
           _loadFeaturedProducts(),
         ]);
@@ -218,26 +238,26 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     _socketService.on('incoming_call', (data) {
       debugPrint('📞 RAW Incoming call data received: $data');
       debugPrint('📞 Incoming call data type: ${data.runtimeType}');
-      
+
       // Debug each field specifically
       if (data is Map) {
         debugPrint('📞 Incoming call fields:');
         data.forEach((key, value) {
           debugPrint('   - $key: "$value" (${value.runtimeType})');
         });
-        
+
         final callerName = data['callerName'];
         final callerId = data['callerId'];
         final sessionId = data['sessionId'];
         final callType = data['callType'];
-        
+
         debugPrint('📞 Key fields extracted:');
         debugPrint('   - callerName: "$callerName"');
         debugPrint('   - callerId: "$callerId"');
         debugPrint('   - sessionId: "$sessionId"');
         debugPrint('   - callType: "$callType"');
       }
-      
+
       _showIncomingCallDialog(data);
     });
 
@@ -263,7 +283,12 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   void _showIncomingCallDialog(Map<String, dynamic> callData) {
     if (!mounted) return;
 
-    Navigator.of(context).push(MaterialPageRoute(builder: (context) => IncomingCallScreen(callData: callData), fullscreenDialog: true));
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => IncomingCallScreen(callData: callData),
+        fullscreenDialog: true,
+      ),
+    );
   }
 
   // Method to refresh astrologer dashboard data
@@ -279,34 +304,24 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       _isLoadingDashboard = false;
     });
 
-    debugPrint('📱 Dashboard loaded with user data (API endpoint not yet implemented)');
-  }
-
-  Future<void> _loadWalletBalance() async {
-    try {
-      final token = _authService.authToken;
-      if (token != null) {
-        final walletData = await _userApiService.getWalletBalance(token);
-        setState(() {
-          _walletBalance = (walletData['wallet_balance'] as num?)?.toDouble() ?? 0.0;
-          _isLoadingWallet = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _isLoadingWallet = false;
-      });
-    }
+    debugPrint(
+      '📱 Dashboard loaded with user data (API endpoint not yet implemented)',
+    );
   }
 
   Future<void> _loadFeaturedAstrologers() async {
     try {
-      final astrologersData = await _userApiService.getAvailableAstrologers(limit: 20, onlineOnly: false);
+      final astrologersData = await _userApiService.getAvailableAstrologers(
+        limit: 20,
+        onlineOnly: false,
+      );
 
       final astrologersList = astrologersData['astrologers'] as List<dynamic>;
 
       setState(() {
-        _featuredAstrologers = astrologersList.map((json) => Astrologer.fromJson(json)).toList();
+        _featuredAstrologers = astrologersList
+            .map((json) => Astrologer.fromJson(json))
+            .toList();
         _isLoadingAstrologers = false;
       });
     } catch (e) {
@@ -347,17 +362,27 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   Widget _buildSelectedScreen() {
     switch (_selectedBottomNavIndex) {
       case 0:
-        return _currentUser?.isAstrologer == true ? _buildAstrologerHomeContent() : _buildHomeContent();
+        return _currentUser?.isAstrologer == true
+            ? _buildAstrologerHomeContent()
+            : _buildHomeContent();
       case 1:
-        return _currentUser?.isAstrologer == true ? _buildConsultationsScreen() : _buildCallScreen();
+        return _currentUser?.isAstrologer == true
+            ? _buildConsultationsScreen()
+            : _buildCallScreen();
       case 2:
-        return _currentUser?.isAstrologer == true ? _buildEarningsScreen() : _buildChatScreen();
+        return _currentUser?.isAstrologer == true
+            ? _buildEarningsScreen()
+            : _buildChatScreen();
       case 3:
-        return _currentUser?.isAstrologer == true ? _buildProfileScreen() : const WalletScreen();
+        return _currentUser?.isAstrologer == true
+            ? _buildProfileScreen()
+            : const WalletScreen();
       case 4:
         return _buildProfileScreen(); // Profile for customers (5th tab)
       default:
-        return _currentUser?.isAstrologer == true ? _buildAstrologerHomeContent() : _buildHomeContent();
+        return _currentUser?.isAstrologer == true
+            ? _buildAstrologerHomeContent()
+            : _buildHomeContent();
     }
   }
 
@@ -378,7 +403,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
               child: Column(
                 children: [
                   _buildWelcomeCard(),
-                  _buildWalletBalanceCard(),
+                  _buildImageCarousel(),
                   _buildFeaturedAstrologers(),
                   const SizedBox(height: Dimensions.spacingMd),
                   _buildFeaturedProducts(),
@@ -404,46 +429,72 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           onPressed: () => Scaffold.of(context).openDrawer(),
         ),
       ),
-      title: Text('True Astrotalk', style: AppTextStyles.heading4.copyWith(color: AppColors.white)),
+      title: Text(
+        'True Astrotalk',
+        style: AppTextStyles.heading4.copyWith(color: AppColors.white),
+      ),
       centerTitle: false,
       actions: [
         // Cart icon with badge
-        Stack(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.shopping_cart_outlined, color: AppColors.white),
-              onPressed: _openCart,
-            ),
-            if (_cartService.totalItems > 0)
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  width: 18,
-                  height: 18,
-                  decoration: BoxDecoration(
-                    color: AppColors.error,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${_cartService.totalItems}',
-                      style: const TextStyle(
-                        color: AppColors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+        GestureDetector(
+          onTap: () {
+            debugPrint(
+              '🛒 Cart area tapped on home screen - navigating to cart',
+            );
+            _openCart();
+          },
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              IconButton(
+                icon: const Icon(
+                  Icons.shopping_cart_outlined,
+                  color: AppColors.white,
+                ),
+                onPressed: () {
+                  debugPrint('🛒 Cart icon button tapped on home screen');
+                  _openCart();
+                },
+              ),
+              if (_cartService.totalItems > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: IgnorePointer(
+                    child: Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: AppColors.error,
+                        shape: BoxShape.circle,
                       ),
-                      textAlign: TextAlign.center,
+                      child: Center(
+                        child: Text(
+                          '${_cartService.totalItems}',
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
         IconButton(
-          icon: const Icon(Icons.account_balance_wallet, color: AppColors.white),
+          icon: const Icon(
+            Icons.account_balance_wallet,
+            color: AppColors.white,
+          ),
           onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const WalletScreen()));
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const WalletScreen()),
+            );
           },
         ),
       ],
@@ -458,7 +509,10 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
             alignment: Alignment.center,
             width: double.infinity,
             height: 260,
-            decoration: const BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.zero),
+            decoration: const BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.zero,
+            ),
             child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
@@ -473,7 +527,13 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(color: AppColors.white, width: 2),
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 2))],
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: ClipOval(child: _buildProfileImage()),
                     ),
@@ -483,7 +543,10 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                     // User Name
                     Text(
                       _currentUser?.name ?? 'User',
-                      style: AppTextStyles.heading5.copyWith(color: AppColors.white, fontWeight: FontWeight.w600),
+                      style: AppTextStyles.heading5.copyWith(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -493,7 +556,9 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                     // User Email
                     Text(
                       _currentUser?.email ?? '',
-                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.white.withValues(alpha: 0.9)),
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.white.withValues(alpha: 0.9),
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -537,7 +602,12 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
             title: const Text('My Orders', style: TextStyle(fontSize: 14.0)),
             onTap: () {
               Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const OrdersListScreen()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const OrdersListScreen(),
+                ),
+              );
             },
           ),
           ListTile(
@@ -545,7 +615,10 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
             title: const Text('History', style: TextStyle(fontSize: 14.0)),
             onTap: () {
               Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryScreen()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const HistoryScreen()),
+              );
             },
           ),
           ListTile(
@@ -553,7 +626,10 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
             title: const Text('Help', style: TextStyle(fontSize: 14.0)),
             onTap: () {
               Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const HelpScreen()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const HelpScreen()),
+              );
             },
           ),
         ],
@@ -564,16 +640,18 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   Widget _buildWelcomeCard() {
     final greeting = _getGreeting();
     final firstName = _currentUser?.name.split(' ').first ?? 'User';
-    
+
     return Container(
-      margin: const EdgeInsets.fromLTRB(Dimensions.paddingLg, Dimensions.paddingLg, Dimensions.paddingLg, 0),
+      margin: const EdgeInsets.fromLTRB(
+        Dimensions.paddingMd,
+        Dimensions.paddingLg,
+        Dimensions.paddingMd,
+        0,
+      ),
       padding: const EdgeInsets.all(Dimensions.paddingLg),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            AppColors.primary,
-            AppColors.primary.withValues(alpha: 0.8),
-          ],
+          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -623,17 +701,13 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
               color: AppColors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.star,
-              color: AppColors.white,
-              size: 32,
-            ),
+            child: const Icon(Icons.star, color: AppColors.white, size: 32),
           ),
         ],
       ),
     );
   }
-  
+
   String _getGreeting() {
     final hour = DateTime.now().hour;
     if (hour < 12) {
@@ -645,54 +719,88 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Widget _buildWalletBalanceCard() {
+  Widget _buildImageCarousel() {
     return Container(
-      margin: const EdgeInsets.all(Dimensions.paddingLg),
-      padding: const EdgeInsets.all(Dimensions.paddingLg),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200, width: 1),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
+      margin: const EdgeInsets.fromLTRB(
+        Dimensions.paddingMd,
+        Dimensions.paddingLg,
+        Dimensions.paddingMd,
+        Dimensions.paddingLg,
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Wallet Balance', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight)),
-                  const SizedBox(height: Dimensions.spacingSm),
-                  Text(
-                    _isLoadingWallet ? 'Loading...' : '₹${_walletBalance.toStringAsFixed(2)}',
-                    style: AppTextStyles.heading3.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.all(Dimensions.paddingMd),
-                decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), shape: BoxShape.circle),
-                child: Icon(Icons.account_balance_wallet, color: AppColors.primary, size: 28),
-              ),
-            ],
-          ),
-          const SizedBox(height: Dimensions.spacingMd),
+          // Carousel
           SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _openWalletRecharge,
-              icon: const Icon(Icons.account_balance_wallet, size: 18),
-              label: const Text('View Wallet'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Dimensions.radiusMd)),
-              ),
+            height: 150,
+            child: PageView.builder(
+              controller: _carouselController,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentCarouselIndex = index % _carouselImages.length;
+                });
+              },
+              itemCount: _infinitePageCount,
+              itemBuilder: (context, index) {
+                final imageIndex = index % _carouselImages.length;
+                return Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(Dimensions.radiusLg),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(Dimensions.radiusLg),
+                    child: Image.asset(
+                      _carouselImages[imageIndex],
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    ),
+                  ),
+                );
+              },
             ),
+          ),
+
+          const SizedBox(height: Dimensions.spacingMd),
+
+          // Pagination dots
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: _carouselImages.asMap().entries.map((entry) {
+              int index = entry.key;
+              return GestureDetector(
+                onTap: () {
+                  final currentPage =
+                      _carouselController.page?.round() ?? _initialPage;
+                  final currentImageIndex =
+                      currentPage % _carouselImages.length;
+                  final targetPage = currentPage + (index - currentImageIndex);
+
+                  _carouselController.animateToPage(
+                    targetPage,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.ease,
+                  );
+                },
+                child: Container(
+                  width: _currentCarouselIndex == index ? 12 : 8,
+                  height: _currentCarouselIndex == index ? 12 : 8,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _currentCarouselIndex == index
+                        ? AppColors.primary
+                        : AppColors.primary.withValues(alpha: 0.3),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         ],
       ),
@@ -704,14 +812,24 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingLg),
+          padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingMd),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Featured Astrologers', style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimaryLight)),
+              Text(
+                'Featured Astrologers',
+                style: AppTextStyles.heading5.copyWith(
+                  color: AppColors.textPrimaryLight,
+                ),
+              ),
               TextButton(
                 onPressed: _viewAllAstrologers,
-                child: Text('View All', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary)),
+                child: Text(
+                  'View All',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.primary,
+                  ),
+                ),
               ),
             ],
           ),
@@ -726,16 +844,28 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
             ? const Padding(
                 padding: EdgeInsets.all(Dimensions.paddingLg),
                 child: Center(
-                  child: Text('No astrologers available at the moment', style: TextStyle(color: AppColors.textSecondaryLight)),
+                  child: Text(
+                    'No astrologers available at the moment',
+                    style: TextStyle(color: AppColors.textSecondaryLight),
+                  ),
                 ),
               )
             : ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingLg),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Dimensions.paddingMd,
+                ),
                 itemCount: _featuredAstrologers.length,
-                separatorBuilder: (context, index) => const SizedBox(height: Dimensions.spacingMd),
-                itemBuilder: (context, index) => AstrologerCallCard(astrologer: _featuredAstrologers[index], onTap: () => _navigateToAstrologerDetails(_featuredAstrologers[index]), onStartCall: () => _startCallWithAstrologer(_featuredAstrologers[index])),
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: Dimensions.spacingMd),
+                itemBuilder: (context, index) => AstrologerCallCard(
+                  astrologer: _featuredAstrologers[index],
+                  onTap: () =>
+                      _navigateToAstrologerDetails(_featuredAstrologers[index]),
+                  onStartCall: () =>
+                      _startCallWithAstrologer(_featuredAstrologers[index]),
+                ),
               ),
       ],
     );
@@ -746,14 +876,24 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingLg),
+          padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingMd),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Featured Products', style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimaryLight)),
+              Text(
+                'Featured Products',
+                style: AppTextStyles.heading5.copyWith(
+                  color: AppColors.textPrimaryLight,
+                ),
+              ),
               TextButton(
                 onPressed: _viewAllProducts,
-                child: Text('View All', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary)),
+                child: Text(
+                  'View All',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.primary,
+                  ),
+                ),
               ),
             ],
           ),
@@ -768,19 +908,30 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
             ? const Padding(
                 padding: EdgeInsets.all(Dimensions.paddingLg),
                 child: Center(
-                  child: Text('No products available at the moment', style: TextStyle(color: AppColors.textSecondaryLight)),
+                  child: Text(
+                    'No products available at the moment',
+                    style: TextStyle(color: AppColors.textSecondaryLight),
+                  ),
                 ),
               )
             : SizedBox(
                 height: 310,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingLg),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Dimensions.paddingMd,
+                  ),
                   itemCount: _featuredProducts.length,
-                  separatorBuilder: (context, index) => const SizedBox(width: Dimensions.spacingMd),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(width: Dimensions.spacingMd),
                   itemBuilder: (context, index) => SizedBox(
                     width: 200,
-                    child: ProductCard(product: _featuredProducts[index], onTap: () => _viewProduct(_featuredProducts[index]), isGridView: true, isHorizontalScroll: true),
+                    child: ProductCard(
+                      product: _featuredProducts[index],
+                      onTap: () => _viewProduct(_featuredProducts[index]),
+                      isGridView: true,
+                      isHorizontalScroll: true,
+                    ),
                   ),
                 ),
               ),
@@ -790,17 +941,27 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
 
   Widget _buildHoroscopeSection() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingLg),
+      padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingMd),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Daily Horoscope', style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimaryLight)),
+              Text(
+                'Daily Horoscope',
+                style: AppTextStyles.heading5.copyWith(
+                  color: AppColors.textPrimaryLight,
+                ),
+              ),
               TextButton(
                 onPressed: _viewFullHoroscope,
-                child: Text('View All', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary)),
+                child: Text(
+                  'View All',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.primary,
+                  ),
+                ),
               ),
             ],
           ),
@@ -808,7 +969,14 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           Container(
             padding: const EdgeInsets.all(Dimensions.paddingLg),
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [AppColors.warning.withValues(alpha: 0.1), AppColors.primary.withValues(alpha: 0.1)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.warning.withValues(alpha: 0.1),
+                  AppColors.primary.withValues(alpha: 0.1),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.circular(Dimensions.radiusMd),
               border: Border.all(color: AppColors.borderLight),
             ),
@@ -819,8 +987,15 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(Dimensions.paddingSm),
-                      decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.2), shape: BoxShape.circle),
-                      child: const Icon(Icons.star_outline, color: AppColors.primary, size: 20),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.star_outline,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: Dimensions.spacingMd),
                     Column(
@@ -828,15 +1003,29 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                       children: [
                         Text(
                           'Today\'s Fortune',
-                          style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600, color: AppColors.textPrimaryLight),
+                          style: AppTextStyles.bodyLarge.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimaryLight,
+                          ),
                         ),
-                        Text('Aries - ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryLight)),
+                        Text(
+                          'Aries - ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondaryLight,
+                          ),
+                        ),
                       ],
                     ),
                   ],
                 ),
                 const SizedBox(height: Dimensions.spacingMd),
-                Text('Today brings opportunities for growth and positive changes. Trust your intuition and take calculated risks.', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimaryLight, height: 1.5)),
+                Text(
+                  'Today brings opportunities for growth and positive changes. Trust your intuition and take calculated risks.',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textPrimaryLight,
+                    height: 1.5,
+                  ),
+                ),
               ],
             ),
           ),
@@ -847,7 +1036,11 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
 
   Widget _buildCallScreen() {
     return Scaffold(
-      body: AstrologersCallScreen(userApiService: _userApiService, onAstrologerTap: _navigateToAstrologerDetails, onStartCall: _startCallWithAstrologer),
+      body: AstrologersCallScreen(
+        userApiService: _userApiService,
+        onAstrologerTap: _navigateToAstrologerDetails,
+        onStartCall: _startCallWithAstrologer,
+      ),
       floatingActionButton: ListenableBuilder(
         listenable: _callService,
         builder: (context, _) {
@@ -856,17 +1049,32 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
             return FloatingActionButton.extended(
               onPressed: _returnToActiveCall,
               icon: const Icon(Icons.phone, color: AppColors.white),
-              label: Text('Return to Call', style: AppTextStyles.buttonMedium.copyWith(color: AppColors.white)),
+              label: Text(
+                'Return to Call',
+                style: AppTextStyles.buttonMedium.copyWith(
+                  color: AppColors.white,
+                ),
+              ),
               backgroundColor: AppColors.success,
             );
           } else {
             // Show "Call History" button when no active call
             return FloatingActionButton.extended(
               onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(builder: (context) => const HistoryScreen(initialTabIndex: 1))); // Index 1 = Calls tab
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        const HistoryScreen(initialTabIndex: 1),
+                  ),
+                ); // Index 1 = Calls tab
               },
               icon: const Icon(Icons.history, color: AppColors.white),
-              label: Text('Call History', style: AppTextStyles.buttonMedium.copyWith(color: AppColors.white)),
+              label: Text(
+                'Call History',
+                style: AppTextStyles.buttonMedium.copyWith(
+                  color: AppColors.white,
+                ),
+              ),
               backgroundColor: AppColors.primary,
             );
           }
@@ -877,7 +1085,11 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
 
   Widget _buildChatScreen() {
     return Scaffold(
-      body: AstrologersChatScreen(userApiService: _userApiService, onAstrologerTap: _navigateToAstrologerDetails, onStartChat: _startChatWithAstrologer),
+      body: AstrologersChatScreen(
+        userApiService: _userApiService,
+        onAstrologerTap: _navigateToAstrologerDetails,
+        onStartChat: _startChatWithAstrologer,
+      ),
       floatingActionButton: ListenableBuilder(
         listenable: _callService,
         builder: (context, _) {
@@ -886,17 +1098,35 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
             return FloatingActionButton.extended(
               onPressed: _returnToActiveCall,
               icon: const Icon(Icons.phone, color: AppColors.white),
-              label: Text('Return to Call', style: AppTextStyles.buttonMedium.copyWith(color: AppColors.white)),
+              label: Text(
+                'Return to Call',
+                style: AppTextStyles.buttonMedium.copyWith(
+                  color: AppColors.white,
+                ),
+              ),
               backgroundColor: AppColors.success,
             );
           } else {
             // Show "My Chats" button when no active call
             return FloatingActionButton.extended(
               onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(builder: (context) => const HistoryScreen(initialTabIndex: 2))); // Index 2 = Chats tab
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        const HistoryScreen(initialTabIndex: 2),
+                  ),
+                ); // Index 2 = Chats tab
               },
-              icon: const Icon(Icons.chat_bubble_outline, color: AppColors.white),
-              label: Text('My Chats', style: AppTextStyles.buttonMedium.copyWith(color: AppColors.white)),
+              icon: const Icon(
+                Icons.chat_bubble_outline,
+                color: AppColors.white,
+              ),
+              label: Text(
+                'My Chats',
+                style: AppTextStyles.buttonMedium.copyWith(
+                  color: AppColors.white,
+                ),
+              ),
               backgroundColor: AppColors.primary,
             );
           }
@@ -908,7 +1138,10 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   Widget _buildProfileScreen() {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Profile', style: AppTextStyles.heading4.copyWith(color: AppColors.white)),
+        title: Text(
+          'Profile',
+          style: AppTextStyles.heading4.copyWith(color: AppColors.white),
+        ),
         backgroundColor: AppColors.primary,
         elevation: 0,
         automaticallyImplyLeading: false,
@@ -916,7 +1149,10 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.edit, color: AppColors.white),
             onPressed: () async {
-              await Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
               // Always refresh user data when returning from profile screen
               if (mounted) {
                 await refreshUserData();
@@ -937,7 +1173,13 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.white,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [BoxShadow(color: AppColors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2))],
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.black.withValues(alpha: 0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Column(
                   children: [
@@ -954,12 +1196,25 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 16),
                     Text(
                       _currentUser?.name ?? 'User',
-                      style: AppTextStyles.heading5.copyWith(fontWeight: FontWeight.bold, color: AppColors.textPrimaryLight),
+                      style: AppTextStyles.heading5.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimaryLight,
+                      ),
                     ),
                     const SizedBox(height: 4),
-                    Text(_currentUser?.email ?? '', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight)),
+                    Text(
+                      _currentUser?.email ?? '',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textSecondaryLight,
+                      ),
+                    ),
                     const SizedBox(height: 16),
-                    _buildProfileStat('Wallet Balance', '₹${_walletBalance.toStringAsFixed(0)}'),
+                    _buildProfileStat(
+                      'Member Since',
+                      _currentUser?.createdAt != null
+                          ? '${DateTime.now().difference(_currentUser!.createdAt).inDays} days'
+                          : 'N/A',
+                    ),
                   ],
                 ),
               ),
@@ -979,10 +1234,18 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       children: [
         Text(
           value,
-          style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary),
+          style: AppTextStyles.bodyLarge.copyWith(
+            fontWeight: FontWeight.bold,
+            color: AppColors.primary,
+          ),
         ),
         const SizedBox(height: 4),
-        Text(label, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryLight)),
+        Text(
+          label,
+          style: AppTextStyles.bodySmall.copyWith(
+            color: AppColors.textSecondaryLight,
+          ),
+        ),
       ],
     );
   }
@@ -994,7 +1257,10 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         'title': 'Edit Profile',
         'subtitle': 'Update your personal information',
         'onTap': () async {
-          await Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ProfileScreen()),
+          );
           // Always refresh user data when returning from profile screen
           if (mounted) {
             await refreshUserData();
@@ -1016,11 +1282,25 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         'title': 'My Orders',
         'subtitle': 'View your order history',
         'onTap': () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const OrdersListScreen()));
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const OrdersListScreen()),
+          );
         },
       },
-      {'icon': Icons.history, 'title': 'History', 'subtitle': 'View your past consultations', 'onTap': _viewConsultationHistory},
-      {'icon': Icons.logout, 'title': 'Logout', 'subtitle': 'Sign out of your account', 'onTap': _handleLogout, 'isDestructive': true},
+      {
+        'icon': Icons.history,
+        'title': 'History',
+        'subtitle': 'View your past consultations',
+        'onTap': _viewConsultationHistory,
+      },
+      {
+        'icon': Icons.logout,
+        'title': 'Logout',
+        'subtitle': 'Sign out of your account',
+        'onTap': _handleLogout,
+        'isDestructive': true,
+      },
     ];
 
     return Column(
@@ -1028,7 +1308,10 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       children: [
         Text(
           'Quick Actions',
-          style: AppTextStyles.heading6.copyWith(color: AppColors.textPrimaryLight, fontWeight: FontWeight.bold),
+          style: AppTextStyles.heading6.copyWith(
+            color: AppColors.textPrimaryLight,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 16),
         ...actions.map((action) => _buildQuickActionItem(action)),
@@ -1056,8 +1339,17 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                 Container(
                   width: 40,
                   height: 40,
-                  decoration: BoxDecoration(color: isDestructive ? AppColors.error.withValues(alpha: 0.1) : AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                  child: Icon(action['icon'], color: isDestructive ? AppColors.error : AppColors.primary, size: 20),
+                  decoration: BoxDecoration(
+                    color: isDestructive
+                        ? AppColors.error.withValues(alpha: 0.1)
+                        : AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    action['icon'],
+                    color: isDestructive ? AppColors.error : AppColors.primary,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -1066,14 +1358,28 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                     children: [
                       Text(
                         action['title'],
-                        style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600, color: isDestructive ? AppColors.error : AppColors.textPrimaryLight),
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: isDestructive
+                              ? AppColors.error
+                              : AppColors.textPrimaryLight,
+                        ),
                       ),
                       const SizedBox(height: 2),
-                      Text(action['subtitle'], style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryLight)),
+                      Text(
+                        action['subtitle'],
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondaryLight,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textSecondaryLight),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: AppColors.textSecondaryLight,
+                ),
               ],
             ),
           ),
@@ -1084,19 +1390,56 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
 
   Widget _buildBottomNavigationBar() {
     // Different navigation items for astrologers vs customers
-    final List<BottomNavigationBarItem> items = _currentUser?.isAstrologer == true
+    final List<BottomNavigationBarItem> items =
+        _currentUser?.isAstrologer == true
         ? const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.chat_outlined), activeIcon: Icon(Icons.chat), label: 'Consultations'),
-            BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), activeIcon: Icon(Icons.account_balance_wallet), label: 'Earnings'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.chat_outlined),
+              activeIcon: Icon(Icons.chat),
+              label: 'Consultations',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.account_balance_wallet_outlined),
+              activeIcon: Icon(Icons.account_balance_wallet),
+              label: 'Earnings',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              activeIcon: Icon(Icons.person),
+              label: 'Profile',
+            ),
           ]
         : const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.call_outlined), activeIcon: Icon(Icons.call), label: 'Call'),
-            BottomNavigationBarItem(icon: Icon(Icons.chat_outlined), activeIcon: Icon(Icons.chat), label: 'Chat'),
-            BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), activeIcon: Icon(Icons.account_balance_wallet), label: 'Wallet'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.call_outlined),
+              activeIcon: Icon(Icons.call),
+              label: 'Call',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.chat_outlined),
+              activeIcon: Icon(Icons.chat),
+              label: 'Chat',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.account_balance_wallet_outlined),
+              activeIcon: Icon(Icons.account_balance_wallet),
+              label: 'Wallet',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              activeIcon: Icon(Icons.person),
+              label: 'Profile',
+            ),
           ];
 
     return BottomNavigationBar(
@@ -1121,15 +1464,17 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   }
 
   void _openHelp() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const HelpScreen()));
-  }
-
-  void _openWalletRecharge() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const WalletScreen()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const HelpScreen()),
+    );
   }
 
   void _openCart() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const CartScreen()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CartScreen()),
+    );
   }
 
   void _viewAllAstrologers() {
@@ -1143,14 +1488,19 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   }
 
   void _viewConsultationHistory() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryScreen()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const HistoryScreen()),
+    );
   }
 
   Future<void> _handleLogout() async {
     try {
       await _authService.signOut();
       if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/onboarding', (route) => false);
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/onboarding', (route) => false);
       }
     } catch (e) {
       // Handle logout error silently
@@ -1163,7 +1513,9 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${astrologer.fullName} is currently ${!astrologer.isOnline ? 'offline' : 'unavailable'}. Please try again later.'),
+            content: Text(
+              '${astrologer.fullName} is currently ${!astrologer.isOnline ? 'offline' : 'unavailable'}. Please try again later.',
+            ),
             backgroundColor: AppColors.warning,
             duration: const Duration(seconds: 3),
           ),
@@ -1172,17 +1524,31 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       return;
     }
 
+    // Initialize wallet service if needed for chat balance check
+    try {
+      await _walletService.initialize();
+    } catch (e) {
+      debugPrint('⚠️ Wallet service initialization failed: $e');
+      // Continue anyway, user might not need wallet features
+    }
+
     // Check wallet balance for chat
-    final hasSufficientBalance = _walletService.hasSufficientBalanceForChat(astrologer);
+    final hasSufficientBalance = _walletService.hasSufficientBalanceForChat(
+      astrologer,
+    );
 
     if (!hasSufficientBalance) {
-      final message = _walletService.getInsufficientChatBalanceMessage(astrologer);
+      final message = _walletService.getInsufficientChatBalanceMessage(
+        astrologer,
+      );
 
       // Show insufficient balance dialog with recharge option
       final shouldRecharge = await _showInsufficientBalanceDialog(message);
       if (shouldRecharge == true && mounted) {
         // Navigate to wallet screen for recharge
-        Navigator.of(context).push(MaterialPageRoute(builder: (context) => const WalletScreen()));
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => const WalletScreen()));
       }
       return;
     }
@@ -1190,7 +1556,12 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     try {
       // Show loading indicator
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Starting chat with ${astrologer.fullName}...'), backgroundColor: AppColors.info));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Starting chat with ${astrologer.fullName}...'),
+            backgroundColor: AppColors.info,
+          ),
+        );
       }
 
       // Start chat session
@@ -1200,11 +1571,20 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
 
       // Navigate to chat screen
       if (mounted) {
-        Navigator.of(context).push(MaterialPageRoute(builder: (context) => ChatScreen(chatSession: chatSession)));
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ChatScreen(chatSession: chatSession),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to start chat: $e'), backgroundColor: AppColors.error));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to start chat: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
       }
     }
   }
@@ -1215,7 +1595,9 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${astrologer.fullName} is currently ${!astrologer.isOnline ? 'offline' : 'unavailable'}. Please try again later.'),
+            content: Text(
+              '${astrologer.fullName} is currently ${!astrologer.isOnline ? 'offline' : 'unavailable'}. Please try again later.',
+            ),
             backgroundColor: AppColors.warning,
             duration: const Duration(seconds: 3),
           ),
@@ -1229,18 +1611,34 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       final callType = await _showCallTypeDialog();
       if (callType == null) return; // User cancelled
 
+      // Initialize wallet service if needed for call balance check
+      try {
+        await _walletService.initialize();
+      } catch (e) {
+        debugPrint('⚠️ Wallet service initialization failed: $e');
+        // Continue anyway, user might not need wallet features
+      }
+
       // Check wallet balance for selected call type
       final callTypeStr = callType == CallType.video ? 'video' : 'voice';
-      final hasSufficientBalance = _walletService.hasSufficientBalanceForCall(astrologer, callTypeStr);
+      final hasSufficientBalance = _walletService.hasSufficientBalanceForCall(
+        astrologer,
+        callTypeStr,
+      );
 
       if (!hasSufficientBalance) {
-        final message = _walletService.getInsufficientCallBalanceMessage(astrologer, callTypeStr);
+        final message = _walletService.getInsufficientCallBalanceMessage(
+          astrologer,
+          callTypeStr,
+        );
 
         // Show insufficient balance dialog with recharge option
         final shouldRecharge = await _showInsufficientBalanceDialog(message);
         if (shouldRecharge == true && mounted) {
           // Navigate to wallet screen for recharge
-          Navigator.of(context).push(MaterialPageRoute(builder: (context) => const WalletScreen()));
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (context) => const WalletScreen()));
         }
         return;
       }
@@ -1269,18 +1667,20 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       debugPrint('   - userId: ${_currentUser!.id}');
       debugPrint('   - callerName: "${_currentUser!.name}"');
       debugPrint('   - astrologerId: ${astrologer.id}');
-      
+
       // Initiate call via Socket.IO only (WebRTC will be handled in ActiveCallScreen)
       _socketService.emit('initiate_call', {
-        'callType': callType == CallType.video ? 'video' : 'voice', 
-        'sessionId': sessionId, 
-        'astrologerId': astrologer.id, 
+        'callType': callType == CallType.video ? 'video' : 'voice',
+        'sessionId': sessionId,
+        'astrologerId': astrologer.id,
         'userId': _currentUser!.id,
         'callerName': _currentUser!.name,
-        'callerType': 'customer'
+        'callerType': 'customer',
       });
 
-      debugPrint('📞 Call initiated with ${astrologer.fullName}, sessionId: $sessionId');
+      debugPrint(
+        '📞 Call initiated with ${astrologer.fullName}, sessionId: $sessionId',
+      );
 
       if (mounted) {
         Navigator.of(context).push(
@@ -1304,11 +1704,13 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       debugPrint('❌ Failed to start call: $e');
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to start call: ${e.toString().replaceAll('Exception: ', '')}'), 
+            content: Text(
+              'Failed to start call: ${e.toString().replaceAll('Exception: ', '')}',
+            ),
             backgroundColor: AppColors.error,
             duration: const Duration(seconds: 3),
           ),
@@ -1322,10 +1724,8 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     if (activeCallData != null && mounted) {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => ActiveCallScreen(
-            callData: activeCallData,
-            isIncoming: false,
-          ),
+          builder: (context) =>
+              ActiveCallScreen(callData: activeCallData, isIncoming: false),
         ),
       );
     }
@@ -1340,20 +1740,24 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         surfaceTintColor: AppColors.white,
         title: Text(
           'Select Call Type',
-          style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimaryLight),
+          style: AppTextStyles.heading5.copyWith(
+            color: AppColors.textPrimaryLight,
+          ),
         ),
         content: Text(
           'Choose the type of call you want to make:',
-          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight),
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.textSecondaryLight,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(CallType.voice),
             child: Row(
-              mainAxisSize: MainAxisSize.min, 
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.phone, color: AppColors.primary), 
-                const SizedBox(width: 8), 
+                Icon(Icons.phone, color: AppColors.primary),
+                const SizedBox(width: 8),
                 Text('Voice Call', style: TextStyle(color: AppColors.primary)),
               ],
             ),
@@ -1361,10 +1765,10 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           TextButton(
             onPressed: () => Navigator.of(context).pop(CallType.video),
             child: Row(
-              mainAxisSize: MainAxisSize.min, 
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.videocam, color: AppColors.primary), 
-                const SizedBox(width: 8), 
+                Icon(Icons.videocam, color: AppColors.primary),
+                const SizedBox(width: 8),
                 Text('Video Call', style: TextStyle(color: AppColors.primary)),
               ],
             ),
@@ -1396,36 +1800,28 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         ),
         content: Text(
           message,
-          style: TextStyle(
-            color: Colors.black87,
-            fontSize: 14,
-          ),
+          style: TextStyle(color: Colors.black87, fontSize: 14),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false), 
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary, 
+              backgroundColor: AppColors.primary,
               foregroundColor: AppColors.white,
               elevation: 2,
             ),
             child: Row(
-              mainAxisSize: MainAxisSize.min, 
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.add, size: 16), 
-                const SizedBox(width: 4), 
+                const Icon(Icons.add, size: 16),
+                const SizedBox(width: 4),
                 const Text(
                   'Recharge Wallet',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w500),
                 ),
               ],
             ),
@@ -1436,17 +1832,27 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   }
 
   void _viewAllProducts() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const ProductsListScreen()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ProductsListScreen()),
+    );
   }
 
   void _viewProduct(Product product) {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => ProductDetailsScreen(product: product)));
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProductDetailsScreen(product: product),
+      ),
+    );
   }
 
   Widget _buildProfileImage() {
     // Use profile picture from user model (which now prioritizes social_profile_image)
     if (_currentUser?.profilePicture?.isNotEmpty == true) {
-      debugPrint('🖼️ Home: Loading profile image: ${_currentUser!.profilePicture}');
+      debugPrint(
+        '🖼️ Home: Loading profile image: ${_currentUser!.profilePicture}',
+      );
 
       String imageUrl = _currentUser!.profilePicture!;
 
@@ -1490,7 +1896,12 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       height: 70,
       color: AppColors.white.withValues(alpha: 0.2),
       child: Center(
-        child: Text(_currentUser?.name != null && _currentUser!.name.isNotEmpty ? _currentUser!.name.substring(0, 1).toUpperCase() : 'U', style: AppTextStyles.heading3.copyWith(color: AppColors.white)),
+        child: Text(
+          _currentUser?.name != null && _currentUser!.name.isNotEmpty
+              ? _currentUser!.name.substring(0, 1).toUpperCase()
+              : 'U',
+          style: AppTextStyles.heading3.copyWith(color: AppColors.white),
+        ),
       ),
     );
   }
@@ -1500,10 +1911,14 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       width: 70,
       height: 70,
       color: AppColors.white.withValues(alpha: 0.2),
-      child: const Center(child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.white))),
+      child: const Center(
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+        ),
+      ),
     );
   }
-
 
   // Astrologer-specific screens
   Widget _buildAstrologerHomeContent() {
@@ -1521,7 +1936,10 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         foregroundColor: AppColors.white,
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: AppColors.white),
+            icon: const Icon(
+              Icons.notifications_outlined,
+              color: AppColors.white,
+            ),
             onPressed: _openNotifications,
             tooltip: 'Notifications',
           ),
@@ -1534,7 +1952,9 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       ),
       drawer: _buildAstrologerDrawer(),
       body: _isLoadingDashboard
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
           : RefreshIndicator(
               onRefresh: _loadAstrologerDashboard,
               color: AppColors.primary,
@@ -1585,7 +2005,10 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
             alignment: Alignment.center,
             width: double.infinity,
             height: 260,
-            decoration: const BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.zero),
+            decoration: const BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.zero,
+            ),
             child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
@@ -1600,7 +2023,13 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(color: AppColors.white, width: 2),
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 2))],
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: ClipOval(child: _buildProfileImage()),
                     ),
@@ -1610,7 +2039,10 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                     // User Name
                     Text(
                       _currentUser?.name ?? 'Astrologer',
-                      style: AppTextStyles.heading5.copyWith(color: AppColors.white, fontWeight: FontWeight.w600),
+                      style: AppTextStyles.heading5.copyWith(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1620,7 +2052,9 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                     // User Email
                     Text(
                       _currentUser?.email ?? '',
-                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.white.withValues(alpha: 0.9)),
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.white.withValues(alpha: 0.9),
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1636,7 +2070,10 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.chat),
-            title: const Text('Consultations', style: TextStyle(fontSize: 14.0)),
+            title: const Text(
+              'Consultations',
+              style: TextStyle(fontSize: 14.0),
+            ),
             onTap: () {
               Navigator.pop(context);
               setState(() {
@@ -1672,9 +2109,19 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        gradient: LinearGradient(
+          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1691,10 +2138,20 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Welcome back,', style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 14)),
+                    Text(
+                      'Welcome back,',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: 14,
+                      ),
+                    ),
                     Text(
                       _currentUser?.name ?? 'Astrologer',
-                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -1706,11 +2163,17 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
             children: [
               Icon(Icons.star, color: Colors.amber, size: 16),
               const SizedBox(width: 5),
-              Text('${_currentUser?.rating?.toStringAsFixed(1) ?? 'N/A'} Rating', style: const TextStyle(color: Colors.white, fontSize: 14)),
+              Text(
+                '${_currentUser?.rating?.toStringAsFixed(1) ?? 'N/A'} Rating',
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+              ),
               const SizedBox(width: 20),
               Icon(Icons.chat, color: Colors.white, size: 16),
               const SizedBox(width: 5),
-              Text('$_totalConsultations Consultations', style: const TextStyle(color: Colors.white, fontSize: 14)),
+              Text(
+                '$_totalConsultations Consultations',
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+              ),
             ],
           ),
         ],
@@ -1724,22 +2187,62 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          Icon(_currentUser?.isOnline == true ? Icons.circle : Icons.circle_outlined, color: _currentUser?.isOnline == true ? AppColors.success : AppColors.grey400, size: 20),
+          Icon(
+            _currentUser?.isOnline == true
+                ? Icons.circle
+                : Icons.circle_outlined,
+            color: _currentUser?.isOnline == true
+                ? AppColors.success
+                : AppColors.grey400,
+            size: 20,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_currentUser?.isOnline == true ? 'You are Online' : 'You are Offline', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                Text(_currentUser?.isOnline == true ? 'Available for consultations' : 'Turn online to receive consultations', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                Text(
+                  _currentUser?.isOnline == true
+                      ? 'You are Online'
+                      : 'You are Offline',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  _currentUser?.isOnline == true
+                      ? 'Available for consultations'
+                      : 'Turn online to receive consultations',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
               ],
             ),
           ),
-          _isOnlineToggleLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Switch(value: _currentUser?.isOnline ?? false, onChanged: (value) => _toggleOnlineStatus(), activeThumbColor: AppColors.success),
+          _isOnlineToggleLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Switch(
+                  value: _currentUser?.isOnline ?? false,
+                  onChanged: (value) => _toggleOnlineStatus(),
+                  activeThumbColor: AppColors.success,
+                ),
         ],
       ),
     );
@@ -1749,16 +2252,31 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Today\'s Performance', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const Text(
+          'Today\'s Performance',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
-              child: _buildStatCard(icon: Icons.chat_bubble_outline, title: 'Consultations', value: '$_todaysConsultations', subtitle: 'Today', color: AppColors.primary),
+              child: _buildStatCard(
+                icon: Icons.chat_bubble_outline,
+                title: 'Consultations',
+                value: '$_todaysConsultations',
+                subtitle: 'Today',
+                color: AppColors.primary,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _buildStatCard(icon: Icons.account_balance_wallet, title: 'Earnings', value: '₹${_todaysEarnings.toStringAsFixed(0)}', subtitle: 'Today', color: AppColors.success),
+              child: _buildStatCard(
+                icon: Icons.account_balance_wallet,
+                title: 'Earnings',
+                value: '₹${_todaysEarnings.toStringAsFixed(0)}',
+                subtitle: 'Today',
+                color: AppColors.success,
+              ),
             ),
           ],
         ),
@@ -1766,11 +2284,23 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         Row(
           children: [
             Expanded(
-              child: _buildStatCard(icon: Icons.timeline, title: 'Total Earnings', value: '₹${_totalEarnings.toStringAsFixed(0)}', subtitle: 'All time', color: AppColors.info),
+              child: _buildStatCard(
+                icon: Icons.timeline,
+                title: 'Total Earnings',
+                value: '₹${_totalEarnings.toStringAsFixed(0)}',
+                subtitle: 'All time',
+                color: AppColors.info,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _buildStatCard(icon: Icons.star_outline, title: 'Rating', value: _currentUser?.rating?.toStringAsFixed(1) ?? 'N/A', subtitle: '${_currentUser?.totalReviews ?? 0} reviews', color: AppColors.warning),
+              child: _buildStatCard(
+                icon: Icons.star_outline,
+                title: 'Rating',
+                value: _currentUser?.rating?.toStringAsFixed(1) ?? 'N/A',
+                subtitle: '${_currentUser?.totalReviews ?? 0} reviews',
+                color: AppColors.warning,
+              ),
             ),
           ],
         ),
@@ -1778,14 +2308,26 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildStatCard({required IconData icon, required String title, required String value, required String subtitle, required Color color}) {
+  Widget _buildStatCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required String subtitle,
+    required Color color,
+  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withValues(alpha: 0.2)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1794,7 +2336,10 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 child: Icon(icon, color: color, size: 20),
               ),
               const Spacer(),
@@ -1803,11 +2348,21 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 12),
           Text(
             value,
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color),
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
           const SizedBox(height: 4),
-          Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-          Text(subtitle, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+          Text(
+            subtitle,
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          ),
         ],
       ),
     );
@@ -1815,14 +2370,29 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
 
   Widget _buildQuickActionsSection() {
     final actions = [
-      {'icon': Icons.chat, 'title': 'View Consultations', 'subtitle': 'Manage your consultations', 'onTap': () => setState(() => _selectedBottomNavIndex = 1), 'color': AppColors.primary},
-      {'icon': Icons.account_balance_wallet, 'title': 'View Earnings', 'subtitle': 'Check your earnings', 'onTap': () => setState(() => _selectedBottomNavIndex = 2), 'color': AppColors.success},
+      {
+        'icon': Icons.chat,
+        'title': 'View Consultations',
+        'subtitle': 'Manage your consultations',
+        'onTap': () => setState(() => _selectedBottomNavIndex = 1),
+        'color': AppColors.primary,
+      },
+      {
+        'icon': Icons.account_balance_wallet,
+        'title': 'View Earnings',
+        'subtitle': 'Check your earnings',
+        'onTap': () => setState(() => _selectedBottomNavIndex = 2),
+        'color': AppColors.success,
+      },
       {
         'icon': Icons.person,
         'title': 'Edit Profile',
         'subtitle': 'Update your profile',
         'onTap': () async {
-          await Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ProfileScreen()),
+          );
           if (mounted) {
             await refreshUserData();
           }
@@ -1834,7 +2404,10 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Quick Actions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const Text(
+          'Quick Actions',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 12),
         ...actions.map(
           (action) => Container(
@@ -1855,21 +2428,46 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                     children: [
                       Container(
                         padding: const EdgeInsets.all(Dimensions.paddingLg),
-                        decoration: BoxDecoration(color: (action['color'] as Color).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                        child: Icon(action['icon'] as IconData, color: action['color'] as Color, size: 24),
+                        decoration: BoxDecoration(
+                          color: (action['color'] as Color).withValues(
+                            alpha: 0.1,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          action['icon'] as IconData,
+                          color: action['color'] as Color,
+                          size: 24,
+                        ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(action['title'] as String, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                            Text(
+                              action['title'] as String,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                             const SizedBox(height: 2),
-                            Text(action['subtitle'] as String, style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                            Text(
+                              action['subtitle'] as String,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                      Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textSecondary),
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: AppColors.textSecondary,
+                      ),
                     ],
                   ),
                 ),
@@ -1885,7 +2483,10 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Recent Activity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const Text(
+          'Recent Activity',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(20),
@@ -1901,12 +2502,19 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 12),
                 Text(
                   'No Recent Activity',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Your recent consultations will appear here',
-                  style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -1938,7 +2546,16 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_currentUser?.isOnline == true ? 'You are now online' : 'You are now offline'), backgroundColor: AppColors.success));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _currentUser?.isOnline == true
+                  ? 'You are now online'
+                  : 'You are now offline',
+            ),
+            backgroundColor: AppColors.success,
+          ),
+        );
       }
     } catch (e) {
       setState(() {
@@ -1946,13 +2563,20 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update status: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to update status: $e')));
       }
     }
   }
 
   void _navigateToAstrologerDetails(Astrologer astrologer) {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => AstrologerDetailsScreen(astrologer: astrologer)));
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AstrologerDetailsScreen(astrologer: astrologer),
+      ),
+    );
   }
 
   /// Handle incoming call notifications
@@ -1960,7 +2584,12 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
 
     // Navigate to incoming call screen
-    Navigator.of(context).push(MaterialPageRoute(builder: (context) => IncomingCallScreen(callData: data), fullscreenDialog: true));
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => IncomingCallScreen(callData: data),
+        fullscreenDialog: true,
+      ),
+    );
   }
 
   /// Handle incoming message notifications

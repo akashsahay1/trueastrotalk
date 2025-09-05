@@ -7,12 +7,10 @@ import { generateOrderId } from '../../../lib/custom-id';
 // Type definitions
 interface OrderItem {
   product_id: string;
-  product_name: string;
-  product_image?: string | null;
-  price: number;
   quantity: number;
-  total_price?: number;
-  category?: string;
+  price_at_time?: number; // Price at time of order (for historical accuracy)
+  price?: number; // Legacy field for backwards compatibility
+  total_price: number;
 }
 
 // Helper function to resolve media URL from media collection
@@ -148,43 +146,57 @@ export async function GET(request: NextRequest) {
           console.error(`Failed to fetch user info for user_id ${order.user_id}:`, error);
         }
       }
-      // Always resolve product images dynamically from product_id (never store paths)
-      const itemsWithImages = await Promise.all((order.items || []).map(async (item: OrderItem) => {
+      // Always resolve product details and images dynamically from product_id
+      const itemsWithDetails = await Promise.all((order.items || []).map(async (item: OrderItem) => {
         try {
           const productsCollection = await DatabaseService.getCollection('products');
           // Look up product by custom product_id, not MongoDB ObjectId
           const product = await productsCollection.findOne({ product_id: item.product_id });
           
-          if (product && product.image_id) {
-            const resolvedImageUrl = await resolveMediaUrl(request, product.image_id);
-            if (resolvedImageUrl) {
-              console.log(`🖼️ Order fetch: Resolved image for ${item.product_name}: ${product.image_id} -> ${resolvedImageUrl}`);
-              // Return item without any stored image path, only resolved URL
-              return { 
-                product_id: item.product_id,
-                product_name: item.product_name,
-                price: item.price,
-                quantity: item.quantity,
-                total_price: item.price * item.quantity,
-                category: product.category,
-                product_image: resolvedImageUrl
-              };
+          if (product) {
+            // Resolve product image
+            let productImageUrl = null;
+            if (product.image_id) {
+              productImageUrl = await resolveMediaUrl(request, product.image_id);
             }
+            
+            // Return item with current product details but historical pricing
+            return { 
+              product_id: item.product_id,
+              product_name: product.name, // Current product name
+              price: item.price_at_time, // Price at time of order
+              quantity: item.quantity,
+              total_price: item.total_price,
+              category: product.category, // Current category
+              product_image: productImageUrl,
+              is_available: product.is_active || false // Current availability
+            };
+          } else {
+            // Product no longer exists, return with stored data only
+            return {
+              product_id: item.product_id,
+              product_name: `Product ${item.product_id} (discontinued)`,
+              price: item.price_at_time,
+              quantity: item.quantity,
+              total_price: item.total_price,
+              category: 'Unknown',
+              product_image: null,
+              is_available: false
+            };
           }
         } catch (error) {
-          console.error(`Failed to resolve image for product ${item.product_id}:`, error);
+          console.error(`Failed to resolve details for product ${item.product_id}:`, error);
+          return { 
+            product_id: item.product_id,
+            product_name: `Product ${item.product_id} (error)`,
+            price: item.price_at_time,
+            quantity: item.quantity,
+            total_price: item.total_price,
+            category: 'Unknown',
+            product_image: null,
+            is_available: false
+          };
         }
-        
-        // Return item without image if resolution failed
-        return { 
-          product_id: item.product_id,
-          product_name: item.product_name,
-          price: item.price,
-          quantity: item.quantity,
-          total_price: item.price * item.quantity,
-          category: item.category || 'Unknown',
-          product_image: null
-        };
       }));
 
       const baseOrder = {
@@ -197,14 +209,15 @@ export async function GET(request: NextRequest) {
         subtotal: order.subtotal,
         shipping_cost: order.shipping_cost,
         tax_amount: order.tax_amount,
-        items: itemsWithImages,
+        items: itemsWithDetails,
         shipping_address: order.shipping_address,
         tracking_number: order.tracking_number,
         notes: order.notes,
         created_at: order.created_at,
         updated_at: order.updated_at,
         shipped_at: order.shipped_at,
-        delivered_at: order.delivered_at
+        delivered_at: order.delivered_at,
+        order_date: order.created_at // Always provide order_date as created_at
       };
 
       // Add user info for admin view
@@ -249,6 +262,7 @@ export async function POST(request: NextRequest) {
       items, 
       shipping_address, 
       payment_method = 'cod',
+      payment_details = {},
       notes = '',
       apply_shipping = true
     } = body;
@@ -303,27 +317,13 @@ export async function POST(request: NextRequest) {
 
       const itemTotal = Number(product.price) * Number(item.quantity);
       subtotal += itemTotal;
-
-      // Store product image for order display - preserve from cart or resolve from product
-      let productImageUrl = item.product_image; // Use image from cart if available
       
-      // If no image from cart, try to resolve from product's image_id
-      if (!productImageUrl && product.image_id) {
-        const resolvedImageUrl = await resolveMediaUrl(request, product.image_id);
-        if (resolvedImageUrl) {
-          productImageUrl = resolvedImageUrl;
-          console.log(`🖼️ Order creation: Resolved image for ${product.name}: ${product.image_id} -> ${resolvedImageUrl}`);
-        }
-      }
-      
+      // Only store essential order item data - product details will be resolved dynamically
       validatedItems.push({
         product_id: item.product_id, // This should be custom product_id like 'product_1756540783734_wxtlznqe'
-        product_name: product.name,
-        price: Number(product.price),
         quantity: Number(item.quantity),
-        total_price: itemTotal,
-        category: product.category,
-        product_image: productImageUrl // Store the resolved product image
+        price_at_time: Number(product.price), // Store price at time of order for historical accuracy
+        total_price: itemTotal
       });
     }
 
@@ -333,13 +333,25 @@ export async function POST(request: NextRequest) {
     const taxAmount = subtotal * taxRate;
     const totalAmount = subtotal + shippingCost + taxAmount;
 
+    // Determine payment status based on payment method and payment details
+    let paymentStatus = 'pending';
+    if (payment_method === 'cod') {
+      paymentStatus = 'pending';
+    } else if (payment_method === 'razorpay' && payment_details.payment_id) {
+      // If payment_id is present, payment was successful
+      paymentStatus = 'paid';
+    } else if (payment_method === 'razorpay') {
+      // Razorpay without payment_id means payment is still awaiting
+      paymentStatus = 'awaiting_payment';
+    }
+
     // Generate order
     const orderData = {
       order_id: generateOrderId(),
       user_id: user_id,
       order_number: generateOrderNumber(),
       status: 'pending',
-      payment_status: payment_method === 'cod' ? 'pending' : 'awaiting_payment',
+      payment_status: paymentStatus,
       payment_method: payment_method,
       subtotal: Math.round(subtotal * 100) / 100,
       shipping_cost: shippingCost,
@@ -356,7 +368,12 @@ export async function POST(request: NextRequest) {
         postal_code: shipping_address.postal_code,
         country: shipping_address.country || 'India'
       },
-      notes: notes,
+      notes: payment_details.notes || notes,
+      payment_details: payment_details,
+      // Extract razorpay_order_id if present in payment_details
+      ...(payment_details.razorpay_order_id && { razorpay_order_id: payment_details.razorpay_order_id }),
+      // Extract payment_id if present in payment_details (for successful payments)
+      ...(payment_details.payment_id && { payment_id: payment_details.payment_id }),
       tracking_number: null,
       created_at: new Date(),
       updated_at: new Date(),
@@ -414,7 +431,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { order_id, status, payment_status, tracking_number } = body;
+    const { order_id, status, payment_status, tracking_number, razorpay_order_id, payment_id } = body;
 
     if (!order_id) {
       return NextResponse.json({
@@ -449,6 +466,14 @@ export async function PUT(request: NextRequest) {
 
     if (tracking_number) {
       updateData.tracking_number = tracking_number;
+    }
+
+    if (razorpay_order_id) {
+      updateData.razorpay_order_id = razorpay_order_id;
+    }
+
+    if (payment_id) {
+      updateData.payment_id = payment_id;
     }
 
     // Update the order

@@ -18,6 +18,10 @@ class OrdersApiService {
     int page = 1,
   }) async {
     try {
+      debugPrint('📡 Making API call to get orders:');
+      debugPrint('  - userId: $userId');
+      debugPrint('  - endpoint: ${ApiEndpoints.orders}');
+      
       final response = await _dio.get(
         ApiEndpoints.orders,
         queryParameters: {
@@ -28,6 +32,11 @@ class OrdersApiService {
           'page': page,
         },
       );
+      
+      debugPrint('📡 API Response:');
+      debugPrint('  - Status Code: ${response.statusCode}');
+      debugPrint('  - Success: ${response.data['success']}');
+      debugPrint('  - Orders Count: ${(response.data['orders'] as List?)?.length ?? 0}');
 
       if (response.statusCode == 200 && response.data['success']) {
         final List<dynamic> ordersJson = response.data['orders'] ?? [];
@@ -158,17 +167,23 @@ class OrdersApiService {
   // Update order status (for admin/astrologer)
   Future<Map<String, dynamic>> updateOrderStatus({
     required String orderId,
-    required String status,
+    String? status,
     String? trackingNumber,
     String? adminId,
+    String? razorpayOrderId,
+    String? paymentId,
+    String? paymentStatus,
   }) async {
     try {
       final response = await _dio.put(
         ApiEndpoints.orderById(orderId),
         data: {
-          'status': status,
+          if (status != null) 'status': status,
           if (trackingNumber != null) 'tracking_number': trackingNumber,
           if (adminId != null) 'admin_id': adminId,
+          if (razorpayOrderId != null) 'razorpay_order_id': razorpayOrderId,
+          if (paymentId != null) 'payment_id': paymentId,
+          if (paymentStatus != null) 'payment_status': paymentStatus,
         },
       );
 

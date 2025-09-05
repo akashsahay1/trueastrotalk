@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 import '../models/cart.dart';
@@ -13,6 +15,7 @@ import '../services/api/user_api_service.dart';
 import '../services/wallet/wallet_service.dart';
 import '../services/payment/razorpay_service.dart';
 import '../services/email/email_service.dart';
+import '../config/config.dart';
 import '../config/payment_config.dart';
 import '../models/user.dart' as app_user;
 import '../screens/order_success.dart';
@@ -162,8 +165,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     // Create order
     final orderResult = await _createOrder(shippingAddress, PaymentMethod.wallet);
     if (orderResult != null) {
+      // Fetch the complete order with resolved product details for success screen
+      final completeOrder = await _fetchCompleteOrderDetails(orderResult.id ?? '');
+      
       // Payment successful, navigate to success screen
-      _navigateToOrderSuccess(orderResult);
+      _navigateToOrderSuccess(completeOrder ?? orderResult);
     }
   }
 
@@ -223,6 +229,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final razorpayOrderId = orderData['id'] as String;
       debugPrint('✅ Razorpay order created: $razorpayOrderId');
       
+      // Link the order with razorpay_order_id for payment verification
+      await _linkOrderWithRazorpayId(orderId, razorpayOrderId);
+      
       // Store the pending order ID and number for use in callbacks
       final capturedOrderId = orderId; // For API calls
       final capturedOrderNumber = orderNumber; // For user display
@@ -233,27 +242,41 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         onPaymentSuccess: (PaymentSuccessResponse response) async {
           debugPrint('🎉 Payment successful: ${response.paymentId}');
           
-          // Step 3: Update order status to 'paid' after successful payment
-          final updateResult = await _updateOrderPaymentStatus(
-            orderId: capturedOrderId,
-            paymentDetails: {
-              'payment_id': response.paymentId ?? '',
-              'razorpay_order_id': response.orderId ?? '',
-              'razorpay_payment_id': response.paymentId ?? '',
-              'status': 'processing', // Order is paid and processing
-              'payment_status': 'paid',
-              'amount': totalAmount,
-            },
+          // Step 3: Verify payment with backend
+          final updateResult = await _verifyPayment(
+            razorpayOrderId: response.orderId ?? '',
+            razorpayPaymentId: response.paymentId ?? '',
+            razorpaySignature: response.signature ?? '',
+            amount: totalAmount,
+            purpose: 'product_purchase',
           );
           
           if (updateResult) {
             debugPrint('✅ Order payment status updated successfully');
+            
+            // Fetch the complete order with resolved product details
+            final completeOrder = await _fetchCompleteOrderDetails(capturedOrder.id ?? '');
+            
+            // Send order confirmation email after successful payment (use complete order data)
+            if (_currentUser?.email?.isNotEmpty == true) {
+              _sendOrderConfirmationEmail(completeOrder ?? capturedOrder);
+            }
+            
             // Clear cart after successful payment
             await _cartService.clearCart();
-            _navigateToOrderSuccess(capturedOrder);
+            _navigateToOrderSuccess(completeOrder ?? capturedOrder);
           } else {
             // Payment succeeded but order update failed - needs manual intervention
             debugPrint('⚠️ Payment succeeded but order update failed');
+            
+            // Fetch the complete order with resolved product details for success screen
+            final completeOrder = await _fetchCompleteOrderDetails(capturedOrder.id ?? '');
+            
+            // Still send email since payment was successful (use complete order data)
+            if (_currentUser?.email?.isNotEmpty == true) {
+              _sendOrderConfirmationEmail(completeOrder ?? capturedOrder);
+            }
+            
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -265,20 +288,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             }
             // Still clear cart and navigate to success as payment was successful
             await _cartService.clearCart();
-            _navigateToOrderSuccess(capturedOrder);
+            _navigateToOrderSuccess(completeOrder ?? capturedOrder);
           }
         },
         onPaymentError: (PaymentFailureResponse response) {
           debugPrint('❌ Payment failed: ${response.message}');
           // Update order status to payment_failed
-          _updateOrderPaymentStatus(
-            orderId: capturedOrderId,
-            paymentDetails: {
-              'status': 'payment_failed',
-              'payment_status': 'failed',
-              'failure_reason': response.message ?? 'Unknown error',
-            },
-          );
+          _updateOrderStatusForFailure(capturedOrderId, response.message ?? 'Unknown error');
           
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -314,13 +330,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (pendingOrder != null) {
         final failedOrderId = pendingOrder.id ?? ''; // Use internal ID for API call
         if (failedOrderId.isNotEmpty) {
-          _updateOrderPaymentStatus(
-            orderId: failedOrderId,
-            paymentDetails: {
-              'status': 'payment_setup_failed',
-              'error': e.toString(),
-            },
-          );
+          _updateOrderStatusForFailure(failedOrderId, e.toString());
         }
       }
       
@@ -329,17 +339,76 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   // New method to update order payment status
-  Future<bool> _updateOrderPaymentStatus({required String orderId, required Map<String, dynamic> paymentDetails}) async {
+  Future<bool> _verifyPayment({
+    required String razorpayOrderId,
+    required String razorpayPaymentId,
+    required String razorpaySignature,
+    required double amount,
+    required String purpose,
+  }) async {
     try {
-      final result = await _ordersApiService.updateOrderStatus(
-        orderId: orderId,
-        status: paymentDetails['status'] ?? 'processing',
-      );
+      debugPrint('🔍 Verifying payment: $razorpayPaymentId');
       
-      return result['success'] == true;
+      final authService = getIt<AuthService>();
+      final token = authService.authToken;
+      
+      if (token == null) {
+        debugPrint('❌ No authentication token available');
+        return false;
+      }
+
+      final baseUrl = await Config.baseUrl;
+      final response = await http.post(
+        Uri.parse('$baseUrl/payments/razorpay/verify'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'razorpay_order_id': razorpayOrderId,
+          'razorpay_payment_id': razorpayPaymentId,
+          'razorpay_signature': razorpaySignature,
+          'amount': amount,
+          'purpose': purpose,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      
+      if (response.statusCode == 200 && data['success'] == true) {
+        debugPrint('✅ Payment verification successful');
+        return true;
+      } else {
+        debugPrint('❌ Payment verification failed: ${data['message'] ?? 'Unknown error'}');
+        return false;
+      }
     } catch (e) {
-      debugPrint('❌ Failed to update order payment status: $e');
+      debugPrint('❌ Payment verification error: $e');
       return false;
+    }
+  }
+
+  Future<void> _updateOrderStatusForFailure(String orderId, String error) async {
+    try {
+      await _ordersApiService.updateOrderStatus(
+        orderId: orderId,
+        status: 'payment_failed',
+      );
+    } catch (e) {
+      debugPrint('❌ Failed to update order status for failure: $e');
+    }
+  }
+
+  Future<void> _linkOrderWithRazorpayId(String orderId, String razorpayOrderId) async {
+    try {
+      debugPrint('📝 Linking order $orderId with Razorpay order ID $razorpayOrderId');
+      await _ordersApiService.updateOrderStatus(
+        orderId: orderId,
+        razorpayOrderId: razorpayOrderId,
+      );
+      debugPrint('✅ Successfully linked order with Razorpay ID');
+    } catch (e) {
+      debugPrint('❌ Failed to link order with Razorpay ID: $e');
     }
   }
 
@@ -362,10 +431,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (result['success']) {
         final order = result['order'] as Order;
         
-        // Send order confirmation email
-        if (_currentUser?.email?.isNotEmpty == true) {
-          _sendOrderConfirmationEmail(order);
+        // For wallet payments, get complete order details and send email immediately since payment is instant
+        if (paymentMethod.name == 'wallet' && _currentUser?.email?.isNotEmpty == true) {
+          // Fetch complete order with resolved product details for email
+          final completeOrder = await _fetchCompleteOrderDetails(order.id ?? '');
+          _sendOrderConfirmationEmail(completeOrder ?? order);
         }
+        // For Razorpay payments, don't send email here - send it after payment success
         
         // Clear cart after successful order
         await _cartService.clearCart();
@@ -393,6 +465,31 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     } catch (e) {
       debugPrint('❌ Error creating order: $e');
       rethrow;
+    }
+  }
+
+  Future<Order?> _fetchCompleteOrderDetails(String orderId) async {
+    try {
+      debugPrint('🔍 Fetching complete order details for order ID: $orderId');
+      final userId = _currentUser!.id;
+      final result = await _ordersApiService.getOrders(userId: userId);
+      
+      if (result['success'] && result['orders'] is List<Order>) {
+        final orders = result['orders'] as List<Order>;
+        // Find the order by ID
+        final completeOrder = orders.firstWhere(
+          (order) => order.id == orderId || order.orderNumber == orderId,
+          orElse: () => orders.first, // Fallback to most recent order
+        );
+        debugPrint('✅ Complete order details fetched with ${completeOrder.items.length} items');
+        return completeOrder;
+      } else {
+        debugPrint('❌ Failed to fetch complete order details');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching complete order details: $e');
+      return null;
     }
   }
 

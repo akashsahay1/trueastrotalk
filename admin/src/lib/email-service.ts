@@ -573,7 +573,7 @@ class EmailService {
                     <li style="padding: 10px 0; border-bottom: 1px solid #f1f3f4;">
                       <div style="display: flex; justify-content: space-between;">
                         <span>${item.product_name} (x${item.quantity})</span>
-                        <span>₹${(item.price * item.quantity).toLocaleString()}</span>
+                        <span>₹${(item.price_at_time * item.quantity).toLocaleString()}</span>
                       </div>
                     </li>
                   `).join('')}
@@ -609,7 +609,7 @@ class EmailService {
         ${orderData.trackingNumber ? `- Tracking Number: ${orderData.trackingNumber}` : ''}
 
         Items Ordered:
-        ${orderData.items.map(item => `- ${item.product_name} (x${item.quantity}) - ₹${(item.price * item.quantity).toLocaleString()}`).join('\n')}
+        ${orderData.items.map(item => `- ${item.product_name} (x${item.quantity}) - ₹${(item.price_at_time * item.quantity).toLocaleString()}`).join('\n')}
 
         Thank you for shopping with True AstroTalk!
 

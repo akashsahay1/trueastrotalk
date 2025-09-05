@@ -50,11 +50,28 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Get the user's actual user_id from database (not from JWT which might contain MongoDB ObjectId)
+    const usersCollectionForUserId = await DatabaseService.getCollection('users');
+    let actualUserId = user.userId as string;
+    
+    // If the JWT userId looks like a MongoDB ObjectId, fetch the actual user_id
+    if (typeof user.userId === 'string' && user.userId.length === 24) {
+      try {
+        const userData = await usersCollectionForUserId.findOne({ _id: new ObjectId(user.userId as string) });
+        if (userData && userData.user_id) {
+          actualUserId = userData.user_id;
+          console.log(`🔄 Using actual user_id: ${actualUserId} instead of JWT userId: ${user.userId}`);
+        }
+      } catch (error) {
+        console.log(`⚠️ Could not resolve user_id from JWT, using as-is: ${user.userId}`);
+      }
+    }
+
     // Get transaction from unified transactions collection
     const transactionsCollection = await DatabaseService.getCollection('transactions');
     const paymentTransaction = await transactionsCollection.findOne({
       razorpay_order_id: razorpay_order_id,
-      user_id: user.userId as string,
+      user_id: actualUserId,
       status: 'pending'
     });
 
@@ -240,14 +257,64 @@ export async function POST(request: NextRequest) {
 
     // Process based on purpose
     if (purpose === 'wallet_recharge') {
-      // Add amount to user wallet
+      // Add amount to user wallet - find by custom user_id, not MongoDB ObjectId
       await usersCollection.updateOne(
-        { _id: new ObjectId(user.userId as string) },
+        { user_id: actualUserId },
         { 
           $inc: { wallet_balance: amount },
           $set: { updated_at: new Date() }
         } as Record<string, unknown>
       );
+    } else if (purpose === 'product_purchase') {
+      // Update order status and payment status
+      const ordersCollection = await DatabaseService.getCollection('orders');
+      
+      // Find the order by razorpay_order_id first
+      let order = await ordersCollection.findOne({
+        razorpay_order_id: razorpay_order_id,
+        user_id: actualUserId
+      });
+      
+      // If not found by razorpay_order_id, try to find by user_id, amount and pending status
+      if (!order) {
+        console.log(`⚠️ Order not found by razorpay_order_id, trying to find by user_id and amount...`);
+        order = await ordersCollection.findOne({
+          user_id: actualUserId,
+          total_amount: amount,
+          payment_status: { $in: ['pending', 'pending_payment'] },
+          created_at: {
+            $gte: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // Within last 30 minutes
+          }
+        });
+        
+        if (order) {
+          // Update the order with razorpay_order_id for future reference
+          await ordersCollection.updateOne(
+            { _id: order._id },
+            { $set: { razorpay_order_id: razorpay_order_id } }
+          );
+          console.log(`✅ Order ${order.order_id} linked with razorpay_order_id: ${razorpay_order_id}`);
+        }
+      }
+      
+      if (order) {
+        // Update order with payment details and confirmed status
+        await ordersCollection.updateOne(
+          { _id: order._id },
+          {
+            $set: {
+              payment_status: 'paid',
+              payment_id: razorpay_payment_id,
+              status: 'confirmed',
+              confirmed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          }
+        );
+        console.log(`✅ Order ${order.order_id} payment confirmed and status updated`);
+      } else {
+        console.error(`❌ Order not found for razorpay_order_id: ${razorpay_order_id}`);
+      }
     }
     // Note: Transaction record is already created and updated above
     // No need for additional transaction record creation

@@ -7,36 +7,42 @@ class AppTextStyles {
     fontSize: 32,
     fontWeight: FontWeight.bold,
     height: 1.2,
+    letterSpacing: 0,
   );
   
   static const TextStyle heading2 = TextStyle(
     fontSize: 28,
     fontWeight: FontWeight.bold,
     height: 1.2,
+    letterSpacing: 0,
   );
   
   static const TextStyle heading3 = TextStyle(
     fontSize: 24,
     fontWeight: FontWeight.w600,
     height: 1.3,
+    letterSpacing: 0,
   );
   
   static const TextStyle heading4 = TextStyle(
     fontSize: 20,
     fontWeight: FontWeight.w600,
     height: 1.3,
+    letterSpacing: 0,
   );
   
   static const TextStyle heading5 = TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.w600,
     height: 1.4,
+    letterSpacing: 0,
   );
   
   static const TextStyle heading6 = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w600,
     height: 1.4,
+    letterSpacing: 0,
   );
   
   // Body Text
@@ -44,18 +50,21 @@ class AppTextStyles {
     fontSize: 16,
     fontWeight: FontWeight.normal,
     height: 1.5,
+    letterSpacing: 0,
   );
   
   static const TextStyle bodyMedium = TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.normal,
     height: 1.5,
+    letterSpacing: 0,
   );
   
   static const TextStyle bodySmall = TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.normal,
     height: 1.4,
+    letterSpacing: 0,
   );
   
   // Labels
@@ -63,18 +72,21 @@ class AppTextStyles {
     fontSize: 14,
     fontWeight: FontWeight.w500,
     height: 1.4,
+    letterSpacing: 0,
   );
   
   static const TextStyle labelMedium = TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.w500,
     height: 1.3,
+    letterSpacing: 0,
   );
   
   static const TextStyle labelSmall = TextStyle(
     fontSize: 11,
     fontWeight: FontWeight.w500,
     height: 1.3,
+    letterSpacing: 0,
   );
   
   // Button Text
@@ -82,18 +94,21 @@ class AppTextStyles {
     fontSize: 16,
     fontWeight: FontWeight.w600,
     height: 1.2,
+    letterSpacing: 0,
   );
   
   static const TextStyle buttonMedium = TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.w600,
     height: 1.2,
+    letterSpacing: 0,
   );
   
   static const TextStyle buttonSmall = TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.w600,
     height: 1.2,
+    letterSpacing: 0,
   );
   
   // Caption Text
@@ -101,13 +116,14 @@ class AppTextStyles {
     fontSize: 12,
     fontWeight: FontWeight.normal,
     height: 1.3,
+    letterSpacing: 0,
   );
   
   static const TextStyle overline = TextStyle(
     fontSize: 10,
     fontWeight: FontWeight.w500,
     height: 1.6,
-    letterSpacing: 1.5,
+    letterSpacing: 0,
   );
   
   // App Specific Styles
@@ -115,45 +131,53 @@ class AppTextStyles {
     fontSize: 20,
     fontWeight: FontWeight.w600,
     color: AppColors.white,
+    letterSpacing: 0,
   );
   
   static const TextStyle tabLabel = TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.w500,
+    letterSpacing: 0,
   );
   
   static const TextStyle cardTitle = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w600,
+    letterSpacing: 0,
   );
   
   static const TextStyle cardSubtitle = TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.normal,
     color: AppColors.grey600,
+    letterSpacing: 0,
   );
   
   static const TextStyle price = TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.bold,
     color: AppColors.primary,
+    letterSpacing: 0,
   );
   
   static const TextStyle rating = TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.w500,
     color: AppColors.warning,
+    letterSpacing: 0,
   );
   
   static const TextStyle status = TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.w500,
+    letterSpacing: 0,
   );
   
   static const TextStyle errorText = TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.normal,
     color: AppColors.error,
+    letterSpacing: 0,
   );
   
   static const TextStyle linkText = TextStyle(
@@ -161,18 +185,21 @@ class AppTextStyles {
     fontWeight: FontWeight.w500,
     color: AppColors.primary,
     decoration: TextDecoration.underline,
+    letterSpacing: 0,
   );
   
   static const TextStyle chatMessage = TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.normal,
     height: 1.4,
+    letterSpacing: 0,
   );
   
   static const TextStyle chatTimestamp = TextStyle(
     fontSize: 11,
     fontWeight: FontWeight.normal,
     color: AppColors.grey500,
+    letterSpacing: 0,
   );
 
   // Alias styles for backward compatibility

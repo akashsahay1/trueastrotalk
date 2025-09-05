@@ -172,41 +172,54 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             },
           ),
           // Cart icon with badge
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.shopping_cart_outlined, color: AppColors.white),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const CartScreen()),
-                  );
-                },
-              ),
-              if (_cartService.totalItems > 0)
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    width: 18,
-                    height: 18,
-                    decoration: BoxDecoration(
-                      color: AppColors.error,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        '${_cartService.totalItems}',
-                        style: const TextStyle(
-                          color: AppColors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+          GestureDetector(
+            onTap: () {
+              debugPrint('🛒 Cart area tapped - navigating to cart');
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CartScreen()),
+              );
+            },
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.shopping_cart_outlined, color: AppColors.white),
+                  onPressed: () {
+                    debugPrint('🛒 Cart icon button tapped - navigating to cart');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const CartScreen()),
+                    );
+                  },
+                ),
+                if (_cartService.totalItems > 0)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: IgnorePointer(
+                      child: Container(
+                        width: 18,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          color: AppColors.error,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${_cartService.totalItems}',
+                            style: const TextStyle(
+                              color: AppColors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

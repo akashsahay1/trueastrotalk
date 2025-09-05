@@ -60,7 +60,10 @@ class OrderItem {
     return OrderItem(
       productId: json['product_id'] ?? '',
       productName: json['product_name'] ?? '',
-      productPrice: (json['product_price'] as num?)?.toDouble() ?? 0.0,
+      // Handle multiple price field names from API
+      productPrice: (json['price'] as num?)?.toDouble() ?? 
+                   (json['product_price'] as num?)?.toDouble() ?? 
+                   (json['price_at_time'] as num?)?.toDouble() ?? 0.0,
       productImage: json['product_image'],
       category: json['category'] ?? '',
       quantity: json['quantity'] ?? 1,
@@ -80,8 +83,8 @@ class OrderItem {
     };
   }
 
-  String get formattedPrice => '₹${productPrice.toStringAsFixed(0)}';
-  String get formattedTotalPrice => '₹${totalPrice.toStringAsFixed(0)}';
+  String get formattedPrice => '₹${productPrice.toStringAsFixed(2)}';
+  String get formattedTotalPrice => '₹${totalPrice.toStringAsFixed(2)}';
 }
 
 class Order {
@@ -228,10 +231,15 @@ class Order {
   static PaymentStatus _parsePaymentStatus(String? status) {
     switch (status?.toLowerCase()) {
       case 'pending':
+      case 'awaiting_payment':
+      case 'pending_payment':
         return PaymentStatus.pending;
       case 'completed':
+      case 'paid':
+      case 'success':
         return PaymentStatus.completed;
       case 'failed':
+      case 'payment_failed':
         return PaymentStatus.failed;
       case 'refunded':
         return PaymentStatus.refunded;
@@ -322,8 +330,9 @@ class Order {
   }
 
   String get formattedOrderDate {
-    if (orderDate == null) return 'Not available';
-    return '${orderDate!.day}/${orderDate!.month}/${orderDate!.year}';
+    // Every order must have a date - use orderDate or createdAt
+    final date = orderDate ?? createdAt ?? DateTime.now();
+    return '${date.day}/${date.month}/${date.year}';
   }
 
   String get formattedDeliveryDate {

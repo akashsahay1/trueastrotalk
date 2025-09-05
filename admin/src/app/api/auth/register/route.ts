@@ -374,7 +374,7 @@ export async function POST(request: NextRequest) {
 
     // Prepare response
     const responseUser = {
-      id: result.insertedId.toString(),
+      id: userData.user_id as string, // Use custom user_id instead of MongoDB ObjectId
       full_name: userData.full_name,
       email_address: userData.email_address,
       phone_number: userData.phone_number,

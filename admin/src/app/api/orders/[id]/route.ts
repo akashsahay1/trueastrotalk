@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import { ObjectId } from 'mongodb';
+import DatabaseService from '../../../../lib/database';
+import '../../../../lib/security';
 
 // GET - Get order details
 export async function GET(
@@ -21,16 +20,10 @@ export async function GET(
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const ordersCollection = db.collection('orders');
-
+    const ordersCollection = await DatabaseService.getCollection('orders');
     const order = await ordersCollection.findOne({ _id: new ObjectId(orderId) });
 
     if (!order) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Order not found',
@@ -53,13 +46,13 @@ export async function GET(
       shipping_address: order.shipping_address,
       tracking_number: order.tracking_number,
       notes: order.notes,
+      razorpay_order_id: order.razorpay_order_id,
+      payment_id: order.payment_id,
       created_at: order.created_at,
       updated_at: order.updated_at,
       shipped_at: order.shipped_at,
       delivered_at: order.delivered_at
     };
-
-    await client.close();
 
     return NextResponse.json({
       success: true,
@@ -94,18 +87,13 @@ export async function PUT(
       }, { status: 400 });
     }
 
-    const { status, payment_status, tracking_number, notes } = body;
+    const { status, payment_status, tracking_number, notes, razorpay_order_id, payment_id } = body;
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const ordersCollection = db.collection('orders');
+    const ordersCollection = await DatabaseService.getCollection('orders');
 
     // Check if order exists
     const existingOrder = await ordersCollection.findOne({ _id: new ObjectId(orderId) });
     if (!existingOrder) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Order not found',
@@ -142,12 +130,26 @@ export async function PUT(
       updateData.notes = notes;
     }
 
-    await ordersCollection.updateOne(
+    if (razorpay_order_id) {
+      updateData.razorpay_order_id = razorpay_order_id;
+    }
+
+    if (payment_id) {
+      updateData.payment_id = payment_id;
+    }
+
+    const result = await ordersCollection.updateOne(
       { _id: new ObjectId(orderId) },
       { $set: updateData }
     );
 
-    await client.close();
+    if (result.matchedCount === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'Order not found',
+        message: 'Order not found'
+      }, { status: 404 });
+    }
 
     return NextResponse.json({
       success: true,
@@ -182,18 +184,13 @@ export async function DELETE(
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const ordersCollection = db.collection('orders');
-    const productsCollection = db.collection('products');
+    const ordersCollection = await DatabaseService.getCollection('orders');
+    const productsCollection = await DatabaseService.getCollection('products');
 
     // Get order details
     const order = await ordersCollection.findOne({ _id: new ObjectId(orderId) });
     
     if (!order) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Order not found',
@@ -203,7 +200,6 @@ export async function DELETE(
 
     // Check if order can be cancelled
     if (order.status === 'delivered' || order.status === 'cancelled') {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Cannot cancel order',
@@ -225,15 +221,13 @@ export async function DELETE(
     // Restore product stock
     for (const item of order.items) {
       await productsCollection.updateOne(
-        { _id: new ObjectId(item.product_id) },
+        { product_id: item.product_id }, // Use custom product_id, not MongoDB ObjectId
         { 
           $inc: { stock_quantity: item.quantity },
           $set: { updated_at: new Date() }
-        }
+        } as Record<string, unknown>
       );
     }
-
-    await client.close();
 
     return NextResponse.json({
       success: true,
