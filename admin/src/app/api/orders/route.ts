@@ -365,7 +365,7 @@ export async function POST(request: NextRequest) {
         address_line_2: shipping_address.address_line_2 || '',
         city: shipping_address.city,
         state: shipping_address.state,
-        postal_code: shipping_address.postal_code,
+        postal_code: shipping_address.pincode,
         country: shipping_address.country || 'India'
       },
       notes: payment_details.notes || notes,

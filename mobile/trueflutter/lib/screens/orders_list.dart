@@ -296,32 +296,19 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
       return;
     }
 
-    final result = await showDialog<bool>(
+    final result = await showDialog<Map<String, dynamic>?>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cancel Order'),
-        content: Text('Are you sure you want to cancel order #${order.orderNumber}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('No'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Yes, Cancel', style: TextStyle(color: AppColors.error)),
-          ),
-        ],
-      ),
+      builder: (context) => _CancelOrderDialog(orderNumber: order.orderNumber ?? 'Unknown'),
     );
 
-    if (result == true) {
+    if (result != null && result['cancelled'] == true) {
       // Call API to cancel order
       try {
         final userId = _localStorage.getUserId() ?? 'user123';
         final cancelResult = await _ordersApiService.cancelOrder(
           orderId: order.id ?? '',
           userId: userId,
-          reason: 'Cancelled by customer',
+          reason: result['reason'] ?? 'Cancelled by customer',
         );
         
         if (cancelResult['success']) {
@@ -663,6 +650,148 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
           fontSize: 10,
         ),
       ),
+    );
+  }
+}
+
+class _CancelOrderDialog extends StatefulWidget {
+  final String orderNumber;
+
+  const _CancelOrderDialog({required this.orderNumber});
+
+  @override
+  State<_CancelOrderDialog> createState() => _CancelOrderDialogState();
+}
+
+class _CancelOrderDialogState extends State<_CancelOrderDialog> {
+  final TextEditingController _reasonController = TextEditingController();
+  String _selectedReason = '';
+  
+  final List<String> _commonReasons = [
+    'Changed my mind',
+    'Found a better price',
+    'Ordered by mistake',
+    'Product no longer needed',
+    'Delivery taking too long',
+    'Other (please specify)',
+  ];
+
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.white,
+      title: const Text(
+        'Cancel Order',
+        style: TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to cancel order #${widget.orderNumber}?',
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Please select a reason:',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            // ignore: deprecated_member_use
+            ...List.generate(_commonReasons.length, (index) {
+              final reason = _commonReasons[index];
+              return RadioListTile<String>(
+                value: reason,
+                // ignore: deprecated_member_use
+                groupValue: _selectedReason,
+                // ignore: deprecated_member_use
+                onChanged: (value) {
+                  setState(() {
+                    _selectedReason = value ?? '';
+                  });
+                },
+                title: Text(
+                  reason,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 13,
+                  ),
+                ),
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+              );
+            }),
+            if (_selectedReason == 'Other (please specify)') ...[
+              const SizedBox(height: 8),
+              TextField(
+                controller: _reasonController,
+                decoration: const InputDecoration(
+                  hintText: 'Please specify your reason...',
+                  hintStyle: TextStyle(color: AppColors.textSecondary),
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.all(12),
+                ),
+                maxLines: 2,
+                style: const TextStyle(color: AppColors.textPrimary),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(null),
+          child: const Text(
+            'No',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: _selectedReason.isEmpty ? null : () {
+            final reason = _selectedReason == 'Other (please specify)'
+                ? _reasonController.text.trim()
+                : _selectedReason;
+            
+            if (reason.isEmpty) return;
+            
+            Navigator.of(context).pop({
+              'cancelled': true,
+              'reason': reason,
+            });
+          },
+          child: Text(
+            'Yes, Cancel',
+            style: TextStyle(
+              color: _selectedReason.isEmpty ? AppColors.textSecondary : AppColors.error,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

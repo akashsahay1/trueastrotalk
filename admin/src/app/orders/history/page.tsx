@@ -5,6 +5,7 @@ import Header from '@/components/admin/Header';
 import Sidebar from '@/components/admin/Sidebar';
 import Link from 'next/link';
 import Image from 'next/image';
+import Swal from 'sweetalert2';
 
 interface OrderItem {
   product_id: string;
@@ -37,9 +38,17 @@ interface Order {
   status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
   payment_method: string;
+  payment_id?: string;
   shipping_address: ShippingAddress;
   tracking_number?: string;
   notes?: string;
+  refund_id?: string;
+  refund_amount?: number;
+  refund_status?: string;
+  refunded_at?: string;
+  refund_notes?: string;
+  cancelled_at?: string;
+  cancellation_reason?: string;
   created_at: string;
   updated_at: string;
   shipped_at?: string;
@@ -92,20 +101,14 @@ export default function HistoryOrdersPage() {
   const [editPaymentStatus, setEditPaymentStatus] = useState('');
   const [editTrackingNumber, setEditTrackingNumber] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
+  const [refundingOrderId, setRefundingOrderId] = useState<string | null>(null);
   const [limit, setLimit] = useState(20);
 
   const ordersPerPage = limit;
 
-  // Remove the bg-light class for dashboard and set default date range
+  // Remove the bg-light class for dashboard
   useEffect(() => {
     document.body.className = '';
-    
-    // Set default date range to last 30 days
-    const today = new Date();
-    const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
-    
-    setFromDate(thirtyDaysAgo.toISOString().split('T')[0]);
-    setToDate(today.toISOString().split('T')[0]);
   }, []);
 
   // Fetch orders from API
@@ -118,7 +121,6 @@ export default function HistoryOrdersPage() {
         page: page.toString(),
         limit: limit.toString(),
         type: 'history',
-        payment_status: 'paid',
         ...(search && { search }),
         ...(status !== 'all' && { status }),
         ...(fromDate && { from_date: fromDate }),
@@ -128,6 +130,7 @@ export default function HistoryOrdersPage() {
         ...(customerFilter && { customer: customerFilter }),
       });
 
+      console.log('🔍 History Page API Call:', `/api/admin/orders?${queryParams}`);
       const response = await fetch(`/api/admin/orders?${queryParams}`);
       const data: OrdersResponse = await response.json();
 
@@ -337,10 +340,8 @@ export default function HistoryOrdersPage() {
   };
 
   const clearFilters = () => {
-    const today = new Date();
-    const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
-    setFromDate(thirtyDaysAgo.toISOString().split('T')[0]);
-    setToDate(today.toISOString().split('T')[0]);
+    setFromDate('');
+    setToDate('');
     setSearchTerm('');
     setStatusFilter('all');
     setAmountMin('');
@@ -414,6 +415,147 @@ export default function HistoryOrdersPage() {
   const handleLimitChange = (newLimit: number) => {
     setLimit(newLimit);
     setCurrentPage(1);
+  };
+
+  // Handle refund order
+  const handleRefundOrder = async (order: Order) => {
+    if (order.payment_status !== 'paid') {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Cannot Process Refund',
+        text: 'Order payment status is not paid.',
+        confirmButtonColor: '#d33'
+      });
+      return;
+    }
+
+    // Check if order has payment_id
+    if (!order.payment_id) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Cannot Process Refund',
+        text: 'No Razorpay payment ID found for this order.',
+        confirmButtonColor: '#d33'
+      });
+      return;
+    }
+
+    // Get refund amount
+    const { value: refundAmount } = await Swal.fire({
+      title: 'Enter Refund Amount',
+      text: `Maximum refundable amount: ₹${order.total_amount}`,
+      input: 'number',
+      inputValue: order.total_amount,
+      inputAttributes: {
+        min: '0.01',
+        max: order.total_amount.toString(),
+        step: '0.01'
+      },
+      showCancelButton: true,
+      confirmButtonText: 'Continue',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#6c757d',
+      inputValidator: (value) => {
+        const amount = parseFloat(value);
+        if (!value || isNaN(amount) || amount <= 0) {
+          return 'Please enter a valid refund amount!';
+        }
+        if (amount > order.total_amount) {
+          return `Refund amount cannot exceed ₹${order.total_amount}!`;
+        }
+      }
+    });
+
+    if (!refundAmount) return;
+
+    // Get refund notes
+    const { value: notes } = await Swal.fire({
+      title: 'Refund Notes',
+      input: 'textarea',
+      inputLabel: 'Enter refund reason/notes (optional):',
+      inputPlaceholder: 'Manual refund from admin panel...',
+      showCancelButton: true,
+      confirmButtonText: 'Continue',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#6c757d'
+    });
+
+    if (notes === undefined) return; // User cancelled
+
+    // Final confirmation
+    const result = await Swal.fire({
+      title: 'Confirm Refund',
+      html: `
+        <div style="text-align: left;">
+          <p><strong>Order:</strong> #${order.order_number}</p>
+          <p><strong>Amount:</strong> ₹${refundAmount}</p>
+          <p><strong>Notes:</strong> ${notes || 'Manual refund from admin panel'}</p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Process Refund',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      setRefundingOrderId(order._id);
+      
+      const response = await fetch('/api/payments/razorpay/refund', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderId: order._id,
+          refundAmount: parseFloat(refundAmount),
+          notes: notes || 'Manual refund from admin panel'
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        await Swal.fire({
+          icon: 'success',
+          title: 'Refund Processed Successfully!',
+          html: `
+            <div style="text-align: left;">
+              <p><strong>Refund ID:</strong> ${data.data.refund_id}</p>
+              <p><strong>Amount:</strong> ₹${data.data.refund_amount}</p>
+              <p><strong>Status:</strong> ${data.data.status}</p>
+            </div>
+          `,
+          confirmButtonColor: '#28a745'
+        });
+        
+        // Refresh the orders list to show updated payment status
+        fetchOrders(currentPage, searchTerm, statusFilter);
+      } else {
+        await Swal.fire({
+          icon: 'error',
+          title: 'Refund Failed',
+          text: data.message || data.error || 'Unknown error occurred',
+          confirmButtonColor: '#d33'
+        });
+      }
+    } catch (error) {
+      console.error('Error processing refund:', error);
+      await Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Error processing refund. Please try again.',
+        confirmButtonColor: '#d33'
+      });
+    } finally {
+      setRefundingOrderId(null);
+    }
   };
 
   return (
@@ -529,6 +671,7 @@ export default function HistoryOrdersPage() {
                               <th>Items</th>
                               <th>Amount</th>
                               <th>Status</th>
+                              <th>Payment</th>
                               <th>Date</th>
                               <th>Actions</th>
                             </tr>
@@ -547,6 +690,11 @@ export default function HistoryOrdersPage() {
                                   </td>
                                   <td>
                                     <strong>#{order.order_number}</strong>
+                                    {order.payment_id && (
+                                      <div className="text-small text-muted">
+                                        Pay: {order.payment_id}
+                                      </div>
+                                    )}
                                     {order.tracking_number && (
                                       <div className="text-small text-muted">
                                         Track: {order.tracking_number}
@@ -569,6 +717,11 @@ export default function HistoryOrdersPage() {
                                   <td>
                                     <span className={`badge ${getStatusBadgeClass(order.status)}`}>
                                       {order.status.toUpperCase()}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    <span className={`badge ${getPaymentBadgeClass(order.payment_status)}`}>
+                                      {order.payment_status.toUpperCase()}
                                     </span>
                                   </td>
                                   <td>
@@ -599,6 +752,20 @@ export default function HistoryOrdersPage() {
                                       >
                                         <i className="fas fa-edit"></i>
                                       </button>
+                                      {order.payment_status === 'paid' && order.payment_id && (
+                                        <button
+                                          className="btn btn-outline-warning btn-sm mr-1"
+                                          title="Process Refund"
+                                          onClick={() => handleRefundOrder(order)}
+                                          disabled={refundingOrderId === order._id}
+                                        >
+                                          {refundingOrderId === order._id ? (
+                                            <i className="fas fa-spinner fa-spin"></i>
+                                          ) : (
+                                            <i className="fas fa-undo"></i>
+                                          )}
+                                        </button>
+                                      )}
                                       <button
                                         className="btn btn-outline-danger btn-sm"
                                         title="Delete Order"
@@ -715,18 +882,60 @@ export default function HistoryOrdersPage() {
                       
                       <hr />
                       
-                      <h6>Shipping Address</h6>
-                      <div className="alert alert-light">
-                        <strong>{selectedOrder.shipping_address.full_name}</strong><br />
-                        {selectedOrder.shipping_address.phone_number}<br />
-                        {selectedOrder.shipping_address.address_line_1}<br />
-                        {selectedOrder.shipping_address.address_line_2 && (
-                          <>
-                            {selectedOrder.shipping_address.address_line_2}<br />
-                          </>
-                        )}
-                        {selectedOrder.shipping_address.city}, {selectedOrder.shipping_address.state} - {selectedOrder.shipping_address.postal_code}
+                      <div className="row">
+                        <div className="col-md-6">
+                          <h6>Shipping Address</h6>
+                          <div className="alert alert-info">
+                            <p><strong>Full Name:</strong> {selectedOrder.shipping_address.full_name}</p>
+                            <p><strong>Phone Number:</strong> {selectedOrder.shipping_address.phone_number}</p>
+                            <p><strong>Address Line 1:</strong> {selectedOrder.shipping_address.address_line_1}</p>
+                            <p><strong>Address Line 2:</strong> {selectedOrder.shipping_address.address_line_2 || 'N/A'}</p>
+                            <p><strong>City:</strong> {selectedOrder.shipping_address.city}</p>
+                            <p><strong>State:</strong> {selectedOrder.shipping_address.state}</p>
+                            <p><strong>Postal Code:</strong> {selectedOrder.shipping_address.postal_code || 'N/A'}</p>
+                            <p className="mb-0"><strong>Country:</strong> {selectedOrder.shipping_address.country || 'India'}</p>
+                          </div>
+                        </div>
+                        <div className="col-md-6">
+                          <h6>Refund Details</h6>
+                          {selectedOrder.payment_status === 'refunded' && selectedOrder.refund_notes ? (
+                            <div className="alert alert-info">
+                              <p><strong>Refund ID:</strong> {selectedOrder.refund_id || 'N/A'}</p>
+                              <p><strong>Refund Amount:</strong> ₹{selectedOrder.refund_amount?.toLocaleString() || 'N/A'}</p>
+                              <p><strong>Original Amount:</strong> ₹{selectedOrder.total_amount?.toLocaleString() || 'N/A'}</p>
+                              <p><strong>Refund Status:</strong> {selectedOrder.refund_status || 'N/A'}</p>
+                              <p><strong>Refunded At:</strong> {selectedOrder.refunded_at ? new Date(selectedOrder.refunded_at).toLocaleDateString('en-IN') : 'N/A'}</p>
+                              <p><strong>Refund Time:</strong> {selectedOrder.refunded_at ? new Date(selectedOrder.refunded_at).toLocaleTimeString('en-IN') : 'N/A'}</p>
+                              <p><strong>Refund Notes:</strong></p>
+                              <p className="mb-0 text-muted" style={{fontSize: '0.9em'}}>{selectedOrder.refund_notes}</p>
+                            </div>
+                          ) : (
+                            <div className="alert alert-info">
+                              <p><strong>Refund ID:</strong> N/A</p>
+                              <p><strong>Refund Amount:</strong> N/A</p>
+                              <p><strong>Original Amount:</strong> ₹{selectedOrder.total_amount?.toLocaleString() || 'N/A'}</p>
+                              <p><strong>Refund Status:</strong> Not Refunded</p>
+                              <p><strong>Refunded At:</strong> N/A</p>
+                              <p><strong>Refund Time:</strong> N/A</p>
+                              <p><strong>Refund Notes:</strong></p>
+                              <p className="mb-0 text-muted" style={{fontSize: '0.9em'}}>No refund information available</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
+                      
+                      {selectedOrder.status === 'cancelled' && selectedOrder.cancellation_reason && (
+                        <>
+                          <hr />
+                          
+                          <h6>Cancellation Details</h6>
+                          <div className="alert alert-warning">
+                            <p><strong>Cancelled At:</strong> {selectedOrder.cancelled_at ? new Date(selectedOrder.cancelled_at).toLocaleString('en-IN') : 'N/A'}</p>
+                            <p><strong>Cancellation Reason:</strong></p>
+                            <p className="mb-0 text-muted" style={{fontSize: '0.9em'}}>{selectedOrder.cancellation_reason}</p>
+                          </div>
+                        </>
+                      )}
                       
                       <hr />
                       
@@ -1071,7 +1280,7 @@ export default function HistoryOrdersPage() {
                       
                       <div className="alert alert-info mt-3">
                         <i className="fas fa-info-circle mr-2"></i>
-                        By default, showing order history from last 30 days. Adjust date range to see more orders.
+                        By default, showing orders older than 30 days. Use date filters to show orders from specific periods.
                       </div>
                     </div>
                     <div className="modal-footer" style={{flexShrink: 0}}>

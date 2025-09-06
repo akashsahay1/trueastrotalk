@@ -20,7 +20,7 @@ class Config {
   static Future<String> _getLocalIP() async {
     // For development, use your Mac's actual IP address so iOS can connect
     if (isDevelopment) {
-      _cachedLocalIP = '192.168.29.220'; // Your Mac's IP for iOS to connect
+      _cachedLocalIP = '192.168.1.134'; // Your Mac's IP for iOS to connect
       return _cachedLocalIP!;
     }
 
@@ -55,7 +55,8 @@ class Config {
       return 'https://admin.trueastrotalk.com/api';
     }
 
-    final ip = _cachedLocalIP ?? (Platform.isAndroid ? '10.0.2.2' : 'localhost');
+    final ip =
+        _cachedLocalIP ?? (Platform.isAndroid ? '10.0.2.2' : 'localhost');
     return 'http://$ip:4001/api';
   }
 
@@ -64,7 +65,8 @@ class Config {
       return 'https://admin.trueastrotalk.com';
     }
 
-    final ip = _cachedLocalIP ?? (Platform.isAndroid ? '10.0.2.2' : 'localhost');
+    final ip =
+        _cachedLocalIP ?? (Platform.isAndroid ? '10.0.2.2' : 'localhost');
     return 'http://$ip:4001';
   }
 
@@ -88,14 +90,28 @@ class Config {
   static const int maxDocumentSizeBytes = 10 * 1024 * 1024; // 10MB
 
   // Supported file formats
-  static const List<String> supportedImageFormats = ['jpg', 'jpeg', 'png', 'webp'];
+  static const List<String> supportedImageFormats = [
+    'jpg',
+    'jpeg',
+    'png',
+    'webp',
+  ];
   static const List<String> supportedVideoFormats = ['mp4', 'mov', 'avi'];
   static const List<String> supportedDocumentFormats = ['pdf', 'doc', 'docx'];
 
   // External service configuration
-  static const String razorpayKeyId = String.fromEnvironment('RAZORPAY_KEY_ID', defaultValue: 'rzp_test_key');
-  static const String agoraAppId = String.fromEnvironment('AGORA_APP_ID', defaultValue: '');
-  static const String firebaseVapidKey = String.fromEnvironment('FIREBASE_VAPID_KEY', defaultValue: '');
+  static const String razorpayKeyId = String.fromEnvironment(
+    'RAZORPAY_KEY_ID',
+    defaultValue: 'rzp_test_key',
+  );
+  static const String agoraAppId = String.fromEnvironment(
+    'AGORA_APP_ID',
+    defaultValue: '',
+  );
+  static const String firebaseVapidKey = String.fromEnvironment(
+    'FIREBASE_VAPID_KEY',
+    defaultValue: '',
+  );
 
   // Feature flags
   static const bool enablePushNotifications = true;
@@ -120,8 +136,10 @@ class Config {
   static const String youtubeUrl = 'https://youtube.com/trueastrotalk';
 
   // App store URLs
-  static const String playStoreUrl = 'https://play.google.com/store/apps/details?id=$packageName';
-  static const String appStoreUrl = 'https://apps.apple.com/app/true-astrotalk/id123456789';
+  static const String playStoreUrl =
+      'https://play.google.com/store/apps/details?id=$packageName';
+  static const String appStoreUrl =
+      'https://apps.apple.com/app/true-astrotalk/id123456789';
 
   // Debug settings
   static const bool enableLogger = appMode == 'local';
@@ -138,7 +156,9 @@ class Config {
       final baseUrl = await Config.baseUrl;
       final socketUrl = await Config.socketUrl;
       if (kDebugMode) {
-        debugPrint('🔧 Environment: ${isDevelopment ? 'Development' : 'Production'}');
+        debugPrint(
+          '🔧 Environment: ${isDevelopment ? 'Development' : 'Production'}',
+        );
         debugPrint('🌐 Base URL: $baseUrl');
         debugPrint('📡 Socket URL: $socketUrl');
         debugPrint('📱 Platform: ${Platform.operatingSystem}');

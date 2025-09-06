@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../../lib/database';
-import '../../../../lib/security';
+import SecurityExports from '../../../../lib/security';
+
+// Ensure security validation runs during module initialization
+void SecurityExports;
 
 // GET - Get order details
 export async function GET(
@@ -87,7 +90,7 @@ export async function PUT(
       }, { status: 400 });
     }
 
-    const { status, payment_status, tracking_number, notes, razorpay_order_id, payment_id } = body;
+    const { status, payment_status, tracking_number, notes, razorpay_order_id, payment_id, reason } = body;
 
     const ordersCollection = await DatabaseService.getCollection('orders');
 
@@ -115,6 +118,12 @@ export async function PUT(
       }
       if (status === 'delivered' && !existingOrder.delivered_at) {
         updateData.delivered_at = new Date();
+      }
+      if (status === 'cancelled') {
+        updateData.cancelled_at = new Date();
+        if (reason) {
+          updateData.cancellation_reason = reason;
+        }
       }
     }
 

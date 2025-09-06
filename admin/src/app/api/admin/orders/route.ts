@@ -85,11 +85,11 @@ export async function GET(request: NextRequest) {
 
     switch (orderType) {
       case 'complete':
-        // Complete orders: paid/completed orders from last 30 days
-        query.payment_status = { $in: ['paid', 'completed'] };
+        // Complete orders: paid/completed/refunded orders from last 30 days
+        query.payment_status = { $in: ['paid', 'completed', 'refunded'] };
         if (!fromDate && !toDate) {
           // Default: last 30 days
-          query.created_at = { $gte: thirtyDaysAgo.toISOString() };
+          query.created_at = { $gte: thirtyDaysAgo };
         }
         break;
       
@@ -103,10 +103,10 @@ export async function GET(request: NextRequest) {
         break;
       
       case 'history':
-        // History orders: older than 30 days (any payment status)
+        // History orders: orders older than 30 days (any payment/order status)
         if (!fromDate && !toDate) {
           // Default: older than 30 days
-          query.created_at = { $lt: thirtyDaysAgo.toISOString() };
+          query.created_at = { $lt: thirtyDaysAgo };
         }
         break;
       
@@ -259,6 +259,15 @@ export async function GET(request: NextRequest) {
         shipping_address: order.shipping_address,
         tracking_number: order.tracking_number,
         notes: order.notes,
+        razorpay_order_id: order.razorpay_order_id,
+        payment_id: order.payment_id,
+        refund_id: order.refund_id,
+        refund_amount: order.refund_amount,
+        refund_status: order.refund_status,
+        refunded_at: order.refunded_at,
+        refund_notes: order.refund_notes,
+        cancelled_at: order.cancelled_at,
+        cancellation_reason: order.cancellation_reason,
         created_at: order.created_at,
         updated_at: order.updated_at,
         shipped_at: order.shipped_at,

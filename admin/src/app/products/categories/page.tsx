@@ -342,7 +342,7 @@ export default function CategoriesPage() {
                   onPageChange={handlePageChange}
                   loading={loading}
                   className="mt-3"
-                  limit={limit}
+                  limit={pagination.limit}
                 />
               </div>
             </div>

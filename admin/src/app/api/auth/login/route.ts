@@ -334,8 +334,17 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
     }
 
     // Generate secure JWT tokens
+    if (!user.user_id) {
+      console.error(`❌ User ${user.email_address} has no user_id field`);
+      return NextResponse.json({
+        success: false,
+        error: 'ACCOUNT_SETUP_REQUIRED',
+        message: 'Please complete account setup by re-registering'
+      }, { status: 400 });
+    }
+
     const tokenPayload = {
-      userId: user._id.toString(),
+      userId: user.user_id,
       email: user.email_address,
       full_name: user.full_name,
       user_type: user.user_type,
@@ -345,7 +354,7 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
 
     const accessToken = JWTSecurity.generateAccessToken(tokenPayload);
     const refreshToken = JWTSecurity.generateRefreshToken({ 
-      userId: user._id.toString(),
+      userId: user.user_id,
       session_id: tokenPayload.session_id 
     });
 
@@ -398,7 +407,7 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
       const response = NextResponse.json({
         success: true,
         user: {
-          id: user.user_id || user._id.toString(), // Use custom user_id if available, fallback to ObjectId
+          id: user.user_id,
           full_name: user.full_name,
           email: user.email_address,
           user_type: user.user_type,
@@ -432,7 +441,7 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
         message: 'Login successful',
         data: {
           user: {
-            id: user.user_id || user._id.toString(), // Use custom user_id if available, fallback to ObjectId
+            id: user.user_id,
             full_name: user.full_name,
             email_address: user.email_address,
             phone_number: user.phone_number || '',

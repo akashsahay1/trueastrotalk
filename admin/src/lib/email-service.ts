@@ -539,7 +539,7 @@ class EmailService {
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
             <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
               <div style="text-align: center; margin-bottom: 30px;">
-                <h1 style="color: #2c3e50;">True AstroTalk</h1>
+                <h1 style="color: #2c3e50;">True Astrotalk</h1>
                 <div style="width: 100%; height: 3px; background: linear-gradient(to right, #ff6b6b, #4ecdc4); margin: 10px 0;"></div>
               </div>
               
@@ -582,7 +582,7 @@ class EmailService {
 
               <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e9ecef;">
                 <p style="color: #666; font-size: 14px;">
-                  Thank you for shopping with True AstroTalk!<br>
+                  Thank you for shopping with True Astrotalk!<br>
                   If you have any questions, please contact our support team.
                 </p>
                 <p style="color: #999; font-size: 12px; margin-top: 20px;">
@@ -611,7 +611,7 @@ class EmailService {
         Items Ordered:
         ${orderData.items.map(item => `- ${item.product_name} (x${item.quantity}) - ₹${(item.price * item.quantity).toLocaleString()}`).join('\n')}
 
-        Thank you for shopping with True AstroTalk!
+        Thank you for shopping with True Astrotalk!
 
         This is an automated email. Please do not reply.
       `

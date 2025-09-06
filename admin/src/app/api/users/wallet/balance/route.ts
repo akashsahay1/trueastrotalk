@@ -7,7 +7,7 @@ const JWT_SECRET = new TextEncoder().encode(
 );
 
 const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalk';
+const DB_NAME = 'trueastrotalkDB';
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,11 +51,13 @@ export async function GET(request: NextRequest) {
     const db = client.db(DB_NAME);
     const usersCollection = db.collection('users');
 
-    // Look up user by custom user_id, not MongoDB ObjectId
+    // Look up user by user_id field
+    console.log(`🔍 Wallet balance lookup: userId = ${payload.userId}, userType = ${payload.user_type}`);
     const user = await usersCollection.findOne(
       { user_id: payload.userId as string },
       { projection: { wallet_balance: 1, full_name: 1, email_address: 1, user_type: 1 } }
     );
+    console.log(`🔍 Wallet balance result: user found = ${!!user}`);
 
     await client.close();
 

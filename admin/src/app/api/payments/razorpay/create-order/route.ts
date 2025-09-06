@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     // Get user from database to verify account status
     const usersCollection = await DatabaseService.getCollection('users');
     const dbUser = await usersCollection.findOne({
-      _id: new ObjectId(user.userId as string),
+      user_id: user.userId as string,
       account_status: { $ne: 'banned' }
     });
 
@@ -192,22 +192,8 @@ export async function POST(request: NextRequest) {
 
     const razorpayOrder = await razorpayResponse.json();
 
-    // Get the user's actual user_id from database (not from JWT which might contain MongoDB ObjectId)
-    const usersCollectionForUserId = await DatabaseService.getCollection('users');
-    let actualUserId = user.userId as string;
-    
-    // If the JWT userId looks like a MongoDB ObjectId, fetch the actual user_id
-    if (typeof user.userId === 'string' && user.userId.length === 24) {
-      try {
-        const userData = await usersCollectionForUserId.findOne({ _id: new ObjectId(user.userId as string) });
-        if (userData && userData.user_id) {
-          actualUserId = userData.user_id;
-          console.log(`🔄 Using actual user_id: ${actualUserId} instead of JWT userId: ${user.userId}`);
-        }
-      } catch {
-        console.log(`⚠️ Could not resolve user_id from JWT, using as-is: ${user.userId}`);
-      }
-    }
+    // Use the user_id from JWT (which should be the custom user_id)
+    const actualUserId = user.userId as string;
 
     // Store transaction in unified transactions collection
     const transactionsCollection = await DatabaseService.getCollection('transactions');

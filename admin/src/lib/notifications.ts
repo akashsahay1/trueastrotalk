@@ -257,7 +257,7 @@ export class NotificationService {
         to: target.email,
         from: {
           email: process.env.FROM_EMAIL || 'noreply@trueastrotalk.com',
-          name: 'TrueAstroTalk'
+          name: 'True Astrotalk'
         },
         subject: emailTemplate.subject,
         html: emailTemplate.htmlContent,
@@ -518,7 +518,7 @@ export class NotificationService {
     switch (type) {
       case NotificationType.PAYMENT_SUCCESS:
         return {
-          subject: 'Payment Successful - TrueAstroTalk',
+          subject: 'Payment Successful - True Astrotalk',
           htmlContent: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2 style="color: #4CAF50;">Payment Successful! 💰</h2>
@@ -535,7 +535,7 @@ export class NotificationService {
 
       case NotificationType.ORDER_PLACED:
         return {
-          subject: 'Order Confirmation - TrueAstroTalk',
+          subject: 'Order Confirmation - True Astrotalk',
           htmlContent: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2 style="color: #2196F3;">Order Confirmed! 📦</h2>
@@ -546,17 +546,16 @@ export class NotificationService {
               <div style="margin: 20px 0; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
                 <p style="margin: 0;">We'll send you updates as your order is processed and shipped.</p>
               </div>
-              <a href="${baseUrl}/orders/${data?.orderId}" style="background-color: #2196F3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Track Order</a>
             </div>
           `
         };
 
       case NotificationType.ASTROLOGER_APPROVED:
         return {
-          subject: 'Welcome to TrueAstroTalk - Application Approved! 🎉',
+          subject: 'Welcome to True Astrotalk - Application Approved! 🎉',
           htmlContent: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #4CAF50;">Congratulations! You're now a TrueAstroTalk Astrologer! 🌟</h2>
+              <h2 style="color: #4CAF50;">Congratulations! You're now a True Astrotalk Astrologer! 🌟</h2>
               <p>Your application has been approved and you can now start offering consultations.</p>
               <div style="margin: 20px 0; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
                 <h3>Next Steps:</h3>
@@ -573,11 +572,11 @@ export class NotificationService {
 
       default:
         return {
-          subject: 'Notification from TrueAstroTalk',
+          subject: 'Notification from True Astrotalk',
           htmlContent: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #333;">TrueAstroTalk</h2>
-              <p>${data?.message || 'You have a new notification from TrueAstroTalk.'}</p>
+              <h2 style="color: #333;">True Astrotalk</h2>
+              <p>${data?.message || 'You have a new notification from True Astrotalk.'}</p>
               <a href="${baseUrl}" style="background-color: #2196F3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Open App</a>
             </div>
           `

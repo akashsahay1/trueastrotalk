@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
 
     const dbUser = await usersCollection.findOne(
       { 
-        _id: new ObjectId(user.userId as string),
+        user_id: user.userId as string,
         account_status: { $ne: 'banned' }
       },
       { 
@@ -284,7 +284,7 @@ export async function PUT(request: NextRequest) {
     // Validate required fields based on user type
     const usersCollection = await DatabaseService.getCollection('users');
     const existingUser = await usersCollection.findOne({ 
-      _id: new ObjectId(user.userId as string),
+      user_id: user.userId as string,
       account_status: { $ne: 'banned' }
     });
     
@@ -400,7 +400,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const result = await usersCollection.updateOne(
-      { _id: new ObjectId(user.userId as string) },
+      { user_id: user.userId as string },
       { $set: updateData }
     );
 
@@ -434,7 +434,7 @@ export async function PUT(request: NextRequest) {
 
     // Get updated user
     const updatedUser = await usersCollection.findOne(
-      { _id: new ObjectId(user.userId as string) },
+      { user_id: user.userId as string },
       { projection: { password: 0 } }
     );
 

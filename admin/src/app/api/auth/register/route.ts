@@ -355,7 +355,7 @@ export async function POST(request: NextRequest) {
 
     // Generate JWT tokens for immediate login
     const tokenPayload = {
-      userId: result.insertedId.toString(),
+      userId: userData.user_id,
       email: cleanEmail,
       full_name: userData.full_name,
       user_type: userData.user_type,
@@ -365,7 +365,7 @@ export async function POST(request: NextRequest) {
 
     const accessToken = JWTSecurity.generateAccessToken(tokenPayload);
     const refreshToken = JWTSecurity.generateRefreshToken({
-      userId: result.insertedId.toString(),
+      userId: userData.user_id,
       session_id: tokenPayload.session_id
     });
 

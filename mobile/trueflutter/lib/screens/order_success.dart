@@ -313,8 +313,8 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
             ),
             const SizedBox(height: Dimensions.spacingMd),
             
-            _buildInfoRow('Delivery Address', widget.order.shippingAddress.shortAddress),
-            _buildInfoRow('Expected Delivery', widget.order.formattedDeliveryDate),
+            _buildAddressRow('Delivery Address', widget.order.shippingAddress.shortAddress),
+            _buildAddressRow('Expected Delivery', widget.order.formattedDeliveryDate),
             if (widget.order.trackingNumber != null)
               _buildInfoRow('Tracking Number', widget.order.trackingNumber!),
           ],
@@ -398,13 +398,46 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
             ),
           ),
           const SizedBox(width: Dimensions.spacingMd),
+          Expanded(
+            flex: 2,
+            child: Text(
+              value,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textPrimaryLight,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.right,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddressRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.textSecondaryLight,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
           Text(
             value,
             style: AppTextStyles.bodySmall.copyWith(
               color: AppColors.textPrimaryLight,
               fontWeight: FontWeight.w600,
             ),
-            textAlign: TextAlign.right,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

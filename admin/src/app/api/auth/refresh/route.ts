@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     // Get user from database to ensure they still exist and are active
     const usersCollection = await DatabaseService.getCollection('users');
     const user = await usersCollection.findOne({
-      _id: new ObjectId(tokenData.userId as string),
+      user_id: tokenData.userId as string,
       account_status: { $ne: 'banned' }
     });
 
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     // Generate new tokens with fresh session ID
     const newSessionId = crypto.randomUUID();
     const accessTokenPayload = {
-      userId: user._id.toString(),
+      userId: user.user_id,
       email: user.email_address,
       full_name: user.full_name,
       user_type: user.user_type,
@@ -88,13 +88,13 @@ export async function POST(request: NextRequest) {
 
     const newAccessToken = JWTSecurity.generateAccessToken(accessTokenPayload);
     const newRefreshToken = JWTSecurity.generateRefreshToken({
-      userId: user._id.toString(),
+      userId: user.user_id,
       session_id: newSessionId
     });
 
     // Update user's last activity
     await usersCollection.updateOne(
-      { _id: user._id },
+      { user_id: user.user_id },
       { 
         $set: { 
           last_activity: new Date(),
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
           refresh_token: newRefreshToken,
           expires_in: 3600, // 1 hour
           user: {
-            id: user._id.toString(),
+            id: user.user_id,
             full_name: user.full_name,
             email_address: user.email_address,
             user_type: user.user_type,
