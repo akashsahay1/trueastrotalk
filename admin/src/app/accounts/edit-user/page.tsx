@@ -12,8 +12,9 @@ import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } fro
 import AirDatePickerComponent from '@/components/admin/AirDatePickerComponent';
 
 interface FormData {
+  user_id: string;
   profile_image_id: string;
-  social_auth_profile_image: string;
+  social_profile_image_url: string;
   pan_card_id: string; // Reference to media collection for PAN card document
   full_name: string;
   email_address: string;
@@ -35,21 +36,19 @@ interface FormData {
   is_featured: boolean;
   verification_status: string;
   verification_status_message: string;
+  experience_years: number;
+  bio: string;
+  languages: string[];
   qualifications: string[];
   skills: string[];
-  languages: string[];
-  commission_rates: {
-    call_rate: number;
-    chat_rate: number;
-    video_rate: number;
-  };
+  call_rate: number;
+  chat_rate: number;
+  video_rate: number;
   commission_percentage: {
     call: number;
     chat: number;
     video: number;
   };
-  experience_years: number;
-  bio: string;
   // Bank details for astrologer payouts
   bank_details: {
     account_holder_name: string;
@@ -71,8 +70,9 @@ function EditUserContent() {
   const [defaultCommission, setDefaultCommission] = useState(25);
 
   const [formData, setFormData] = useState<FormData>({
+    user_id: '',
     profile_image_id: '',
-    social_auth_profile_image: '',
+    social_profile_image_url: '',
     pan_card_id: '',
     full_name: '',
     email_address: '',
@@ -94,21 +94,19 @@ function EditUserContent() {
     is_featured: false,
     verification_status: 'pending',
     verification_status_message: '',
+    experience_years: 0,
+    bio: '',
+    languages: [],
     qualifications: [],
     skills: [],
-    languages: [],
-    commission_rates: {
-      call_rate: 0,
-      chat_rate: 0,
-      video_rate: 0
-    },
+    call_rate: 0,
+    chat_rate: 0,
+    video_rate: 0,
     commission_percentage: {
       call: defaultCommission,
       chat: defaultCommission,
       video: defaultCommission
     },
-    experience_years: 0,
-    bio: '',
     bank_details: {
       account_holder_name: '',
       account_number: '',
@@ -118,9 +116,14 @@ function EditUserContent() {
   });
 
   const [imagePreview, setImagePreview] = useState('');
-  const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
   const [panCardPreview, setPanCardPreview] = useState('');
+  const [showProfileImageLibrary, setShowProfileImageLibrary] = useState(false);
   const [showPanCardLibrary, setShowPanCardLibrary] = useState(false);
+  
+  // Astrologer options state
+  const [availableSkills, setAvailableSkills] = useState<string[]>([]);
+  const [availableLanguages, setAvailableLanguages] = useState<string[]>([]);
+  const [qualificationInput, setQualificationInput] = useState('');
 
   // Define user type booleans for conditional rendering
   const isAstrologer = formData.user_type === 'astrologer';
@@ -137,6 +140,20 @@ function EditUserContent() {
       }
     } catch (error) {
       console.error('Failed to load admin settings:', error);
+    }
+  };
+
+  const loadAstrologerOptions = async () => {
+    try {
+      const response = await fetch('/api/astrologer-options/active');
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setAvailableSkills(data.data.skills || []);
+        setAvailableLanguages(data.data.languages || []);
+      }
+    } catch (error) {
+      console.error('Failed to load astrologer options:', error);
     }
   };
 
@@ -180,8 +197,9 @@ function EditUserContent() {
         };
 
         setFormData({
+          user_id: user.user_id || '',
           profile_image_id: user.profile_image_id || '',
-          social_auth_profile_image: user.social_auth_profile_image || '',
+          social_profile_image_url: user.social_profile_image_url || '',
           pan_card_id: user.pan_card_id || '',
           full_name: user.full_name || '',
           email_address: user.email_address || '',
@@ -203,21 +221,19 @@ function EditUserContent() {
           is_featured: user.is_featured || false,
           verification_status: user.verification_status || 'pending',
           verification_status_message: user.verification_status_message || '',
+          experience_years: user.experience_years || 0,
+          bio: user.bio || '',
+          languages: user.languages ? (Array.isArray(user.languages) ? user.languages : user.languages.split(',').map((s: string) => s.trim()).filter((s: string) => s)) : [],
           qualifications: user.qualifications ? (Array.isArray(user.qualifications) ? user.qualifications : user.qualifications.split(',').map((s: string) => s.trim()).filter((s: string) => s)) : [],
           skills: user.skills ? (Array.isArray(user.skills) ? user.skills : user.skills.split(',').map((s: string) => s.trim()).filter((s: string) => s)) : [],
-          languages: user.languages ? (Array.isArray(user.languages) ? user.languages : user.languages.split(',').map((s: string) => s.trim()).filter((s: string) => s)) : [],
-          commission_rates: {
-            call_rate: user.commission_rates?.call_rate || user.call_rate || 0,
-            chat_rate: user.commission_rates?.chat_rate || user.chat_rate || 0,
-            video_rate: user.commission_rates?.video_rate || user.video_rate || 0
-          },
+          call_rate: user.call_rate || 0,
+          chat_rate: user.chat_rate || 0,
+          video_rate: user.video_rate || 0,
           commission_percentage: {
             call: user.commission_percentage?.call || defaultCommission,
             chat: user.commission_percentage?.chat || defaultCommission,
             video: user.commission_percentage?.video || defaultCommission
           },
-          experience_years: user.experience_years || 0,
-          bio: user.bio || '',
           bank_details: {
             account_holder_name: user.bank_details?.account_holder_name || '',
             account_number: user.bank_details?.account_number || '',
@@ -257,6 +273,55 @@ function EditUserContent() {
     fetchUser();
   }, [userId, fetchUser]);
 
+  // Load astrologer options when user type changes to astrologer
+  useEffect(() => {
+    if (formData.user_type === 'astrologer') {
+      loadAstrologerOptions();
+    }
+  }, [formData.user_type]);
+
+  // Initialize select2 for Skills and Languages
+  useEffect(() => {
+    if (typeof window !== 'undefined' && formData.user_type === 'astrologer') {
+      // Access jQuery through window object
+      const windowWithJQuery = window as typeof window & { $?: unknown };
+      if (!windowWithJQuery.$ || typeof windowWithJQuery.$ !== 'function') return;
+      
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const $ = windowWithJQuery.$ as any;
+      
+      // Initialize select2 for skills
+      const skillsSelect = $('#skills-select');
+      if (skillsSelect.length && !skillsSelect.hasClass('select2-hidden-accessible')) {
+        skillsSelect.select2({
+          placeholder: 'Select skills...',
+          allowClear: true,
+          closeOnSelect: false
+        });
+      }
+
+      // Initialize select2 for languages  
+      const languagesSelect = $('#languages-select');
+      if (languagesSelect.length && !languagesSelect.hasClass('select2-hidden-accessible')) {
+        languagesSelect.select2({
+          placeholder: 'Select languages...',
+          allowClear: true,
+          closeOnSelect: false
+        });
+      }
+
+      // Cleanup function
+      return () => {
+        if (skillsSelect.length && skillsSelect.hasClass('select2-hidden-accessible')) {
+          skillsSelect.select2('destroy');
+        }
+        if (languagesSelect.length && languagesSelect.hasClass('select2-hidden-accessible')) {
+          languagesSelect.select2('destroy');
+        }
+      };
+    }
+  }, [formData.user_type, availableSkills, availableLanguages]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
 
@@ -283,14 +348,23 @@ function EditUserContent() {
     }
   };
 
-  const handleImageSelect = (imageUrl: string, mediaId?: string) => {
+  const handleProfileImageSelect = (imageUrl: string, mediaId?: string) => {
     setFormData(prev => ({
       ...prev,
       profile_image_id: mediaId || '',
-      social_auth_profile_image: ''
+      social_profile_image_url: ''
     }));
     setImagePreview(imageUrl);
-    setError('');
+    setShowProfileImageLibrary(false);
+  };
+
+  const removeImage = () => {
+    setFormData(prev => ({
+      ...prev,
+      profile_image_id: '',
+      social_profile_image_url: ''
+    }));
+    setImagePreview('');
   };
 
   const handlePanCardSelect = (imageUrl: string, mediaId?: string) => {
@@ -300,6 +374,7 @@ function EditUserContent() {
     }));
     setPanCardPreview(imageUrl);
     setShowPanCardLibrary(false);
+    setFieldErrors(prev => ({ ...prev, pan_card: '' }));
   };
 
   const removePanCard = () => {
@@ -308,19 +383,27 @@ function EditUserContent() {
       pan_card_id: ''
     }));
     setPanCardPreview('');
+    setFieldErrors(prev => ({ ...prev, pan_card: '' }));
   };
 
-  const openMediaLibrary = () => {
-    setIsMediaLibraryOpen(true);
+  const addQualification = () => {
+    const qualification = qualificationInput.trim();
+    if (qualification && !formData.qualifications.includes(qualification)) {
+      // Capitalize first letter
+      const capitalizedQualification = qualification.charAt(0).toUpperCase() + qualification.slice(1);
+      setFormData(prev => ({
+        ...prev,
+        qualifications: [...prev.qualifications, capitalizedQualification]
+      }));
+      setQualificationInput('');
+    }
   };
 
-  const removeImage = () => {
+  const removeQualification = (index: number) => {
     setFormData(prev => ({
       ...prev,
-      profile_image_id: '',
-      social_auth_profile_image: ''
+      qualifications: prev.qualifications.filter((_, i) => i !== index)
     }));
-    setImagePreview('');
   };
 
   const validateUserForm = () => {
@@ -385,13 +468,13 @@ function EditUserContent() {
       if (!formData.zip.trim()) {
         customErrors.zip = 'ZIP code is required';
       }
-      if (formData.commission_rates.call_rate <= 0) {
+      if (formData.call_rate <= 0) {
         customErrors.call_rate = 'Call rate must be greater than 0';
       }
-      if (formData.commission_rates.chat_rate <= 0) {
+      if (formData.chat_rate <= 0) {
         customErrors.chat_rate = 'Chat rate must be greater than 0';
       }
-      if (formData.commission_rates.video_rate <= 0) {
+      if (formData.video_rate <= 0) {
         customErrors.video_rate = 'Video rate must be greater than 0';
       }
       
@@ -402,18 +485,24 @@ function EditUserContent() {
       
       // Bank details validation
       if (!formData.bank_details.account_holder_name.trim()) {
-        customErrors.bank_account_holder_name = 'Account holder name is required';
+        customErrors.account_holder_name = 'Account holder name is required';
       }
       if (!formData.bank_details.account_number.trim()) {
-        customErrors.bank_account_number = 'Account number is required';
+        customErrors.account_number = 'Account number is required';
       }
       if (!formData.bank_details.bank_name.trim()) {
-        customErrors.bank_bank_name = 'Bank name is required';
+        customErrors.bank_name = 'Bank name is required';
       }
       if (!formData.bank_details.ifsc_code.trim()) {
-        customErrors.bank_ifsc_code = 'IFSC code is required';
-      } else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.bank_details.ifsc_code)) {
-        customErrors.bank_ifsc_code = 'Invalid IFSC code format';
+        customErrors.ifsc_code = 'IFSC code is required';
+      } else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.bank_details.ifsc_code.trim())) {
+        customErrors.ifsc_code = 'Please enter a valid IFSC code (e.g., SBIN0123456)';
+      }
+      
+      // Account number validation (basic check for numeric and length)
+      const accountNumber = formData.bank_details.account_number.trim();
+      if (accountNumber && (!/^\d+$/.test(accountNumber) || accountNumber.length < 9 || accountNumber.length > 18)) {
+        customErrors.account_number = 'Please enter a valid account number (9-18 digits)';
       }
     }
 
@@ -446,16 +535,7 @@ function EditUserContent() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...formData,
-          qualifications: formData.qualifications.join(','),
-          skills: formData.skills.join(','),
-          languages: formData.languages.join(','),
-          call_rate: formData.commission_rates.call_rate,
-          chat_rate: formData.commission_rates.chat_rate,
-          video_rate: formData.commission_rates.video_rate,
-          commission_percentage: formData.commission_percentage,
-        }),
+        body: JSON.stringify(formData),
       });
 
       const data = await response.json();
@@ -591,7 +671,7 @@ function EditUserContent() {
                                       height={80}
                                       className="rounded-circle"
                                       style={{ width: '80px', height: '80px', objectFit: 'cover', cursor: 'pointer', border: '2px solid #dee2e6' }}
-                                      onClick={openMediaLibrary}
+                                      onClick={() => setShowProfileImageLibrary(true)}
                                     />
                                     <button
                                       type="button"
@@ -604,12 +684,16 @@ function EditUserContent() {
                                   <div 
                                     className="rounded-circle bg-light d-flex align-items-center justify-content-center"
                                     style={{ width: '80px', height: '80px', cursor: 'pointer', border: '2px dashed #dee2e6' }}
-                                    onClick={openMediaLibrary}
+                                    onClick={() => setShowProfileImageLibrary(true)}
                                   >
-                                    <i className="fas fa-plus fa-lg text-primary"></i>
+                                    <i className="fas fa-camera fa-lg text-primary"></i>
                                   </div>
                                 )}
                               </div>
+                            </div>
+                            <div className="flex-1">
+                              <small className="text-muted d-block">Click to choose a profile image from media library</small>
+                              <small className="text-muted">Supported formats: JPG, PNG, WebP</small>
                             </div>
                           </div>
                         </div>
@@ -679,6 +763,33 @@ function EditUserContent() {
                           {fieldErrors.password && (
                             <div className="invalid-feedback">{fieldErrors.password}</div>
                           )}
+                        </div>
+
+                        {/* Phone Number */}
+                        <div className="col-md-6 mb-4">
+                          <label className="label">Phone Number</label>
+                          <input 
+                            type="tel" 
+                            className="form-control"
+                            name="phone_number" 
+                            value={formData.phone_number} 
+                            onChange={handleInputChange}
+                          />
+                        </div>
+
+                        {/* Gender */}
+                        <div className="col-md-6 mb-4">
+                          <label className="label">Gender</label>
+                          <select 
+                            className="custom-select" 
+                            name="gender" 
+                            value={formData.gender} 
+                            onChange={handleInputChange}
+                          >
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                          </select>
                         </div>
 
                         {/* Auth Type - Only for Customers */}
@@ -961,6 +1072,141 @@ function EditUserContent() {
                           </div>
                         </div>
 
+                        {/* Bio */}
+                        <div className="col-md-12 mb-4">
+                          <label className="label">Bio</label>
+                          <textarea 
+                            className="form-control"
+                            name="bio"
+                            value={formData.bio}
+                            onChange={handleInputChange}
+                            rows={3}
+                            placeholder="Brief description about the astrologer..."
+                          />
+                          <small className="text-muted">Professional background and specialization</small>
+                        </div>
+
+                        {/* Experience Years & Skills Row */}
+                        <div className="col-6 mb-4">
+                          <label className="label">Experience Years</label>
+                          <input 
+                            type="number" 
+                            className="form-control"
+                            name="experience_years"
+                            value={formData.experience_years}
+                            onChange={handleInputChange}
+                            min="0"
+                            max="50"
+                          />
+                          <small className="text-muted">Years of experience in astrology</small>
+                        </div>
+
+                        <div className="col-6 mb-4">
+                          <label className="label">Skills</label>
+                          <select 
+                            className="form-control select2-multiple" 
+                            multiple 
+                            id="skills-select"
+                            value={formData.skills}
+                            onChange={(e) => {
+                              const selectedValues = Array.from((e.target as HTMLSelectElement).selectedOptions, option => option.value);
+                              setFormData(prev => ({
+                                ...prev,
+                                skills: selectedValues
+                              }));
+                            }}
+                          >
+                            {availableSkills.map((skill) => (
+                              <option key={skill} value={skill}>{skill}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Languages & Qualifications Row */}
+                        <div className="col-6 mb-4">
+                          <label className="label">Languages</label>
+                          <select 
+                            className="form-control select2-multiple" 
+                            multiple 
+                            id="languages-select"
+                            value={formData.languages}
+                            onChange={(e) => {
+                              const selectedValues = Array.from((e.target as HTMLSelectElement).selectedOptions, option => option.value);
+                              setFormData(prev => ({
+                                ...prev,
+                                languages: selectedValues
+                              }));
+                            }}
+                          >
+                            {availableLanguages.map((language) => (
+                              <option key={language} value={language}>{language}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="col-6 mb-4">
+                          <label className="label">Qualifications</label>
+                          <div className="qualifications-tag-input">
+                            <div 
+                              className="select2-selection select2-selection--multiple form-control" 
+                              onClick={(e) => {
+                                const input = e.currentTarget.querySelector('input');
+                                if (input) input.focus();
+                              }}
+                              style={{
+                                display: 'flex',
+                                flexWrap: 'nowrap',
+                                overflowX: 'auto',
+                                overflowY: 'hidden',
+                                whiteSpace: 'nowrap',
+                                minHeight: '38px',
+                                maxHeight: '38px',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '4px 8px'
+                              }}
+                            >
+                              {formData.qualifications.map((qual, index) => (
+                                <span key={index} className="select2-selection__choice" style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+                                  <span 
+                                    className="select2-selection__choice__remove" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      removeQualification(index);
+                                    }}
+                                  >
+                                    ×
+                                  </span>
+                                  {qual}
+                                </span>
+                              ))}
+                              <input 
+                                type="text" 
+                                className="select2-search__field"
+                                value={qualificationInput} 
+                                onChange={(e) => setQualificationInput(e.target.value)} 
+                                placeholder={formData.qualifications.length === 0 ? "Add qualifications..." : ""} 
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    addQualification();
+                                  }
+                                  if (e.key === 'Backspace' && qualificationInput === '' && formData.qualifications.length > 0) {
+                                    removeQualification(formData.qualifications.length - 1);
+                                  }
+                                }}
+                                style={{
+                                  border: 'none',
+                                  outline: 'none',
+                                  flexGrow: 1,
+                                  minWidth: '120px',
+                                  background: 'transparent'
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
                         {/* PAN Card Upload */}
                         <div className={`col-md-12 mb-4 ${!isAstrologer ? 'd-none' : ''}`}>
                           <label className="label">PAN Card <span className="text-danger">*</span></label>
@@ -1027,14 +1273,14 @@ function EditUserContent() {
                           <label className="label">Account Holder Name <span className="text-danger">*</span></label>
                           <input 
                             type="text" 
-                            className={`form-control ${fieldErrors.bank_account_holder_name ? 'is-invalid' : ''}`}
+                            className={`form-control ${fieldErrors.account_holder_name ? 'is-invalid' : ''}`}
                             name="bank_details.account_holder_name"
                             value={formData.bank_details.account_holder_name}
                             onChange={handleInputChange}
                             placeholder="Full name as per bank records"
                           />
-                          {fieldErrors.bank_account_holder_name && (
-                            <div className="invalid-feedback">{fieldErrors.bank_account_holder_name}</div>
+                          {fieldErrors.account_holder_name && (
+                            <div className="invalid-feedback">{fieldErrors.account_holder_name}</div>
                           )}
                         </div>
 
@@ -1042,14 +1288,14 @@ function EditUserContent() {
                           <label className="label">Account Number <span className="text-danger">*</span></label>
                           <input 
                             type="text" 
-                            className={`form-control ${fieldErrors.bank_account_number ? 'is-invalid' : ''}`}
+                            className={`form-control ${fieldErrors.account_number ? 'is-invalid' : ''}`}
                             name="bank_details.account_number"
                             value={formData.bank_details.account_number}
                             onChange={handleInputChange}
                             placeholder="Bank account number"
                           />
-                          {fieldErrors.bank_account_number && (
-                            <div className="invalid-feedback">{fieldErrors.bank_account_number}</div>
+                          {fieldErrors.account_number && (
+                            <div className="invalid-feedback">{fieldErrors.account_number}</div>
                           )}
                         </div>
 
@@ -1057,14 +1303,14 @@ function EditUserContent() {
                           <label className="label">Bank Name <span className="text-danger">*</span></label>
                           <input 
                             type="text" 
-                            className={`form-control ${fieldErrors.bank_bank_name ? 'is-invalid' : ''}`}
+                            className={`form-control ${fieldErrors.bank_name ? 'is-invalid' : ''}`}
                             name="bank_details.bank_name"
                             value={formData.bank_details.bank_name}
                             onChange={handleInputChange}
                             placeholder="Bank name"
                           />
-                          {fieldErrors.bank_bank_name && (
-                            <div className="invalid-feedback">{fieldErrors.bank_bank_name}</div>
+                          {fieldErrors.bank_name && (
+                            <div className="invalid-feedback">{fieldErrors.bank_name}</div>
                           )}
                         </div>
 
@@ -1072,15 +1318,15 @@ function EditUserContent() {
                           <label className="label">IFSC Code <span className="text-danger">*</span></label>
                           <input 
                             type="text" 
-                            className={`form-control ${fieldErrors.bank_ifsc_code ? 'is-invalid' : ''}`}
+                            className={`form-control ${fieldErrors.ifsc_code ? 'is-invalid' : ''}`}
                             name="bank_details.ifsc_code"
                             value={formData.bank_details.ifsc_code}
                             onChange={handleInputChange}
                             placeholder="IFSC code (e.g., SBIN0001234)"
                             style={{ textTransform: 'uppercase' }}
                           />
-                          {fieldErrors.bank_ifsc_code && (
-                            <div className="invalid-feedback">{fieldErrors.bank_ifsc_code}</div>
+                          {fieldErrors.ifsc_code && (
+                            <div className="invalid-feedback">{fieldErrors.ifsc_code}</div>
                           )}
                           <small className="text-muted">11-character IFSC code for fund transfers</small>
                         </div>
@@ -1098,8 +1344,8 @@ function EditUserContent() {
                           <input 
                             type="number" 
                             className={`form-control ${fieldErrors.call_rate ? 'is-invalid' : ''}`}
-                            name="commission_rates.call_rate"
-                            value={formData.commission_rates.call_rate}
+                            name="call_rate"
+                            value={formData.call_rate}
                             onChange={handleInputChange}
                             min="0"
                           />
@@ -1113,8 +1359,8 @@ function EditUserContent() {
                           <input 
                             type="number" 
                             className={`form-control ${fieldErrors.chat_rate ? 'is-invalid' : ''}`}
-                            name="commission_rates.chat_rate"
-                            value={formData.commission_rates.chat_rate}
+                            name="chat_rate"
+                            value={formData.chat_rate}
                             onChange={handleInputChange}
                             min="0"
                           />
@@ -1128,8 +1374,8 @@ function EditUserContent() {
                           <input 
                             type="number" 
                             className={`form-control ${fieldErrors.video_rate ? 'is-invalid' : ''}`}
-                            name="commission_rates.video_rate"
-                            value={formData.commission_rates.video_rate}
+                            name="video_rate"
+                            value={formData.video_rate}
                             onChange={handleInputChange}
                             min="0"
                           />
@@ -1205,9 +1451,9 @@ function EditUserContent() {
 
             {/* Media Library Modals */}
             <MediaLibrary
-              isOpen={isMediaLibraryOpen}
-              onClose={() => setIsMediaLibraryOpen(false)}
-              onSelect={handleImageSelect}
+              isOpen={showProfileImageLibrary}
+              onClose={() => setShowProfileImageLibrary(false)}
+              onSelect={handleProfileImageSelect}
               selectedImage={imagePreview}
             />
             

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/admin/Header';
 import Sidebar from '@/components/admin/Sidebar';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface OrderItem {
   product_id: string;
@@ -756,10 +757,12 @@ export default function CompleteOrdersPage() {
                                 <td>
                                   <div className="d-flex align-items-center">
                                     {item.product_image && (
-                                      <img 
+                                      <Image 
                                         src={item.product_image} 
                                         alt={item.product_name}
-                                        style={{width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px'}}
+                                        width={40}
+                                        height={40}
+                                        style={{objectFit: 'cover', borderRadius: '4px'}}
                                         className="mr-2"
                                       />
                                     )}

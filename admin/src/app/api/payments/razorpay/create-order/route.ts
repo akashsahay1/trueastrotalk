@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
           actualUserId = userData.user_id;
           console.log(`🔄 Using actual user_id: ${actualUserId} instead of JWT userId: ${user.userId}`);
         }
-      } catch (error) {
+      } catch {
         console.log(`⚠️ Could not resolve user_id from JWT, using as-is: ${user.userId}`);
       }
     }

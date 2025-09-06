@@ -1009,9 +1009,21 @@ function AddUserPageContent() {
                                 const input = e.currentTarget.querySelector('input');
                                 if (input) input.focus();
                               }}
+                              style={{
+                                display: 'flex',
+                                flexWrap: 'nowrap',
+                                overflowX: 'auto',
+                                overflowY: 'hidden',
+                                whiteSpace: 'nowrap',
+                                minHeight: '38px',
+                                maxHeight: '38px',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '4px 8px'
+                              }}
                             >
                               {formData.qualifications.map((qual, index) => (
-                                <span key={index} className="select2-selection__choice">
+                                <span key={index} className="select2-selection__choice" style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
                                   <span 
                                     className="select2-selection__choice__remove" 
                                     onClick={(e) => {
@@ -1038,6 +1050,13 @@ function AddUserPageContent() {
                                   if (e.key === 'Backspace' && qualificationInput === '' && formData.qualifications.length > 0) {
                                     removeQualification(formData.qualifications.length - 1);
                                   }
+                                }}
+                                style={{
+                                  border: 'none',
+                                  outline: 'none',
+                                  flexGrow: 1,
+                                  minWidth: '120px',
+                                  background: 'transparent'
                                 }}
                               />
                             </div>

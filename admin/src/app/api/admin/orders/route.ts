@@ -215,7 +215,7 @@ export async function GET(request: NextRequest) {
 
       // Resolve product names and images for each item
       const itemsWithDetails = await Promise.all((order.items || []).map(async (item: OrderItem) => {
-        let updatedItem = { ...item };
+        const updatedItem = { ...item };
         
         if (item.product_id) {
           try {
@@ -447,7 +447,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete the order
-    const result = await ordersCollection.deleteOne({
+    await ordersCollection.deleteOne({
       _id: new ObjectId(order_id as string)
     });
 
