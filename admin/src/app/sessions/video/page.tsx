@@ -74,12 +74,19 @@ export default function VideoSessionsPage() {
     avgDuration: '0m'
   });
   const [statsLoading, setStatsLoading] = useState(true);
+  const [limit, setLimit] = useState(30);
 
   useEffect(() => {
     document.body.className = '';
     fetchSessions(1);
     fetchStatistics();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setSelectedSessions([]);
+    fetchSessions(1, newLimit, filters);
+  };
 
   const fetchStatistics = async () => {
     setStatsLoading(true);
@@ -102,12 +109,12 @@ export default function VideoSessionsPage() {
     }
   };
 
-  const fetchSessions = useCallback(async (page: number, filterParams = filters) => {
+  const fetchSessions = useCallback(async (page: number, pageLimit?: number, filterParams = filters) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '30',
+        limit: (pageLimit || limit).toString(),
         type: 'video'
       });
       
@@ -142,7 +149,7 @@ export default function VideoSessionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, limit]);
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({
@@ -174,19 +181,19 @@ export default function VideoSessionsPage() {
       sessionId: ''
     };
     setFilters(clearedFilters);
-    fetchSessions(1, clearedFilters);
+    fetchSessions(1, undefined, clearedFilters);
     closeModal();
   };
 
   const applyFilters = () => {
-    fetchSessions(1, filters);
+    fetchSessions(1, undefined, filters);
     closeModal();
   };
 
   const hasActiveFilters = Object.values(filters).some(value => value !== '');
 
   const handlePageChange = (newPage: number) => {
-    fetchSessions(newPage, filters);
+    fetchSessions(newPage, undefined, filters);
   };
 
   const getStatusBadge = (status: string) => {
@@ -228,7 +235,7 @@ export default function VideoSessionsPage() {
 
       if (response.ok) {
         successMessages.deleted('Session');
-        fetchSessions(pagination.currentPage, filters);
+        fetchSessions(pagination.currentPage, undefined, filters);
       } else {
         await response.json();
         errorMessages.deleteFailed('session');
@@ -264,7 +271,7 @@ export default function VideoSessionsPage() {
         const result = await response.json();
         alert(result.message);
         setSelectedSessions([]);
-        fetchSessions(pagination.currentPage, filters);
+        fetchSessions(pagination.currentPage, undefined, filters);
       } else {
         await response.json();
         alert('Error deleting sessions. Please try again.');
@@ -398,7 +405,26 @@ export default function VideoSessionsPage() {
                 <div className="card">
                   <div className="card-body">
                     <div className='d-flex justify-content-between align-items-center mb-3'>
-                      <h5 className="mb-0">Video Sessions ({pagination.totalCount} total)</h5>
+                      <div className="d-flex align-items-center">
+                        <h5 className="mb-0 mr-3">Video Sessions ({pagination.totalCount} total)</h5>
+                        <div className="d-flex align-items-center">
+                          <span className="mr-2" style={{fontSize: '14px'}}>Show:</span>
+                          <select 
+                            className="form-control form-control-sm" 
+                            style={{width: 'auto', minWidth: '70px'}}
+                            value={limit} 
+                            onChange={(e) => handleLimitChange(Number(e.target.value))}
+                          >
+                            <option value={1000}>All</option>
+                            <option value={10}>10</option>
+                            <option value={20}>20</option>
+                            <option value={30}>30</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                          </select>
+                          <span className="ml-2" style={{fontSize: '14px'}}>entries</span>
+                        </div>
+                      </div>
                       <div>
                         {selectedSessions.length > 0 && (
                           <button 
@@ -561,6 +587,7 @@ export default function VideoSessionsPage() {
                   onPageChange={handlePageChange}
                   loading={loading}
                   className="mt-3"
+                  limit={limit}
                 />
               </div>
             </div>

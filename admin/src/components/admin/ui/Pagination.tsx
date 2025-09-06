@@ -16,6 +16,7 @@ interface PaginationProps {
   loading?: boolean;
   className?: string;
   showInfo?: boolean;
+  limit?: number;
 }
 
 export function Pagination({
@@ -23,7 +24,8 @@ export function Pagination({
   onPageChange,
   loading = false,
   className = '',
-  showInfo = true
+  showInfo = true,
+  limit = 30
 }: PaginationProps) {
   const { currentPage, totalPages, totalCount, hasNextPage, hasPrevPage } = pagination;
 
@@ -176,8 +178,8 @@ export function Pagination({
       {showInfo && (
         <div className="mt-2">
           <small className="text-muted">
-            Showing {Math.min((currentPage - 1) * 30 + 1, totalCount)} to{' '}
-            {Math.min(currentPage * 30, totalCount)} of {totalCount} entries
+            Showing {Math.min((currentPage - 1) * limit + 1, totalCount)} to{' '}
+            {Math.min(currentPage * limit, totalCount)} of {totalCount} entries
           </small>
         </div>
       )}

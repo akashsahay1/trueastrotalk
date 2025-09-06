@@ -40,6 +40,7 @@ export default function ManagersPage() {
     hasPrevPage: false
   });
   const [loading, setLoading] = useState(true);
+  const [limit, setLimit] = useState(30);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -60,12 +61,12 @@ export default function ManagersPage() {
     fetchUsers(1);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const fetchUsers = async (page: number, filterParams = filters) => {
+  const fetchUsers = async (page: number, filterParams = filters, pageLimit?: number) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '30',
+        limit: (pageLimit || limit).toString(),
         type: 'manager'
       });
       
@@ -138,6 +139,13 @@ export default function ManagersPage() {
 
   const handlePageChange = (newPage: number) => {
     fetchUsers(newPage, filters);
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setSelectedUsers([]); // Clear selections when changing page size
+    // Reset to page 1 when changing limit
+    fetchUsers(1, filters, newLimit);
   };
 
   const getStatusBadge = (status: string) => {
@@ -291,7 +299,25 @@ export default function ManagersPage() {
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                 <div className="card">
                   <div className="card-body">
-										<div className='d-flex justify-content-end align-items-center mb-3'>
+                    <div className='d-flex justify-content-between align-items-center mb-3'>
+                      <div className="d-flex align-items-center">
+                        <label className="mr-2 mb-0 text-muted" style={{ fontSize: '14px' }}>Show:</label>
+                        <select 
+                          className="form-control form-control-sm"
+                          style={{ width: 'auto' }}
+                          value={limit}
+                          onChange={(e) => handleLimitChange(parseInt(e.target.value))}
+                        >
+                          <option value={1000}>All</option>
+                          <option value={10}>10</option>
+                          <option value={20}>20</option>
+                          <option value={30}>30</option>
+                          <option value={50}>50</option>
+                          <option value={100}>100</option>
+                        </select>
+                        <span className="ml-2 text-muted" style={{ fontSize: '14px' }}>entries</span>
+                      </div>
+										<div className='d-flex align-items-center'>
                       {selectedUsers.length > 0 && (
                         <button 
                           className="btn btn-danger mr-2"
@@ -310,6 +336,7 @@ export default function ManagersPage() {
                         Filters {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
                       </button>
                       <Link href="/accounts/add-user?type=manager" className="btn btn-primary">Add New</Link>
+                      </div>
                     </div>
                     {/* Users Table */}
                     <div className="table-responsive">
@@ -443,6 +470,7 @@ export default function ManagersPage() {
                   onPageChange={handlePageChange}
                   loading={loading}
                   className="mt-3"
+                  limit={limit}
                 />
               </div>
             </div>

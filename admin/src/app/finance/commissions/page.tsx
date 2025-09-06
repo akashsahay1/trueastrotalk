@@ -84,13 +84,14 @@ export default function CommissionsPage() {
     minRevenue: '',
     maxRevenue: ''
   });
+  const [limit, setLimit] = useState(30);
 
-  const fetchCommissions = useCallback(async (page: number, searchTerm: string, filterParams: FilterParams = {}) => {
+  const fetchCommissions = useCallback(async (page: number, searchTerm: string, filterParams: FilterParams = {}, pageLimit?: number) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '30'
+        limit: (pageLimit || limit).toString()
       });
       
       // Use either searchTerm (legacy) or filter search
@@ -121,7 +122,7 @@ export default function CommissionsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [limit]);
 
   useEffect(() => {
     document.body.className = '';
@@ -137,6 +138,11 @@ export default function CommissionsPage() {
 
   const handlePageChange = (page: number) => {
     fetchCommissions(page, search, filters);
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    fetchCommissions(1, search, filters, newLimit);
   };
 
   const handleFilterChange = (key: string, value: string) => {
@@ -166,12 +172,12 @@ export default function CommissionsPage() {
       maxRevenue: ''
     };
     setFilters(clearedFilters);
-    fetchCommissions(1, search, clearedFilters);
+    fetchCommissions(1, search, clearedFilters, limit);
     closeModal();
   };
 
   const applyFilters = () => {
-    fetchCommissions(1, search, filters);
+    fetchCommissions(1, search, filters, limit);
     closeModal();
   };
 
@@ -288,6 +294,24 @@ export default function CommissionsPage() {
                         <i className="fas fa-filter mr-1"></i>
                         Filters {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
                       </button>
+                    </div>
+
+                    {/* Pagination Limit Dropdown */}
+                    <div className="d-flex align-items-center mb-3">
+                      <span className="mr-2">Show:</span>
+                      <select 
+                        className="form-control form-control-sm" 
+                        style={{width: 'auto', display: 'inline-block'}}
+                        value={limit}
+                        onChange={(e) => handleLimitChange(Number(e.target.value))}
+                      >
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={30}>30</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
+                      <span className="ml-2">entries</span>
                     </div>
 
                     {/* Commissions Table */}

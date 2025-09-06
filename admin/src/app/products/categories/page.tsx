@@ -342,6 +342,7 @@ export default function CategoriesPage() {
                   onPageChange={handlePageChange}
                   loading={loading}
                   className="mt-3"
+                  limit={limit}
                 />
               </div>
             </div>

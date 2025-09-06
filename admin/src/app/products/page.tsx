@@ -36,8 +36,9 @@ interface Pagination {
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [pagination, setPagination] = useState<Pagination>({ total: 0, page: 1, limit: 20, totalPages: 0 });
+  const [pagination, setPagination] = useState<Pagination>({ total: 0, page: 1, limit: 30, totalPages: 0 });
   const [loading, setLoading] = useState(true);
+  const [limit, setLimit] = useState(30);
   // Applied filters (active filters)
   const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
   const [appliedCategory, setAppliedCategory] = useState('');
@@ -49,12 +50,12 @@ export default function ProductsPage() {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [modalAnimating, setModalAnimating] = useState(false);
 
-  const fetchProducts = useCallback(async () => {
+  const fetchProducts = useCallback(async (pageLimit?: number) => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
         page: pagination.page.toString(),
-        limit: pagination.limit.toString(),
+        limit: (pageLimit || limit).toString(),
         ...(appliedSearchTerm && { search: appliedSearchTerm }),
         ...(appliedCategory && { category: appliedCategory })
       });
@@ -66,7 +67,7 @@ export default function ProductsPage() {
         setPagination({
           total: data.pagination?.total || 0,
           page: data.pagination?.page || 1,
-          limit: data.pagination?.limit || 20,
+          limit: data.pagination?.limit || (pageLimit || limit),
           totalPages: data.pagination?.totalPages || 0
         });
       }
@@ -75,7 +76,7 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, [pagination.page, pagination.limit, appliedSearchTerm, appliedCategory]);
+  }, [pagination.page, limit, appliedSearchTerm, appliedCategory]);
 
   useEffect(() => {
     document.body.className = '';
@@ -197,6 +198,14 @@ export default function ProductsPage() {
     setPagination(prev => ({ ...prev, page: newPage }));
   };
 
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setSelectedProducts([]); // Clear selections when changing page size
+    // Reset to page 1 when changing limit
+    setPagination(prev => ({ ...prev, page: 1 }));
+    fetchProducts(newLimit);
+  };
+
   if (loading) {
     return (
       <div className="dashboard-main-wrapper">
@@ -260,31 +269,50 @@ export default function ProductsPage() {
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                 <div className="card mb-4">
                   <div className="card-body">
-                    <div className='d-flex justify-content-end align-items-center mb-3'>
-                      {selectedProducts.length > 0 && (
-                        <button 
-                          className="btn btn-danger mr-2"
-                          onClick={handleBulkDelete}
-                          disabled={bulkLoading}
+                    <div className='d-flex justify-content-between align-items-center mb-3'>
+                      <div className="d-flex align-items-center">
+                        <label className="mr-2 mb-0 text-muted" style={{ fontSize: '14px' }}>Show:</label>
+                        <select 
+                          className="form-control form-control-sm"
+                          style={{ width: 'auto' }}
+                          value={limit}
+                          onChange={(e) => handleLimitChange(parseInt(e.target.value))}
                         >
-                          {bulkLoading ? (
-                            <><i className="fas fa-spinner fa-spin mr-1"></i>Deleting...</>
-                          ) : (
-                            <><i className="fas fa-trash mr-1"></i>Delete Selected ({selectedProducts.length})</>
-                          )}
+                          <option value={1000}>All</option>
+                          <option value={10}>10</option>
+                          <option value={20}>20</option>
+                          <option value={30}>30</option>
+                          <option value={50}>50</option>
+                          <option value={100}>100</option>
+                        </select>
+                        <span className="ml-2 text-muted" style={{ fontSize: '14px' }}>entries</span>
+                      </div>
+                      <div className='d-flex align-items-center'>
+                        {selectedProducts.length > 0 && (
+                          <button 
+                            className="btn btn-danger mr-2"
+                            onClick={handleBulkDelete}
+                            disabled={bulkLoading}
+                          >
+                            {bulkLoading ? (
+                              <><i className="fas fa-spinner fa-spin mr-1"></i>Deleting...</>
+                            ) : (
+                              <><i className="fas fa-trash mr-1"></i>Delete Selected ({selectedProducts.length})</>
+                            )}
+                          </button>
+                        )}
+                        <Link href="/products/categories" className="btn btn-outline-secondary mr-2">
+                          <i className="fas fa-tags mr-1"></i>Categories
+                        </Link>
+                        <button 
+                          className="btn btn-outline-secondary mr-2"
+                          onClick={openModal}
+                        >
+                          <i className="fas fa-filter mr-1"></i>
+                          Filters {(appliedSearchTerm || appliedCategory) && <span className="badge badge-primary ml-1">•</span>}
                         </button>
-                      )}
-                      <Link href="/products/categories" className="btn btn-outline-secondary mr-2">
-                        <i className="fas fa-tags mr-1"></i>Categories
-                      </Link>
-                      <button 
-                        className="btn btn-outline-secondary mr-2"
-                        onClick={openModal}
-                      >
-                        <i className="fas fa-filter mr-1"></i>
-                        Filters {(appliedSearchTerm || appliedCategory) && <span className="badge badge-primary ml-1">•</span>}
-                      </button>
-                      <Link href="/products/add" className="btn btn-primary">Add New</Link>
+                        <Link href="/products/add" className="btn btn-primary">Add New</Link>
+                      </div>
                     </div>
 
                     {/* Products Table */}
@@ -428,6 +456,7 @@ export default function ProductsPage() {
                   onPageChange={handlePageChange}
                   loading={loading}
                   className="mt-3"
+                  limit={limit}
                 />
               </div>
             </div>

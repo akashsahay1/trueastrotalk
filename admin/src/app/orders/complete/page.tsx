@@ -103,8 +103,9 @@ export default function CompleteOrdersPage() {
   const [editPaymentStatus, setEditPaymentStatus] = useState('');
   const [editTrackingNumber, setEditTrackingNumber] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
+  const [limit, setLimit] = useState(20);
 
-  const ordersPerPage = 20;
+  const ordersPerPage = limit;
 
   // Remove the bg-light class for dashboard and set default date range
   useEffect(() => {
@@ -131,7 +132,7 @@ export default function CompleteOrdersPage() {
 
       const queryParams = new URLSearchParams({
         page: page.toString(),
-        limit: ordersPerPage.toString(),
+        limit: limit.toString(),
         type: 'complete',
         payment_status: 'paid',
         ...(appliedSearchTerm && { search: appliedSearchTerm }),
@@ -163,7 +164,7 @@ export default function CompleteOrdersPage() {
     } finally {
       setLoading(false);
     }
-  }, [appliedSearchTerm, appliedStatusFilter, appliedFromDate, appliedToDate, appliedAmountMin, appliedAmountMax, appliedCustomerFilter]);
+  }, [appliedSearchTerm, appliedStatusFilter, appliedFromDate, appliedToDate, appliedAmountMin, appliedAmountMax, appliedCustomerFilter, limit]);
 
   // Fetch orders when applied filters change
   useEffect(() => {
@@ -444,6 +445,11 @@ export default function CompleteOrdersPage() {
     setEditTrackingNumber('');
   };
 
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setCurrentPage(1);
+  };
+
   return (
     <div className="dashboard-main-wrapper">
       <Header />
@@ -508,6 +514,24 @@ export default function CompleteOrdersPage() {
                     </div>
                   </div>
                   <div className="card-body">
+                    {/* Pagination Limit Dropdown */}
+                    <div className="d-flex align-items-center mb-3">
+                      <span className="mr-2">Show:</span>
+                      <select 
+                        className="form-control form-control-sm" 
+                        style={{width: 'auto', display: 'inline-block'}}
+                        value={limit}
+                        onChange={(e) => handleLimitChange(Number(e.target.value))}
+                      >
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={30}>30</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
+                      <span className="ml-2">entries</span>
+                    </div>
+
                     {error && (
                       <div className="alert alert-danger" role="alert">
                         {error}

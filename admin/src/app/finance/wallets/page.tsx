@@ -60,13 +60,14 @@ export default function WalletsPage() {
     minBalance: '',
     maxBalance: ''
   });
+  const [limit, setLimit] = useState(30);
 
-  const fetchWallets = useCallback(async (page: number, searchTerm: string, filterParams: FilterParams = {}) => {
+  const fetchWallets = useCallback(async (page: number, searchTerm: string, filterParams: FilterParams = {}, pageLimit?: number) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '30'
+        limit: (pageLimit || limit).toString()
       });
       
       // Use either searchTerm (legacy) or filter search
@@ -96,7 +97,7 @@ export default function WalletsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [limit]);
 
   useEffect(() => {
     document.body.className = '';
@@ -111,6 +112,11 @@ export default function WalletsPage() {
 
   const handlePageChange = (page: number) => {
     fetchWallets(page, search, filters);
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    fetchWallets(1, search, filters, newLimit);
   };
 
   const handleFilterChange = (key: string, value: string) => {
@@ -139,12 +145,12 @@ export default function WalletsPage() {
       maxBalance: ''
     };
     setFilters(clearedFilters);
-    fetchWallets(1, search, clearedFilters);
+    fetchWallets(1, search, clearedFilters, limit);
     closeModal();
   };
 
   const applyFilters = () => {
-    fetchWallets(1, search, filters);
+    fetchWallets(1, search, filters, limit);
     closeModal();
   };
 
@@ -258,6 +264,24 @@ export default function WalletsPage() {
                         <i className="fas fa-filter mr-1"></i>
                         Filters {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
                       </button>
+                    </div>
+
+                    {/* Pagination Limit Dropdown */}
+                    <div className="d-flex align-items-center mb-3">
+                      <span className="mr-2">Show:</span>
+                      <select 
+                        className="form-control form-control-sm" 
+                        style={{width: 'auto', display: 'inline-block'}}
+                        value={limit}
+                        onChange={(e) => handleLimitChange(Number(e.target.value))}
+                      >
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={30}>30</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
+                      <span className="ml-2">entries</span>
                     </div>
 
                     {/* Wallets Table */}

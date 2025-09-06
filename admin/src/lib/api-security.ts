@@ -70,14 +70,24 @@ class CSRFProtection {
     const cookieToken = request.cookies.get(this.TOKEN_COOKIE)?.value;
     
     if (!headerToken || !cookieToken) {
+      console.log('CSRF validation failed - missing tokens:', {
+        hasHeader: !!headerToken,
+        hasCookie: !!cookieToken
+      });
       return false;
     }
     
     // Constant-time comparison to prevent timing attacks
-    return crypto.timingSafeEqual(
+    const isValid = crypto.timingSafeEqual(
       Buffer.from(headerToken),
       Buffer.from(cookieToken)
     );
+    
+    if (!isValid) {
+      console.log('CSRF validation failed - token mismatch');
+    }
+    
+    return isValid;
   }
   
   static setTokenCookie(response: NextResponse): NextResponse {
@@ -189,10 +199,17 @@ export function withSecurity(
             const sanitizedBody = InputSanitizer.sanitizeMongoQuery(body);
             
             // Create new request with sanitized body
+            // Clone the request to preserve cookies and other properties
+            const clonedHeaders = new Headers(request.headers);
             const sanitizedRequest = new NextRequest(request.url, {
               method: request.method,
-              headers: request.headers,
+              headers: clonedHeaders,
               body: JSON.stringify(sanitizedBody),
+            });
+            
+            // Copy cookies from original request
+            request.cookies.getAll().forEach(cookie => {
+              sanitizedRequest.cookies.set(cookie.name, cookie.value);
             });
             
             // Add authenticated user to request if available

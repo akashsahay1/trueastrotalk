@@ -9,6 +9,7 @@ import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert
 import AirDatePickerComponent from '@/components/admin/AirDatePickerComponent';
 import { Pagination } from '@/components/admin/ui/Pagination';
 import tableStyles from '@/styles/table.module.css';
+import { getCSRFToken } from '@/lib/csrf';
 
 interface User {
   _id: string;
@@ -20,6 +21,7 @@ interface User {
   account_status: string;
   verification_status: string;
   is_online: boolean;
+  is_featured: boolean;
   city: string;
   state: string;
   skills: string[] | string;
@@ -43,6 +45,7 @@ interface FilterParams {
   search?: string;
   accountStatus?: string;
   verificationStatus?: string;
+  featuredStatus?: string;
   skills?: string;
   city?: string;
   state?: string;
@@ -135,14 +138,23 @@ export default function AstrologersPage() {
   });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [limit, setLimit] = useState(30);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [modalAnimating, setModalAnimating] = useState(false);
+  const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [showBulkUpdateModal, setShowBulkUpdateModal] = useState(false);
+  const [bulkUpdateModalAnimating, setBulkUpdateModalAnimating] = useState(false);
+  const [bulkUpdateData, setBulkUpdateData] = useState({
+    field: '',
+    value: ''
+  });
   const [filters, setFilters] = useState({
     search: '',
     accountStatus: '',
     verificationStatus: '',
+    featuredStatus: '',
     skills: '',
     city: '',
     state: '',
@@ -173,13 +185,13 @@ export default function AstrologersPage() {
     }
   }, []);
 
-  const fetchUsers = useCallback(async (page: number, searchTerm: string, filterParams: FilterParams = {}) => {
+  const fetchUsers = useCallback(async (page: number, searchTerm: string, filterParams: FilterParams = {}, pageLimit?: number) => {
     console.log(searchTerm, filterParams);
     setLoading(true);
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '30',
+        limit: (pageLimit || limit).toString(),
         type: 'astrologer'
       });
       
@@ -192,6 +204,7 @@ export default function AstrologersPage() {
       // Add filter parameters
       if (filterParams.accountStatus) params.append('accountStatus', filterParams.accountStatus);
       if (filterParams.verificationStatus) params.append('verificationStatus', filterParams.verificationStatus);
+      if (filterParams.featuredStatus) params.append('featuredStatus', filterParams.featuredStatus);
       if (filterParams.skills) params.append('skills', filterParams.skills);
       if (filterParams.city) params.append('city', filterParams.city);
       if (filterParams.state) params.append('state', filterParams.state);
@@ -215,15 +228,28 @@ export default function AstrologersPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [limit]);
 
   useEffect(() => {
     document.body.className = '';
+    
+    // Fetch CSRF token on page load
+    fetch('/api/csrf')
+      .then(response => response.json())
+      .then(data => {
+        if (data.success && data.csrfToken) {
+          // Store token in localStorage for later use
+          localStorage.setItem('csrf-token', data.csrfToken);
+        }
+      })
+      .catch(error => console.error('Error fetching CSRF token:', error));
+    
     fetchSkills();
     fetchUsers(1, '', {
       search: '',
       accountStatus: '',
       verificationStatus: '',
+      featuredStatus: '',
       skills: '',
       city: '',
       state: '',
@@ -245,6 +271,13 @@ export default function AstrologersPage() {
     });
   };
 
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setSelectedUsers([]); // Clear selections when changing page size
+    // Reset to page 1 when changing limit
+    fetchUsers(1, search, filters, newLimit);
+  };
+
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({
       ...prev,
@@ -263,11 +296,23 @@ export default function AstrologersPage() {
     setTimeout(() => setShowFilterModal(false), 150);
   };
 
+  const openBulkUpdateModal = () => {
+    setShowBulkUpdateModal(true);
+    setTimeout(() => setBulkUpdateModalAnimating(true), 10);
+  };
+
+  const closeBulkUpdateModal = () => {
+    setBulkUpdateModalAnimating(false);
+    setTimeout(() => setShowBulkUpdateModal(false), 150);
+    setBulkUpdateData({ field: '', value: '' });
+  };
+
   const clearFilters = () => {
     const clearedFilters = {
       search: '',
       accountStatus: '',
       verificationStatus: '',
+      featuredStatus: '',
       skills: '',
       city: '',
       state: '',
@@ -402,6 +447,105 @@ export default function AstrologersPage() {
     }
   };
 
+  const handleBulkUpdate = async () => {
+    if (selectedUsers.length === 0) {
+      errorMessages.validationError('Please select users to update');
+      return;
+    }
+
+    if (!bulkUpdateData.field || !bulkUpdateData.value) {
+      errorMessages.validationError('Please select field and value to update');
+      return;
+    }
+
+    const fieldLabels: Record<string, string> = {
+      'account_status': 'Account Status',
+      'verification_status': 'Verification Status',
+      'is_online': 'Online Status',
+      'is_featured': 'Featured Status'
+    };
+
+    const valueLabels: Record<string, string> = {
+      'active': 'Active',
+      'inactive': 'Inactive',
+      'banned': 'Banned',
+      'verified': 'Verified',
+      'pending': 'Pending',
+      'rejected': 'Rejected',
+      'true': 'Yes',
+      'false': 'No'
+    };
+
+    const fieldLabel = fieldLabels[bulkUpdateData.field] || bulkUpdateData.field;
+    const valueLabel = valueLabels[bulkUpdateData.value] || bulkUpdateData.value;
+
+    const confirmed = await confirmDialogs.bulkUpdate(
+      selectedUsers.length, 
+      fieldLabel,
+      valueLabel
+    );
+    if (!confirmed) return;
+
+    setBulkUpdating(true);
+    try {
+      const csrfToken = getCSRFToken();
+      
+      if (!csrfToken) {
+        console.error('No CSRF token found. Fetching new token...');
+        // Try to fetch a new CSRF token
+        const csrfResponse = await fetch('/api/csrf');
+        const csrfData = await csrfResponse.json();
+        if (csrfData.success && csrfData.csrfToken) {
+          localStorage.setItem('csrf-token', csrfData.csrfToken);
+        }
+      }
+      
+      // For test endpoint, we don't need CSRF token
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      const requestBody = {
+        userIds: selectedUsers,
+        updates: {
+          [bulkUpdateData.field]: bulkUpdateData.field === 'is_online' || bulkUpdateData.field === 'is_featured' 
+            ? bulkUpdateData.value === 'true' 
+            : bulkUpdateData.value
+        }
+      };
+
+      console.log('Bulk update request:', {
+        userCount: selectedUsers.length,
+        firstFewIds: selectedUsers.slice(0, 5),
+        field: bulkUpdateData.field,
+        value: bulkUpdateData.value,
+        requestBody
+      });
+
+      const response = await fetch('/api/users/bulk-update-test', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(requestBody)
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        successMessages.updated(`${result.modifiedCount} users`);
+        setSelectedUsers([]);
+        fetchUsers(pagination.currentPage, search, filters);
+        closeBulkUpdateModal();
+      } else {
+        errorMessages.updateFailed(`bulk update: ${result.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error in bulk update:', error);
+      errorMessages.updateFailed('bulk update - Please try again');
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
   return (
     <div className="dashboard-main-wrapper">
       <Header />
@@ -438,16 +582,44 @@ export default function AstrologersPage() {
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                 <div className="card mb-4">
                   <div className="card-body">
-										<div className='d-flex justify-content-end align-items-center mb-3'>
-                      {selectedUsers.length > 0 && (
-                        <button 
-                          className="btn btn-danger mr-2"
-                          onClick={handleBulkDelete}
-                          disabled={deleting === 'bulk'}
+                    <div className='d-flex justify-content-between align-items-center mb-3'>
+                      <div className="d-flex align-items-center">
+                        <label className="mr-2 mb-0 text-muted" style={{ fontSize: '14px' }}>Show:</label>
+                        <select 
+                          className="form-control form-control-sm"
+                          style={{ width: 'auto' }}
+                          value={limit}
+                          onChange={(e) => handleLimitChange(parseInt(e.target.value))}
                         >
-                          <i className="fas fa-trash mr-1"></i>
-                          Delete Selected ({selectedUsers.length})
-                        </button>
+                          <option value={1000}>All</option>
+                          <option value={10}>10</option>
+                          <option value={20}>20</option>
+                          <option value={30}>30</option>
+                          <option value={50}>50</option>
+                          <option value={100}>100</option>
+                        </select>
+                        <span className="ml-2 text-muted" style={{ fontSize: '14px' }}>entries</span>
+                      </div>
+										<div className='d-flex align-items-center'>
+                      {selectedUsers.length > 0 && (
+                        <>
+                          <button 
+                            className="btn btn-info mr-2"
+                            onClick={openBulkUpdateModal}
+                            disabled={bulkUpdating}
+                          >
+                            <i className="fas fa-edit mr-1"></i>
+                            Bulk Update ({selectedUsers.length})
+                          </button>
+                          <button 
+                            className="btn btn-danger mr-2"
+                            onClick={handleBulkDelete}
+                            disabled={deleting === 'bulk'}
+                          >
+                            <i className="fas fa-trash mr-1"></i>
+                            Delete Selected ({selectedUsers.length})
+                          </button>
+                        </>
                       )}
                       <button 
                         className="btn btn-outline-secondary mr-2"
@@ -457,6 +629,7 @@ export default function AstrologersPage() {
                         Filters {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
                       </button>
                       <Link href="/accounts/add-user?type=astrologer" className="btn btn-primary">Add New</Link>
+                      </div>
                     </div>
                     {/* Users Table */}
                     <div className={`table-responsive ${tableStyles.tableContainer}`}>
@@ -584,6 +757,7 @@ export default function AstrologersPage() {
                   onPageChange={handlePageChange}
                   loading={loading}
                   className="mt-3"
+                  limit={limit}
                 />
               </div>
             </div>
@@ -619,9 +793,9 @@ export default function AstrologersPage() {
                   />
                 </div>
 
-                {/* Status Filters - 2 columns */}
+                {/* Status Filters - 3 columns */}
                 <div className="row">
-                  <div className="col-6">
+                  <div className="col-4">
                     <div className="form-group">
                       <label>Account Status</label>
                       <select 
@@ -636,7 +810,7 @@ export default function AstrologersPage() {
                       </select>
                     </div>
                   </div>
-                  <div className="col-6">
+                  <div className="col-4">
                     <div className="form-group">
                       <label>Verification Status</label>
                       <select 
@@ -648,6 +822,20 @@ export default function AstrologersPage() {
                         <option value="verified">Verified</option>
                         <option value="pending">Pending</option>
                         <option value="rejected">Rejected</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="col-4">
+                    <div className="form-group">
+                      <label>Featured Status</label>
+                      <select 
+                        className="form-control form-control-sm"
+                        value={filters.featuredStatus}
+                        onChange={(e) => handleFilterChange('featuredStatus', e.target.value)}
+                      >
+                        <option value="">All</option>
+                        <option value="true">Featured Only</option>
+                        <option value="false">Non-Featured</option>
                       </select>
                     </div>
                   </div>
@@ -772,6 +960,108 @@ export default function AstrologersPage() {
         <div 
           className={`modal-backdrop fade ${modalAnimating ? 'show' : ''}`}
           onClick={closeModal}
+        ></div>
+      )}
+
+      {/* Bulk Update Modal */}
+      {showBulkUpdateModal && (
+        <div className={`modal fade ${bulkUpdateModalAnimating ? 'show' : ''}`} style={{display: 'block'}} tabIndex={-1} role="dialog">
+          <div className="modal-dialog modal-dialog-centered modal-sm" role="document">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Bulk Update ({selectedUsers.length} users)</h5>
+                <button 
+                  type="button" 
+                  className="close" 
+                  onClick={closeBulkUpdateModal}
+                >
+                  <span>&times;</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Field to Update</label>
+                  <select 
+                    className="form-control form-control-sm"
+                    value={bulkUpdateData.field}
+                    onChange={(e) => setBulkUpdateData(prev => ({ ...prev, field: e.target.value, value: '' }))}
+                  >
+                    <option value="">Select Field</option>
+                    <option value="account_status">Account Status</option>
+                    <option value="verification_status">Verification Status</option>
+                    <option value="is_online">Online Status</option>
+                    <option value="is_featured">Featured Status</option>
+                  </select>
+                </div>
+
+                {bulkUpdateData.field && (
+                  <div className="form-group">
+                    <label>New Value</label>
+                    <select 
+                      className="form-control form-control-sm"
+                      value={bulkUpdateData.value}
+                      onChange={(e) => setBulkUpdateData(prev => ({ ...prev, value: e.target.value }))}
+                    >
+                      <option value="">Select Value</option>
+                      {bulkUpdateData.field === 'account_status' && (
+                        <>
+                          <option value="active">Active</option>
+                          <option value="inactive">Inactive</option>
+                          <option value="banned">Banned</option>
+                        </>
+                      )}
+                      {bulkUpdateData.field === 'verification_status' && (
+                        <>
+                          <option value="verified">Verified</option>
+                          <option value="pending">Pending</option>
+                          <option value="rejected">Rejected</option>
+                        </>
+                      )}
+                      {(bulkUpdateData.field === 'is_online' || bulkUpdateData.field === 'is_featured') && (
+                        <>
+                          <option value="true">Yes</option>
+                          <option value="false">No</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary btn-sm" 
+                  onClick={closeBulkUpdateModal}
+                  disabled={bulkUpdating}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-primary btn-sm" 
+                  onClick={handleBulkUpdate}
+                  disabled={bulkUpdating || !bulkUpdateData.field || !bulkUpdateData.value}
+                >
+                  {bulkUpdating ? (
+                    <>
+                      <i className="fas fa-spinner fa-spin mr-1"></i>
+                      Updating...
+                    </>
+                  ) : (
+                    'Update Users'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Update Modal Backdrop */}
+      {showBulkUpdateModal && (
+        <div 
+          className={`modal-backdrop fade ${bulkUpdateModalAnimating ? 'show' : ''}`}
+          onClick={closeBulkUpdateModal}
         ></div>
       )}
     </div>

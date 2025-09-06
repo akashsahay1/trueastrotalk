@@ -81,13 +81,20 @@ export const GET = withSecurity(async (request: NextRequest) => {
     // Get query parameters
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '30');
+    const limitParam = searchParams.get('limit');
+    
+    if (!limitParam) {
+      return NextResponse.json({ error: 'Limit parameter is required' }, { status: 400 });
+    }
+    
+    const limit = parseInt(limitParam);
     const userType = searchParams.get('type');
     const search = searchParams.get('search') || '';
     
     // Filter parameters
     const accountStatus = searchParams.get('accountStatus') || '';
     const verificationStatus = searchParams.get('verificationStatus') || '';
+    const featuredStatus = searchParams.get('featuredStatus') || '';
     const skills = searchParams.get('skills') || '';
     const city = searchParams.get('city') || '';
     const state = searchParams.get('state') || '';
@@ -121,6 +128,10 @@ export const GET = withSecurity(async (request: NextRequest) => {
     
     if (verificationStatus) {
       query.verification_status = verificationStatus;
+    }
+    
+    if (featuredStatus) {
+      query.is_featured = featuredStatus === 'true';
     }
     
     if (skills) {

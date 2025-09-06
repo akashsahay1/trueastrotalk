@@ -217,6 +217,17 @@ export const confirmDialogs = {
       `Are you sure you want to ${action} this ${itemType}?`,
       `Yes, ${action}`,
       'Cancel'
+    ),
+
+  /**
+   * Bulk update confirmation
+   */
+  bulkUpdate: (count: number, fieldName: string, newValue: string) =>
+    showConfirmDialog(
+      'Bulk Update Confirmation',
+      `Are you sure you want to update ${fieldName} to "${newValue}" for ${count} selected users?`,
+      `Yes, update ${count} users`,
+      'Cancel'
     )
 };
 

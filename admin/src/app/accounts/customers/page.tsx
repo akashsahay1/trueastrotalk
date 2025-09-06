@@ -41,6 +41,7 @@ export default function CustomersPage() {
     hasPrevPage: false
   });
   const [loading, setLoading] = useState(true);
+  const [limit, setLimit] = useState(30);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -61,12 +62,12 @@ export default function CustomersPage() {
     fetchUsers(1);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const fetchUsers = async (page: number, filterParams = filters) => {
+  const fetchUsers = async (page: number, filterParams = filters, pageLimit?: number) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '30',
+        limit: (pageLimit || limit).toString(),
         type: 'customer'
       });
       
@@ -147,6 +148,13 @@ export default function CustomersPage() {
         window.scrollTo(0, scrollPosition);
       });
     });
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setSelectedUsers([]); // Clear selections when changing page size
+    // Reset to page 1 when changing limit
+    fetchUsers(1, filters, newLimit);
   };
 
   const getStatusBadge = (status: string) => {
@@ -300,25 +308,44 @@ export default function CustomersPage() {
               <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                 <div className="card">
                   <div className="card-body">
-										<div className='d-flex justify-content-end align-items-center mb-3'>
-                      {selectedUsers.length > 0 && (
-                        <button 
-                          className="btn btn-danger mr-2"
-                          onClick={handleBulkDelete}
-                          disabled={deleting === 'bulk'}
+                    <div className='d-flex justify-content-between align-items-center mb-3'>
+                      <div className="d-flex align-items-center">
+                        <label className="mr-2 mb-0 text-muted" style={{ fontSize: '14px' }}>Show:</label>
+                        <select 
+                          className="form-control form-control-sm"
+                          style={{ width: 'auto' }}
+                          value={limit}
+                          onChange={(e) => handleLimitChange(parseInt(e.target.value))}
                         >
-                          <i className="fas fa-trash mr-1"></i>
-                          Delete Selected ({selectedUsers.length})
+                          <option value={1000}>All</option>
+                          <option value={10}>10</option>
+                          <option value={20}>20</option>
+                          <option value={30}>30</option>
+                          <option value={50}>50</option>
+                          <option value={100}>100</option>
+                        </select>
+                        <span className="ml-2 text-muted" style={{ fontSize: '14px' }}>entries</span>
+                      </div>
+                      <div className='d-flex align-items-center'>
+                        {selectedUsers.length > 0 && (
+                          <button 
+                            className="btn btn-danger mr-2"
+                            onClick={handleBulkDelete}
+                            disabled={deleting === 'bulk'}
+                          >
+                            <i className="fas fa-trash mr-1"></i>
+                            Delete Selected ({selectedUsers.length})
+                          </button>
+                        )}
+                        <button 
+                          className="btn btn-outline-secondary mr-2"
+                          onClick={openModal}
+                        >
+                          <i className="fas fa-filter mr-1"></i>
+                          Filters {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
                         </button>
-                      )}
-                      <button 
-                        className="btn btn-outline-secondary mr-2"
-                        onClick={openModal}
-                      >
-                        <i className="fas fa-filter mr-1"></i>
-                        Filters {hasActiveFilters && <span className="badge badge-primary ml-1">•</span>}
-                      </button>
-                      <Link href="/accounts/add-user?type=customer" className="btn btn-primary">Add New</Link>
+                        <Link href="/accounts/add-user?type=customer" className="btn btn-primary">Add New</Link>
+                      </div>
                     </div>
                     {/* Users Table */}
                     <div className={`table-responsive ${tableStyles.tableContainer}`}>
@@ -452,6 +479,7 @@ export default function CustomersPage() {
                   onPageChange={handlePageChange}
                   loading={loading}
                   className="mt-3"
+                  limit={limit}
                 />
               </div>
             </div>
