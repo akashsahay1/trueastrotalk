@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (!ObjectId.isValid(astrologer_id)) {
+    if (!astrologer_id.trim()) {
       return NextResponse.json(
         { success: false, error: 'Invalid astrologer ID format' },
         { status: 400 }
@@ -27,14 +27,14 @@ export async function GET(request: NextRequest) {
 
     // Get reviews for the astrologer
     const reviews = await reviewsCollection.find({
-      astrologer_id: new ObjectId(astrologer_id)
+      astrologer_id: astrologer_id
     }).sort({ created_at: -1 }).toArray();
 
     // Populate user details for each review
     const reviewsWithUserDetails = await Promise.all(
       reviews.map(async (review) => {
         const user = await usersCollection.findOne(
-          { _id: review.user_id },
+          { user_id: review.user_id },
           { projection: { full_name: 1, email_address: 1, profile_image_id: 1 } }
         );
 

@@ -65,6 +65,7 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50); // Max 50
     const offset = Math.max(parseInt(searchParams.get('offset') || '0'), 0);
     const onlineOnly = searchParams.get('online_only') === 'true';
+    const featuredOnly = searchParams.get('featured') !== 'false'; // Default to true for backward compatibility
     // const specialization = searchParams.get('specialization');
     // const minRating = parseFloat(searchParams.get('min_rating') || '0');
     // const maxRate = parseFloat(searchParams.get('max_rate') || '1000');
@@ -78,14 +79,19 @@ export async function GET(request: NextRequest) {
     const query: Record<string, unknown> = {
       user_type: 'astrologer', // Only use standardized user_type field
       account_status: 'active',
-      verification_status: 'verified' // Use verification_status instead of is_verified
-      // Removed profile_image_id requirement - astrologers can show without images
+      verification_status: 'verified'
     };
+
+    // Only filter by featured if requested (default is true for backward compatibility)
+    if (featuredOnly) {
+      query.is_featured = true;
+    }
 
     if (onlineOnly) {
       query.is_online = true;
     }
 
+	  console.log('🔍 Query for available astrologers:', query);	
     // Get astrologers with their profile data
     const astrologers = await usersCollection.find(query)
       .sort({ is_online: -1, created_at: -1 }) // Online first, then newest
@@ -129,7 +135,7 @@ export async function GET(request: NextRequest) {
         const resolvedProfileImage = await resolveProfileImage(astrologer, mediaCollection, baseUrl);
         
         return {
-          id: astrologerId,
+          id: astrologer.user_id, // Use custom user_id instead of MongoDB _id
           full_name: astrologer.full_name,
           email_address: astrologer.email_address,
           phone_number: astrologer.phone_number,
@@ -143,6 +149,7 @@ export async function GET(request: NextRequest) {
           experience_years: astrologer.experience_years || 5,
           is_online: astrologer.is_online || false,
           account_status: astrologer.account_status,
+          verification_status: astrologer.verification_status || 'pending', // Include verification status
           rating: astrologer.rating || 4.5,
           total_reviews: astrologer.total_reviews || 0,
           total_consultations: realSessionCount, // Use real count from sessions collection

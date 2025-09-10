@@ -116,6 +116,23 @@ class WalletService extends ChangeNotifier {
     return false;
   }
 
+  /// Refresh wallet balance from server
+  Future<void> refreshBalance() async {
+    try {
+      final token = await _localStorage.getAuthToken();
+      if (token == null) return;
+
+      final response = await _userApiService.getWalletBalance(token);
+      if (response['success'] == true) {
+        _currentBalance = response['data']['wallet_balance']?.toDouble() ?? 0.0;
+        notifyListeners();
+        debugPrint('💰 Wallet balance refreshed: ₹$_currentBalance');
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to refresh wallet balance: $e');
+    }
+  }
+
   /// Add amount to wallet (for recharge)
   Future<bool> addAmount(double amount, String transactionId) async {
     try {

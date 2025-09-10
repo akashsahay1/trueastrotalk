@@ -16,8 +16,6 @@ import '../services/service_locator.dart';
 import 'history.dart';
 import '../models/astrologer.dart';
 import '../models/call.dart' as call_models;
-import '../widgets/call_quality_indicator.dart';
-import 'call_quality_settings_screen.dart';
 import 'astrologer_details.dart';
 
 
@@ -146,12 +144,20 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
       _handleCallEnded('Call failed: ${data['error']}');
     });
     
-    // Listen for call answered event to start timer
+    // Listen for call answered event to start timer and billing
     _socketService.on('call_answered', (data) {
       debugPrint('🎯 Received call_answered event: $data');
-      if (data['sessionId'] == widget.callData['sessionId'] && _callTimer == null) {
-        debugPrint('🕒 Starting timer from call_answered socket event');
-        _startCallTimer();
+      if (data['sessionId'] == widget.callData['sessionId']) {
+        // Start timer if not already started
+        if (_callTimer == null) {
+          debugPrint('🕒 Starting timer from call_answered socket event');
+          _startCallTimer();
+        }
+        // Start billing if not already started
+        if (!_billingService.isSessionActive) {
+          debugPrint('💰 Starting billing from call_answered socket event');
+          _startBilling();
+        }
       }
     });
     
@@ -215,6 +221,13 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
         debugPrint('🕒 Call answered/connected - starting call timer');
         _startCallTimer();
       }
+      
+      // Start billing when call is answered (connecting) or connected
+      final shouldStartBilling = (_isConnected || _isConnecting) && !wasConnected && !wasConnecting && !_billingService.isSessionActive;
+      if (shouldStartBilling) {
+        debugPrint('💰 Call answered/connected - starting billing');
+        _startBilling();
+      }
     }
   }
 
@@ -261,18 +274,19 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
             _isConnected = callState == webrtc.CallState.connected;
           });
           
-          // Start billing, timer and monitoring when call is connected
-          if (callState == webrtc.CallState.connected && !_billingService.isSessionActive) {
+          // Start billing, timer and monitoring when call is connected OR connecting (answered)
+          if ((callState == webrtc.CallState.connected || callState == webrtc.CallState.connecting) && !_billingService.isSessionActive) {
+            debugPrint('💰 Starting billing for call state: $callState');
             _startBilling();
             // Also start the call timer if not already started
             if (_callTimer == null) {
-              debugPrint('🕒 Starting timer from webrtc.CallState.connected');
+              debugPrint('🕒 Starting timer from call state: $callState');
               _startCallTimer();
             }
             _networkDiagnostics.startMonitoring(null);
           }
           
-          // Start timer when call is connecting or connected
+          // Start timer when call is connecting or connected (redundant check for safety)
           if ((callState == webrtc.CallState.connecting || callState == webrtc.CallState.connected) && _callTimer == null) {
             debugPrint('🕒 Starting timer from callStateStream: $callState');
             _startCallTimer();
@@ -398,7 +412,6 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
             _buildCallInfo(),
             _buildConnectionStatus(),
             _buildBillingInfo(),
-            _buildCallQualityIndicator(),
             if (_showControls) _buildCallControls(),
           ],
         ),
@@ -662,16 +675,6 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     );
   }
 
-  Widget _buildCallQualityIndicator() {
-    return Positioned(
-      top: MediaQuery.of(context).padding.top + 80, // Below call info
-      right: 16,
-      child: CallQualityIndicator(
-        metrics: _networkDiagnostics.currentMetrics,
-        isCompact: true,
-      ),
-    );
-  }
 
   Widget _buildCallControls() {
     final isVideoCall = widget.callData['callType'] == 'video';
@@ -982,31 +985,33 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
               'Switch Camera',
               style: AppTextStyles.bodyMedium.copyWith(color: AppColors.white),
             ),
-            onTap: () {
+            onTap: () async {
               Navigator.pop(context);
-              // Camera switching functionality to be implemented
+              try {
+                await _webrtcService.switchCamera();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Camera switched'),
+                      backgroundColor: AppColors.success,
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to switch camera'),
+                      backgroundColor: AppColors.error,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              }
             },
           ),
           
-          ListTile(
-            leading: Icon(
-              Icons.settings,
-              color: AppColors.primary,
-            ),
-            title: Text(
-              'Call Quality',
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.white),
-            ),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CallQualitySettingsScreen(),
-                ),
-              );
-            },
-          ),
           
           const SizedBox(height: Dimensions.paddingMd),
         ],
@@ -1189,7 +1194,12 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
   void _navigateAstrologerToHistory(String formattedBilled, String callDuration, String reason) {
     if (!mounted) return;
     
-    debugPrint('📱 Astrologer: Navigating to history, earnings: $formattedBilled for $callDuration');
+    // Calculate astrologer's earnings (80% of total billed)
+    final totalBilled = _billingService.totalBilled;
+    final astrologerEarnings = totalBilled * 0.8; // 80% to astrologer
+    final formattedEarnings = '₹${astrologerEarnings.toStringAsFixed(2)}';
+    
+    debugPrint('📱 Astrologer: Navigating to history, earnings: $formattedEarnings (80% of $formattedBilled) for $callDuration');
     
     // Navigate to history screen immediately - no UI blocking
     Navigator.of(context).pushAndRemoveUntil(
@@ -1210,7 +1220,7 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Call completed! Earned $formattedBilled (Duration: $callDuration)',
+                  'Call completed! Earned $formattedEarnings (Duration: $callDuration)',
                   style: const TextStyle(color: Colors.white),
                 ),
               ),
@@ -1270,10 +1280,15 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
       final callType = widget.callData['callType'] == 'video' ? call_models.CallType.video : call_models.CallType.voice;
       final sessionId = widget.callData['sessionId']?.toString() ?? 'unknown';
       
+      // Get current user ID for session creation
+      final currentUser = _authService.currentUser;
+      final userId = currentUser?.id;
+
       final success = await _billingService.startCallBilling(
         sessionId: sessionId,
         astrologer: astrologer,
         callType: callType,
+        userId: userId,
       );
       
       if (!success) {

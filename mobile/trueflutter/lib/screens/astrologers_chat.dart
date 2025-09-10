@@ -141,6 +141,7 @@ class _AstrologersChatScreenState extends State<AstrologersChatScreen> {
         limit: _limit,
         offset: refresh ? 0 : _currentOffset,
         onlineOnly: false,
+        featuredOnly: false,  // Show all astrologers, not just featured
       );
 
       final newAstrologers = (astrologersData['astrologers'] as List<dynamic>)

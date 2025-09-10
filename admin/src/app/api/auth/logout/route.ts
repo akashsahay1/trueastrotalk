@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
           // Update user's online status and logout time
           const usersCollection = await DatabaseService.getCollection('users');
           await usersCollection.updateOne(
-            { _id: new ObjectId(userId as string) },
+            { user_id: userId as string },
             { 
               $set: { 
                 is_online: false,

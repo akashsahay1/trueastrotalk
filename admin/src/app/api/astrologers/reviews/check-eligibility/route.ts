@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import DatabaseService from '@/lib/database';
 import { SecurityMiddleware } from '@/lib/security';
-import { ObjectId } from 'mongodb';
 
 // GET - Check if current user can add a review for an astrologer
 export async function GET(request: NextRequest) {
@@ -25,9 +24,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Validate ObjectIds
-    if (!ObjectId.isValid(currentUserId) || !ObjectId.isValid(astrologerId)) {
-      console.log('❌ Invalid ObjectId - userId:', currentUserId, 'astrologerId:', astrologerId);
+    // Validate user IDs (now using custom format, not ObjectId)
+    if (!currentUserId || !astrologerId) {
+      console.log('❌ Missing user IDs - userId:', currentUserId, 'astrologerId:', astrologerId);
       return NextResponse.json(
         { success: false, error: 'Invalid user or astrologer ID' },
         { status: 400 }
@@ -39,8 +38,8 @@ export async function GET(request: NextRequest) {
     
     // Check if user has had a completed session with this astrologer
     const sessionQuery = {
-      user_id: new ObjectId(currentUserId),
-      astrologer_id: new ObjectId(astrologerId),
+      user_id: currentUserId,
+      astrologer_id: astrologerId,
       status: 'completed'
     };
     console.log('🔍 Session query:', sessionQuery);
@@ -60,8 +59,8 @@ export async function GET(request: NextRequest) {
     
     // Check if user has already reviewed this astrologer
     const reviewQuery = {
-      user_id: new ObjectId(currentUserId),
-      astrologer_id: new ObjectId(astrologerId)
+      user_id: currentUserId,
+      astrologer_id: astrologerId
     };
     console.log('🔍 Review query:', reviewQuery);
     

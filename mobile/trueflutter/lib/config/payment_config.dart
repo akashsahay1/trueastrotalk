@@ -7,12 +7,12 @@ import '../services/service_locator.dart';
 class PaymentConfig {
   static PaymentConfig? _instance;
   static PaymentConfig get instance => _instance ??= PaymentConfig._();
-  
+
   PaymentConfig._();
 
   String? _razorpayKeyId;
   String? _environment;
-  
+
   String? get razorpayKeyId => _razorpayKeyId;
   String? get environment => _environment;
 
@@ -35,37 +35,35 @@ class PaymentConfig {
       // Get authentication token
       final authService = getIt<AuthService>();
       final token = authService.authToken;
-      
+
       if (token == null) {
         throw Exception('User not authenticated. Please login first.');
       }
-      
+
       final dio = Dio();
       final baseUrl = await Config.baseUrl;
-      
+
       // Get app configuration from authenticated endpoint
       final response = await dio.get(
         '$baseUrl/app-config',
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $token',
-          },
-        ),
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
-      
+
       if (response.statusCode == 200) {
         final data = response.data;
-        
+
         if (data['success'] == true && data['config'] != null) {
           final config = data['config'];
-          
+
           _razorpayKeyId = config['razorpay']?['keyId'];
           _environment = config['razorpay']?['environment'] ?? 'test';
-          
+
           if (_razorpayKeyId?.isEmpty ?? true) {
-            throw Exception('Razorpay Key ID not found in server configuration');
+            throw Exception(
+              'Razorpay Key ID not found in server configuration',
+            );
           }
-          
+
           debugPrint('✅ Payment config loaded from server');
           debugPrint('   Environment: $_environment');
           debugPrint('   Key ID: ${_razorpayKeyId?.substring(0, 12)}...');
@@ -96,7 +94,7 @@ class PaymentConfig {
     return {
       'key': _razorpayKeyId,
       'amount': (amount * 100).toInt(), // Amount in paise
-      'name': 'TrueAstroTalk',
+      'name': 'True Astrotalk',
       'order_id': orderId,
       'description': description ?? 'Payment',
       'timeout': 300, // 5 minutes
@@ -108,12 +106,7 @@ class PaymentConfig {
       'theme': {
         'color': '#2196F3', // Your app primary color
       },
-      'method': {
-        'netbanking': true,
-        'card': true,
-        'wallet': true,
-        'upi': true,
-      },
+      'method': {'netbanking': true, 'card': true, 'wallet': true, 'upi': true},
     };
   }
 

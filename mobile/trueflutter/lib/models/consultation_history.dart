@@ -27,15 +27,15 @@ class ConsultationHistory {
 
   factory ConsultationHistory.fromJson(Map<String, dynamic> json) {
     return ConsultationHistory(
-      id: json['_id'] ?? json['id'] ?? '',
-      astrologerId: json['astrologer_id'] ?? json['astrologerId'] ?? '',
-      astrologerName: json['astrologer_name'] ?? json['astrologerName'] ?? 'Unknown Astrologer',
+      id: json['session_id'] ?? json['id']!,
+      astrologerId: json['astrologer_user_id'] ?? json['astrologer_id'] ?? json['astrologerId']!,
+      astrologerName: json['astrologer_name'] ?? json['astrologerName']!,
       astrologerImage: json['astrologer_image'] ?? json['astrologerImage'],
-      type: _parseConsultationType(json['type'] ?? ''),
-      duration: json['duration'] ?? '0 min',
-      amount: (json['amount'] ?? 0).toDouble(),
-      createdAt: DateTime.parse(json['created_at'] ?? json['createdAt'] ?? DateTime.now().toIso8601String()),
-      status: _parseConsultationStatus(json['status'] ?? ''),
+      type: _parseConsultationType(json['type']!),
+      duration: json['duration']!,
+      amount: (json['amount']!).toDouble(),
+      createdAt: DateTime.parse(json['created_at'] ?? json['createdAt']!),
+      status: _parseConsultationStatus(json['status']!),
       rating: json['rating']?.toDouble(),
       review: json['review'],
     );

@@ -149,32 +149,19 @@ async function handleAuthentication(socket) {
     if (!isTestConnection) {
       socket.join(userType === 'astrologer' ? 'astrologers' : 'users');
       
-      // Update online status in database
+      // Update online status in database - all users are in 'users' collection
       const { client, db } = await getDbConnection();
       
-      if (userType === 'astrologer') {
-        await db.collection('astrologers').updateOne(
-          { _id: new ObjectId(userId) },
-          { 
-            $set: { 
-              is_online: true, 
-              last_seen: new Date(),
-              socket_id: socket.id 
-            } 
-          }
-        );
-      } else {
-        await db.collection('users').updateOne(
-          { _id: new ObjectId(userId) },
-          { 
-            $set: { 
-              is_online: true, 
-              last_seen: new Date(),
-              socket_id: socket.id 
-            } 
-          }
-        );
-      }
+      await db.collection('users').updateOne(
+        { user_id: userId },
+        { 
+          $set: { 
+            is_online: true, 
+            last_seen: new Date(),
+            socket_id: socket.id 
+          } 
+        }
+      );
       
       await client.close();
       
@@ -257,7 +244,7 @@ async function handleSendMessage(socket, data) {
     
     // Get sender details - all users are in 'users' collection
     const sender = await db.collection('users').findOne({ 
-      _id: new ObjectId(senderId) 
+      user_id: senderId 
     });
     
     if (!sender) {
@@ -392,21 +379,59 @@ async function handleMarkMessagesRead(socket, data) {
 // WebRTC Call Management handlers
 async function handleInitiateCall(socket, data) {
   try {
-    const { callType = 'voice', sessionId, astrologerId, userId, callerName } = data;
+    // Handle both parameter formats from Flutter app
+    const { 
+      callType = 'voice', 
+      sessionId, 
+      astrologerId, 
+      targetUserId, // Alternative parameter name from WebRTC service
+      userId, 
+      callerName 
+    } = data;
     const callerId = socket.data.userId;
     const callerType = socket.data.userType;
+    
+    // Use either astrologerId or targetUserId
+    const receiverId = astrologerId || targetUserId;
+    
+    if (!receiverId) {
+      console.error('❌ No receiver ID provided');
+      socket.emit('call_error', { error: 'Receiver ID is required' });
+      return;
+    }
     
     console.log('📞 Call initiation:', data);
     
     const { client, db } = await getDbConnection();
     
+    // Check if a call session already exists for this sessionId to prevent duplicates
+    const existingSession = await db.collection('call_sessions').findOne({ 
+      session_id: sessionId,
+      call_status: { $in: ['initiated', 'ringing', 'answered'] }
+    });
+    
+    if (existingSession) {
+      console.log(`ℹ️ Call session already exists for ${sessionId}, returning existing call`);
+      const existingCallId = existingSession._id.toString();
+      
+      // Just confirm to caller without creating duplicate
+      socket.emit('call_initiated', {
+        callId: existingCallId,
+        sessionId,
+        status: 'initiated'
+      });
+      
+      await client.close();
+      return;
+    }
+    
     // Get caller name from database if not provided in data
     let resolvedCallerName = callerName;
     if (!resolvedCallerName || resolvedCallerName === 'Unknown') {
       console.log('🔍 Resolving caller name from database...');
-      const callerCollection = callerType === 'astrologer' ? 'astrologers' : 'users';
-      const caller = await db.collection(callerCollection).findOne({ 
-        _id: new ObjectId(callerId) 
+      // Use user_id field for both astrologers and users instead of _id
+      const caller = await db.collection('users').findOne({ 
+        user_id: callerId 
       });
       resolvedCallerName = caller?.full_name || caller?.name || 'Unknown Caller';
       console.log(`📞 Resolved caller name: "${resolvedCallerName}"`);
@@ -418,7 +443,7 @@ async function handleInitiateCall(socket, data) {
       caller_id: callerId,
       caller_name: resolvedCallerName,
       caller_type: callerType,
-      receiver_id: astrologerId,
+      receiver_id: receiverId,
       receiver_type: 'astrologer',
       call_type: callType,
       call_status: 'initiated',
@@ -439,7 +464,7 @@ async function handleInitiateCall(socket, data) {
       callerId,
       callerName: resolvedCallerName,
       callerType,
-      receiverId: astrologerId,
+      receiverId,
       receiverType: 'astrologer',
       callType,
       status: 'initiated',
@@ -456,8 +481,8 @@ async function handleInitiateCall(socket, data) {
       callerName: resolvedCallerName
     };
     
-    console.log('📞 Emitting incoming_call to astrologer with data:', incomingCallData);
-    io.to(`user_${astrologerId}`).emit('incoming_call', incomingCallData);
+    console.log('📞 Emitting incoming_call to receiver with data:', incomingCallData);
+    io.to(`user_${receiverId}`).emit('incoming_call', incomingCallData);
     
     // Confirm to caller
     console.log(`🔥 DEBUG: About to emit call_initiated with sessionId: ${sessionId}`);
@@ -468,7 +493,7 @@ async function handleInitiateCall(socket, data) {
     });
     console.log(`🔥 DEBUG: Emitted call_initiated event`);
     
-    console.log(`📞 Call initiated: ${callId} from ${callerId} (${resolvedCallerName}) to ${astrologerId}`);
+    console.log(`📞 Call initiated: ${callId} from ${callerId} (${resolvedCallerName}) to ${receiverId}`);
   } catch (error) {
     console.error('❌ Initiate call error:', error);
     socket.emit('call_error', { error: 'Failed to initiate call' });
@@ -585,9 +610,12 @@ async function handleEndCall(socket, data) {
     if (callInfo) {
       // Calculate call duration
       const duration = new Date() - new Date(callInfo.startTime);
+      const durationMinutes = Math.ceil(duration / 60000); // Convert to minutes, round up
       
       // Update database
       const { client, db } = await getDbConnection();
+      
+      // Update call_sessions collection
       await db.collection('call_sessions').updateOne(
         { _id: new ObjectId(callId) },
         { 
@@ -600,6 +628,24 @@ async function handleEndCall(socket, data) {
           } 
         }
       );
+      
+      // Update sessions collection to mark as completed
+      if (sessionId) {
+        await db.collection('sessions').updateOne(
+          { session_id: sessionId },
+          { 
+            $set: { 
+              status: 'completed',
+              end_time: new Date(),
+              duration_minutes: durationMinutes,
+              duration_seconds: Math.floor(duration / 1000),
+              updated_at: new Date()
+            } 
+          }
+        );
+        console.log(`✅ Session ${sessionId} marked as completed`);
+      }
+      
       await client.close();
       
       // Notify other participant
@@ -671,12 +717,11 @@ async function handleDisconnect(socket) {
     
     const { userId, userType } = userInfo;
     
-    // Update database
+    // Update database - all users are in 'users' collection
     const { client, db } = await getDbConnection();
     
-    const collection = userType === 'astrologer' ? 'astrologers' : 'users';
-    await db.collection(collection).updateOne(
-      { _id: new ObjectId(userId) },
+    await db.collection('users').updateOne(
+      { user_id: userId },
       { 
         $set: { 
           is_online: false, 

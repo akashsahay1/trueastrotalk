@@ -55,12 +55,14 @@ export async function GET(request: NextRequest) {
     await client.connect();
     
     const db = client.db(DB_NAME);
-    const transactionsCollection = db.collection('transactions');
+    const transactionsCollection = db.collection('wallet_transactions');
 
-    // Build query
+    // Build query for customer transactions (debits from user_id or credits to user_id)
     const query: Record<string, unknown> = {
-      user_id: payload.userId as string,
-      user_type: 'customer'
+      $or: [
+        { user_id: payload.userId as string },
+        { recipient_user_id: payload.userId as string }
+      ]
     };
 
     if (type) {

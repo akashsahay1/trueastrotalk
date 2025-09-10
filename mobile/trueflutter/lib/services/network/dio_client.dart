@@ -82,16 +82,19 @@ class DioClient {
               
               // Attempt to refresh the token
               final response = await Dio().post(
-                '${Config.baseUrlSync}/api/auth/refresh',
+                '${Config.baseUrlSync}/auth/refresh',
                 data: {'refresh_token': refreshToken},
               );
               
               if (response.statusCode == 200) {
-                final newToken = response.data['token'] as String;
+                final data = response.data['data'];
+                final newToken = data['access_token'] as String;
+                final newRefreshToken = data['refresh_token'] as String;
                 debugPrint('✅ Token refreshed successfully');
                 
-                // Update the token in storage and Dio client
+                // Update the tokens in storage and Dio client
                 await prefs.setString('auth_token', newToken);
+                await prefs.setString('refresh_token', newRefreshToken);
                 setAuthToken(newToken);
                 
                 // Retry the original request with new token

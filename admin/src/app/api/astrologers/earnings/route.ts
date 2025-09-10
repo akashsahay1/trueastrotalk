@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../../lib/database';
 import { 
   SecurityMiddleware, 
@@ -87,7 +86,7 @@ export async function GET(request: NextRequest) {
     const [earningsSummary] = await walletTransactionsCollection.aggregate([
       {
         $match: {
-          recipient_id: new ObjectId(astrologerId),
+          recipient_user_id: astrologerId,
           transaction_type: 'credit',
           status: 'completed'
         }
@@ -108,7 +107,7 @@ export async function GET(request: NextRequest) {
     const earningsBreakdown = await walletTransactionsCollection.aggregate([
       {
         $match: {
-          recipient_id: new ObjectId(astrologerId),
+          recipient_user_id: astrologerId,
           transaction_type: 'credit',
           status: 'completed',
           created_at: { $gte: startDate }
@@ -136,7 +135,7 @@ export async function GET(request: NextRequest) {
     const earningsByService = await walletTransactionsCollection.aggregate([
       {
         $match: {
-          recipient_id: new ObjectId(astrologerId),
+          recipient_user_id: astrologerId,
           transaction_type: 'credit',
           status: 'completed',
           created_at: { $gte: startDate }
@@ -157,7 +156,7 @@ export async function GET(request: NextRequest) {
     // Get recent transactions
     const recentTransactions = await walletTransactionsCollection
       .find({
-        recipient_id: new ObjectId(astrologerId),
+        recipient_user_id: astrologerId,
         transaction_type: 'credit'
       })
       .sort({ created_at: -1 })
@@ -166,7 +165,7 @@ export async function GET(request: NextRequest) {
       .toArray();
 
     const totalTransactions = await walletTransactionsCollection.countDocuments({
-      recipient_id: new ObjectId(astrologerId),
+      recipient_user_id: astrologerId,
       transaction_type: 'credit'
     });
 
@@ -175,7 +174,7 @@ export async function GET(request: NextRequest) {
       chatSessionsCollection.aggregate([
         {
           $match: {
-            astrologer_id: new ObjectId(astrologerId),
+            astrologer_id: astrologerId,
             status: 'completed',
             created_at: { $gte: startDate }
           }
@@ -193,7 +192,7 @@ export async function GET(request: NextRequest) {
       callSessionsCollection.aggregate([
         {
           $match: {
-            astrologer_id: new ObjectId(astrologerId),
+            astrologer_id: astrologerId,
             status: 'completed',
             created_at: { $gte: startDate }
           }
@@ -275,12 +274,12 @@ export async function GET(request: NextRequest) {
 
         // Recent transactions
         recent_transactions: recentTransactions.map(transaction => ({
-          id: transaction._id.toString(),
+          id: transaction.transaction_id || transaction._id?.toString() || 'unknown',
           amount: transaction.amount,
           service_type: transaction.service_type || 'chat',
           status: transaction.status,
           created_at: transaction.created_at,
-          session_id: transaction.session_id?.toString() || null,
+          session_id: transaction.session_id || null,
           description: transaction.description || `Payment for ${transaction.service_type || 'chat'} session`
         })),
 
@@ -383,7 +382,7 @@ export async function POST(request: NextRequest) {
 
     // Check astrologer's available balance
     const astrologer = await usersCollection.findOne({
-      _id: new ObjectId(astrologerId),
+      user_id: astrologerId,
       user_type: 'astrologer'
     });
 
@@ -406,7 +405,7 @@ export async function POST(request: NextRequest) {
 
     // Check for pending withdrawal requests
     const pendingWithdrawal = await withdrawalRequestsCollection.findOne({
-      astrologer_id: new ObjectId(astrologerId),
+      astrologer_user_id: astrologerId,
       status: 'pending'
     });
 
@@ -420,8 +419,8 @@ export async function POST(request: NextRequest) {
 
     // Create withdrawal request
     const withdrawalRequest = {
-      _id: new ObjectId(),
-      astrologer_id: new ObjectId(astrologerId),
+      request_id: `withdrawal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      astrologer_user_id: astrologerId,
       amount: withdrawalAmount,
       withdrawal_method,
       account_details: InputSanitizer.sanitizeMongoQuery(account_details as Record<string, unknown>),
@@ -442,7 +441,7 @@ export async function POST(request: NextRequest) {
     // Reserve the amount (don't deduct yet, just mark as reserved)
     // First ensure the field exists, then increment
     await usersCollection.updateOne(
-      { _id: new ObjectId(astrologerId) },
+      { user_id: astrologerId },
       [
         {
           $set: {
@@ -464,7 +463,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Withdrawal request submitted successfully',
       data: {
-        request_id: withdrawalRequest._id.toString(),
+        request_id: withdrawalRequest.request_id,
         amount: withdrawalAmount,
         status: 'pending',
         estimated_processing_time: '2-3 business days',

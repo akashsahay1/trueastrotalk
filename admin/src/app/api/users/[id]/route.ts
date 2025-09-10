@@ -69,20 +69,18 @@ export async function GET(
   try {
     const { id } = await params;
     
-    // Validate ObjectId
-    if (!ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: 'Invalid user ID' },
-        { status: 400 }
-      );
-    }
-
     await client.connect();
     const db = client.db(envConfig.DB_NAME);
     const usersCollection = db.collection('users');
     const mediaCollection = db.collection('media');
 
-    const user = await usersCollection.findOne({ _id: new ObjectId(id) });
+    // Try to find user by user_id field (custom format like user_xxx)
+    let user = await usersCollection.findOne({ user_id: id });
+    
+    // If not found and ID is a valid ObjectId, try finding by _id
+    if (!user && ObjectId.isValid(id)) {
+      user = await usersCollection.findOne({ _id: new ObjectId(id) });
+    }
 
     if (!user) {
       return NextResponse.json(

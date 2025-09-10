@@ -57,21 +57,21 @@ export async function GET(request: NextRequest) {
     const populatedSessions = await Promise.all(
       callSessions.map(async (session) => {
         const [user, astrologer] = await Promise.all([
-          usersCollection.findOne({ _id: new ObjectId(session.user_id) }),
-          astrologersCollection.findOne({ _id: new ObjectId(session.astrologer_id) })
+          usersCollection.findOne({ user_id: session.user_id }),
+          astrologersCollection.findOne({ user_id: session.astrologer_id })
         ]);
 
         return {
           _id: session._id.toString(),
           session_id: session._id.toString(),
           user: user ? {
-            _id: user._id.toString(),
-            name: user.name,
-            email: user.email,
+            _id: user.user_id,
+            name: user.full_name,
+            email: user.email_address,
             profile_image: user.profile_image
           } : null,
           astrologer: astrologer ? {
-            _id: astrologer._id.toString(),
+            _id: astrologer.user_id,
             full_name: astrologer.full_name,
             email_address: astrologer.email_address,
             profile_image: astrologer.profile_image,
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
 
     // Check if astrologer exists and is online (removed availability check)
     const astrologer = await astrologersCollection.findOne({ 
-      _id: new ObjectId(astrologer_id),
+      user_id: astrologer_id,
       is_online: true
     });
 
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user exists
-    const user = await usersCollection.findOne({ _id: new ObjectId(user_id) });
+    const user = await usersCollection.findOne({ user_id: user_id });
     if (!user) {
       await client.close();
       return NextResponse.json({
@@ -227,12 +227,12 @@ export async function POST(request: NextRequest) {
         rate_per_minute: sessionData.rate_per_minute,
         created_at: sessionData.created_at,
         user: {
-          _id: user._id.toString(),
-          name: user.name,
-          email: user.email
+          _id: user.user_id,
+          name: user.full_name,
+          email: user.email_address
         },
         astrologer: {
-          _id: astrologer._id.toString(),
+          _id: astrologer.user_id,
           full_name: astrologer.full_name,
           email_address: astrologer.email_address,
           call_rate: astrologer.call_rate,

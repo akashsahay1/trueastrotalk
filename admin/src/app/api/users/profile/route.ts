@@ -19,7 +19,7 @@ function getBaseUrl(request: NextRequest): string {
 
 // Helper function to resolve profile image to full URL
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function resolveProfileImage(user: Record<string, unknown>, mediaCollection: any, baseUrl: string): Promise<string> {
+async function resolveProfileImage(user: Record<string, unknown>, mediaCollection: any, baseUrl: string): Promise<string | null> {
   // Priority 1: If user has profile_image_id, resolve from media library
   if (user.profile_image_id) {
     try {
@@ -65,8 +65,8 @@ async function resolveProfileImage(user: Record<string, unknown>, mediaCollectio
     return user.profile_picture;
   }
   
-  // Default fallback image
-  return `${baseUrl}/assets/images/avatar-1.jpg`;
+  // No profile image - return null
+  return null;
 }
 
 // Helper function to delete file safely
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
 
     // Get user from database with security checks
     const usersCollection = await DatabaseService.getCollection('users');
-    const mediaCollection = await DatabaseService.getCollection('media_files');
+    const mediaCollection = await DatabaseService.getCollection('media');
 
     const dbUser = await usersCollection.findOne(
       { 
@@ -156,6 +156,10 @@ export async function GET(request: NextRequest) {
     
     // Resolve profile image to full URL
     const profileImageUrl = await resolveProfileImage(dbUser, mediaCollection, baseUrl);
+    
+    console.log(`📷 Profile image resolution for user ${user.userId}:`);
+    console.log(`   - profile_image_id: ${dbUser.profile_image_id}`);
+    console.log(`   - resolved URL: ${profileImageUrl}`);
 
     console.log(`✅ Profile fetched successfully for user: ${user.userId}`);
 

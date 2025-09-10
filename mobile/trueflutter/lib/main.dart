@@ -17,7 +17,6 @@ import 'services/service_locator.dart';
 import 'services/auth/auth_service.dart';
 import 'services/local/local_storage_service.dart';
 import 'services/cart_service.dart';
-import 'services/call/call_quality_settings_service.dart';
 import 'services/network/dio_client.dart';
 import 'services/payment/razorpay_service.dart';
 import 'services/notifications/notification_service.dart';
@@ -57,10 +56,6 @@ void main() async {
   final cartService = getIt<CartService>();
   await cartService.initialize();
 
-  // Register and initialize call quality settings after LocalStorage is ready
-  getIt.registerSingleton<CallQualitySettings>(CallQualitySettings.instance);
-  final callQualitySettings = getIt<CallQualitySettings>();
-  await callQualitySettings.loadSettings(localStorage);
 
   // Initialize payment services (without server config - will load when user logs in)
   try {

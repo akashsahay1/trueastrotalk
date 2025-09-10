@@ -678,7 +678,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Welcome back, $firstName!',
+                  'Welcome, $firstName!',
                   style: AppTextStyles.heading5.copyWith(
                     color: AppColors.white,
                     fontWeight: FontWeight.bold,

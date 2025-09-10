@@ -55,59 +55,60 @@ export async function GET(request: NextRequest) {
     await client.connect();
     
     const db = client.db(DB_NAME);
-    const consultationsCollection = db.collection('consultations');
+    const sessionsCollection = db.collection('sessions');
     const usersCollection = db.collection('users');
 
     // Build query
     const query: Record<string, unknown> = {
-      customer_id: payload.userId as string,
-      status: { $in: ['completed', 'cancelled'] } // Only show finished consultations
+      user_id: payload.userId as string,
+      status: { $in: ['completed', 'cancelled'] } // Only show finished sessions
     };
 
     if (type) {
-      query.consultation_type = type;
+      query.session_type = type;
     }
 
-    // Get consultations
-    const consultations = await consultationsCollection
+    // Get sessions
+    const sessions = await sessionsCollection
       .find(query)
       .sort({ created_at: -1 })
       .skip(offset)
       .limit(limit)
       .toArray();
 
-    // Get astrologer details for each consultation
+    // Get astrologer details for each session
     const enrichedConsultations = [];
     
-    for (const consultation of consultations) {
+    for (const session of sessions) {
       let astrologer = null;
       
       try {
+        // Find astrologer using user_id field
         astrologer = await usersCollection.findOne(
-          { _id: new ObjectId(consultation.astrologer_id) },
-          { projection: { full_name: 1, profile_image: 1 } }
+          { user_id: session.astrologer_id },
+          { projection: { full_name: 1, profile_image_id: 1 } }
         );
       } catch (error) {
         console.error('Error fetching astrologer details:', error);
       }
 
       enrichedConsultations.push({
-        _id: consultation._id,
-        astrologer_id: consultation.astrologer_id,
+        _id: session._id,
+        astrologer_id: session.astrologer_id,
         astrologer_name: astrologer?.full_name || 'Unknown Astrologer',
         astrologer_image: astrologer?.profile_image,
-        type: consultation.consultation_type || consultation.type || 'call',
-        duration: consultation.duration || '0 min',
-        amount: consultation.amount || consultation.total_cost || 0,
-        created_at: consultation.created_at || consultation.createdAt || new Date().toISOString(),
-        status: consultation.status || 'completed',
-        rating: consultation.rating,
-        review: consultation.review
+        type: session.session_type || session.type || 'call',
+        duration: session.duration || '0 min',
+        amount: session.total_amount || session.amount || 0,
+        created_at: session.created_at || session.createdAt || new Date().toISOString(),
+        status: session.status || 'completed',
+        rating: session.customer_rating,
+        review: session.customer_review
       });
     }
 
     // Get total count
-    const totalCount = await consultationsCollection.countDocuments(query);
+    const totalCount = await sessionsCollection.countDocuments(query);
     const hasMore = (offset + limit) < totalCount;
 
     await client.close();

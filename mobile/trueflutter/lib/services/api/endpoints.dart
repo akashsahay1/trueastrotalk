@@ -76,7 +76,7 @@ class ApiEndpoints {
 
   // Public discovery endpoints
   static const String astrologersAvailable = '$astrologers/available';
-  static String astrologerProfileById(String id) => '$astrologers/$id/profile';
+  static String astrologerProfileById(String id) => '$users/$id/profile';
   static const String astrologersSearch = '$astrologers/search';
   static const String categoriesSpecializations = '/categories/specializations';
   static String horoscopeDaily(String sign) => '/horoscope/daily/$sign';

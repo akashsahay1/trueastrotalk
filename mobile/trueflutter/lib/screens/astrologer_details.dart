@@ -82,11 +82,11 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
         _loadReviews();
       }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      
       if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to load astrologer details: $e'),
@@ -106,24 +106,30 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
       
       if (result['success']) {
         final reviewsList = result['reviews'] as List;
-        setState(() {
-          _reviews = reviewsList.cast<Map<String, dynamic>>();
-        });
+        if (mounted) {
+          setState(() {
+            _reviews = reviewsList.cast<Map<String, dynamic>>();
+          });
+        }
         debugPrint('✅ Loaded ${_reviews.length} reviews');
       } else {
         debugPrint('❌ Failed to load reviews: ${result['error']}');
-        setState(() {
-          _reviews = [];
-        });
+        if (mounted) {
+          setState(() {
+            _reviews = [];
+          });
+        }
       }
       
       // Check if user can add a review
       await _checkReviewEligibility();
     } catch (e) {
       debugPrint('❌ Error loading reviews: $e');
-      setState(() {
-        _reviews = [];
-      });
+      if (mounted) {
+        setState(() {
+          _reviews = [];
+        });
+      }
     }
   }
 
@@ -148,24 +154,30 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
       debugPrint('🔍 Review eligibility API result: $result');
       
       if (result['success']) {
-        setState(() {
-          _canAddReview = result['canAddReview'] ?? false;
-          _hasUserReviewed = result['hasUserReviewed'] ?? false;
-        });
+        if (mounted) {
+          setState(() {
+            _canAddReview = result['canAddReview'] ?? false;
+            _hasUserReviewed = result['hasUserReviewed'] ?? false;
+          });
+        }
         debugPrint('✅ Review eligibility: canAdd=$_canAddReview, hasReviewed=$_hasUserReviewed');
       } else {
         debugPrint('❌ Failed to check review eligibility: ${result['error']}');
+        if (mounted) {
+          setState(() {
+            _canAddReview = false;
+            _hasUserReviewed = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Error checking review eligibility: $e');
+      if (mounted) {
         setState(() {
           _canAddReview = false;
           _hasUserReviewed = false;
         });
       }
-    } catch (e) {
-      debugPrint('❌ Error checking review eligibility: $e');
-      setState(() {
-        _canAddReview = false;
-        _hasUserReviewed = false;
-      });
     }
   }
 
@@ -432,9 +444,11 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
                   alignment: Alignment.centerRight,
                   child: GestureDetector(
                     onTap: () {
-                      setState(() {
-                        _isAboutExpanded = !_isAboutExpanded;
-                      });
+                      if (mounted) {
+                        setState(() {
+                          _isAboutExpanded = !_isAboutExpanded;
+                        });
+                      }
                     },
                     child: Text(
                       _isAboutExpanded ? 'Less' : 'More',
@@ -733,9 +747,11 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
               ...List.generate(5, (index) {
                 return GestureDetector(
                   onTap: () {
-                    setState(() {
-                      _selectedRating = index + 1;
-                    });
+                    if (mounted) {
+                      setState(() {
+                        _selectedRating = index + 1;
+                      });
+                    }
                   },
                   child: Icon(
                     index < _selectedRating ? Icons.star : Icons.star_border,
@@ -806,9 +822,11 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
       return;
     }
 
-    setState(() {
-      _isSubmittingReview = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isSubmittingReview = true;
+      });
+    }
 
     try {
       final reviewsApiService = getIt<ReviewsApiService>();
@@ -839,12 +857,14 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
         }
 
         // Reset form
-        setState(() {
-          _selectedRating = 0;
-          _reviewController.clear();
-          _hasUserReviewed = true;
-          _canAddReview = false;
-        });
+        if (mounted) {
+          setState(() {
+            _selectedRating = 0;
+            _reviewController.clear();
+            _hasUserReviewed = true;
+            _canAddReview = false;
+          });
+        }
 
         // Reload reviews
         await _loadReviews();
@@ -861,9 +881,11 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
         );
       }
     } finally {
-      setState(() {
-        _isSubmittingReview = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isSubmittingReview = false;
+        });
+      }
     }
   }
 

@@ -46,25 +46,31 @@ class BillingService extends ChangeNotifier {
     required String sessionId,
     required Astrologer astrologer,
     required CallType callType,
+    String? userId,
   }) async {
     try {
       debugPrint('💰 Starting call billing for session: $sessionId');
 
-      // Determine rate based on call type
+      // Determine rate and session type based on call type
       final double ratePerMinute;
+      final String sessionType;
       switch (callType) {
         case CallType.video:
           ratePerMinute = astrologer.videoRate;
+          sessionType = 'video';
           break;
         case CallType.voice:
           ratePerMinute = astrologer.callRate;
+          sessionType = 'call';
           break;
       }
 
       return await _startBilling(
         sessionId: sessionId,
-        sessionType: 'call',
+        sessionType: sessionType,
         ratePerMinute: ratePerMinute,
+        astrologerId: astrologer.id,
+        userId: userId,
       );
     } catch (e) {
       debugPrint('❌ Failed to start call billing: $e');
@@ -96,6 +102,8 @@ class BillingService extends ChangeNotifier {
     required String sessionId,
     required String sessionType,
     required double ratePerMinute,
+    String? astrologerId,
+    String? userId,
   }) async {
     // Stop any existing billing session
     await stopBilling();
@@ -104,6 +112,35 @@ class BillingService extends ChangeNotifier {
     if (!_walletService.hasSufficientBalanceForMinimumDuration(ratePerMinute)) {
       debugPrint('❌ Insufficient balance for billing');
       return false;
+    }
+
+    // Create session record on server if astrologerId and userId are provided
+    if (astrologerId != null && userId != null) {
+      try {
+        debugPrint('🔧 Creating session record: sessionId=$sessionId, sessionType=$sessionType, astrologerId=$astrologerId, userId=$userId');
+        final token = await _localStorage.getAuthToken();
+        if (token != null) {
+          final result = await _userApiService.createSession(
+            token,
+            sessionId: sessionId,
+            sessionType: sessionType,
+            astrologerId: astrologerId,
+            userId: userId,
+          );
+          debugPrint('📝 Session record created on server successfully: $result');
+        } else {
+          debugPrint('❌ No auth token available for session creation');
+          throw Exception('No authentication token available');
+        }
+      } catch (e) {
+        debugPrint('❌ Failed to create session record: $e');
+        debugPrint('❌ Session creation failed - billing updates will fail!');
+        // Don't continue if session creation fails - this will cause billing issues
+        throw Exception('Session creation failed: $e');
+      }
+    } else {
+      debugPrint('❌ Missing required parameters for session creation: astrologerId=$astrologerId, userId=$userId');
+      throw Exception('Missing astrologerId or userId for session creation');
     }
 
     // Initialize billing session
@@ -162,20 +199,16 @@ class BillingService extends ChangeNotifier {
         return;
       }
 
-      // Deduct from wallet
-      final success = await _walletService.deductAmount(
-        amountForThisMinute,
-        '${_activeSessionType!.toUpperCase()} - Session $_activeSessionId (Minute $totalMinutes)',
-      );
-
-      if (success) {
+      // Send billing update to server - this will deduct from wallet on server
+      try {
+        await _sendBillingUpdate(totalMinutes, _totalBilled + amountForThisMinute);
         _totalBilled += amountForThisMinute;
-        debugPrint('💰 Billed ₹$amountForThisMinute (Total: ₹$_totalBilled)');
         
-        // Send billing update to server
-        await _sendBillingUpdate(totalMinutes, _totalBilled);
-      } else {
-        debugPrint('❌ Failed to deduct amount from wallet');
+        // Refresh local wallet balance after server deduction
+        await _walletService.refreshBalance();
+        debugPrint('💰 Billed ₹$amountForThisMinute (Total: ₹$_totalBilled)');
+      } catch (e) {
+        debugPrint('❌ Failed to process billing update: $e');
         await _handleInsufficientBalance();
       }
     } catch (e) {
@@ -186,19 +219,24 @@ class BillingService extends ChangeNotifier {
   /// Send billing update to server
   Future<void> _sendBillingUpdate(int minutes, double totalAmount) async {
     try {
+      debugPrint('🔄 Sending billing update: sessionId=$_activeSessionId, sessionType=$_activeSessionType, minutes=$minutes, amount=₹$totalAmount');
       final token = await _localStorage.getAuthToken();
-      if (token == null) return;
+      if (token == null) {
+        debugPrint('❌ No auth token available for billing update');
+        throw Exception('No authentication token available');
+      }
 
-      await _userApiService.updateSessionBilling(
+      final result = await _userApiService.updateSessionBilling(
         token,
         sessionId: _activeSessionId!,
         sessionType: _activeSessionType!,
         durationMinutes: minutes,
         totalAmount: totalAmount,
       );
-      debugPrint('📊 Sent billing update: $minutes min, ₹$totalAmount');
+      debugPrint('📊 Sent billing update successfully: $minutes min, ₹$totalAmount - Response: $result');
     } catch (e) {
       debugPrint('❌ Failed to send billing update: $e');
+      rethrow; // Re-throw to let caller handle
     }
   }
 
@@ -238,18 +276,21 @@ class BillingService extends ChangeNotifier {
       if (_elapsedSeconds > 0 && _currentRate != null) {
         final totalMinutes = (_elapsedSeconds / 60).ceil(); // Round up partial minutes
         final finalAmount = totalMinutes * _currentRate!;
-        final remainingAmount = finalAmount - _totalBilled;
 
-        if (remainingAmount > 0 && _walletService.currentBalance >= remainingAmount) {
-          await _walletService.deductAmount(
-            remainingAmount,
-            '${_activeSessionType!.toUpperCase()} - Session $_activeSessionId (Final billing)',
-          );
+        // Send final billing update - this will deduct from wallet on server
+        try {
+          await _sendBillingUpdate(totalMinutes, finalAmount);
           _totalBilled = finalAmount;
+          
+          // Refresh local wallet balance after server deduction
+          await _walletService.refreshBalance();
+          debugPrint('💰 Final billing: ₹$finalAmount ($totalMinutes minutes)');
+        } catch (e) {
+          debugPrint('❌ CRITICAL: Failed to process final billing: $e');
+          debugPrint('❌ This means customer was NOT charged and astrologer will NOT be paid!');
+          // Keep local billing as-is but alert about the critical failure
+          rethrow; // Let the caller know billing failed
         }
-
-        // Send final billing update
-        await _sendBillingUpdate(totalMinutes, _totalBilled);
       }
 
       // Create billing summary

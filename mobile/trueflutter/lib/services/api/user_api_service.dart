@@ -427,9 +427,14 @@ class UserApiService {
   }
 
   // Get available astrologers
-  Future<Map<String, dynamic>> getAvailableAstrologers({int limit = 10, int offset = 0, bool onlineOnly = false, String? specialization}) async {
+  Future<Map<String, dynamic>> getAvailableAstrologers({int limit = 10, int offset = 0, bool onlineOnly = false, bool featuredOnly = true, String? specialization}) async {
     try {
-      final queryParams = {'limit': limit.toString(), 'offset': offset.toString(), 'online_only': onlineOnly.toString()};
+      final queryParams = {
+        'limit': limit.toString(), 
+        'offset': offset.toString(), 
+        'online_only': onlineOnly.toString(),
+        'featured': featuredOnly.toString()
+      };
 
       final response = await _dio.get(ApiEndpoints.astrologersAvailable, queryParameters: queryParams);
 
@@ -987,6 +992,42 @@ class UserApiService {
         return response.data;
       } else {
         throw Exception('Failed to update FCM token: ${response.data['message']}');
+      }
+    } on DioException catch (e) {
+      final errorMessage = _handleDioException(e);
+      throw Exception(errorMessage);
+    }
+  }
+
+  /// Create a new session record
+  Future<Map<String, dynamic>> createSession(
+    String token, {
+    required String sessionId,
+    required String sessionType,
+    required String astrologerId,
+    required String userId,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiEndpoints.sessions,
+        data: {
+          'sessionId': sessionId,
+          'sessionType': sessionType,
+          'astrologerId': astrologerId,
+          'userId': userId,
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data;
+      } else {
+        throw Exception('Failed to create session: ${response.data['message']}');
       }
     } on DioException catch (e) {
       final errorMessage = _handleDioException(e);

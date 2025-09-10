@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
+import { MongoClient } from 'mongodb';
 import { jwtVerify } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(
@@ -104,10 +104,10 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Get current user
+      // Get current user - using custom user_id field instead of _id
       const user = await usersCollection.findOne(
-        { _id: new ObjectId(payload.userId as string) },
-        { projection: { wallet_balance: 1, full_name: 1, email_address: 1 } }
+        { user_id: payload.userId as string },
+        { projection: { wallet_balance: 1, full_name: 1, email_address: 1, user_id: 1 } }
       );
 
       if (!user) {
@@ -117,9 +117,9 @@ export async function POST(request: NextRequest) {
       const currentBalance = user.wallet_balance || 0;
       const newBalance = currentBalance + parseFloat(amount);
 
-      // Update user wallet balance
+      // Update user wallet balance - using custom user_id field
       await usersCollection.updateOne(
-        { _id: new ObjectId(payload.userId as string) },
+        { user_id: payload.userId as string },
         { 
           $set: { wallet_balance: newBalance },
           $currentDate: { updated_at: true }

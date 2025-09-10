@@ -9,6 +9,7 @@ import '../api/user_api_service.dart';
 import '../network/dio_client.dart';
 import '../local/local_storage_service.dart';
 import '../service_locator.dart';
+import '../socket/socket_service.dart';
 import '../../config/payment_config.dart';
 import '../../common/utils/error_handler.dart';
 
@@ -492,8 +493,21 @@ class AuthService {
 
   Future<void> signOut() async {
     try {
+      // Disconnect socket first
+      try {
+        final socketService = getIt<SocketService>();
+        socketService.disconnect();
+        debugPrint('🔌 Disconnecting socket');
+      } catch (e) {
+        debugPrint('Socket disconnect error: $e');
+      }
+      
       // Sign out from Google if signed in
-      await GoogleSignIn.instance.disconnect();
+      try {
+        await GoogleSignIn.instance.disconnect();
+      } catch (e) {
+        debugPrint('Google sign out error: $e');
+      }
 
       // Sign out from your backend
       if (_authToken != null) {

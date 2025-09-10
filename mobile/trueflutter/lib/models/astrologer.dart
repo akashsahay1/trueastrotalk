@@ -55,30 +55,30 @@ class Astrologer {
 
   factory Astrologer.fromJson(Map<String, dynamic> json) {
     return Astrologer(
-      id: json['id']?.toString() ?? '',
-      fullName: json['full_name']?.toString() ?? '',
-      emailAddress: json['email_address']?.toString() ?? '',
+      id: json['id']!.toString(),
+      fullName: json['full_name']!.toString(),
+      emailAddress: json['email_address']!.toString(),
       phoneNumber: json['phone_number']?.toString(),
       profileImageId: json['profile_image_id']?.toString(),
       socialProfileImageUrl: json['social_profile_image_url']?.toString(),
       profileImage: json['profile_image']?.toString(), // This will be the resolved URL from backend
       bio: json['bio']?.toString(),
-      qualifications: _parseStringList(json['qualifications']) ?? [],
-      languages: _parseStringList(json['languages']) ?? [],
-      skills: _parseStringList(json['skills']) ?? [],
-      experienceYears: _parseInt(json['experience_years']) ?? 0,
-      isOnline: _parseBool(json['is_online']) ?? false,
+      qualifications: _parseStringList(json['qualifications']),
+      languages: _parseStringList(json['languages']),
+      skills: _parseStringList(json['skills']),
+      experienceYears: _parseInt(json['experience_years']),
+      isOnline: _parseBool(json['is_online']),
       accountStatus: json['account_status']?.toString(),
       verificationStatus: _parseVerificationStatus(json),
-      isAvailable: _parseBool(json['is_available']) ?? false,
-      rating: _parseDouble(json['rating']) ?? 0.0,
-      totalReviews: _parseInt(json['total_reviews']) ?? 0,
-      totalConsultations: _parseInt(json['total_consultations']) ?? 0,
-      chatRate: _parseDouble(json['chat_rate']) ?? 0.0,
-      callRate: _parseDouble(json['call_rate']) ?? 0.0,
-      videoRate: _parseDouble(json['video_rate']) ?? 0.0,
-      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now() : DateTime.now(),
-      updatedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at'].toString()) ?? DateTime.now() : DateTime.now(),
+      isAvailable: _parseBool(json['is_available']),
+      rating: _parseDouble(json['rating']),
+      totalReviews: _parseInt(json['total_reviews']),
+      totalConsultations: _parseInt(json['total_consultations']),
+      chatRate: _parseDouble(json['chat_rate']),
+      callRate: _parseDouble(json['call_rate']),
+      videoRate: _parseDouble(json['video_rate']),
+      createdAt: DateTime.parse(json['created_at']!.toString()),
+      updatedAt: DateTime.parse(json['updated_at']!.toString()),
     );
   }
 
@@ -112,54 +112,60 @@ class Astrologer {
   }
 
   // Helper methods for safe type parsing
-  static double? _parseDouble(dynamic value) {
-    if (value == null) return null;
+  static double _parseDouble(dynamic value) {
+    if (value == null) throw Exception('Required double value is null');
     if (value is double) return value;
     if (value is int) return value.toDouble();
-    if (value is String) return double.tryParse(value);
-    return null;
+    if (value is String) {
+      final parsed = double.tryParse(value);
+      if (parsed == null) throw Exception('Invalid double value: $value');
+      return parsed;
+    }
+    throw Exception('Cannot parse double from: $value');
   }
 
-  static int? _parseInt(dynamic value) {
-    if (value == null) return null;
+  static int _parseInt(dynamic value) {
+    if (value == null) throw Exception('Required int value is null');
     if (value is int) return value;
     if (value is double) return value.toInt();
-    if (value is String) return int.tryParse(value);
-    return null;
+    if (value is String) {
+      final parsed = int.tryParse(value);
+      if (parsed == null) throw Exception('Invalid int value: $value');
+      return parsed;
+    }
+    throw Exception('Cannot parse int from: $value');
   }
 
-  static bool? _parseBool(dynamic value) {
-    if (value == null) return null;
+  static bool _parseBool(dynamic value) {
+    if (value == null) throw Exception('Required bool value is null');
     if (value is bool) return value;
     if (value is String) {
       return value.toLowerCase() == 'true' || value == '1';
     }
     if (value is int) return value == 1;
-    return null;
+    throw Exception('Cannot parse bool from: $value');
   }
 
-  static List<String>? _parseStringList(dynamic value) {
-    if (value == null) return null;
+  static List<String> _parseStringList(dynamic value) {
+    if (value == null) throw Exception('Required string list value is null');
     if (value is List) {
-      return value.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+      return value.map((e) => e!.toString()).toList();
     }
     if (value is String) {
       // Handle comma-separated string
-      if (value.isEmpty) return [];
+      if (value.isEmpty) throw Exception('String list cannot be empty');
       return value.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
     }
-    return null;
+    throw Exception('Cannot parse string list from: $value');
   }
 
   static VerificationStatus _parseVerificationStatus(Map<String, dynamic> json) {
     // Parse verification_status field
     final explicitStatus = json['verification_status']?.toString();
-    if (explicitStatus != null && explicitStatus.isNotEmpty) {
-      return VerificationStatusExtension.fromString(explicitStatus);
+    if (explicitStatus == null || explicitStatus.isEmpty) {
+      throw Exception('Required verification_status is missing');
     }
-
-    // Default fallback if verification_status is missing
-    return VerificationStatus.pending;
+    return VerificationStatusExtension.fromString(explicitStatus);
   }
 
   // Helper getters
