@@ -6,6 +6,8 @@ import '../services/local/local_storage_service.dart';
 import '../services/service_locator.dart';
 import '../models/user.dart';
 import 'astrologer_rate_management_screen.dart';
+import 'wallet.dart';
+import 'profile.dart';
 
 /// Enhanced Astrologer Dashboard Screen
 /// 
@@ -107,19 +109,18 @@ class _AstrologerDashboardScreenState extends State<AstrologerDashboardScreen> {
 
   Future<void> _loadDashboardMetrics() async {
     try {
-      // Simulate API calls for dashboard metrics
-      // In real implementation, these would be actual API calls
-      await Future.delayed(const Duration(seconds: 1));
-      
+      // NO DUMMY DATA - Using real values from user profile
+      // Today's data will be 0 until backend API is implemented
+      final user = _currentUser;
       setState(() {
-        _walletBalance = 2450.75;
-        _todaysEarnings = 185.50;
-        _totalEarnings = 12350.25;
-        _todaysSessions = 3;
-        _totalSessions = 145;
-        _pendingSessions = 2;
-        _averageRating = 4.7;
-        _totalReviews = 89;
+        _walletBalance = user?.walletBalance ?? 0.0;
+        _todaysEarnings = 0.0; // Needs backend API
+        _totalEarnings = user?.totalEarnings ?? 0.0;
+        _todaysSessions = 0; // Needs backend API
+        _totalSessions = user?.totalConsultations ?? 0;
+        _pendingSessions = 0; // Needs backend API
+        _averageRating = user?.rating ?? 0.0;
+        _totalReviews = user?.totalReviews ?? 0;
       });
     } catch (e) {
       debugPrint('Error loading dashboard metrics: $e');
@@ -128,60 +129,11 @@ class _AstrologerDashboardScreenState extends State<AstrologerDashboardScreen> {
 
   Future<void> _loadRecentActivity() async {
     try {
-      // Simulate loading recent sessions and transactions
-      await Future.delayed(const Duration(milliseconds: 500));
-      
+      // NO DUMMY DATA - Show empty lists until backend API is implemented
+      // When backend API is ready, replace this with actual API calls
       setState(() {
-        _recentSessions = [
-          {
-            'customer': 'Priya S.',
-            'type': 'Chat',
-            'duration': '15 min',
-            'amount': '₹75',
-            'time': '2 hours ago',
-            'status': 'Completed'
-          },
-          {
-            'customer': 'Rahul K.',
-            'type': 'Voice Call',
-            'duration': '22 min',
-            'amount': '₹110',
-            'time': '4 hours ago',
-            'status': 'Completed'
-          },
-          {
-            'customer': 'Anita M.',
-            'type': 'Video Call',
-            'duration': '30 min',
-            'amount': '₹180',
-            'time': '1 day ago',
-            'status': 'Completed'
-          },
-        ];
-        
-        _recentTransactions = [
-          {
-            'type': 'Earning',
-            'amount': '+₹75',
-            'description': 'Chat consultation with Priya S.',
-            'time': '2 hours ago',
-            'status': 'Credited'
-          },
-          {
-            'type': 'Earning',
-            'amount': '+₹110',
-            'description': 'Voice call with Rahul K.',
-            'time': '4 hours ago',
-            'status': 'Credited'
-          },
-          {
-            'type': 'Withdrawal',
-            'amount': '-₹1000',
-            'description': 'Bank transfer',
-            'time': '2 days ago',
-            'status': 'Processed'
-          },
-        ];
+        _recentSessions = [];
+        _recentTransactions = [];
       });
     } catch (e) {
       debugPrint('Error loading recent activity: $e');
@@ -726,7 +678,31 @@ class _AstrologerDashboardScreenState extends State<AstrologerDashboardScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          ..._recentSessions.map((session) => _buildSessionTile(session)),
+          _recentSessions.isEmpty
+            ? Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.calendar_today_outlined,
+                        size: 48,
+                        color: AppColors.textSecondary.withValues(alpha: 0.5),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'No recent sessions',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            : Column(
+                children: _recentSessions.map((session) => _buildSessionTile(session)).toList(),
+              ),
         ],
       ),
     );
@@ -836,7 +812,31 @@ class _AstrologerDashboardScreenState extends State<AstrologerDashboardScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          ..._recentTransactions.map((transaction) => _buildTransactionTile(transaction)),
+          _recentTransactions.isEmpty
+            ? Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.receipt_long_outlined,
+                        size: 48,
+                        color: AppColors.textSecondary.withValues(alpha: 0.5),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'No recent transactions',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            : Column(
+                children: _recentTransactions.map((transaction) => _buildTransactionTile(transaction)).toList(),
+              ),
         ],
       ),
     );
@@ -957,11 +957,16 @@ class _AstrologerDashboardScreenState extends State<AstrologerDashboardScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildActionButton(
-                  'Availability',
-                  Icons.schedule,
-                  AppColors.info,
+                  'Wallet',
+                  Icons.account_balance_wallet,
+                  AppColors.success,
                   () {
-                    // Navigate to availability settings
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const WalletScreen(),
+                      ),
+                    );
                   },
                 ),
               ),
@@ -976,18 +981,23 @@ class _AstrologerDashboardScreenState extends State<AstrologerDashboardScreen> {
                   Icons.person,
                   AppColors.secondary,
                   () {
-                    // Navigate to profile edit
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ProfileScreen(),
+                      ),
+                    );
                   },
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _buildActionButton(
-                  'Withdraw',
-                  Icons.account_balance,
-                  AppColors.success,
+                  'Availability',
+                  Icons.schedule,
+                  AppColors.info,
                   () {
-                    // Navigate to withdrawal
+                    // Navigate to availability settings
                   },
                 ),
               ),

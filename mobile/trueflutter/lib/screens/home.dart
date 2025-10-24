@@ -16,7 +16,6 @@ import 'astrologer_details.dart';
 import 'astrologers_call.dart';
 import 'astrologers_chat.dart';
 import 'astrologer_consultations_screen.dart';
-import 'astrologer_earnings_screen.dart';
 import 'orders_list.dart';
 import 'wallet.dart';
 import 'history.dart';
@@ -371,7 +370,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
             : _buildCallScreen();
       case 2:
         return _currentUser?.isAstrologer == true
-            ? _buildEarningsScreen()
+            ? const WalletScreen()
             : _buildChatScreen();
       case 3:
         return _currentUser?.isAstrologer == true
@@ -1272,9 +1271,10 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         'title': 'Wallet',
         'subtitle': 'Manage your wallet and transactions',
         'onTap': () {
-          setState(() {
-            _selectedBottomNavIndex = 3;
-          });
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const WalletScreen()),
+          );
         },
       },
       {
@@ -1406,7 +1406,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
             BottomNavigationBarItem(
               icon: Icon(Icons.account_balance_wallet_outlined),
               activeIcon: Icon(Icons.account_balance_wallet),
-              label: 'Earnings',
+              label: 'Wallet',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
@@ -1993,9 +1993,6 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     return const AstrologerConsultationsScreen();
   }
 
-  Widget _buildEarningsScreen() {
-    return const AstrologerEarningsScreen();
-  }
 
   Widget _buildAstrologerDrawer() {
     return Drawer(
@@ -2083,7 +2080,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.account_balance_wallet),
-            title: const Text('Earnings', style: TextStyle(fontSize: 14.0)),
+            title: const Text('Wallet', style: TextStyle(fontSize: 14.0)),
             onTap: () {
               Navigator.pop(context);
               setState(() {
@@ -2379,8 +2376,8 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       },
       {
         'icon': Icons.account_balance_wallet,
-        'title': 'View Earnings',
-        'subtitle': 'Check your earnings',
+        'title': 'View Wallet',
+        'subtitle': 'Check your wallet and earnings',
         'onTap': () => setState(() => _selectedBottomNavIndex = 2),
         'color': AppColors.success,
       },

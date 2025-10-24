@@ -309,7 +309,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                               child: TextButton(
                                 onPressed: () {
                                   _triggerHaptic();
-                                  Navigator.pushNamed(context, '/signup', arguments: {'isAdvanced': true});
+                                  Navigator.pushNamed(context, '/astrologer-signup');
                                 },
                                 style: TextButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

@@ -85,14 +85,14 @@ export async function GET(request: NextRequest) {
 
     // Format transactions for mobile app
     const formattedTransactions = transactions.map(transaction => ({
-      _id: transaction._id,
-      type: transaction.transaction_type || transaction.type,
-      amount: transaction.amount || 0,
-      description: transaction.description || transaction.reference_id || 'Transaction',
-      created_at: transaction.created_at || transaction.createdAt || new Date().toISOString(),
+      id: transaction._id.toString(),
+      type: transaction.transaction_type,
+      amount: transaction.amount,
+      description: transaction.description,
+      created_at: transaction.created_at,
       payment_id: transaction.payment_id,
       payment_method: transaction.payment_method,
-      status: transaction.status || 'completed'
+      status: transaction.status
     }));
 
     return NextResponse.json({

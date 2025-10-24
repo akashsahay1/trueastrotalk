@@ -9,6 +9,7 @@ import '../services/auth/auth_service.dart';
 import '../services/service_locator.dart';
 import '../models/enums.dart';
 import '../config/config.dart';
+import '../common/utils/error_handler.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -29,7 +30,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Astrologer-specific controllers
   final _bioController = TextEditingController();
-  final _experienceController = TextEditingController();
+  final _experienceController = TextEditingController(); // Keeping for backward compatibility
+  int? _selectedExperience; // For dropdown
   final _languagesController = TextEditingController();
   final _qualificationsController = TextEditingController();
   final _skillsController = TextEditingController();
@@ -44,9 +46,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _countryController = TextEditingController();
   final _zipController = TextEditingController();
 
+  // Bank details controllers
+  final _accountHolderController = TextEditingController();
+  final _accountNumberController = TextEditingController();
+  final _bankNameController = TextEditingController();
+  final _ifscController = TextEditingController();
+
+  // Password change controllers
+  final _currentPasswordController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  bool _showChangePassword = false;
+  bool _obscureCurrentPassword = true;
+  bool _obscureNewPassword = true;
+  bool _obscureConfirmPassword = true;
+
   app_user.User? _currentUser;
   DateTime? _selectedBirthDate;
   File? _selectedProfileImage;
+  File? _selectedPanCardImage;
   bool _isLoading = false;
   bool _isUpdating = false;
 
@@ -95,6 +113,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _countryController.dispose();
     _zipController.dispose();
     _qualificationController.dispose();
+
+    // Dispose bank details controllers
+    _accountHolderController.dispose();
+    _accountNumberController.dispose();
+    _bankNameController.dispose();
+    _ifscController.dispose();
+    
+    // Dispose password controllers
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -162,6 +191,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (user.isAstrologer) {
             _bioController.text = user.bio ?? '';
             _experienceController.text = user.experienceYears?.toString() ?? '';
+            _selectedExperience = user.experienceYears; // Set dropdown value
             _callRateController.text = user.callRate?.toString() ?? '';
             _chatRateController.text = user.chatRate?.toString() ?? '';
             _videoRateController.text = user.videoRate?.toString() ?? '';
@@ -183,6 +213,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _qualificationsList.addAll(user.qualifications!);
             }
 
+            // Populate bank details for astrologers
+            _accountHolderController.text = user.accountHolderName ?? '';
+            _accountNumberController.text = user.accountNumber ?? '';
+            _bankNameController.text = user.bankName ?? '';
+            _ifscController.text = user.ifscCode ?? '';
+
             debugPrint('📱 Populated astrologer data:');
             debugPrint('   Bio: ${user.bio}');
             debugPrint('   Experience: ${user.experienceYears}');
@@ -190,6 +226,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             debugPrint('   Skills: ${user.skills}');
             debugPrint('   Qualifications: ${user.qualifications}');
             debugPrint('   Address: ${user.address}');
+            debugPrint('   Bank Details: ${user.bankName} (${user.ifscCode})');
           }
         });
       } else {
@@ -255,6 +292,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (e) {
       _showErrorSnackBar('Failed to pick image: ${e.toString()}');
+    }
+  }
+
+  Future<void> _pickPanCardImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+
+      // Show dialog to choose between camera and gallery
+      final ImageSource? source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        backgroundColor: AppColors.white,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        builder: (context) => Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)),
+              ),
+              const SizedBox(height: 20),
+              Text('Select PAN Card Image', style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimaryLight)),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildImageSourceOption(icon: Icons.camera_alt, label: 'Camera', source: ImageSource.camera),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildImageSourceOption(icon: Icons.photo_library, label: 'Gallery', source: ImageSource.gallery),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
+      );
+
+      if (source != null) {
+        final XFile? image = await picker.pickImage(source: source, maxWidth: 1024, maxHeight: 1024, imageQuality: 85);
+
+        if (image != null) {
+          setState(() {
+            _selectedPanCardImage = File(image.path);
+          });
+        }
+      }
+    } catch (e) {
+      _showErrorSnackBar('Failed to pick PAN card image: ${e.toString()}');
     }
   }
 
@@ -347,6 +437,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return const TimeOfDay(hour: 12, minute: 0);
   }
 
+  Future<void> _changePassword() async {
+    // Validate password fields
+    final currentPassword = _currentPasswordController.text.trim();
+    final newPassword = _newPasswordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
+
+    if (currentPassword.isEmpty) {
+      _showErrorSnackBar('Please enter your current password');
+      return;
+    }
+
+    if (newPassword.isEmpty) {
+      _showErrorSnackBar('Please enter a new password');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      _showErrorSnackBar('Password must be at least 6 characters');
+      return;
+    }
+
+    if (newPassword != confirmPassword) {
+      _showErrorSnackBar('Passwords do not match');
+      return;
+    }
+
+    if (currentPassword == newPassword) {
+      _showErrorSnackBar('New password must be different from current password');
+      return;
+    }
+
+    setState(() => _isUpdating = true);
+
+    try {
+      // Call API to change password
+      await _authService.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+
+      // Clear password fields
+      _currentPasswordController.clear();
+      _newPasswordController.clear();
+      _confirmPasswordController.clear();
+      
+      // Hide password section
+      setState(() {
+        _showChangePassword = false;
+      });
+
+      _showSuccessSnackBar('Password changed successfully!');
+    } catch (e) {
+      final error = ErrorHandler.handleError(e);
+      _showErrorSnackBar(error.userMessage);
+    } finally {
+      setState(() => _isUpdating = false);
+    }
+  }
+
   Future<void> _updateProfile() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -410,22 +559,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (_currentUser?.isAstrologer == true) {
         updateData.addAll({
           'bio': _bioController.text.trim(),
-          'experience_years': int.tryParse(_experienceController.text.trim()) ?? 0,
+          'experience_years': _selectedExperience ?? 0, // Use dropdown value
           'languages': _selectedLanguages.isEmpty ? null : _selectedLanguages.join(', '),
           'qualifications': _qualificationsList.isEmpty ? null : _qualificationsList.join(', '),
           'skills': _selectedSkills.isEmpty ? null : _selectedSkills.join(', '),
           'call_rate': double.tryParse(_callRateController.text.trim()) ?? 0.0,
           'chat_rate': double.tryParse(_chatRateController.text.trim()) ?? 0.0,
           'video_rate': double.tryParse(_videoRateController.text.trim()) ?? 0.0,
+          // Bank details
+          'account_holder_name': _accountHolderController.text.trim(),
+          'account_number': _accountNumberController.text.trim(),
+          'bank_name': _bankNameController.text.trim(),
+          'ifsc_code': _ifscController.text.trim(),
         });
       }
 
-      // Update profile via API, including image if selected
-      final updatedUser = await _authService.updateUserProfile(updateData, profileImagePath: _selectedProfileImage?.path);
+      // Update profile via API, including images if selected
+      final updatedUser = await _authService.updateUserProfile(
+        updateData, 
+        profileImagePath: _selectedProfileImage?.path,
+        panCardImagePath: _selectedPanCardImage?.path,
+      );
 
       setState(() {
         _currentUser = updatedUser;
         _selectedProfileImage = null; // Clear selected image after successful upload
+        _selectedPanCardImage = null; // Clear selected PAN card image after successful upload
       });
 
       // Refresh user data after successful update
@@ -753,21 +912,171 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
 
-                    const SizedBox(height: 20),
+                    // Password Change Section - Only for email auth users
+                    if (_currentUser?.authType == AuthType.email) ...[
+                      const SizedBox(height: 20),
+                      _buildSectionCard(
+                        title: 'Security',
+                        icon: Icons.lock,
+                        children: [
+                          if (!_showChangePassword) ...[
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  setState(() {
+                                    _showChangePassword = true;
+                                  });
+                                },
+                                icon: Icon(Icons.key, color: AppColors.primary),
+                                label: Text(
+                                  'Change Password',
+                                  style: AppTextStyles.buttonLarge.copyWith(color: AppColors.primary),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  side: BorderSide(color: AppColors.primary),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ] else ...[
+                            // Current Password
+                            _buildTextField(
+                              controller: _currentPasswordController,
+                              label: 'Current Password',
+                              icon: Icons.lock_outline,
+                              obscureText: _obscureCurrentPassword,
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscureCurrentPassword ? Icons.visibility_off : Icons.visibility,
+                                  color: AppColors.textSecondaryLight,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscureCurrentPassword = !_obscureCurrentPassword;
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            
+                            // New Password
+                            _buildTextField(
+                              controller: _newPasswordController,
+                              label: 'New Password',
+                              icon: Icons.lock,
+                              obscureText: _obscureNewPassword,
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscureNewPassword ? Icons.visibility_off : Icons.visibility,
+                                  color: AppColors.textSecondaryLight,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscureNewPassword = !_obscureNewPassword;
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            
+                            // Confirm Password
+                            _buildTextField(
+                              controller: _confirmPasswordController,
+                              label: 'Confirm New Password',
+                              icon: Icons.lock,
+                              obscureText: _obscureConfirmPassword,
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                                  color: AppColors.textSecondaryLight,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscureConfirmPassword = !_obscureConfirmPassword;
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            
+                            // Action Buttons
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _showChangePassword = false;
+                                        _currentPasswordController.clear();
+                                        _newPasswordController.clear();
+                                        _confirmPasswordController.clear();
+                                      });
+                                    },
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      side: BorderSide(color: AppColors.grey300),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'Cancel',
+                                      style: AppTextStyles.buttonLarge.copyWith(color: AppColors.textSecondaryLight),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: _isUpdating ? null : _changePassword,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: _isUpdating 
+                                      ? SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                                          ),
+                                        )
+                                      : Text(
+                                          'Change Password',
+                                          style: AppTextStyles.buttonLarge.copyWith(color: AppColors.white),
+                                        ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
 
-                    // Birth Information Card
-                    _buildSectionCard(
-                      title: 'Birth Information',
-                      icon: Icons.cake,
-                      children: [
-                        GestureDetector(
-                          onTap: _selectBirthDate,
-                          child: _buildTextField(
-                            controller: TextEditingController(text: _selectedBirthDate != null ? '${_selectedBirthDate!.day.toString().padLeft(2, '0')}/${_selectedBirthDate!.month.toString().padLeft(2, '0')}/${_selectedBirthDate!.year}' : 'Select Date of Birth'),
-                            label: 'Date of Birth',
-                            icon: Icons.calendar_today,
-                            enabled: false,
-                            suffixIcon: Icons.arrow_drop_down,
+                    // Birth Information Card - Only show for customers, not astrologers
+                    if (_currentUser?.isCustomer == true) ...[
+                      const SizedBox(height: 20),
+                      _buildSectionCard(
+                        title: 'Birth Information',
+                        icon: Icons.cake,
+                        children: [
+                          GestureDetector(
+                            onTap: _selectBirthDate,
+                            child: _buildTextField(
+                              controller: TextEditingController(text: _selectedBirthDate != null ? '${_selectedBirthDate!.day.toString().padLeft(2, '0')}/${_selectedBirthDate!.month.toString().padLeft(2, '0')}/${_selectedBirthDate!.year}' : 'Select Date of Birth'),
+                              label: 'Date of Birth',
+                              icon: Icons.calendar_today,
+                              enabled: false,
+                              suffixIcon: Icons.arrow_drop_down,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -787,6 +1096,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _buildTextField(controller: _birthPlaceController, label: 'Place of Birth (Optional)', icon: Icons.location_on_outlined),
                       ],
                     ),
+                    ],
 
                     // Astrologer-specific sections
                     if (_currentUser?.isAstrologer == true) ...[
@@ -811,18 +1121,71 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           const SizedBox(height: 16),
 
-                          _buildTextField(
-                            controller: _experienceController,
-                            label: 'Years of Experience',
-                            icon: Icons.timeline,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                            validator: (value) {
-                              if (value?.trim().isEmpty ?? true) {
-                                return 'Experience is required';
-                              }
-                              return null;
-                            },
+                          // Years of Experience Dropdown
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.timeline, color: AppColors.textSecondaryLight, size: 20),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Years of Experience',
+                                    style: AppTextStyles.labelLarge.copyWith(
+                                      color: AppColors.textPrimaryLight,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: AppColors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: AppColors.borderLight),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.06),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: DropdownButtonFormField<int>(
+                                  initialValue: _selectedExperience,
+                                  decoration: InputDecoration(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    hintText: 'Select years of experience',
+                                    hintStyle: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSecondaryLight),
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                  ),
+                                  icon: Icon(Icons.arrow_drop_down, color: AppColors.textSecondaryLight),
+                                  items: List.generate(80, (index) => index + 1)
+                                      .map((years) => DropdownMenuItem<int>(
+                                            value: years,
+                                            child: Text(
+                                              years == 1 ? '$years year' : '$years years',
+                                              style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textPrimary),
+                                            ),
+                                          ))
+                                      .toList(),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _selectedExperience = value;
+                                    });
+                                  },
+                                  validator: (value) {
+                                    if (value == null) {
+                                      return 'Experience is required';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 16),
 
@@ -885,6 +1248,131 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               }
                               return null;
                             },
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Bank Details Card
+                      _buildSectionCard(
+                        title: 'Bank Details',
+                        icon: Icons.account_balance,
+                        children: [
+                          _buildTextField(
+                            controller: _accountHolderController,
+                            label: 'Account Holder Name',
+                            icon: Icons.person_outline,
+                            validator: (value) {
+                              if (value?.trim().isEmpty ?? true) {
+                                return 'Account holder name is required';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
+                          _buildTextField(
+                            controller: _accountNumberController,
+                            label: 'Account Number',
+                            icon: Icons.credit_card,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            validator: (value) {
+                              if (value?.trim().isEmpty ?? true) {
+                                return 'Account number is required';
+                              }
+                              if (value!.length < 9 || value.length > 18) {
+                                return 'Please enter a valid account number';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
+                          _buildTextField(
+                            controller: _bankNameController,
+                            label: 'Bank Name',
+                            icon: Icons.business,
+                            validator: (value) {
+                              if (value?.trim().isEmpty ?? true) {
+                                return 'Bank name is required';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
+                          _buildTextField(
+                            controller: _ifscController,
+                            label: 'IFSC Code',
+                            icon: Icons.code,
+                            inputFormatters: [
+                              LengthLimitingTextInputFormatter(11),
+                              FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
+                            ],
+                            validator: (value) {
+                              if (value?.trim().isEmpty ?? true) {
+                                return 'IFSC code is required';
+                              }
+                              if (!RegExp(r'^[A-Z]{4}0[A-Z0-9]{6}$').hasMatch(value!.toUpperCase())) {
+                                return 'Please enter a valid IFSC code (e.g., SBIN0001234)';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
+                          // PAN Card Upload Section
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'PAN Card Image',
+                                style: AppTextStyles.labelLarge.copyWith(color: AppColors.textPrimaryLight, fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(height: 8),
+                              GestureDetector(
+                                onTap: _pickPanCardImage,
+                                child: Container(
+                                  height: 120,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.grey50,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: AppColors.borderLight),
+                                  ),
+                                  child: _selectedPanCardImage != null
+                                      ? ClipRRect(
+                                          borderRadius: BorderRadius.circular(12),
+                                          child: Image.file(
+                                            _selectedPanCardImage!,
+                                            width: double.infinity,
+                                            height: 120,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        )
+                                      : _currentUser?.panCardUrl != null && _currentUser!.panCardUrl!.isNotEmpty
+                                          ? ClipRRect(
+                                              borderRadius: BorderRadius.circular(12),
+                                              child: Image.network(
+                                                _buildImageUrl(_currentUser!.panCardUrl!),
+                                                width: double.infinity,
+                                                height: 120,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (context, error, stackTrace) {
+                                                  return _buildPanCardPlaceholder();
+                                                },
+                                              ),
+                                            )
+                                          : _buildPanCardPlaceholder(),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Tap to ${_selectedPanCardImage != null || (_currentUser?.panCardUrl?.isNotEmpty == true) ? 'change' : 'upload'} PAN card image',
+                                style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryLight),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -1066,6 +1554,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return _buildFallbackAvatar();
   }
 
+  String _buildImageUrl(String imageUrl) {
+    if (imageUrl.startsWith('http')) {
+      return imageUrl;
+    }
+    
+    final baseUrl = Config.baseUrlSync.replaceAll('/api', '');
+    if (!imageUrl.startsWith('/')) {
+      imageUrl = '/$imageUrl';
+    }
+    return baseUrl + imageUrl;
+  }
+
+  Widget _buildPanCardPlaceholder() {
+    return Container(
+      width: double.infinity,
+      height: 120,
+      decoration: BoxDecoration(
+        color: AppColors.grey50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderLight, style: BorderStyle.solid),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.credit_card,
+            size: 40,
+            color: AppColors.textSecondaryLight,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Upload PAN Card',
+            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Tap to select image',
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryLight),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildFallbackAvatar() {
     final name = _currentUser?.name ?? 'User';
@@ -1126,14 +1657,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildTextField({required TextEditingController controller, required String label, required IconData icon, TextInputType? keyboardType, bool enabled = true, IconData? suffixIcon, String? Function(String?)? validator, List<TextInputFormatter>? inputFormatters, int? maxLines, String? hint}) {
+  Widget _buildTextField({required TextEditingController controller, required String label, required IconData icon, TextInputType? keyboardType, bool enabled = true, dynamic suffixIcon, String? Function(String?)? validator, List<TextInputFormatter>? inputFormatters, int? maxLines, String? hint, bool obscureText = false}) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       enabled: enabled,
+      obscureText: obscureText,
       validator: validator,
       inputFormatters: inputFormatters,
-      maxLines: maxLines ?? 1,
+      maxLines: obscureText ? 1 : (maxLines ?? 1),
       style: AppTextStyles.bodyMedium.copyWith(color: enabled ? AppColors.textPrimaryLight : AppColors.textSecondaryLight),
       decoration: InputDecoration(
         labelText: label,
@@ -1141,7 +1673,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         hintText: hint ?? (!enabled && controller.text.isEmpty ? 'Not specified' : null),
         hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight, fontStyle: FontStyle.italic),
         prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
-        suffixIcon: suffixIcon != null ? Icon(suffixIcon, color: AppColors.textSecondaryLight, size: 20) : null,
+        suffixIcon: suffixIcon != null 
+          ? (suffixIcon is Widget ? suffixIcon : Icon(suffixIcon as IconData, color: AppColors.textSecondaryLight, size: 20))
+          : null,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.borderLight),

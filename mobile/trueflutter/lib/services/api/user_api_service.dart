@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http_parser/http_parser.dart';
@@ -7,6 +8,7 @@ import '../../models/product.dart';
 import '../../models/astrologer.dart';
 import '../local/local_storage_service.dart';
 import 'endpoints.dart';
+import '../../common/utils/error_handler.dart';
 
 class UserApiService {
   final Dio _dio;
@@ -24,6 +26,7 @@ class UserApiService {
     DateTime? dateOfBirth,
     String? timeOfBirth,
     String? placeOfBirth,
+    String? gender,
     String? authType = 'email',
     String? googleIdToken,
     String? googleAccessToken,
@@ -41,6 +44,11 @@ class UserApiService {
     double? chatRate,
     double? videoRate,
     String? profileImagePath,
+    String? accountHolderName,
+    String? accountNumber,
+    String? bankName,
+    String? ifscCode,
+    String? panCardImagePath,
   }) async {
     try {
       final requestData = <String, dynamic>{
@@ -53,13 +61,14 @@ class UserApiService {
         'date_of_birth': dateOfBirth?.toIso8601String(),
         'time_of_birth': timeOfBirth,
         'place_of_birth': placeOfBirth,
+        if (gender != null && gender.isNotEmpty) 'gender': gender,
         'google_id_token': googleIdToken,
         'google_access_token': googleAccessToken,
         if (experience != null && experience.isNotEmpty) 'experience_years': experience,
         if (bio != null && bio.isNotEmpty) 'bio': bio,
-        if (qualifications != null && qualifications.isNotEmpty) 'qualifications': qualifications,
-        if (languages != null && languages.isNotEmpty) 'languages': languages,
-        if (skills != null && skills.isNotEmpty) 'skills': skills,
+        if (qualifications != null && qualifications.isNotEmpty) 'qualifications': qualifications.split(', '),
+        if (languages != null && languages.isNotEmpty) 'languages': languages.split(', '),
+        if (skills != null && skills.isNotEmpty) 'skills': skills.split(', '),
         if (address != null && address.isNotEmpty) 'address': address,
         if (city != null && city.isNotEmpty) 'city': city,
         if (state != null && state.isNotEmpty) 'state': state,
@@ -68,32 +77,88 @@ class UserApiService {
         if (callRate != null) 'call_rate': callRate,
         if (chatRate != null) 'chat_rate': chatRate,
         if (videoRate != null) 'video_rate': videoRate,
+        // Send bank details as a nested object for astrologers
+        if (role == UserRole.astrologer && 
+            accountHolderName != null && accountHolderName.isNotEmpty &&
+            accountNumber != null && accountNumber.isNotEmpty &&
+            bankName != null && bankName.isNotEmpty &&
+            ifscCode != null && ifscCode.isNotEmpty) 
+          'bank_details': {
+            'account_holder_name': accountHolderName,
+            'account_number': accountNumber,
+            'bank_name': bankName,
+            'ifsc_code': ifscCode,
+          },
+        // Add default commission percentage for astrologers
+        if (role == UserRole.astrologer)
+          'commission_percentage': {
+            'call': 25,
+            'chat': 25,
+            'video': 25,
+          },
       };
 
-      // First, register without profile image (JSON only)
-      final response = await _dio.post(ApiEndpoints.register, data: requestData);
+      // Check if we have files to upload
+      dynamic finalRequestData = requestData;
+      Options? requestOptions;
+
+      if (profileImagePath != null || panCardImagePath != null) {
+        // Use FormData for multipart upload
+        final formData = FormData();
+        
+        // Add all fields to FormData
+        requestData.forEach((key, value) {
+          if (value != null) {
+            // Convert objects and arrays to JSON strings for FormData
+            if (value is Map || value is List) {
+              formData.fields.add(MapEntry(key, json.encode(value)));
+            } else {
+              formData.fields.add(MapEntry(key, value.toString()));
+            }
+          }
+        });
+        
+        // Add profile image if provided
+        if (profileImagePath != null) {
+          final fileName = profileImagePath.split('/').last;
+          formData.files.add(MapEntry(
+            'profile_image',
+            await MultipartFile.fromFile(profileImagePath, filename: fileName),
+          ));
+          debugPrint('📸 Adding profile image to registration: $fileName');
+        }
+        
+        // Add PAN card image if provided (for astrologers)
+        if (panCardImagePath != null && role == UserRole.astrologer) {
+          final fileName = panCardImagePath.split('/').last;
+          formData.files.add(MapEntry(
+            'pan_card_image',
+            await MultipartFile.fromFile(panCardImagePath, filename: fileName),
+          ));
+          debugPrint('📄 Adding PAN card to registration: $fileName');
+        }
+        
+        finalRequestData = formData;
+        requestOptions = Options(
+          contentType: 'multipart/form-data',
+        );
+      }
+
+      // Send registration request
+      final response = await _dio.post(
+        ApiEndpoints.register, 
+        data: finalRequestData,
+        options: requestOptions,
+      );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         // Handle different response formats
         final userData = response.data['data'] ?? response.data;
         final user = User.fromJson(userData);
-
-        // If profile image was provided, update the profile with the image
-        // But only for customers (astrologers need admin approval first)
-        if (profileImagePath != null && role == UserRole.customer) {
-          try {
-            // For customers, we can immediately update profile with image
-            // For astrologers, skip image upload since they need admin approval
-            debugPrint('🖼️ Uploading profile image for customer after registration');
-
-            // Note: This would require a token, but customers get logged in automatically
-            // For now, we'll skip the image upload during registration
-            // The image will be uploaded when they update their profile later
-            debugPrint('⚠️ Profile image will be uploaded on profile update');
-          } catch (imageError) {
-            // Don't fail registration if image upload fails
-            debugPrint('⚠️ Profile image upload failed: $imageError');
-          }
+        
+        // Profile image is now handled during registration via FormData
+        if (userData['profile_image_id'] != null) {
+          debugPrint('✅ Profile image uploaded successfully with media_id: ${userData['profile_image_id']}');
         }
 
         return user;
@@ -101,7 +166,7 @@ class UserApiService {
         throw Exception('Registration failed: ${response.data['message']}');
       }
     } on DioException catch (e) {
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -157,7 +222,7 @@ class UserApiService {
       debugPrint('   - Error Message: ${e.message}');
       debugPrint('   - Request URI: ${e.requestOptions.uri}');
       debugPrint('   - Request Data: ${e.requestOptions.data}');
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -179,7 +244,7 @@ class UserApiService {
         throw Exception('Google sign in failed: ${response.data['message']}');
       }
     } on DioException catch (e) {
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -197,53 +262,58 @@ class UserApiService {
         throw Exception('Failed to get user profile: ${response.data['message']}');
       }
     } on DioException catch (e) {
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
   // Update user profile (supports both JSON and multipart data)
-  Future<User> updateUserProfile({required String token, required Map<String, dynamic> userData, String? profileImagePath}) async {
+  Future<User> updateUserProfile({required String token, required Map<String, dynamic> userData, String? profileImagePath, String? panCardImagePath}) async {
     try {
       dynamic requestData;
       Options requestOptions;
 
-      if (profileImagePath != null) {
-        // Create FormData when profile image is included
-        final fileName = profileImagePath.split('/').last;
-        final extension = fileName.toLowerCase().split('.').last;
-
-        String? contentType;
-        switch (extension) {
-          case 'jpg':
-          case 'jpeg':
-            contentType = 'image/jpeg';
-            break;
-          case 'png':
-            contentType = 'image/png';
-            break;
-          case 'webp':
-            contentType = 'image/webp';
-            break;
-          case 'heic':
-            contentType = 'image/heic';
-            break;
-          case 'heif':
-            contentType = 'image/heif';
-            break;
+      if (profileImagePath != null || panCardImagePath != null) {
+        // Create FormData when any image is included
+        final formDataMap = <String, dynamic>{};
+        
+        // Add profile image if provided
+        if (profileImagePath != null) {
+          final fileName = profileImagePath.split('/').last;
+          final extension = fileName.toLowerCase().split('.').last;
+          String? contentType = _getContentType(extension);
+          
+          debugPrint('🖼️ Updating profile with image: $fileName (type: $contentType)');
+          
+          formDataMap['profile_image'] = await MultipartFile.fromFile(
+            profileImagePath,
+            filename: fileName,
+            contentType: contentType != null ? MediaType.parse(contentType) : null,
+          );
         }
 
-        debugPrint('🖼️ Updating profile with image: $fileName (type: $contentType)');
+        // Add PAN card image if provided
+        if (panCardImagePath != null) {
+          final fileName = panCardImagePath.split('/').last;
+          final extension = fileName.toLowerCase().split('.').last;
+          String? contentType = _getContentType(extension);
+          
+          debugPrint('🆔 Updating profile with PAN card image: $fileName (type: $contentType)');
+          
+          formDataMap['pan_card_image'] = await MultipartFile.fromFile(
+            panCardImagePath,
+            filename: fileName,
+            contentType: contentType != null ? MediaType.parse(contentType) : null,
+          );
+        }
 
-        final formData = FormData.fromMap({
-          'profile_image': await MultipartFile.fromFile(profileImagePath, filename: fileName, contentType: contentType != null ? MediaType.parse(contentType) : null),
-          // Add all other profile fields
-          ...userData,
-        });
+        // Add all other profile fields
+        formDataMap.addAll(userData);
 
+        final formData = FormData.fromMap(formDataMap);
         requestData = formData;
         requestOptions = Options(contentType: 'multipart/form-data');
       } else {
-        // Use JSON when no image
+        // Use JSON when no images
         requestData = userData;
         requestOptions = Options();
       }
@@ -262,7 +332,7 @@ class UserApiService {
       }
     } on DioException catch (e) {
       debugPrint('❌ Profile update error: ${e.response?.statusCode} - ${e.response?.data}');
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -277,7 +347,7 @@ class UserApiService {
         throw Exception('Failed to check verification status: ${response.data['message']}');
       }
     } on DioException catch (e) {
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -292,7 +362,7 @@ class UserApiService {
         throw Exception('Token refresh failed: ${response.data['message']}');
       }
     } on DioException catch (e) {
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -326,7 +396,7 @@ class UserApiService {
       }
     } on DioException catch (e) {
       debugPrint('❌ Wallet balance API error: ${e.response?.statusCode} - ${e.response?.data}');
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -346,7 +416,7 @@ class UserApiService {
         throw Exception('Failed to get wallet transactions: ${response.data['message']}');
       }
     } on DioException catch (e) {
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -370,7 +440,7 @@ class UserApiService {
         throw Exception('Failed to get consultation history: ${response.data['message']}');
       }
     } on DioException catch (e) {
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -397,7 +467,7 @@ class UserApiService {
         throw Exception('Failed to create Razorpay order: ${response.data['message']}');
       }
     } on DioException catch (e) {
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -422,7 +492,7 @@ class UserApiService {
         throw Exception('Failed to recharge wallet: ${response.data['message']}');
       }
     } on DioException catch (e) {
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -456,7 +526,7 @@ class UserApiService {
         throw Exception('Failed to get astrologers: ${response.data['message']}');
       }
     } on DioException catch (e) {
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -471,7 +541,7 @@ class UserApiService {
         throw Exception('Failed to get astrologer details: ${response.data['message']}');
       }
     } on DioException catch (e) {
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -489,7 +559,7 @@ class UserApiService {
         throw Exception('Failed to get featured products: ${response.data['message']}');
       }
     } on DioException catch (e) {
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -519,7 +589,7 @@ class UserApiService {
         throw Exception('Failed to get products: ${response.data['message']}');
       }
     } on DioException catch (e) {
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -558,7 +628,7 @@ class UserApiService {
         throw Exception('Failed to get astrologer options: ${response.data['message']}');
       }
     } on DioException catch (e) {
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -605,7 +675,7 @@ class UserApiService {
 
       throw Exception('Upload failed: ${response.data}');
     } on DioException catch (e) {
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -622,7 +692,7 @@ class UserApiService {
         throw Exception('Failed to update profile image: ${response.data}');
       }
     } on DioException catch (e) {
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -644,58 +714,11 @@ class UserApiService {
       }
     } on DioException catch (e) {
       debugPrint('❌ Dashboard API error: ${e.response?.statusCode} - ${e.response?.data}');
-      // Return demo data for now until API is implemented
+      // NO DUMMY DATA - Return actual failure
       return {
-        'success': true,
-        'data': {
-          'todaysEarnings': 1250.0,
-          'totalEarnings': 47500.0,
-          'todaysConsultations': 8,
-          'totalConsultations': 245,
-          'pendingConsultations': 3,
-          'averageRating': 4.7,
-          'totalReviews': 89,
-          'isOnline': false,
-          'walletBalance': 15600.0,
-          'recentSessions': [
-            {
-              'id': '1',
-              'clientName': 'Priya S.',
-              'type': 'chat',
-              'duration': 15,
-              'amount': 75,
-              'timestamp': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
-              'status': 'completed'
-            },
-            {
-              'id': '2', 
-              'clientName': 'Rahul K.',
-              'type': 'voice_call',
-              'duration': 22,
-              'amount': 110,
-              'timestamp': DateTime.now().subtract(const Duration(hours: 4)).toIso8601String(),
-              'status': 'completed'
-            }
-          ],
-          'recentTransactions': [
-            {
-              'id': '1',
-              'type': 'earning',
-              'amount': 75,
-              'description': 'Chat consultation with Priya S.',
-              'timestamp': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
-              'status': 'credited'
-            },
-            {
-              'id': '2',
-              'type': 'withdrawal',
-              'amount': -1000,
-              'description': 'Bank transfer',
-              'timestamp': DateTime.now().subtract(const Duration(days: 2)).toIso8601String(),
-              'status': 'processed'
-            }
-          ]
-        }
+        'success': false,
+        'message': 'Dashboard data not available',
+        'data': null
       };
     }
   }
@@ -806,7 +829,7 @@ class UserApiService {
         throw Exception('Failed to get astrologer earnings: ${response.data['message']}');
       }
     } on DioException catch (e) {
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -910,7 +933,7 @@ class UserApiService {
         throw Exception('Failed to get pending consultations: ${response.data['message']}');
       }
     } on DioException catch (e) {
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -929,7 +952,7 @@ class UserApiService {
         throw Exception('Failed to update online status: ${response.data['message']}');
       }
     } on DioException catch (e) {
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -965,7 +988,7 @@ class UserApiService {
         throw Exception('Failed to update UPI details: ${response.data['message']}');
       }
     } on DioException catch (e) {
-      throw _handleDioException(e);
+      throw Exception(_handleDioException(e));
     }
   }
 
@@ -1167,51 +1190,55 @@ class UserApiService {
     }
   }
 
+  // Change password
+  Future<void> changePassword({required String token, required String currentPassword, required String newPassword}) async {
+    final response = await _dio.post(
+      ApiEndpoints.changePassword,
+      data: {
+        'current_password': currentPassword,
+        'new_password': newPassword,
+      },
+      options: Options(headers: {'Authorization': 'Bearer $token'}),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to change password: ${response.data['message']}');
+    }
+  }
+
+  // Helper method to get content type for images
+  String? _getContentType(String extension) {
+    switch (extension.toLowerCase()) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      case 'heic':
+        return 'image/heic';
+      case 'heif':
+        return 'image/heif';
+      default:
+        return null;
+    }
+  }
+
   // Handle Dio exceptions and convert to user-friendly messages
   String _handleDioException(DioException e) {
-    switch (e.type) {
-      case DioExceptionType.connectionTimeout:
-        return 'Connection timeout. Please check your internet connection.';
-      case DioExceptionType.sendTimeout:
-        return 'Send timeout. Please try again.';
-      case DioExceptionType.receiveTimeout:
-        return 'Receive timeout. Please try again.';
-      case DioExceptionType.badResponse:
-        final statusCode = e.response?.statusCode;
-        final message = e.response?.data['message'] ?? 'Unknown error occurred';
-
-        switch (statusCode) {
-          case 400:
-            return 'Bad request: $message';
-          case 401:
-            return 'Invalid credentials. Please check your email and password.';
-          case 403:
-            return 'Account verification pending. Please wait for admin approval.';
-          case 404:
-            // Check if this is a USER_NOT_REGISTERED error for Google login flow
-            final errorData = e.response?.data;
-            if (errorData is Map && errorData['error'] == 'USER_NOT_REGISTERED') {
-              // Preserve the original USER_NOT_REGISTERED error for Google signup flow
-              throw Exception('USER_NOT_REGISTERED: ${errorData['message'] ?? 'User not registered'}');
-            }
-            return 'User not found. Please check your email.';
-          case 409:
-            return 'Email already exists. Please use a different email.';
-          case 422:
-            return 'Invalid data: $message';
-          case 500:
-            return 'Server error. Please try again later.';
-          default:
-            return message;
-        }
-      case DioExceptionType.cancel:
-        return 'Request was cancelled.';
-      case DioExceptionType.connectionError:
-        return 'Connection error. Please check your internet connection.';
-      case DioExceptionType.unknown:
-        return 'Network error. Please check your internet connection.';
-      case DioExceptionType.badCertificate:
-        return 'SSL certificate error. Please check your connection.';
+    // Use our comprehensive error handler from ErrorHandler class
+    final appError = ErrorHandler.handleError(e, context: 'api');
+    
+    // For specific Google sign-in flow, preserve USER_NOT_REGISTERED errors
+    if (e.type == DioExceptionType.badResponse && e.response?.statusCode == 404) {
+      final errorData = e.response?.data;
+      if (errorData is Map && errorData['error'] == 'USER_NOT_REGISTERED') {
+        // Preserve the original USER_NOT_REGISTERED error for Google signup flow
+        throw Exception('USER_NOT_REGISTERED: ${errorData['message'] ?? 'User not registered'}');
+      }
     }
+    
+    return appError.userMessage.isNotEmpty ? appError.userMessage : 'An error occurred. Please try again.';
   }
 }

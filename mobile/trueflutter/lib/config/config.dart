@@ -20,7 +20,7 @@ class Config {
   static Future<String> _getLocalIP() async {
     // For development, use your Mac's actual IP address so iOS can connect
     if (isDevelopment) {
-      _cachedLocalIP = '192.168.29.9'; // Your Mac's IP for iOS to connect
+      _cachedLocalIP = '192.168.1.240'; // Your Mac's IP for iOS to connect
       return _cachedLocalIP!;
     }
 
@@ -112,6 +112,14 @@ class Config {
     'FIREBASE_VAPID_KEY',
     defaultValue: '',
   );
+
+  // Google Maps/Places API configuration
+  // Using Firebase API key - make sure Places API is enabled in Google Cloud Console
+  static const String googleMapsApiKey =
+      'AIzaSyDIyKdtH6FeOaI3I3XZ8vtwECLATnwy7Sw';
+
+  // Google Places configuration
+  static const bool enableGooglePlaces = true;
 
   // Feature flags
   static const bool enablePushNotifications = true;

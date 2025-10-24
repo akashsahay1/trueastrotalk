@@ -9,7 +9,8 @@ function getBaseUrl(request: NextRequest): string {
 }
 
 // Helper function to resolve profile image to full URL
-async function resolveProfileImage(user: Record<string, any>, mediaCollection: any, baseUrl: string): Promise<string | null> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function resolveProfileImage(user: Record<string, unknown>, mediaCollection: any, baseUrl: string): Promise<string | null> {
   // Check if user has profile_image_id
   if (!user.profile_image_id) {
     return null;
@@ -54,7 +55,7 @@ export async function GET(
     const profileImage = await resolveProfileImage(user, mediaCollection, baseUrl);
 
     // Prepare response based on user type
-    const userResponse: any = {
+    const userResponse: Record<string, unknown> = {
       id: user.user_id,
       full_name: user.full_name,
       email_address: user.email_address,

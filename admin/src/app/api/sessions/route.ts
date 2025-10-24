@@ -396,7 +396,7 @@ export async function PATCH(request: NextRequest) {
 
       // Credit astrologer's wallet (80% of the amount, 20% platform commission)
       const astrologerShare = amountToDeduct * 0.8; // 80% to astrologer
-      const platformCommission = amountToDeduct * 0.2; // 20% platform commission
+      // const platformCommission = amountToDeduct * 0.2; // 20% platform commission (for future use)
 
       // Get astrologer to update their wallet
       const astrologer = await usersCollection.findOne(

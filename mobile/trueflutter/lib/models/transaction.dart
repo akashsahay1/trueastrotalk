@@ -21,14 +21,14 @@ class Transaction {
 
   factory Transaction.fromJson(Map<String, dynamic> json) {
     return Transaction(
-      id: json['transaction_id'] ?? json['id']!,
-      type: _parseTransactionType(json['type']!),
-      amount: (json['amount']!).toDouble(),
-      description: json['description']!,
-      createdAt: DateTime.parse(json['created_at'] ?? json['createdAt']!),
+      id: json['id'],
+      type: _parseTransactionType(json['type']),
+      amount: (json['amount']).toDouble(),
+      description: json['description'],
+      createdAt: DateTime.parse(json['created_at']),
       paymentId: json['payment_id'],
       paymentMethod: json['payment_method'],
-      status: _parseTransactionStatus(json['status']!),
+      status: _parseTransactionStatus(json['status']),
     );
   }
 

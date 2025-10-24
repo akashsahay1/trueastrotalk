@@ -38,8 +38,8 @@ dependencies:
   # State Management
   provider: ^6.1.1
 
-  # Environment Configuration
-  flutter_dotenv: ^5.1.0
+  # Environment Configuration - Using config.dart instead
+  # flutter_dotenv: ^5.1.0
 
   # Network & API
   dio: ^5.4.0
@@ -92,6 +92,10 @@ dependencies:
 
   # Google OAuth - For custom implementation via Next.js APIs
   google_sign_in: ^7.1.1
+  
+  # Google Places for address autocomplete
+  google_places_flutter: ^2.0.9
+  google_maps_flutter: ^2.5.0
   # firebase_messaging: ^14.7.9
   # firebase_analytics: ^10.7.4
   # firebase_crashlytics: ^3.4.8

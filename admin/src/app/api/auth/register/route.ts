@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
+import { writeFile, mkdir } from 'fs/promises';
+import { existsSync } from 'fs';
+import path from 'path';
 import DatabaseService from '../../../../lib/database';
 import { 
   PasswordSecurity, 
@@ -8,6 +11,90 @@ import {
   InputSanitizer
 } from '../../../../lib/security';
 import { generateUserId } from '../../../../lib/custom-id';
+
+/**
+ * Generate a unique media ID that persists across database exports/imports
+ * Format: media_{timestamp}_{random}
+ */
+function generateMediaId(): string {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 10);
+  return `media_${timestamp}_${random}`;
+}
+
+/**
+ * Handle file upload and return media info
+ */
+async function handleFileUpload(file: File, fileType: string, uploadedBy: string): Promise<{ mediaId: string; filePath: string } | null> {
+  try {
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+    const fileExtension = file.name.toLowerCase().split('.').pop();
+    const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'];
+    
+    const isValidMimeType = allowedTypes.includes(file.type.toLowerCase());
+    const isValidExtension = fileExtension && allowedExtensions.includes(fileExtension);
+    
+    if (!isValidMimeType && !isValidExtension) {
+      console.error(`Invalid file type: ${file.type}`);
+      return null;
+    }
+
+    // Validate file size (10MB max)
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      console.error('File size too large');
+      return null;
+    }
+
+    // Create directory path
+    const now = new Date();
+    const year = now.getFullYear().toString();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads', year, month);
+    
+    if (!existsSync(uploadDir)) {
+      await mkdir(uploadDir, { recursive: true });
+    }
+
+    // Generate filename
+    const timestamp = Date.now();
+    const extension = path.extname(file.name);
+    const fileName = `ta-${timestamp}${extension}`;
+    const filePath = path.join(uploadDir, fileName);
+    
+    // Save file
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    await writeFile(filePath, buffer);
+    
+    const publicUrl = `/uploads/${year}/${month}/${fileName}`;
+    const mediaId = generateMediaId();
+
+    // Save to media collection
+    const mediaCollection = await DatabaseService.getCollection('media');
+    await mediaCollection.insertOne({
+      media_id: mediaId,
+      filename: fileName,
+      original_name: file.name,
+      file_path: publicUrl,
+      file_size: file.size,
+      mime_type: file.type,
+      file_type: fileType,
+      uploaded_by: uploadedBy,
+      associated_record: uploadedBy,
+      is_external: false,
+      uploaded_at: now,
+      created_at: now,
+      updated_at: now
+    });
+
+    return { mediaId, filePath: publicUrl };
+  } catch (error) {
+    console.error('File upload error:', error);
+    return null;
+  }
+}
 
 /**
  * Validate Google ID Token for registration
@@ -45,8 +132,47 @@ export async function POST(request: NextRequest) {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     console.log(`📝 Registration attempt from IP: ${ip}`);
 
-    // Parse and sanitize request body
-    const body = await request.json();
+    // Check if request is multipart/form-data or JSON
+    const contentType = request.headers.get('content-type') || '';
+    let body: Record<string, unknown> = {};
+    let profileImageFile: File | null = null;
+    let panCardImageFile: File | null = null;
+
+    if (contentType.includes('multipart/form-data')) {
+      // Handle FormData with file uploads
+      const formData = await request.formData();
+      
+      // Extract files
+      profileImageFile = formData.get('profile_image') as File || null;
+      panCardImageFile = formData.get('pan_card_image') as File || null;
+      
+      // Extract other fields
+      for (const [key, value] of formData.entries()) {
+        if (key !== 'profile_image' && key !== 'pan_card_image') {
+          // Parse JSON strings for nested objects
+          if (typeof value === 'string' && (key === 'bank_details' || key === 'commission_percentage')) {
+            try {
+              body[key] = JSON.parse(value);
+            } catch {
+              body[key] = value;
+            }
+          } else if (typeof value === 'string' && (key === 'languages' || key === 'skills' || key === 'qualifications')) {
+            // Parse array fields
+            try {
+              body[key] = JSON.parse(value);
+            } catch {
+              body[key] = value;
+            }
+          } else {
+            body[key] = value;
+          }
+        }
+      }
+    } else {
+      // Handle JSON request
+      body = await request.json();
+    }
+
     const sanitizedBody = InputSanitizer.sanitizeMongoQuery(body);
     
     const { 
@@ -73,6 +199,9 @@ export async function POST(request: NextRequest) {
       call_rate,
       chat_rate,
       video_rate,
+      // Bank details for astrologers
+      bank_details,
+      commission_percentage,
       // Customer-specific fields
       birth_time,
       birth_place
@@ -325,12 +454,37 @@ export async function POST(request: NextRequest) {
     if (user_type === 'astrologer') {
       userData.experience_years = parseInt(experience_years as string);
       userData.bio = (bio as string).trim();
-      userData.languages = (languages as string).trim();
-      userData.skills = skills ? (skills as string).trim() : '';
-      userData.qualifications = qualifications || [];
+      
+      // Process arrays properly
+      userData.languages = Array.isArray(languages) ? languages : 
+                          typeof languages === 'string' ? languages.split(',').map((l: string) => l.trim()).filter(Boolean) : [];
+      userData.skills = Array.isArray(skills) ? skills : 
+                       typeof skills === 'string' ? skills.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+      userData.qualifications = Array.isArray(qualifications) ? qualifications : 
+                               typeof qualifications === 'string' ? qualifications.split(',').map((q: string) => q.trim()).filter(Boolean) : [];
+      
       userData.call_rate = call_rate ? parseFloat(call_rate as string) : 50;
       userData.chat_rate = chat_rate ? parseFloat(chat_rate as string) : 30;
       userData.video_rate = video_rate ? parseFloat(video_rate as string) : 80;
+      
+      // Add bank details if provided
+      if (bank_details && typeof bank_details === 'object') {
+        const bankDetails = bank_details as Record<string, string>;
+        userData.bank_details = {
+          account_holder_name: bankDetails.account_holder_name || '',
+          account_number: bankDetails.account_number || '',
+          bank_name: bankDetails.bank_name || '',
+          ifsc_code: bankDetails.ifsc_code || ''
+        };
+      }
+      
+      // Add commission percentage (default or provided)
+      userData.commission_percentage = commission_percentage || {
+        call: 25,
+        chat: 25,
+        video: 25
+      };
+      
       // Note: Removed availability system - astrologers are available when online
       userData.rating = 0;
       userData.total_reviews = 0;
@@ -338,6 +492,37 @@ export async function POST(request: NextRequest) {
       userData.total_earnings = 0;
       userData.verification_documents = [];
       userData.approval_status = 'pending';
+    }
+
+    // Handle profile image upload if provided
+    if (profileImageFile) {
+      const uploadResult = await handleFileUpload(
+        profileImageFile, 
+        'profile_image', 
+        userData.user_id as string
+      );
+      
+      if (uploadResult) {
+        // Store media_id in profile_image_id field (not profile_image)
+        userData.profile_image_id = uploadResult.mediaId;
+        // Also store the path for backward compatibility if needed
+        userData.profile_image = uploadResult.filePath;
+        console.log(`📸 Profile image uploaded with media_id: ${uploadResult.mediaId}`);
+      }
+    }
+
+    // Handle PAN card image upload for astrologers
+    if (user_type === 'astrologer' && panCardImageFile) {
+      const uploadResult = await handleFileUpload(
+        panCardImageFile, 
+        'pan_card', 
+        userData.user_id as string
+      );
+      
+      if (uploadResult) {
+        userData.pan_card_id = uploadResult.mediaId;
+        console.log(`📄 PAN card uploaded with media_id: ${uploadResult.mediaId}`);
+      }
     }
 
     // Insert user into database
@@ -383,6 +568,7 @@ export async function POST(request: NextRequest) {
       verification_status: userData.verification_status,
       auth_type: userData.auth_type,
       profile_image: userData.profile_image || '',
+      profile_image_id: userData.profile_image_id || null,
       wallet_balance: userData.wallet_balance,
       is_online: false,
       email_verified: userData.email_verified,
@@ -397,9 +583,12 @@ export async function POST(request: NextRequest) {
         bio: userData.bio,
         languages: userData.languages,
         skills: userData.skills,
+        qualifications: userData.qualifications,
         call_rate: userData.call_rate,
         chat_rate: userData.chat_rate,
         video_rate: userData.video_rate,
+        bank_details: userData.bank_details,
+        commission_percentage: userData.commission_percentage,
         is_available: userData.is_available,
         rating: userData.rating,
         approval_status: userData.approval_status

@@ -132,6 +132,7 @@ class AuthService {
     DateTime? dateOfBirth,
     TimeOfDay? timeOfBirth,
     String? placeOfBirth,
+    String? gender,
     String? experience,
     String? bio,
     String? languages,
@@ -146,6 +147,11 @@ class AuthService {
     double? chatRate,
     double? videoRate,
     String? profileImagePath,
+    String? accountHolderName,
+    String? accountNumber,
+    String? bankName,
+    String? ifscCode,
+    String? panCardImagePath,
   }) async {
     try {
       String? timeOfBirthStr;
@@ -164,6 +170,7 @@ class AuthService {
         dateOfBirth: dateOfBirth,
         timeOfBirth: timeOfBirthStr,
         placeOfBirth: placeOfBirth,
+        gender: gender,
         experience: experience,
         bio: bio,
         languages: languages,
@@ -178,6 +185,11 @@ class AuthService {
         chatRate: chatRate,
         videoRate: videoRate,
         profileImagePath: profileImagePath,
+        accountHolderName: accountHolderName,
+        accountNumber: accountNumber,
+        bankName: bankName,
+        ifscCode: ifscCode,
+        panCardImagePath: panCardImagePath,
       );
 
       return AuthResult.success(message: 'Registration successful', user: user);
@@ -201,6 +213,7 @@ class AuthService {
     DateTime? dateOfBirth,
     String? timeOfBirth,
     String? placeOfBirth,
+    String? gender,
     String? authType,
     String? googleAccessToken,
     String? googleIdToken,
@@ -218,6 +231,11 @@ class AuthService {
     double? chatRate,
     double? videoRate,
     String? profileImagePath,
+    String? accountHolderName,
+    String? accountNumber,
+    String? bankName,
+    String? ifscCode,
+    String? panCardImagePath,
   }) async {
     try {
       final user = await _userApiService.registerUser(
@@ -229,6 +247,7 @@ class AuthService {
         dateOfBirth: dateOfBirth,
         timeOfBirth: timeOfBirth,
         placeOfBirth: placeOfBirth,
+        gender: gender,
         authType: authType,
         googleAccessToken: googleAccessToken,
         googleIdToken: googleIdToken,
@@ -246,6 +265,11 @@ class AuthService {
         chatRate: chatRate,
         videoRate: videoRate,
         profileImagePath: profileImagePath,
+        accountHolderName: accountHolderName,
+        accountNumber: accountNumber,
+        bankName: bankName,
+        ifscCode: ifscCode,
+        panCardImagePath: panCardImagePath,
       );
 
       if (user.role == UserRole.astrologer) {
@@ -520,13 +544,13 @@ class AuthService {
     }
   }
 
-  Future<app_user.User> updateUserProfile(Map<String, dynamic> userData, {String? profileImagePath}) async {
+  Future<app_user.User> updateUserProfile(Map<String, dynamic> userData, {String? profileImagePath, String? panCardImagePath}) async {
     if (_authToken == null) {
       throw Exception('User not authenticated');
     }
 
     try {
-      final updatedUser = await _userApiService.updateUserProfile(token: _authToken!, userData: userData, profileImagePath: profileImagePath);
+      final updatedUser = await _userApiService.updateUserProfile(token: _authToken!, userData: userData, profileImagePath: profileImagePath, panCardImagePath: panCardImagePath);
 
       _currentUser = updatedUser;
       await _saveUserData(updatedUser);
@@ -538,7 +562,7 @@ class AuthService {
         try {
           await refreshAuthToken();
           // Try the request again with fresh token
-          final updatedUser = await _userApiService.updateUserProfile(token: _authToken!, userData: userData, profileImagePath: profileImagePath);
+          final updatedUser = await _userApiService.updateUserProfile(token: _authToken!, userData: userData, profileImagePath: profileImagePath, panCardImagePath: panCardImagePath);
           _currentUser = updatedUser;
           await _saveUserData(updatedUser);
           return updatedUser;
@@ -674,6 +698,20 @@ class AuthService {
 
   Future<void> _updateUserProfileImage(String userId, String imageUrl) async {
     return await _userApiService.updateUserProfileImage(userId, imageUrl);
+  }
+
+  Future<void> changePassword({required String currentPassword, required String newPassword}) async {
+    if (_authToken == null) {
+      throw Exception('User not authenticated');
+    }
+
+    // Let the userApiService handle the error and propagate it naturally
+    // The ErrorHandler will take care of converting DioExceptions to user-friendly messages
+    await _userApiService.changePassword(
+      token: _authToken!,
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
   }
 
 }

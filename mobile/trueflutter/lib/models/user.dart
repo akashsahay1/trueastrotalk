@@ -56,6 +56,13 @@ class User {
   final double? pendingPayouts;
   final DateTime? lastPayoutAt;
 
+  // Bank details for astrologers
+  final String? accountHolderName;
+  final String? accountNumber;
+  final String? bankName;
+  final String? ifscCode;
+  final String? panCardUrl;
+
   // Rating and reviews
   final double? rating;
   final int? totalReviews;
@@ -115,6 +122,13 @@ class User {
     this.totalEarnings,
     this.pendingPayouts,
     this.lastPayoutAt,
+
+    // Bank details for astrologers
+    this.accountHolderName,
+    this.accountNumber,
+    this.bankName,
+    this.ifscCode,
+    this.panCardUrl,
 
     // Rating and reviews
     this.rating,
@@ -259,6 +273,13 @@ class User {
         pendingPayouts: _parseDouble(json['pending_payouts']),
         lastPayoutAt: json['last_payout_at'] != null ? DateTime.tryParse(json['last_payout_at'].toString()) : null,
 
+        // Bank details
+        accountHolderName: json['account_holder_name']?.toString(),
+        accountNumber: json['account_number']?.toString(),
+        bankName: json['bank_name']?.toString(),
+        ifscCode: json['ifsc_code']?.toString(),
+        panCardUrl: json['pan_card_url']?.toString(),
+
         // Rating and reviews
         rating: _parseDouble(json['rating']),
         totalReviews: _parseInt(json['total_reviews']),
@@ -328,6 +349,13 @@ class User {
       'pending_payouts': pendingPayouts,
       'last_payout_at': lastPayoutAt?.toIso8601String(),
 
+      // Bank details
+      'account_holder_name': accountHolderName,
+      'account_number': accountNumber,
+      'bank_name': bankName,
+      'ifsc_code': ifscCode,
+      'pan_card_url': panCardUrl,
+
       // Rating and reviews
       'rating': rating,
       'total_reviews': totalReviews,
@@ -392,6 +420,13 @@ class User {
     double? pendingPayouts,
     DateTime? lastPayoutAt,
 
+    // Bank details
+    String? accountHolderName,
+    String? accountNumber,
+    String? bankName,
+    String? ifscCode,
+    String? panCardUrl,
+
     // Rating and reviews
     double? rating,
     int? totalReviews,
@@ -451,6 +486,13 @@ class User {
       totalEarnings: totalEarnings ?? this.totalEarnings,
       pendingPayouts: pendingPayouts ?? this.pendingPayouts,
       lastPayoutAt: lastPayoutAt ?? this.lastPayoutAt,
+
+      // Bank details
+      accountHolderName: accountHolderName ?? this.accountHolderName,
+      accountNumber: accountNumber ?? this.accountNumber,
+      bankName: bankName ?? this.bankName,
+      ifscCode: ifscCode ?? this.ifscCode,
+      panCardUrl: panCardUrl ?? this.panCardUrl,
 
       // Rating and reviews
       rating: rating ?? this.rating,

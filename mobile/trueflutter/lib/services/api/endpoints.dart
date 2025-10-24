@@ -51,6 +51,7 @@ class ApiEndpoints {
   static const String logout = '$auth/logout';
   static const String authStatus = '$auth/status';
   static const String googleAuth = '$auth/google';
+  static const String changePassword = '$auth/change-password';
 
   // User wallet endpoints (unified for customers and astrologers)
   static const String userWalletBalance = '$users/wallet/balance';

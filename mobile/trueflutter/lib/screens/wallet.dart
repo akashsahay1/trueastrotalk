@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 import '../models/transaction.dart';
+import '../models/user.dart' as app_user;
 import '../services/auth/auth_service.dart';
 import '../services/api/user_api_service.dart';
 import '../services/service_locator.dart';
@@ -21,25 +22,60 @@ class WalletScreen extends StatefulWidget {
 class _WalletScreenState extends State<WalletScreen> {
   late final AuthService _authService;
   late final UserApiService _userApiService;
-  
+
+  app_user.User? _currentUser;
   double _walletBalance = 0.0;
   List<Transaction> _recentTransactions = [];
   bool _isLoadingTransactions = true;
   bool _isLoadingBalance = true;
+  bool _isLoadingEarnings = true;
+
+  // Astrologer-specific data
+  double _todaysEarnings = 0.0;
+  double _totalEarnings = 0.0;
+  int _todaysConsultations = 0;
+  int _totalConsultations = 0;
+  double _averageRating = 0.0;
 
   @override
   void initState() {
     super.initState();
     _authService = getIt<AuthService>();
     _userApiService = getIt<UserApiService>();
+    _currentUser = _authService.currentUser;
     _loadData();
+    _refreshUserProfile();
+  }
+
+  Future<void> _refreshUserProfile() async {
+    try {
+      final token = _authService.authToken;
+      if (token != null) {
+        final user = await _userApiService.getCurrentUser(token);
+        if (mounted) {
+          setState(() {
+            _currentUser = user;
+          });
+          // Reload data with updated user info
+          _loadData();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error refreshing user profile: $e');
+    }
   }
 
   Future<void> _loadData() async {
-    await Future.wait([
+    final futures = [
       _loadWalletBalance(),
       _loadTransactions(),
-    ]);
+    ];
+
+    if (_currentUser?.isAstrologer == true) {
+      futures.add(_loadEarningsData());
+    }
+
+    await Future.wait(futures);
   }
 
   Future<void> _loadWalletBalance() async {
@@ -49,14 +85,30 @@ class _WalletScreenState extends State<WalletScreen> {
         throw Exception('No access token available');
       }
 
-      final walletData = await _userApiService.getWalletBalance(token);
+      // First try to get from API
+      try {
+        final walletData = await _userApiService.getWalletBalance(token);
+        setState(() {
+          _walletBalance = (walletData['wallet_balance'] ?? walletData['balance'] ?? 0).toDouble();
+          _isLoadingBalance = false;
+        });
+        return;
+      } catch (apiError) {
+        debugPrint('API Error loading wallet balance: $apiError');
+      }
+
+      // Fallback to user profile data
+      final user = _authService.currentUser;
       setState(() {
-        _walletBalance = (walletData['wallet_balance'] ?? 0).toDouble();
+        _walletBalance = user?.walletBalance ?? 0.0;
         _isLoadingBalance = false;
       });
     } catch (e) {
       debugPrint('Error loading wallet balance: $e');
+      // Final fallback to user profile data
+      final user = _authService.currentUser;
       setState(() {
+        _walletBalance = user?.walletBalance ?? 0.0;
         _isLoadingBalance = false;
       });
     }
@@ -86,6 +138,57 @@ class _WalletScreenState extends State<WalletScreen> {
     }
   }
 
+  Future<void> _loadEarningsData() async {
+    try {
+      final token = _authService.authToken;
+      if (token == null) {
+        throw Exception('No access token available');
+      }
+
+      // Get the current user profile data
+      final user = _authService.currentUser;
+
+      // Try to load dashboard data for earnings info
+      final dashboardResponse = await _userApiService.getAstrologerDashboard(token);
+
+      if (dashboardResponse['success'] == true && dashboardResponse['data'] != null) {
+        final data = dashboardResponse['data'];
+
+        // Use ONLY real data from the response
+        setState(() {
+          _todaysEarnings = (data['todaysEarnings'] ?? 0).toDouble();
+          _totalEarnings = (data['totalEarnings'] ?? user?.totalEarnings ?? 0).toDouble();
+          _todaysConsultations = data['todaysConsultations'] ?? 0;
+          _totalConsultations = data['totalConsultations'] ?? user?.totalConsultations ?? 0;
+          _averageRating = (data['averageRating'] ?? user?.rating ?? 0).toDouble();
+          _isLoadingEarnings = false;
+        });
+      } else {
+        // Use ONLY real data from user profile - NO DUMMY DATA
+        setState(() {
+          _todaysEarnings = 0.0; // No API for today's data yet
+          _totalEarnings = user?.totalEarnings ?? 0.0;
+          _todaysConsultations = 0; // No API for today's data yet
+          _totalConsultations = user?.totalConsultations ?? 0;
+          _averageRating = user?.rating ?? 0.0;
+          _isLoadingEarnings = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading earnings data: $e');
+      // Use ONLY real data from user profile - NO DUMMY DATA
+      final user = _authService.currentUser;
+      setState(() {
+        _todaysEarnings = 0.0;
+        _totalEarnings = user?.totalEarnings ?? 0.0;
+        _todaysConsultations = 0;
+        _totalConsultations = user?.totalConsultations ?? 0;
+        _averageRating = user?.rating ?? 0.0;
+        _isLoadingEarnings = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -96,12 +199,24 @@ class _WalletScreenState extends State<WalletScreen> {
         foregroundColor: AppColors.white,
         elevation: 0,
       ),
-      body: Column(
-        children: [
-          _buildWalletBalanceCard(),
-          _buildQuickActions(),
-          Expanded(child: _buildTransactionsList()),
-        ],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await _refreshUserProfile();
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            children: [
+              _buildWalletBalanceCard(),
+              if (_currentUser?.isAstrologer == true) ...[
+                _buildEarningsSection(),
+                _buildAnalyticsSection(),
+              ],
+              _buildQuickActions(),
+              _buildTransactionsList(),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -241,8 +356,7 @@ class _WalletScreenState extends State<WalletScreen> {
               ],
             ),
           ),
-          Expanded(
-            child: _isLoadingTransactions
+          _isLoadingTransactions
                 ? const Center(child: CircularProgressIndicator())
                 : _recentTransactions.isEmpty
                     ? Center(
@@ -264,6 +378,8 @@ class _WalletScreenState extends State<WalletScreen> {
                         ),
                       )
                     : ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
                         padding: const EdgeInsets.only(bottom: 16),
                         itemCount: _recentTransactions.length,
                         separatorBuilder: (context, index) => const Divider(height: 1),
@@ -272,7 +388,6 @@ class _WalletScreenState extends State<WalletScreen> {
                           return _buildTransactionItem(transaction);
                         },
                       ),
-          ),
         ],
       ),
     );
@@ -837,6 +952,225 @@ class _WalletScreenState extends State<WalletScreen> {
         }
       }
     }
+  }
+
+  // Astrologer-specific sections
+  Widget _buildEarningsSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.trending_up, color: AppColors.success, size: 24),
+              const SizedBox(width: 12),
+              Text(
+                'Earnings Overview',
+                style: AppTextStyles.heading5.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildEarningsItem(
+                  'Today\'s Earnings',
+                  '₹${_todaysEarnings.toStringAsFixed(2)}',
+                  Icons.today,
+                  AppColors.success,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildEarningsItem(
+                  'Total Earnings',
+                  '₹${_totalEarnings.toStringAsFixed(2)}',
+                  Icons.account_balance_wallet,
+                  AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnalyticsSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.analytics, color: AppColors.info, size: 24),
+              const SizedBox(width: 12),
+              Text(
+                'Analytics',
+                style: AppTextStyles.heading5.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildAnalyticsItem(
+                  'Today\'s Consultations',
+                  _todaysConsultations.toString(),
+                  Icons.today,
+                  AppColors.info,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildAnalyticsItem(
+                  'Total Consultations',
+                  _totalConsultations.toString(),
+                  Icons.chat,
+                  AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildAnalyticsItem(
+            'Average Rating',
+            '${_averageRating.toStringAsFixed(1)} ⭐',
+            Icons.star,
+            AppColors.warning,
+            isFullWidth: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEarningsItem(String title, String amount, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _isLoadingEarnings
+              ? SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(color),
+                  ),
+                )
+              : Text(
+                  amount,
+                  style: AppTextStyles.heading6.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnalyticsItem(String title, String value, IconData icon, Color color, {bool isFullWidth = false}) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _isLoadingEarnings
+              ? SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(color),
+                  ),
+                )
+              : Text(
+                  value,
+                  style: AppTextStyles.heading6.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+        ],
+      ),
+    );
   }
 }
 
