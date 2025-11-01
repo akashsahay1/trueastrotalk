@@ -27,7 +27,8 @@
     <application
         android:label="True Astrotalk"
         android:name="${applicationName}"
-        android:icon="@mipmap/launcher_icon">
+        android:icon="@mipmap/launcher_icon"
+        android:usesCleartextTraffic="true">
         
         <!-- Main Flutter Activity - Entry Point -->
         <activity

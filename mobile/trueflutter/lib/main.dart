@@ -37,7 +37,9 @@ void main() async {
 
   // Initialize Firebase
   try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
 
     // Set background message handler
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
@@ -56,7 +58,6 @@ void main() async {
   final cartService = getIt<CartService>();
   await cartService.initialize();
 
-
   // Initialize payment services (without server config - will load when user logs in)
   try {
     debugPrint('🔧 Initializing RazorpayService...');
@@ -67,10 +68,20 @@ void main() async {
   }
 
   // Set system UI overlay style
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Colors.transparent, statusBarIconBrightness: Brightness.light, systemNavigationBarColor: Colors.transparent, systemNavigationBarIconBrightness: Brightness.dark));
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
+  );
 
   // Set preferred orientations
-  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
   // Initialize deep linking service
   DeepLinkService().initialize();
@@ -105,7 +116,9 @@ class TrueAstrotalkApp extends StatelessWidget {
         '/home': (context) => const HomeScreen(),
         '/customer/home': (context) => const HomeScreen(),
         '/astrologer/dashboard': (context) => const HomeScreen(),
-        '/astrologer/pending': (context) => const Scaffold(body: Center(child: Text('Astrologer Account Pending Approval'))),
+        '/astrologer/pending': (context) => const Scaffold(
+          body: Center(child: Text('Astrologer Account Pending Approval')),
+        ),
         '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/orders': (context) => const OrdersListScreen(),
       },
@@ -146,7 +159,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
     try {
       // Check if onboarding has been completed
       final prefs = await SharedPreferences.getInstance();
-      final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
+      final onboardingCompleted =
+          prefs.getBool('onboarding_completed') ?? false;
 
       // Initialize auth service
       await _authService.initialize();

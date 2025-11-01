@@ -20,7 +20,7 @@ class Config {
   static Future<String> _getLocalIP() async {
     // For development, use your Mac's actual IP address so iOS can connect
     if (isDevelopment) {
-      _cachedLocalIP = '192.168.1.240'; // Your Mac's IP for iOS to connect
+      _cachedLocalIP = '192.168.29.9'; // Your Mac's IP for iOS to connect
       return _cachedLocalIP!;
     }
 
@@ -44,9 +44,9 @@ class Config {
       return 'https://admin.trueastrotalk.com';
     }
 
-    // Development mode - connect to Socket.IO server on port 4002
+    // Development mode - connect to Socket.IO server on port 4001
     final ip = await _getLocalIP();
-    return 'http://$ip:4002';
+    return 'http://$ip:4001';
   }
 
   // Synchronous versions for immediate use (uses cached IP or localhost)
@@ -67,7 +67,7 @@ class Config {
 
     final ip =
         _cachedLocalIP ?? (Platform.isAndroid ? '10.0.2.2' : 'localhost');
-    return 'http://$ip:4002';
+    return 'http://$ip:4001';
   }
 
   // Request timeouts (increased for E2E testing and slower networks)
