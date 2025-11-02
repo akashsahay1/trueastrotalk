@@ -127,14 +127,14 @@ class ReviewsApiService {
   Future<Map<String, dynamic>> checkReviewEligibility(String astrologerId) async {
     try {
       debugPrint('🔍 Checking review eligibility for astrologer: $astrologerId');
-      
+
       final response = await _dio.get('/astrologers/reviews/check-eligibility', queryParameters: {
         'astrologer_id': astrologerId,
       });
 
       if (response.statusCode == 200) {
         final data = response.data as Map<String, dynamic>;
-        
+
         if (data['success'] == true) {
           debugPrint('✅ Review eligibility checked');
           return {
@@ -156,6 +156,84 @@ class ReviewsApiService {
         'error': e.toString(),
         'canAddReview': false,
         'hasUserReviewed': false,
+      };
+    }
+  }
+
+  /// Update an existing review
+  Future<Map<String, dynamic>> updateReview({
+    required String reviewId,
+    required String userId,
+    required int rating,
+    String? comment,
+  }) async {
+    try {
+      debugPrint('✏️ Updating review: $reviewId');
+
+      final response = await _dio.put('/astrologers/reviews', data: {
+        'review_id': reviewId,
+        'user_id': userId,
+        'rating': rating,
+        'comment': comment ?? '',
+      });
+
+      if (response.statusCode == 200) {
+        final data = response.data as Map<String, dynamic>;
+
+        if (data['success'] == true) {
+          debugPrint('✅ Review updated successfully');
+          return {
+            'success': true,
+            'message': data['message'] ?? 'Review updated successfully',
+          };
+        } else {
+          throw Exception(data['error'] ?? 'Failed to update review');
+        }
+      } else {
+        throw Exception('HTTP ${response.statusCode}: Failed to update review');
+      }
+    } catch (e) {
+      debugPrint('❌ Error updating review: $e');
+      return {
+        'success': false,
+        'error': e.toString(),
+      };
+    }
+  }
+
+  /// Delete a review
+  Future<Map<String, dynamic>> deleteReview({
+    required String reviewId,
+    required String userId,
+  }) async {
+    try {
+      debugPrint('🗑️ Deleting review: $reviewId');
+
+      final response = await _dio.delete('/astrologers/reviews', queryParameters: {
+        'review_id': reviewId,
+        'user_id': userId,
+      });
+
+      if (response.statusCode == 200) {
+        final data = response.data as Map<String, dynamic>;
+
+        if (data['success'] == true) {
+          debugPrint('✅ Review deleted successfully');
+          return {
+            'success': true,
+            'message': data['message'] ?? 'Review deleted successfully',
+          };
+        } else {
+          throw Exception(data['error'] ?? 'Failed to delete review');
+        }
+      } else {
+        throw Exception('HTTP ${response.statusCode}: Failed to delete review');
+      }
+    } catch (e) {
+      debugPrint('❌ Error deleting review: $e');
+      return {
+        'success': false,
+        'error': e.toString(),
       };
     }
   }

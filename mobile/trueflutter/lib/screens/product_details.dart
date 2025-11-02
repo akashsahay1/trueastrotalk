@@ -108,16 +108,17 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           icon: const Icon(Icons.arrow_back, color: AppColors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share, color: AppColors.white),
-            onPressed: () => _shareProduct(),
-          ),
-          IconButton(
-            icon: const Icon(Icons.favorite_border, color: AppColors.white),
-            onPressed: () => _toggleWishlist(),
-          ),
-        ],
+        // Hidden for now - Share and Wishlist functionality not implemented
+        // actions: [
+        //   IconButton(
+        //     icon: const Icon(Icons.share, color: AppColors.white),
+        //     onPressed: () => _shareProduct(),
+        //   ),
+        //   IconButton(
+        //     icon: const Icon(Icons.favorite_border, color: AppColors.white),
+        //     onPressed: () => _toggleWishlist(),
+        //   ),
+        // ],
       ),
       body: Column(
         children: [
@@ -517,13 +518,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     return '${date.day}/${date.month}/${date.year}';
   }
 
-  void _shareProduct() {
-    // Implement share functionality
-    debugPrint('Sharing product: ${widget.product.name}');
-  }
+  // Hidden for now - Share and Wishlist functionality not implemented
+  // void _shareProduct() {
+  //   // Implement share functionality
+  //   debugPrint('Sharing product: ${widget.product.name}');
+  // }
 
-  void _toggleWishlist() {
-    // Implement wishlist functionality
-    debugPrint('Toggle wishlist for: ${widget.product.name}');
-  }
+  // void _toggleWishlist() {
+  //   // Implement wishlist functionality
+  //   debugPrint('Toggle wishlist for: ${widget.product.name}');
+  // }
 }

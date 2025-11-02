@@ -328,123 +328,358 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   Widget _buildTransactionsList() {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Recent Transactions',
-                  style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimary),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Recent Transactions',
+                style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimary),
+              ),
+              TextButton(
+                onPressed: _showFullHistory,
+                child: Text(
+                  'View All',
+                  style: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary),
                 ),
-                TextButton(
-                  onPressed: _showFullHistory,
-                  child: Text(
-                    'View All',
-                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          _isLoadingTransactions
-                ? const Center(child: CircularProgressIndicator())
-                : _recentTransactions.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.receipt_long, size: 64, color: AppColors.grey400),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No transactions yet',
-                              style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimary),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Your transaction history will appear here',
-                              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        padding: const EdgeInsets.only(bottom: 16),
-                        itemCount: _recentTransactions.length,
-                        separatorBuilder: (context, index) => const Divider(height: 1),
-                        itemBuilder: (context, index) {
-                          final transaction = _recentTransactions[index];
-                          return _buildTransactionItem(transaction);
-                        },
-                      ),
-        ],
-      ),
+        ),
+
+        // Transaction list
+        if (_isLoadingTransactions)
+          const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_recentTransactions.isEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(32, 154, 32, 32),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.receipt_long, size: 64, color: AppColors.grey400),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No transactions yet',
+                    style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimary),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Your transaction history will appear here',
+                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: _recentTransactions.length,
+            itemBuilder: (context, index) {
+              final transaction = _recentTransactions[index];
+              return _buildTransactionItem(transaction);
+            },
+          ),
+      ],
     );
   }
 
   Widget _buildTransactionItem(Transaction transaction) {
     final isCredit = transaction.type == TransactionType.credit;
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: isCredit 
-              ? AppColors.success.withValues(alpha: 0.1)
-              : AppColors.error.withValues(alpha: 0.1),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          isCredit ? Icons.add : Icons.remove,
-          color: isCredit ? AppColors.success : AppColors.error,
-          size: 18,
-        ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      title: Text(
-        transaction.description,
-        style: AppTextStyles.bodyMedium.copyWith(
-          fontWeight: FontWeight.w500,
+      child: ListTile(
+        onTap: () => _showTransactionDetails(transaction),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isCredit
+                ? AppColors.success.withValues(alpha: 0.1)
+                : AppColors.error.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            isCredit ? Icons.add : Icons.remove,
+            color: isCredit ? AppColors.success : AppColors.error,
+            size: 18,
+          ),
         ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(
-        _formatDate(transaction.createdAt),
-        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
-      ),
-      trailing: Text(
-        '${isCredit ? '+' : '-'}₹${transaction.amount.toStringAsFixed(2)}',
-        style: AppTextStyles.bodyMedium.copyWith(
-          color: isCredit ? AppColors.success : AppColors.error,
-          fontWeight: FontWeight.bold,
+        title: Text(
+          transaction.description,
+          style: AppTextStyles.bodyMedium.copyWith(
+            fontWeight: FontWeight.w500,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          _formatDate(transaction.createdAt),
+          style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Text(
+          '₹${transaction.amount.toStringAsFixed(2)}',
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: isCredit ? AppColors.success : AppColors.error,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
   }
 
   String _formatDate(DateTime date) {
+    // Convert UTC to local timezone (IST)
+    final localDate = date.toLocal();
     final now = DateTime.now();
-    final difference = now.difference(date);
-    
-    if (difference.inDays == 0) {
-      return 'Today ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-    } else if (difference.inDays == 1) {
-      return 'Yesterday';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
+
+    // Check if same day by comparing year, month, and day
+    final isToday = localDate.year == now.year &&
+                    localDate.month == now.month &&
+                    localDate.day == now.day;
+
+    if (isToday) {
+      return 'Today ${localDate.hour.toString().padLeft(2, '0')}:${localDate.minute.toString().padLeft(2, '0')}';
     }
+
+    // Check if yesterday
+    final yesterday = now.subtract(const Duration(days: 1));
+    final isYesterday = localDate.year == yesterday.year &&
+                        localDate.month == yesterday.month &&
+                        localDate.day == yesterday.day;
+
+    if (isYesterday) {
+      return 'Yesterday';
+    }
+
+    // Check if within last 7 days
+    final difference = now.difference(localDate);
+    if (difference.inDays < 7) {
+      return '${difference.inDays} days ago';
+    }
+
+    // Default: show date
+    return '${localDate.day}/${localDate.month}/${localDate.year}';
+  }
+
+  String _formatFullDateTime(DateTime date) {
+    // Convert UTC to local timezone (IST)
+    final localDate = date.toLocal();
+
+    final day = localDate.day.toString().padLeft(2, '0');
+    final month = localDate.month.toString().padLeft(2, '0');
+    final year = localDate.year;
+    final hour = localDate.hour.toString().padLeft(2, '0');
+    final minute = localDate.minute.toString().padLeft(2, '0');
+    final second = localDate.second.toString().padLeft(2, '0');
+
+    return '$day/$month/$year at $hour:$minute:$second';
+  }
+
+  void _showTransactionDetails(Transaction transaction) {
+    final isCredit = transaction.type == TransactionType.credit;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isCredit
+                    ? AppColors.success.withValues(alpha: 0.1)
+                    : AppColors.error.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isCredit ? Icons.add_circle : Icons.remove_circle,
+                color: isCredit ? AppColors.success : AppColors.error,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Transaction Details',
+                    style: AppTextStyles.heading5.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isCredit ? 'Money Added' : 'Money Deducted',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Divider(),
+              const SizedBox(height: 16),
+
+              // Amount
+              _buildDetailRow(
+                'Amount',
+                '₹${transaction.amount.toStringAsFixed(2)}',
+                valueColor: isCredit ? AppColors.success : AppColors.error,
+                isBold: true,
+              ),
+
+              const SizedBox(height: 16),
+
+              // Description
+              _buildDetailRow(
+                'Description',
+                transaction.description,
+              ),
+
+              const SizedBox(height: 16),
+
+              // Transaction Type
+              _buildDetailRow(
+                'Type',
+                isCredit ? 'Credit' : 'Debit',
+                valueColor: isCredit ? AppColors.success : AppColors.error,
+              ),
+
+              const SizedBox(height: 16),
+
+              // Status
+              _buildDetailRow(
+                'Status',
+                transaction.status.name.toUpperCase(),
+                valueColor: transaction.status == TransactionStatus.completed
+                    ? AppColors.success
+                    : transaction.status == TransactionStatus.pending
+                        ? Colors.orange
+                        : AppColors.error,
+              ),
+
+              const SizedBox(height: 16),
+
+              // Date & Time
+              _buildDetailRow(
+                'Date & Time',
+                _formatFullDateTime(transaction.createdAt),
+              ),
+
+              if (transaction.paymentMethod != null) ...[
+                const SizedBox(height: 16),
+                _buildDetailRow(
+                  'Payment Method',
+                  transaction.paymentMethod!.toUpperCase(),
+                ),
+              ],
+
+              if (transaction.paymentId != null) ...[
+                const SizedBox(height: 16),
+                _buildDetailRow(
+                  'Transaction ID',
+                  transaction.paymentId!,
+                  isMonospace: true,
+                ),
+              ],
+
+              const SizedBox(height: 16),
+
+              // Reference ID (internal)
+              _buildDetailRow(
+                'Reference ID',
+                transaction.id,
+                isMonospace: true,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Close',
+              style: AppTextStyles.button.copyWith(
+                color: AppColors.primary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(
+    String label,
+    String value, {
+    Color? valueColor,
+    bool isBold = false,
+    bool isMonospace = false,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 120,
+          child: Text(
+            label,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: valueColor ?? AppColors.textPrimary,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+              fontFamily: isMonospace ? 'monospace' : null,
+            ),
+            textAlign: TextAlign.right,
+          ),
+        ),
+      ],
+    );
   }
 
   void _showRechargeDialog() {
@@ -647,10 +882,13 @@ class _WalletScreenState extends State<WalletScreen> {
 
             if (mounted) {
               Navigator.pop(context); // Close loading dialog
-              
+
+              // Small delay to ensure transaction is committed to database
+              await Future.delayed(const Duration(milliseconds: 500));
+
               // Refresh wallet data
               await _loadData();
-              
+
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -920,9 +1158,12 @@ class _WalletScreenState extends State<WalletScreen> {
           paymentId: 'pay_mock_${DateTime.now().millisecondsSinceEpoch}',
         );
 
+        // Small delay to ensure transaction is committed to database
+        await Future.delayed(const Duration(milliseconds: 500));
+
         // Refresh wallet data
         await _loadData();
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

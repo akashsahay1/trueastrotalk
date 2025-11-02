@@ -209,7 +209,7 @@ export async function POST(request: NextRequest) {
       payment_id: null, // Will be updated after successful payment
       razorpay_order_id: razorpayOrder.id,
       reference_id: secureReceipt,
-      description: `${(purpose as string).replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())} - ${order_type}`,
+      description: (purpose as string).replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
       purpose,
       order_type,
       created_at: new Date().toISOString(),

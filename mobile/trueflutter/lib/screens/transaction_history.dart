@@ -132,69 +132,12 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     }
   }
 
-  String _getTransactionTypeDisplay(TransactionType type) {
-    switch (type) {
-      case TransactionType.credit:
-        return 'Credit';
-      case TransactionType.debit:
-        return 'Debit';
-    }
-  }
-
-  String _getPurposeDisplay(String description) {
-    switch (description.toLowerCase()) {
-      case 'wallet recharge':
-      case 'recharge':
-        return 'Wallet Recharge';
-      case 'consultation payment':
-      case 'consultation':
-        return 'Consultation Payment';
-      case 'consultation refund':
-      case 'refund':
-        return 'Consultation Refund';
-      case 'product purchase':
-        return 'Product Purchase';
-      case 'commission payout':
-        return 'Commission Payout';
-      default:
-        return description.isNotEmpty 
-            ? description[0].toUpperCase() + description.substring(1)
-            : 'Transaction';
-    }
-  }
-
-  Color _getTransactionColor(TransactionType type) {
-    switch (type) {
-      case TransactionType.credit:
-        return AppColors.success;
-      case TransactionType.debit:
-        return AppColors.error;
-    }
-  }
-
-  IconData _getTransactionIcon(TransactionType type, String description) {
-    switch (type) {
-      case TransactionType.credit:
-        if (description.toLowerCase().contains('recharge')) {
-          return Icons.add_circle;
-        } else if (description.toLowerCase().contains('refund')) {
-          return Icons.refresh;
-        }
-        return Icons.arrow_downward;
-      case TransactionType.debit:
-        if (description.toLowerCase().contains('consultation')) {
-          return Icons.video_call;
-        } else if (description.toLowerCase().contains('product')) {
-          return Icons.shopping_cart;
-        }
-        return Icons.arrow_upward;
-    }
-  }
-
   String _formatDateTime(DateTime dateTime) {
     try {
+      // Convert UTC to local timezone (IST)
+      final localDateTime = dateTime.toLocal();
       final now = DateTime.now();
-      final difference = now.difference(dateTime);
+      final difference = now.difference(localDateTime);
 
       if (difference.inDays > 0) {
         return '${difference.inDays}d ago';
@@ -212,111 +155,255 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
 
   Widget _buildTransactionCard(Transaction transaction) {
     final isCredit = transaction.type == TransactionType.credit;
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderLight, width: 1),
-      ),
-      child: Row(
-        children: [
-          // Transaction Icon
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: _getTransactionColor(transaction.type).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Icon(
-              _getTransactionIcon(transaction.type, transaction.description),
-              color: _getTransactionColor(transaction.type),
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 16),
-          
-          // Transaction Details
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _getPurposeDisplay(transaction.description),
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _getTransactionTypeDisplay(transaction.type),
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: _getTransactionColor(transaction.type),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _formatDateTime(transaction.createdAt),
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondaryLight,
-                  ),
-                ),
-                if (transaction.status != TransactionStatus.completed) ...[
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: transaction.status == TransactionStatus.pending
-                          ? AppColors.warning.withValues(alpha: 0.1)
-                          : AppColors.error.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      transaction.status.name.toUpperCase(),
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: transaction.status == TransactionStatus.pending
-                            ? AppColors.warning
-                            : AppColors.error,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 10,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          
-          // Amount
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '${isCredit ? '+' : '-'}₹${transaction.amount.toStringAsFixed(2)}',
-                style: AppTextStyles.bodyLarge.copyWith(
-                  color: _getTransactionColor(transaction.type),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              if (transaction.paymentMethod?.isNotEmpty == true) ...[
-                const SizedBox(height: 4),
-                Text(
-                  transaction.paymentMethod!.toUpperCase(),
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondaryLight,
-                    fontSize: 10,
-                  ),
-                ),
-              ],
-            ],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
+      child: ListTile(
+        onTap: () => _showTransactionDetails(transaction),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isCredit
+                ? AppColors.success.withValues(alpha: 0.1)
+                : AppColors.error.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            isCredit ? Icons.add : Icons.remove,
+            color: isCredit ? AppColors.success : AppColors.error,
+            size: 18,
+          ),
+        ),
+        title: Text(
+          transaction.description,
+          style: AppTextStyles.bodyMedium.copyWith(
+            fontWeight: FontWeight.w500,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          _formatDateTime(transaction.createdAt),
+          style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Text(
+          '₹${transaction.amount.toStringAsFixed(2)}',
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: isCredit ? AppColors.success : AppColors.error,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatFullDateTime(DateTime date) {
+    // Convert UTC to local timezone (IST)
+    final localDate = date.toLocal();
+
+    final day = localDate.day.toString().padLeft(2, '0');
+    final month = localDate.month.toString().padLeft(2, '0');
+    final year = localDate.year;
+    final hour = localDate.hour.toString().padLeft(2, '0');
+    final minute = localDate.minute.toString().padLeft(2, '0');
+    final second = localDate.second.toString().padLeft(2, '0');
+
+    return '$day/$month/$year at $hour:$minute:$second';
+  }
+
+  void _showTransactionDetails(Transaction transaction) {
+    final isCredit = transaction.type == TransactionType.credit;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isCredit
+                    ? AppColors.success.withValues(alpha: 0.1)
+                    : AppColors.error.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isCredit ? Icons.add : Icons.remove,
+                color: isCredit ? AppColors.success : AppColors.error,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Transaction Details',
+                    style: AppTextStyles.heading5.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isCredit ? 'Money Added' : 'Money Deducted',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Divider(),
+              const SizedBox(height: 16),
+
+              // Amount
+              _buildDetailRow(
+                'Amount',
+                '₹${transaction.amount.toStringAsFixed(2)}',
+                valueColor: isCredit ? AppColors.success : AppColors.error,
+                isBold: true,
+              ),
+
+              const SizedBox(height: 16),
+
+              // Description
+              _buildDetailRow(
+                'Description',
+                transaction.description,
+              ),
+
+              const SizedBox(height: 16),
+
+              // Transaction Type
+              _buildDetailRow(
+                'Type',
+                isCredit ? 'Credit' : 'Debit',
+                valueColor: isCredit ? AppColors.success : AppColors.error,
+              ),
+
+              const SizedBox(height: 16),
+
+              // Status
+              _buildDetailRow(
+                'Status',
+                transaction.status.name.toUpperCase(),
+                valueColor: transaction.status == TransactionStatus.completed
+                    ? AppColors.success
+                    : transaction.status == TransactionStatus.pending
+                        ? AppColors.warning
+                        : AppColors.error,
+              ),
+
+              const SizedBox(height: 16),
+
+              // Date & Time
+              _buildDetailRow(
+                'Date & Time',
+                _formatFullDateTime(transaction.createdAt),
+              ),
+
+              if (transaction.paymentMethod != null) ...[
+                const SizedBox(height: 16),
+                _buildDetailRow(
+                  'Payment Method',
+                  transaction.paymentMethod!.toUpperCase(),
+                ),
+              ],
+
+              if (transaction.paymentId != null) ...[
+                const SizedBox(height: 16),
+                _buildDetailRow(
+                  'Transaction ID',
+                  transaction.paymentId!,
+                  isMonospace: true,
+                ),
+              ],
+
+              const SizedBox(height: 16),
+
+              // Reference ID (internal)
+              _buildDetailRow(
+                'Reference ID',
+                transaction.id,
+                isMonospace: true,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Close',
+              style: AppTextStyles.button.copyWith(
+                color: AppColors.primary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(
+    String label,
+    String value, {
+    Color? valueColor,
+    bool isBold = false,
+    bool isMonospace = false,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 120,
+          child: Text(
+            label,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: valueColor ?? AppColors.textPrimary,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+              fontFamily: isMonospace ? 'monospace' : null,
+            ),
+            textAlign: TextAlign.right,
+          ),
+        ),
+      ],
     );
   }
 

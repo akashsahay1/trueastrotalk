@@ -11,6 +11,7 @@ import '../services/chat/chat_service.dart';
 import '../services/call/call_service.dart';
 import '../services/wallet/wallet_service.dart';
 import '../models/call.dart';
+import '../config/config.dart';
 import 'package:share_plus/share_plus.dart';
 import 'chat_screen.dart';
 import 'wallet.dart';
@@ -36,8 +37,11 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
   bool _canAddReview = false;
   bool _hasUserReviewed = false;
   List<Map<String, dynamic>> _reviews = [];
-  
+
   late final WalletService _walletService;
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _reviewFormKey = GlobalKey();
+  bool _showAllReviews = false;
 
   @override
   void initState() {
@@ -60,6 +64,7 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
   @override
   void dispose() {
     _reviewController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -232,13 +237,14 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
         ],
       ),
       body: SingleChildScrollView(
+        controller: _scrollController,
         child: Column(
           children: [
             _buildProfileCard(),
             _buildAboutSection(),
             _buildSkillsSection(),
             _buildReviewsSection(),
-            if (_canAddReview && !_hasUserReviewed)
+            if ((_canAddReview && !_hasUserReviewed) || _isEditMode)
               _buildAddReviewSection(),
             const SizedBox(height: 100), // Space for bottom action bar
           ],
@@ -584,20 +590,54 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
             ),
           ),
         if (_reviews.isNotEmpty) ...[
-          ..._reviews.map((review) => _buildReviewCard(review)),
+          // Show first 3 reviews or all if _showAllReviews is true
+          ...(_showAllReviews ? _reviews : _reviews.take(3))
+              .map((review) => _buildReviewCard(review)),
           const SizedBox(height: 16),
-          _buildSeeAllReviewsButton(),
+          // Show "See all reviews" button only if there are more than 3 reviews and not showing all
+          if (_reviews.length > 3 && !_showAllReviews)
+            _buildSeeAllReviewsButton(),
+          // Show "Show less" button if showing all reviews and there are more than 3
+          if (_reviews.length > 3 && _showAllReviews)
+            _buildShowLessButton(),
         ],
       ],
     );
   }
 
+  // Helper function to get profile picture - same logic as User model
+  String? _getProfilePicture(Map<String, dynamic> userData) {
+    // Priority order: social_profile_image (for Google users), then profile_picture/profile_image
+    final fields = [
+      'social_profile_image',
+      'profile_picture',
+      'profile_image'
+    ];
+
+    for (final field in fields) {
+      final value = userData[field]?.toString();
+      if (value != null && value.isNotEmpty) {
+        return value;
+      }
+    }
+
+    return null;
+  }
+
   Widget _buildReviewCard(Map<String, dynamic> review) {
     final user = review['user'] as Map<String, dynamic>? ?? {};
     final userName = user['name']?.toString() ?? 'Anonymous';
+    final userEmail = user['email']?.toString() ?? '';
+    final profileImage = _getProfilePicture(user);
     final rating = review['rating'] as int? ?? 0;
     final comment = review['comment']?.toString() ?? '';
-    
+    final reviewId = review['_id']?.toString() ?? '';
+
+    // Check if this review belongs to the current user
+    final authService = getIt<AuthService>();
+    final currentUser = authService.currentUser;
+    final isOwnReview = currentUser != null && userEmail == currentUser.email;
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -613,73 +653,88 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [AppColors.primary.withValues(alpha: 0.7), AppColors.primary],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Center(
-              child: Text(
-                userName.isNotEmpty ? userName[0].toUpperCase() : 'A',
-                style: AppTextStyles.bodyLarge.copyWith(
-                  color: AppColors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildReviewerAvatar(userName, profileImage),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      userName,
-                      style: AppTextStyles.bodyLarge.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimaryLight,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          userName,
+                          style: AppTextStyles.bodyLarge.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimaryLight,
+                          ),
+                        ),
+                        if (isOwnReview)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              GestureDetector(
+                                onTap: () => _showEditReviewDialog(reviewId, rating, comment),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4),
+                                  child: Icon(
+                                    Icons.edit,
+                                    size: 18,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () => _showDeleteReviewDialog(reviewId),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4),
+                                  child: Icon(
+                                    Icons.delete,
+                                    size: 18,
+                                    color: AppColors.error,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        else
+                          Icon(
+                            Icons.check_circle,
+                            color: Colors.blue,
+                            size: 18,
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: List.generate(5, (index) {
+                        return Icon(
+                          index < rating ? Icons.star : Icons.star_border,
+                          color: Colors.amber,
+                          size: 16,
+                        );
+                      }),
+                    ),
+                    if (comment.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        comment,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.textSecondaryLight,
+                        ),
                       ),
-                    ),
-                    Icon(
-                      Icons.check_circle,
-                      color: Colors.blue,
-                      size: 18,
-                    ),
+                    ],
                   ],
                 ),
-                const SizedBox(height: 4),
-                Row(
-                  children: List.generate(5, (index) {
-                    return Icon(
-                      index < rating ? Icons.star : Icons.star_border,
-                      color: Colors.amber,
-                      size: 16,
-                    );
-                  }),
-                ),
-                if (comment.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    comment,
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.textSecondaryLight,
-                    ),
-                  ),
-                ],
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -691,10 +746,12 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: TextButton(
         onPressed: () {
-          // Navigate to all reviews screen
+          setState(() {
+            _showAllReviews = true;
+          });
         },
         child: Text(
-          'See all reviews',
+          'See all ${_reviews.length} reviews',
           style: AppTextStyles.bodyLarge.copyWith(
             color: Colors.green,
             fontWeight: FontWeight.w600,
@@ -704,12 +761,99 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
     );
   }
 
+  Widget _buildShowLessButton() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: TextButton(
+        onPressed: () {
+          setState(() {
+            _showAllReviews = false;
+          });
+        },
+        child: Text(
+          'Show less',
+          style: AppTextStyles.bodyLarge.copyWith(
+            color: Colors.green,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReviewerAvatar(String userName, String? profileImage) {
+    // Build image URL if profile image is available
+    String? imageUrl;
+    if (profileImage != null && profileImage.isNotEmpty) {
+      if (profileImage.startsWith('http')) {
+        imageUrl = profileImage;
+      } else {
+        final baseUrl = Config.baseUrlSync.replaceAll('/api', '');
+        final imagePath = profileImage.startsWith('/') ? profileImage : '/$profileImage';
+        imageUrl = baseUrl + imagePath;
+      }
+    }
+
+    return ClipOval(
+      child: SizedBox(
+        width: 50,
+        height: 50,
+        child: imageUrl != null
+            ? Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  // Fallback to letter avatar on error
+                  return _buildLetterAvatar(userName);
+                },
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    color: AppColors.grey100,
+                    child: const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  );
+                },
+              )
+            : _buildLetterAvatar(userName),
+      ),
+    );
+  }
+
+  Widget _buildLetterAvatar(String userName) {
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [AppColors.primary.withValues(alpha: 0.7), AppColors.primary],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Text(
+          userName.isNotEmpty ? userName[0].toUpperCase() : 'A',
+          style: AppTextStyles.bodyLarge.copyWith(
+            color: AppColors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
   int _selectedRating = 0;
   final TextEditingController _reviewController = TextEditingController();
   bool _isSubmittingReview = false;
+  bool _isEditMode = false;
+  String? _editingReviewId;
 
   Widget _buildAddReviewSection() {
     return Container(
+      key: _reviewFormKey,
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -726,12 +870,27 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Add Your Review',
-            style: AppTextStyles.bodyLarge.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimaryLight,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                _isEditMode ? 'Edit Your Review' : 'Add Your Review',
+                style: AppTextStyles.bodyLarge.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimaryLight,
+                ),
+              ),
+              if (_isEditMode)
+                TextButton(
+                  onPressed: _cancelEdit,
+                  child: Text(
+                    'Cancel',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 12),
           // Rating selector
@@ -803,7 +962,7 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
                         valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
                       ),
                     )
-                  : const Text('Submit Review'),
+                  : Text(_isEditMode ? 'Update Review' : 'Submit Review'),
             ),
           ),
         ],
@@ -833,24 +992,37 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
       // Get current user ID from auth service
       final authService = getIt<AuthService>();
       final currentUser = authService.currentUser;
-      
+
       if (currentUser == null) {
         throw Exception('User not logged in');
       }
 
-      final result = await reviewsApiService.addReview(
-        astrologerId: _astrologer!.id,
-        userId: currentUser.id,
-        rating: _selectedRating,
-        comment: _reviewController.text.trim(),
-      );
+      final Map<String, dynamic> result;
+
+      if (_isEditMode && _editingReviewId != null) {
+        // Update existing review
+        result = await reviewsApiService.updateReview(
+          reviewId: _editingReviewId!,
+          userId: currentUser.id,
+          rating: _selectedRating,
+          comment: _reviewController.text.trim(),
+        );
+      } else {
+        // Add new review
+        result = await reviewsApiService.addReview(
+          astrologerId: _astrologer!.id,
+          userId: currentUser.id,
+          rating: _selectedRating,
+          comment: _reviewController.text.trim(),
+        );
+      }
 
       if (result['success']) {
         // Show success message
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Review submitted successfully!'),
+            SnackBar(
+              content: Text(_isEditMode ? 'Review updated successfully!' : 'Review submitted successfully!'),
               backgroundColor: AppColors.success,
             ),
           );
@@ -863,19 +1035,21 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
             _reviewController.clear();
             _hasUserReviewed = true;
             _canAddReview = false;
+            _isEditMode = false;
+            _editingReviewId = null;
           });
         }
 
         // Reload reviews
         await _loadReviews();
       } else {
-        throw Exception(result['error'] ?? 'Failed to submit review');
+        throw Exception(result['error'] ?? (_isEditMode ? 'Failed to update review' : 'Failed to submit review'));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to submit review: $e'),
+            content: Text(_isEditMode ? 'Failed to update review: $e' : 'Failed to submit review: $e'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -885,6 +1059,140 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
         setState(() {
           _isSubmittingReview = false;
         });
+      }
+    }
+  }
+
+  void _cancelEdit() {
+    if (mounted) {
+      setState(() {
+        _isEditMode = false;
+        _editingReviewId = null;
+        _selectedRating = 0;
+        _reviewController.clear();
+      });
+    }
+  }
+
+  void _showEditReviewDialog(String reviewId, int rating, String comment) {
+    if (mounted) {
+      setState(() {
+        _isEditMode = true;
+        _editingReviewId = reviewId;
+        _selectedRating = rating;
+        _reviewController.text = comment;
+      });
+
+      // Scroll to the review form after a short delay to allow the UI to rebuild
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (_reviewFormKey.currentContext != null) {
+          Scrollable.ensureVisible(
+            _reviewFormKey.currentContext!,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+            alignment: 0.0, // Scroll to top of the widget
+          );
+        }
+      });
+    }
+  }
+
+  Future<void> _showDeleteReviewDialog(String reviewId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Text(
+          'Delete Review',
+          style: AppTextStyles.heading5.copyWith(
+            color: AppColors.textPrimary,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to delete this review? This action cannot be undone.',
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.button.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: AppColors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _deleteReview(reviewId);
+    }
+  }
+
+  Future<void> _deleteReview(String reviewId) async {
+    try {
+      final reviewsApiService = getIt<ReviewsApiService>();
+      final authService = getIt<AuthService>();
+      final currentUser = authService.currentUser;
+
+      if (currentUser == null) {
+        throw Exception('User not logged in');
+      }
+
+      final result = await reviewsApiService.deleteReview(
+        reviewId: reviewId,
+        userId: currentUser.id,
+      );
+
+      if (result['success']) {
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Review deleted successfully!'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+
+        // Reset edit mode if deleting while editing
+        if (mounted && _isEditMode && _editingReviewId == reviewId) {
+          setState(() {
+            _isEditMode = false;
+            _editingReviewId = null;
+            _selectedRating = 0;
+            _reviewController.clear();
+          });
+        }
+
+        // Reload reviews and update eligibility
+        await _loadReviews();
+      } else {
+        throw Exception(result['error'] ?? 'Failed to delete review');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete review: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
       }
     }
   }

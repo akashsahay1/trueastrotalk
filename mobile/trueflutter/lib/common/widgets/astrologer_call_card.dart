@@ -34,20 +34,19 @@ class AstrologerCallCard extends StatelessWidget {
           ),
         ],
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(15),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  // Left section: Profile image and rating
-                  Column(
-                    children: [
-                      // Profile image with golden border (no online indicator here)
-                      Container(
+      child: Padding(
+        padding: const EdgeInsets.all(15),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                // Left section: Profile image and rating
+                Column(
+                  children: [
+                    // Profile image with golden border (no online indicator here) - tappable
+                    GestureDetector(
+                      onTap: onTap,
+                      child: Container(
                         padding: const EdgeInsets.all(3),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
@@ -58,6 +57,7 @@ class AstrologerCallCard extends StatelessWidget {
                         ),
                         child: _buildAstrologerProfileImage(),
                       ),
+                    ),
                       const SizedBox(height: 12),
                       // Rating with stars
                       Row(
@@ -91,19 +91,22 @@ class AstrologerCallCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Name with verification badge
+                        // Name with verification badge - name is tappable
                         Row(
                           children: [
                             Expanded(
-                              child: Text(
-                                astrologer.fullName,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black,
+                              child: GestureDetector(
+                                onTap: onTap,
+                                child: Text(
+                                  astrologer.fullName,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             // Show badge for all astrologers - blue if verified, grey if not
@@ -179,7 +182,9 @@ class AstrologerCallCard extends StatelessWidget {
                               height: 40,
                               decoration: BoxDecoration(
                                 border: Border.all(
-                                  color: AppColors.primary,
+                                  color: astrologer.isOnline
+                                      ? AppColors.primary
+                                      : Colors.grey.shade400,
                                   width: 1,
                                 ),
                                 borderRadius: BorderRadius.circular(12),
@@ -198,7 +203,7 @@ class AstrologerCallCard extends StatelessWidget {
                                       style: TextStyle(
                                         color: astrologer.isOnline
                                             ? AppColors.primary
-                                            : Colors.grey,
+                                            : Colors.grey.shade400,
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -251,7 +256,6 @@ class AstrologerCallCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
     );
   }
 
