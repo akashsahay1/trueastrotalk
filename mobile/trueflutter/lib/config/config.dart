@@ -20,7 +20,7 @@ class Config {
   static Future<String> _getLocalIP() async {
     // For development, use your Mac's actual IP address so iOS can connect
     if (isDevelopment) {
-      _cachedLocalIP = '192.168.1.248'; // Your Mac's IP for iOS to connect
+      _cachedLocalIP = '192.168.29.220'; // Your Mac's IP for iOS to connect
       return _cachedLocalIP!;
     }
 
@@ -138,10 +138,10 @@ class Config {
   static const String helpUrl = '$websiteUrl/help';
 
   // Social media URLs
-  static const String facebookUrl = 'https://facebook.com/trueastrotalk';
-  static const String twitterUrl = 'https://twitter.com/trueastrotalk';
-  static const String instagramUrl = 'https://instagram.com/trueastrotalk';
-  static const String youtubeUrl = 'https://youtube.com/trueastrotalk';
+  static const String facebookUrl = 'https://www.facebook.com/trueastrotalk';
+  static const String twitterUrl = 'https://www.twitter.com/trueastrotalk';
+  static const String instagramUrl = 'https://www.instagram.com/trueastrotalk';
+  static const String youtubeUrl = 'https://www.youtube.com/trueastrotalk';
 
   // App store URLs
   static const String playStoreUrl =
