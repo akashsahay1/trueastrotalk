@@ -2,6 +2,7 @@
 <resources>
     <!-- True Astrotalk Brand Colors -->
     <color name="primary">#1877F2</color>
+    <color name="primary_color">#1877F2</color>
     <color name="primary_light">#818CF8</color>
     <color name="primary_dark">#4F46E5</color>
     

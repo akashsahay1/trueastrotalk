@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get collections
-    const walletTransactionsCollection = await DatabaseService.getCollection('wallet_transactions');
+    const walletTransactionsCollection = await DatabaseService.getCollection('transactions');
     const chatSessionsCollection = await DatabaseService.getCollection('chat_sessions');
     const callSessionsCollection = await DatabaseService.getCollection('call_sessions');
 

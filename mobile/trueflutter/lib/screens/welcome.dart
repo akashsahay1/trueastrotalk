@@ -18,12 +18,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
   // Animation controllers
   late AnimationController _fadeController;
   late AnimationController _slideController;
-  late AnimationController _scaleController;
 
   // Animations
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
-  late Animation<double> _scaleAnimation;
 
   bool _isGoogleLoading = false;
 
@@ -43,10 +41,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     // Slide animation for buttons
     _slideController = AnimationController(duration: const Duration(milliseconds: 800), vsync: this);
     _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
-
-    // Scale animation for interactive elements
-    _scaleController = AnimationController(duration: const Duration(milliseconds: 200), vsync: this);
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(CurvedAnimation(parent: _scaleController, curve: Curves.easeInOut));
   }
 
   void _startAnimations() async {
@@ -60,7 +54,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
   void dispose() {
     _fadeController.dispose();
     _slideController.dispose();
-    _scaleController.dispose();
     super.dispose();
   }
 
@@ -68,20 +61,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     HapticFeedback.lightImpact();
   }
 
-  void _onButtonTapDown() {
-    _triggerHaptic();
-    _scaleController.forward();
-  }
-
-  void _onButtonTapUp() {
-    _scaleController.reverse();
-  }
-
   Future<void> _handleGoogleSignIn() async {
-    _onButtonTapDown();
-    await Future.delayed(const Duration(milliseconds: 100));
-    _onButtonTapUp();
-
+    _triggerHaptic();
     setState(() => _isGoogleLoading = true);
 
     try {
@@ -130,6 +111,50 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  Widget _buildSignUpIcon({
+    required String imagePath,
+    VoidCallback? onTap,
+    bool isLoading = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 70,
+        height: 70,
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: isLoading
+            ? Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  ),
+                ),
+              )
+            : Center(
+                child: Image.asset(
+                  imagePath,
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.cover,
+                ),
+              ),
       ),
     );
   }
@@ -196,86 +221,50 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        // Google Sign In Button (for customers)
-                        ScaleTransition(
-                          scale: _scaleAnimation,
-                          child: Container(
-                            width: double.infinity,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEA4335),
-                              border: Border.all(color: const Color(0xFFEA4335), width: 1.5),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 4))],
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: _isGoogleLoading ? null : _handleGoogleSignIn,
-                                borderRadius: BorderRadius.circular(16),
-                                onTapDown: (_) => _onButtonTapDown(),
-                                onTapUp: (_) => _onButtonTapUp(),
-                                onTapCancel: _onButtonTapUp,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      if (_isGoogleLoading) ...[
-                                        SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary))),
-                                        const SizedBox(width: 12),
-                                      ] else ...[
-                                        Container(
-                                          width: 20,
-                                          height: 20,
-                                          decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-                                          child: const Icon(Icons.g_mobiledata, color: AppColors.white, size: 16),
-                                        ),
-                                        const SizedBox(width: 12),
-                                      ],
-                                      Text(
-                                        _isGoogleLoading ? 'Signing in...' : 'Continue with Google',
-                                        style: AppTextStyles.buttonLarge.copyWith(color: AppColors.white, fontWeight: FontWeight.w600),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
+                        // Sign up options title
+                        Text(
+                          'Sign up with',
+                          style: AppTextStyles.bodyLarge.copyWith(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
+                        const SizedBox(height: 24),
 
-                        const SizedBox(height: 16),
+                        // Sign up method icons in a row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Google Sign In Icon
+                            _buildSignUpIcon(
+                              imagePath: 'assets/images/google.png',
+                              isLoading: _isGoogleLoading,
+                              onTap: _isGoogleLoading ? null : _handleGoogleSignIn,
+                            ),
+                            const SizedBox(width: 24),
 
-                        // Email Sign Up Button
-                        Container(
-                          width: double.infinity,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            border: Border.all(color: AppColors.primary, width: 1.5),
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 8))],
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
+                            // Email Sign Up Icon
+                            _buildSignUpIcon(
+                              imagePath: 'assets/images/email.png',
                               onTap: () {
                                 _triggerHaptic();
                                 Navigator.pushNamed(context, '/signup');
                               },
-                              borderRadius: BorderRadius.circular(16),
-                              child: Center(
-                                child: Text(
-                                  'Sign up with Email',
-                                  style: AppTextStyles.buttonLarge.copyWith(color: AppColors.white, fontWeight: FontWeight.w600),
-                                ),
-                              ),
                             ),
-                          ),
+                            const SizedBox(width: 24),
+
+                            // Phone Sign Up Icon
+                            _buildSignUpIcon(
+                              imagePath: 'assets/images/phone.png',
+                              onTap: () {
+                                _triggerHaptic();
+                                Navigator.pushNamed(context, '/phone-signup');
+                              },
+                            ),
+                          ],
                         ),
 
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 32),
 
                         // Login and Join as Astrologer Links - Fixed Overflow
                         Column(

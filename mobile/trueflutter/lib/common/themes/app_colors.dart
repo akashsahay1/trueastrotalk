@@ -37,7 +37,9 @@ class AppColors {
   static const Color info = Color(0xFF2196F3);
 
   // Background Colors - Gradient-friendly
-  static const Color backgroundLight = Color(0xFFFAFAFA); // Light grey for better contrast
+  static const Color backgroundLight = Color(
+    0xFFFAFAFA,
+  ); // Light grey for better contrast
   static const Color backgroundDark = Color(0xFF121212);
   static const Color surfaceLight = Color(0xFFFFFFFF);
   static const Color surfaceDark = Color(0xFF1E1E1E);
@@ -63,7 +65,9 @@ class AppColors {
 
   // Astrology Specific Colors
   static const Color zodiacFire = Color(0xFFFF6B35); // Aries, Leo, Sagittarius
-  static const Color zodiacEarth = Color(0xFF8BC34A); // Taurus, Virgo, Capricorn
+  static const Color zodiacEarth = Color(
+    0xFF8BC34A,
+  ); // Taurus, Virgo, Capricorn
   static const Color zodiacAir = Color(0xFF03DAC6); // Gemini, Libra, Aquarius
   static const Color zodiacWater = Color(0xFF3F51B5); // Cancer, Scorpio, Pisces
 

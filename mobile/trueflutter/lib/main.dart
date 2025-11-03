@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'firebase_options.dart';
 import 'common/themes/app_theme.dart';
 import 'config/config.dart';
@@ -10,6 +11,9 @@ import 'screens/onboarding.dart';
 import 'screens/welcome.dart';
 import 'screens/login.dart';
 import 'screens/signup.dart';
+import 'screens/phone_signup.dart';
+import 'screens/phone_login.dart';
+import 'screens/otp_verification.dart';
 import 'screens/forgot_password_screen.dart';
 import 'screens/home.dart';
 import 'screens/orders_list.dart';
@@ -19,12 +23,51 @@ import 'services/local/local_storage_service.dart';
 import 'services/cart_service.dart';
 import 'services/network/dio_client.dart';
 import 'services/payment/razorpay_service.dart';
-import 'services/notifications/notification_service.dart';
 import 'services/deep_link_service.dart';
 import 'services/app_info_service.dart';
+import 'services/api/user_api_service.dart';
+
+/// Firebase background message handler - must be top-level function
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // Initialize Firebase if not already initialized
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  debugPrint('🔔 Handling background message: ${message.messageId}');
+  // Handle the message in background
+}
+
+/// Initialize app dependencies during splash screen
+Future<void> _initializeAppDependencies() async {
+  try {
+    debugPrint('🔧 Initializing app dependencies...');
+
+    // Fetch and cache astrologer options (skills and languages)
+    final userApiService = getIt<UserApiService>();
+    final options = await userApiService.getAstrologerOptions();
+
+    // Save to SharedPreferences for offline access
+    final prefs = await SharedPreferences.getInstance();
+    final skills = options['skills'] ?? <String>[];
+    final languages = options['languages'] ?? <String>[];
+
+    await prefs.setStringList('astrologer_skills', skills);
+    await prefs.setStringList('astrologer_languages', languages);
+
+    debugPrint('✅ Dependencies initialized successfully');
+    debugPrint('   Skills: ${skills.length}, Languages: ${languages.length}');
+  } catch (e) {
+    // Log error but don't block app launch
+    debugPrint('⚠️ Failed to initialize dependencies: $e');
+    debugPrint('   App will continue with cached data if available');
+  }
+}
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  // Preserve the native splash screen
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+  debugPrint('🚀 Starting app initialization...');
 
   // Initialize network client with auto IP detection
   await DioClient.initialize();
@@ -66,6 +109,11 @@ void main() async {
   } catch (e) {
     debugPrint('❌ Payment service initialization failed: $e');
   }
+
+  // Initialize app dependencies (astrologer options, etc.)
+  await _initializeAppDependencies();
+
+  debugPrint('✅ App initialization complete!');
 
   // Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
@@ -113,6 +161,9 @@ class TrueAstrotalkApp extends StatelessWidget {
         '/signup': (context) => const SignupScreen(),
         '/register': (context) => const SignupScreen(),
         '/astrologer-signup': (context) => const SignupScreen(isAdvanced: true),
+        '/phone-signup': (context) => const PhoneSignupScreen(),
+        '/phone-login': (context) => const PhoneLoginScreen(),
+        '/otp-verification': (context) => const OTPVerificationScreen(),
         '/home': (context) => const HomeScreen(),
         '/customer/home': (context) => const HomeScreen(),
         '/astrologer/dashboard': (context) => const HomeScreen(),
@@ -169,17 +220,28 @@ class _AuthWrapperState extends State<AuthWrapper> {
         _isOnboardingCompleted = onboardingCompleted;
         _isLoading = false;
       });
+
+      // Remove native splash screen now that app is ready
+      FlutterNativeSplash.remove();
+      debugPrint('🎨 Native splash removed - app ready!');
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
+
+      // Remove splash even if there's an error
+      FlutterNativeSplash.remove();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      // Native splash is still showing, return empty scaffold
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: SizedBox.shrink(),
+      );
     }
 
     if (_authService.isLoggedIn) {

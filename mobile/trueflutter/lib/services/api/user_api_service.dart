@@ -165,8 +165,9 @@ class UserApiService {
       } else {
         throw Exception('Registration failed: ${response.data['message']}');
       }
-    } on DioException catch (e) {
-      throw Exception(_handleDioException(e));
+    } on DioException {
+      // Let the DioException bubble up so ErrorHandler can properly extract the message
+      rethrow;
     }
   }
 
@@ -222,7 +223,8 @@ class UserApiService {
       debugPrint('   - Error Message: ${e.message}');
       debugPrint('   - Request URI: ${e.requestOptions.uri}');
       debugPrint('   - Request Data: ${e.requestOptions.data}');
-      throw Exception(_handleDioException(e));
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -243,8 +245,9 @@ class UserApiService {
       } else {
         throw Exception('Google sign in failed: ${response.data['message']}');
       }
-    } on DioException catch (e) {
-      throw Exception(_handleDioException(e));
+    } on DioException {
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -261,8 +264,9 @@ class UserApiService {
       } else {
         throw Exception('Failed to get user profile: ${response.data['message']}');
       }
-    } on DioException catch (e) {
-      throw Exception(_handleDioException(e));
+    } on DioException {
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -332,7 +336,8 @@ class UserApiService {
       }
     } on DioException catch (e) {
       debugPrint('❌ Profile update error: ${e.response?.statusCode} - ${e.response?.data}');
-      throw Exception(_handleDioException(e));
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -346,8 +351,9 @@ class UserApiService {
       } else {
         throw Exception('Failed to check verification status: ${response.data['message']}');
       }
-    } on DioException catch (e) {
-      throw Exception(_handleDioException(e));
+    } on DioException {
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -361,8 +367,9 @@ class UserApiService {
       } else {
         throw Exception('Token refresh failed: ${response.data['message']}');
       }
-    } on DioException catch (e) {
-      throw Exception(_handleDioException(e));
+    } on DioException {
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -396,7 +403,8 @@ class UserApiService {
       }
     } on DioException catch (e) {
       debugPrint('❌ Wallet balance API error: ${e.response?.statusCode} - ${e.response?.data}');
-      throw Exception(_handleDioException(e));
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -415,8 +423,9 @@ class UserApiService {
       } else {
         throw Exception('Failed to get wallet transactions: ${response.data['message']}');
       }
-    } on DioException catch (e) {
-      throw Exception(_handleDioException(e));
+    } on DioException {
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -439,8 +448,9 @@ class UserApiService {
       } else {
         throw Exception('Failed to get consultation history: ${response.data['message']}');
       }
-    } on DioException catch (e) {
-      throw Exception(_handleDioException(e));
+    } on DioException {
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -466,8 +476,9 @@ class UserApiService {
       } else {
         throw Exception('Failed to create Razorpay order: ${response.data['message']}');
       }
-    } on DioException catch (e) {
-      throw Exception(_handleDioException(e));
+    } on DioException {
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -491,8 +502,9 @@ class UserApiService {
       } else {
         throw Exception('Failed to recharge wallet: ${response.data['message']}');
       }
-    } on DioException catch (e) {
-      throw Exception(_handleDioException(e));
+    } on DioException {
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -525,8 +537,9 @@ class UserApiService {
       } else {
         throw Exception('Failed to get astrologers: ${response.data['message']}');
       }
-    } on DioException catch (e) {
-      throw Exception(_handleDioException(e));
+    } on DioException {
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -540,8 +553,9 @@ class UserApiService {
       } else {
         throw Exception('Failed to get astrologer details: ${response.data['message']}');
       }
-    } on DioException catch (e) {
-      throw Exception(_handleDioException(e));
+    } on DioException {
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -558,8 +572,9 @@ class UserApiService {
       } else {
         throw Exception('Failed to get featured products: ${response.data['message']}');
       }
-    } on DioException catch (e) {
-      throw Exception(_handleDioException(e));
+    } on DioException {
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -588,8 +603,9 @@ class UserApiService {
       } else {
         throw Exception('Failed to get products: ${response.data['message']}');
       }
-    } on DioException catch (e) {
-      throw Exception(_handleDioException(e));
+    } on DioException {
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -627,8 +643,9 @@ class UserApiService {
       } else {
         throw Exception('Failed to get astrologer options: ${response.data['message']}');
       }
-    } on DioException catch (e) {
-      throw Exception(_handleDioException(e));
+    } on DioException {
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -674,8 +691,9 @@ class UserApiService {
       }
 
       throw Exception('Upload failed: ${response.data}');
-    } on DioException catch (e) {
-      throw Exception(_handleDioException(e));
+    } on DioException {
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -691,8 +709,9 @@ class UserApiService {
       if (response.statusCode != 200) {
         throw Exception('Failed to update profile image: ${response.data}');
       }
-    } on DioException catch (e) {
-      throw Exception(_handleDioException(e));
+    } on DioException {
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -828,8 +847,9 @@ class UserApiService {
       } else {
         throw Exception('Failed to get astrologer earnings: ${response.data['message']}');
       }
-    } on DioException catch (e) {
-      throw Exception(_handleDioException(e));
+    } on DioException {
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -932,8 +952,9 @@ class UserApiService {
       } else {
         throw Exception('Failed to get pending consultations: ${response.data['message']}');
       }
-    } on DioException catch (e) {
-      throw Exception(_handleDioException(e));
+    } on DioException {
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -951,8 +972,9 @@ class UserApiService {
       } else {
         throw Exception('Failed to update online status: ${response.data['message']}');
       }
-    } on DioException catch (e) {
-      throw Exception(_handleDioException(e));
+    } on DioException {
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -987,8 +1009,9 @@ class UserApiService {
       } else {
         throw Exception('Failed to update UPI details: ${response.data['message']}');
       }
-    } on DioException catch (e) {
-      throw Exception(_handleDioException(e));
+    } on DioException {
+      // Let DioException bubble up for proper error handling
+      rethrow;
     }
   }
 
@@ -1203,6 +1226,197 @@ class UserApiService {
 
     if (response.statusCode != 200) {
       throw Exception('Failed to change password: ${response.data['message']}');
+    }
+  }
+
+  // Phone Authentication Methods
+
+  /// Send OTP to phone number for verification (signup)
+  Future<Map<String, dynamic>> sendOTP(String phoneNumber) async {
+    try {
+      final response = await _dio.post(
+        ApiEndpoints.sendOtp,
+        data: {'phone_number': phoneNumber},
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': response.data['message'] ?? 'OTP sent successfully',
+          'phone_number': response.data['phone_number'],
+          'expiry_seconds': response.data['expiry_seconds'],
+          'testing_mode': response.data['testing_mode'] ?? false,
+        };
+      } else {
+        return {
+          'success': false,
+          'error': response.data['error'] ?? 'Failed to send OTP',
+        };
+      }
+    } on DioException catch (e) {
+      debugPrint('❌ Send OTP error: ${e.response?.statusCode} - ${e.response?.data}');
+      return {
+        'success': false,
+        'error': e.response?.data['error'] ?? _handleDioException(e),
+      };
+    }
+  }
+
+  /// Send OTP to phone number for login
+  Future<Map<String, dynamic>> sendOTPForLogin(String phoneNumber) async {
+    try {
+      final response = await _dio.post(
+        ApiEndpoints.phoneLogin,
+        data: {'phone_number': phoneNumber},
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': response.data['message'] ?? 'OTP sent successfully',
+          'phone_number': response.data['phone_number'],
+          'expiry_seconds': response.data['expiry_seconds'],
+          'testing_mode': response.data['testing_mode'] ?? false,
+        };
+      } else {
+        return {
+          'success': false,
+          'error': response.data['error'] ?? 'Failed to send OTP',
+        };
+      }
+    } on DioException catch (e) {
+      debugPrint('❌ Send OTP for login error: ${e.response?.statusCode} - ${e.response?.data}');
+      return {
+        'success': false,
+        'error': e.response?.data['error'] ?? _handleDioException(e),
+      };
+    }
+  }
+
+  /// Verify OTP code for phone number
+  Future<Map<String, dynamic>> verifyOTP(String phoneNumber, String otp) async {
+    try {
+      final response = await _dio.post(
+        ApiEndpoints.verifyOtp,
+        data: {
+          'phone_number': phoneNumber,
+          'otp': otp,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': response.data['message'] ?? 'OTP verified successfully',
+          'phone_number': response.data['phone_number'],
+          'phone_verified': response.data['phone_verified'] ?? true,
+        };
+      } else {
+        return {
+          'success': false,
+          'error': response.data['error'] ?? 'Invalid OTP',
+          'remaining_attempts': response.data['remaining_attempts'],
+        };
+      }
+    } on DioException catch (e) {
+      debugPrint('❌ Verify OTP error: ${e.response?.statusCode} - ${e.response?.data}');
+      return {
+        'success': false,
+        'error': e.response?.data['error'] ?? _handleDioException(e),
+        'remaining_attempts': e.response?.data['remaining_attempts'],
+      };
+    }
+  }
+
+  /// Complete phone signup and create user account
+  Future<Map<String, dynamic>> phoneSignUp(
+    String phoneNumber,
+    String fullName,
+    String userType, {
+    String? dateOfBirth,
+    String? timeOfBirth,
+    String? placeOfBirth,
+    String? gender,
+  }) async {
+    try {
+      final data = {
+        'phone_number': phoneNumber,
+        'full_name': fullName,
+        'user_type': userType,
+      };
+
+      // Add optional birth details if provided
+      if (dateOfBirth != null) data['date_of_birth'] = dateOfBirth;
+      if (timeOfBirth != null) data['time_of_birth'] = timeOfBirth;
+      if (placeOfBirth != null && placeOfBirth.isNotEmpty) {
+        data['place_of_birth'] = placeOfBirth;
+      }
+      if (gender != null) data['gender'] = gender;
+
+      final response = await _dio.post(
+        ApiEndpoints.phoneSignup,
+        data: data,
+      );
+
+      if (response.statusCode == 200) {
+        final userData = response.data['user'];
+        final user = User.fromJson(userData);
+
+        return {
+          'success': true,
+          'message': response.data['message'] ?? 'Account created successfully',
+          'user': user,
+          'access_token': response.data['access_token'],
+          'refresh_token': response.data['refresh_token'],
+          'token_type': response.data['token_type'] ?? 'Bearer',
+        };
+      } else {
+        return {
+          'success': false,
+          'error': response.data['error'] ?? 'Failed to create account',
+        };
+      }
+    } on DioException catch (e) {
+      debugPrint('❌ Phone signup error: ${e.response?.statusCode} - ${e.response?.data}');
+      return {
+        'success': false,
+        'error': e.response?.data['error'] ?? _handleDioException(e),
+      };
+    }
+  }
+
+  /// Complete phone login and fetch user data with tokens
+  Future<Map<String, dynamic>> phoneLoginComplete(String phoneNumber) async {
+    try {
+      final response = await _dio.post(
+        ApiEndpoints.phoneLoginComplete,
+        data: {'phone_number': phoneNumber},
+      );
+
+      if (response.statusCode == 200) {
+        final userData = response.data['user'];
+        final user = User.fromJson(userData);
+
+        return {
+          'success': true,
+          'message': response.data['message'] ?? 'Login successful',
+          'user': user,
+          'access_token': response.data['access_token'],
+          'refresh_token': response.data['refresh_token'],
+          'token_type': response.data['token_type'] ?? 'Bearer',
+        };
+      } else {
+        return {
+          'success': false,
+          'error': response.data['error'] ?? 'Failed to login',
+        };
+      }
+    } on DioException catch (e) {
+      debugPrint('❌ Phone login complete error: ${e.response?.statusCode} - ${e.response?.data}');
+      return {
+        'success': false,
+        'error': e.response?.data['error'] ?? _handleDioException(e),
+      };
     }
   }
 

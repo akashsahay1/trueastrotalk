@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 
@@ -57,18 +58,6 @@ class _HelpScreenState extends State<HelpScreen> {
       title: 'Phone Support',
       subtitle: '+91 9876543210',
       description: 'Call us (Mon-Sat, 9 AM - 9 PM)',
-    ),
-    ContactOption(
-      icon: Icons.chat_outlined,
-      title: 'Live Chat',
-      subtitle: 'Chat with our support team',
-      description: 'Get instant help (9 AM - 9 PM)',
-    ),
-    ContactOption(
-      icon: Icons.feedback_outlined,
-      title: 'Send Feedback',
-      subtitle: 'Share your thoughts',
-      description: 'Help us improve our services',
     ),
   ];
 
@@ -380,10 +369,31 @@ class _HelpScreenState extends State<HelpScreen> {
     );
   }
 
-  void _handleContactOption(ContactOption option) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Opening ${option.title}...')),
-    );
+  Future<void> _handleContactOption(ContactOption option) async {
+    try {
+      Uri? uri;
+
+      if (option.title == 'Email Support') {
+        // Open email app with pre-filled email address
+        uri = Uri.parse('mailto:${option.subtitle}?subject=Support%20Request');
+      } else if (option.title == 'Phone Support') {
+        // Open phone app with pre-filled phone number
+        uri = Uri.parse('tel:${option.subtitle}');
+      }
+
+      if (uri != null) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open ${option.title}: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 }
 

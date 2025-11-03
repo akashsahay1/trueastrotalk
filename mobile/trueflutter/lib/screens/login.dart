@@ -178,6 +178,63 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
+  Widget _buildLoginIcon({
+    required String imagePath,
+    required String label,
+    VoidCallback? onTap,
+    bool isLoading = false,
+  }) {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: 70,
+            height: 70,
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: isLoading
+                ? Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      ),
+                    ),
+                  )
+                : Center(
+                    child: Image.asset(
+                      imagePath,
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: AppTextStyles.bodySmall.copyWith(
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _onGoogleSignIn() async {
     _triggerHaptic();
     setState(() => _isGoogleLoading = true);
@@ -524,85 +581,37 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
                 
                 const SizedBox(height: 24),
-                
-                // Google Sign In Button
+
+                // Login method icons in a row
                 SlideTransition(
                   position: _slideAnimation,
-                  child: Container(
-                    width: double.infinity,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      border: Border.all(
-                        color: AppColors.grey300,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Google Sign In Icon
+                      _buildLoginIcon(
+                        imagePath: 'assets/images/google.png',
+                        label: 'Google',
+                        isLoading: _isGoogleLoading,
                         onTap: _isGoogleLoading ? null : _onGoogleSignIn,
-                        borderRadius: BorderRadius.circular(16),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              if (_isGoogleLoading) ...[
-                                SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      AppColors.primary,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                              ] else ...[
-                                Container(
-                                  width: 20,
-                                  height: 20,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Icon(
-                                    Icons.g_mobiledata,
-                                    color: AppColors.primary,
-                                    size: 16,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                              ],
-                              Text(
-                                _isGoogleLoading 
-                                    ? 'Signing in...' 
-                                    : 'Continue with Google',
-                                style: AppTextStyles.buttonLarge.copyWith(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
-                    ),
+                      const SizedBox(width: 32),
+
+                      // Phone Login Icon
+                      _buildLoginIcon(
+                        imagePath: 'assets/images/phone.png',
+                        label: 'Phone',
+                        onTap: () {
+                          _triggerHaptic();
+                          Navigator.pushNamed(context, '/phone-login');
+                        },
+                      ),
+                    ],
                   ),
                 ),
-                
-                const SizedBox(height: 32),
-                
+
+                const SizedBox(height: 16),
+
                 // Register and Join as Astrologer Links
                 SlideTransition(
                   position: _slideAnimation,

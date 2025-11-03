@@ -5,8 +5,6 @@ import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 import '../common/constants/app_strings.dart';
 import '../common/constants/dimensions.dart';
-import '../services/service_locator.dart';
-import '../services/api/user_api_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -248,27 +246,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _finishOnboarding() async {
-    try {
-      // Mark onboarding as completed in shared preferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('onboarding_completed', true);
-
-      // Fetch and save astrologer options (skills and languages)
-      final userApiService = getIt<UserApiService>();
-      final options = await userApiService.getAstrologerOptions();
-      
-      // Save to SharedPreferences
-      final skills = options['skills'] ?? <String>[];
-      final languages = options['languages'] ?? <String>[];
-      
-      await prefs.setStringList('astrologer_skills', skills);
-      await prefs.setStringList('astrologer_languages', languages);
-      
-    } catch (e) {
-      // Continue even if this fails
-    }
+    // Mark onboarding as completed in shared preferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboarding_completed', true);
 
     // Navigate to login screen
+    // Note: Dependencies are already initialized in splash screen
     if (mounted) {
       Navigator.of(context).pushReplacementNamed('/login');
     }

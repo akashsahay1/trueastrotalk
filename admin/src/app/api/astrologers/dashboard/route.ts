@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     const usersCollection = await DatabaseService.getCollection('users');
     const chatSessionsCollection = await DatabaseService.getCollection('chat_sessions');
     const callSessionsCollection = await DatabaseService.getCollection('call_sessions');
-    const walletTransactionsCollection = await DatabaseService.getCollection('wallet_transactions');
+    const walletTransactionsCollection = await DatabaseService.getCollection('transactions');
     const reviewsCollection = await DatabaseService.getCollection('reviews');
 
     // Get astrologer profile

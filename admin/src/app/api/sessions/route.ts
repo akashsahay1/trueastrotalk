@@ -417,7 +417,7 @@ export async function PATCH(request: NextRequest) {
         );
 
         // Update or create wallet transaction records
-        const walletTransactionsCollection = db.collection('wallet_transactions');
+        const walletTransactionsCollection = db.collection('transactions');
         
         // Customer debit transaction - update existing or create new
         await walletTransactionsCollection.updateOne(

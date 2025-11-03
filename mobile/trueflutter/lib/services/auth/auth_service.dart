@@ -714,4 +714,129 @@ class AuthService {
     );
   }
 
+  // Phone Authentication Methods
+
+  /// Send OTP to phone number for verification (signup)
+  Future<Map<String, dynamic>> sendOTP(String phoneNumber) async {
+    try {
+      return await _userApiService.sendOTP(phoneNumber);
+    } catch (e) {
+      final appError = ErrorHandler.handleError(e, context: 'send-otp');
+      return {
+        'success': false,
+        'error': appError.userMessage.isNotEmpty
+            ? appError.userMessage
+            : 'Failed to send OTP. Please try again.'
+      };
+    }
+  }
+
+  /// Send OTP to phone number for login
+  Future<Map<String, dynamic>> sendOTPForLogin(String phoneNumber) async {
+    try {
+      return await _userApiService.sendOTPForLogin(phoneNumber);
+    } catch (e) {
+      final appError = ErrorHandler.handleError(e, context: 'send-otp-login');
+      return {
+        'success': false,
+        'error': appError.userMessage.isNotEmpty
+            ? appError.userMessage
+            : 'Failed to send OTP. Please try again.'
+      };
+    }
+  }
+
+  /// Verify OTP code for phone number
+  Future<Map<String, dynamic>> verifyOTP(String phoneNumber, String otp) async {
+    try {
+      return await _userApiService.verifyOTP(phoneNumber, otp);
+    } catch (e) {
+      final appError = ErrorHandler.handleError(e, context: 'verify-otp');
+      return {
+        'success': false,
+        'error': appError.userMessage.isNotEmpty
+            ? appError.userMessage
+            : 'Failed to verify OTP. Please try again.'
+      };
+    }
+  }
+
+  /// Complete phone signup and create user account
+  Future<Map<String, dynamic>> phoneSignUp(
+    String phoneNumber,
+    String fullName,
+    String userType, {
+    String? dateOfBirth,
+    String? timeOfBirth,
+    String? placeOfBirth,
+    String? gender,
+  }) async {
+    try {
+      final result = await _userApiService.phoneSignUp(
+        phoneNumber,
+        fullName,
+        userType,
+        dateOfBirth: dateOfBirth,
+        timeOfBirth: timeOfBirth,
+        placeOfBirth: placeOfBirth,
+        gender: gender,
+      );
+
+      if (result['success']) {
+        final user = result['user'] as app_user.User;
+        final token = result['access_token'] as String;
+        final refreshToken = result['refresh_token'] as String? ?? '';
+
+        await _saveAuthData(user, token, refreshToken);
+
+        return {
+          'success': true,
+          'user': user,
+          'token': token,
+        };
+      }
+
+      return result;
+    } catch (e) {
+      final appError = ErrorHandler.handleError(e, context: 'phone-signup');
+      return {
+        'success': false,
+        'error': appError.userMessage.isNotEmpty
+            ? appError.userMessage
+            : 'Failed to create account. Please try again.'
+      };
+    }
+  }
+
+  /// Complete phone login and fetch user data with tokens
+  Future<Map<String, dynamic>> phoneLoginComplete(String phoneNumber) async {
+    try {
+      final result = await _userApiService.phoneLoginComplete(phoneNumber);
+
+      if (result['success']) {
+        final user = result['user'] as app_user.User;
+        final token = result['access_token'] as String;
+        final refreshToken = result['refresh_token'] as String? ?? '';
+
+        await _saveAuthData(user, token, refreshToken);
+
+        return {
+          'success': true,
+          'user': user,
+          'token': token,
+        };
+      }
+
+      return result;
+    } catch (e) {
+      final appError = ErrorHandler.handleError(e, context: 'phone-login-complete');
+      return {
+        'success': false,
+        'error': appError.userMessage.isNotEmpty
+            ? appError.userMessage
+            : 'Failed to login. Please try again.'
+      };
+    }
+  }
+
 }

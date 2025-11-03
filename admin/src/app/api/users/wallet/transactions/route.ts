@@ -53,9 +53,9 @@ export async function GET(request: NextRequest) {
     // Connect to MongoDB
     const client = new MongoClient(MONGODB_URL);
     await client.connect();
-    
+
     const db = client.db(DB_NAME);
-    const transactionsCollection = db.collection('wallet_transactions');
+    const transactionsCollection = db.collection('transactions');
 
     // Build query for user transactions (debits from user_id or credits to user_id)
     const query: Record<string, unknown> = {

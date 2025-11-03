@@ -1,34 +1,22 @@
 package com.trueastrotalk.user
 
-import android.content.Intent
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
+import android.view.View
 import io.flutter.embedding.android.FlutterActivity
 
 class MainActivity : FlutterActivity() {
-    
-    private var showSplash = false
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Check if this is a cold start (new task) or warm start (existing task)
-        showSplash = savedInstanceState == null && 
-                    (intent.flags and Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT) == 0
-        
-        if (showSplash) {
-            // Set splash theme before calling super.onCreate()
-            setTheme(R.style.SplashTheme)
-        }
-        
         super.onCreate(savedInstanceState)
-        
-        if (showSplash) {
-            // Switch back to normal theme after splash delay
-            Handler(Looper.getMainLooper()).postDelayed({
-                setTheme(R.style.NormalTheme)
-                // Recreate to apply the new theme
-                recreate()
-            }, 2000) // 2 second splash
-        }
+
+        // The splash screen is now handled by flutter_native_splash package
+        // and our custom splash_screen.xml layout via drawable/launch_background.xml
+    }
+
+    override fun onPostResume() {
+        super.onPostResume()
+
+        // Keep the native splash visible by using the splash drawable
+        // flutter_native_splash will handle removal when Flutter is ready
     }
 }
