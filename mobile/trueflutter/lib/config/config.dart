@@ -138,10 +138,10 @@ class Config {
   static const String helpUrl = '$websiteUrl/help';
 
   // Social media URLs
-  static const String facebookUrl = 'https://facebook.com/trueastrotalk';
-  static const String twitterUrl = 'https://twitter.com/trueastrotalk';
-  static const String instagramUrl = 'https://instagram.com/trueastrotalk';
-  static const String youtubeUrl = 'https://youtube.com/trueastrotalk';
+  static const String facebookUrl = 'https://www.facebook.com/trueastrotalk';
+  static const String twitterUrl = 'https://www.twitter.com/trueastrotalk';
+  static const String instagramUrl = 'https://www.instagram.com/trueastrotalk';
+  static const String youtubeUrl = 'https://www.youtube.com/trueastrotalk';
 
   // App store URLs
   static const String playStoreUrl =
