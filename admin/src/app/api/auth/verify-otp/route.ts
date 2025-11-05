@@ -49,12 +49,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if already verified
-    if (otpRecord.phone_verified) {
+    // Check if already verified without an active OTP
+    // If phone is verified but has an active OTP, it means user is logging in
+    // If phone is verified without an active OTP, they should use login flow
+    if (otpRecord.phone_verified && !otpRecord.otp_code) {
       return NextResponse.json(
         {
           success: false,
-          error: 'This phone number is already verified. Please login instead.',
+          error: 'This phone number is already verified. Please request a new OTP to login.',
         },
         { status: 400 }
       );

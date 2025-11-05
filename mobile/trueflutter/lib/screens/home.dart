@@ -8,6 +8,7 @@ import '../services/service_locator.dart';
 import '../models/user.dart' as app_user;
 import '../models/astrologer.dart';
 import '../models/product.dart';
+import '../models/enums.dart';
 import '../config/config.dart';
 import '../common/widgets/astrologer_call_card.dart';
 import '../common/widgets/product_card.dart';
@@ -552,9 +553,11 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
 
                     const SizedBox(height: 4),
 
-                    // User Email
+                    // User Email or Phone (based on auth type)
                     Text(
-                      _currentUser?.email ?? '',
+                      _currentUser != null && _currentUser!.authType == AuthType.phone
+                        ? (_currentUser!.phone ?? '')
+                        : (_currentUser?.email ?? ''),
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.white.withValues(alpha: 0.9),
                       ),
@@ -1201,8 +1204,11 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(height: 4),
+                    // Show phone number for phone-authenticated users, email for others
                     Text(
-                      _currentUser?.email ?? '',
+                      _currentUser != null && _currentUser!.authType == AuthType.phone
+                        ? (_currentUser!.phone ?? '')
+                        : (_currentUser?.email ?? ''),
                       style: AppTextStyles.bodyMedium.copyWith(
                         color: AppColors.textSecondaryLight,
                       ),
@@ -2046,9 +2052,11 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
 
                     const SizedBox(height: 4),
 
-                    // User Email
+                    // User Email or Phone (based on auth type)
                     Text(
-                      _currentUser?.email ?? '',
+                      _currentUser != null && _currentUser!.authType == AuthType.phone
+                        ? (_currentUser!.phone ?? '')
+                        : (_currentUser?.email ?? ''),
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.white.withValues(alpha: 0.9),
                       ),

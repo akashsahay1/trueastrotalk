@@ -20,7 +20,7 @@ class Config {
   static Future<String> _getLocalIP() async {
     // For development, use your Mac's actual IP address so iOS can connect
     if (isDevelopment) {
-      _cachedLocalIP = '192.168.1.248'; // Your Mac's IP for iOS to connect
+      _cachedLocalIP = '192.168.29.9'; // Your Mac's IP for iOS to connect
       return _cachedLocalIP!;
     }
 

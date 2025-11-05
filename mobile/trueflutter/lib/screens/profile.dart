@@ -836,7 +836,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _currentUser?.name ?? 'User',
                       style: AppTextStyles.heading4.copyWith(color: AppColors.white, fontWeight: FontWeight.bold),
                     ),
-                    if (_currentUser?.email?.isNotEmpty == true) ...[const SizedBox(height: 4), Text(_currentUser!.email!, style: AppTextStyles.bodyMedium.copyWith(color: AppColors.white.withValues(alpha: 0.9)))],
+                    // Show phone number for phone-authenticated users, email for others
+                    if (_currentUser != null && (_currentUser!.authType == AuthType.phone ? _currentUser!.phone?.isNotEmpty == true : _currentUser!.email?.isNotEmpty == true)) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        _currentUser!.authType == AuthType.phone ? _currentUser!.phone! : _currentUser!.email!,
+                        style: AppTextStyles.bodyMedium.copyWith(color: AppColors.white.withValues(alpha: 0.9))
+                      )
+                    ],
                   ],
                 ),
               ),

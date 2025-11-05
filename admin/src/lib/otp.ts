@@ -16,10 +16,10 @@ export const OTP_BYPASS_CODE = '0000';
 
 // OTP Configuration
 export const OTP_LENGTH = 4;
-export const OTP_EXPIRY_MINUTES = 5;
-export const MAX_OTP_ATTEMPTS = 5;
-export const MAX_OTP_REQUESTS_PER_HOUR = 3;
-export const RESEND_OTP_DELAY_SECONDS = 30;
+export const OTP_EXPIRY_MINUTES = 60; // Extended to 60 minutes
+export const MAX_OTP_ATTEMPTS = 999; // Effectively unlimited
+export const MAX_OTP_REQUESTS_PER_HOUR = 999; // Effectively unlimited
+export const RESEND_OTP_DELAY_SECONDS = 0; // No delay for resend
 
 /**
  * Generate a random 4-digit OTP
