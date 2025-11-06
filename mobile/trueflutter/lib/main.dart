@@ -53,7 +53,7 @@ Future<void> _initializeAppDependencies() async {
     await prefs.setStringList('astrologer_skills', skills);
     await prefs.setStringList('astrologer_languages', languages);
 
-    debugPrint('✅ Dependencies initialized successfully');
+    debugPrint('✅ Dependencies initialized successfully'); 
     debugPrint('   Skills: ${skills.length}, Languages: ${languages.length}');
   } catch (e) {
     // Log error but don't block app launch

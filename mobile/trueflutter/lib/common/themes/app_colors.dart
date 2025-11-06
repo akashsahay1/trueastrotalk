@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Primary Brand Color - Deep Purple/Mystic Theme
-  static const Color primary = Color(0xFF1877F2); // Indigo-500
-  static const Color primaryLight = Color(0xFF818CF8); // Indigo-400
-  static const Color primaryDark = Color(0xFF4F46E5); // Indigo-600
+  // Primary Brand Color - Red Theme
+  static const Color primary = Color(0xFFFE0000); // Bright Red
+  static const Color primaryLight = Color(0xFFFF4D4D); // Light Red
+  static const Color primaryDark = Color(0xFFB30000); // Dark Red
 
   // Secondary Colors - Golden/Cosmic Theme
   static const Color secondary = Color(0xFFF59E0B); // Amber-500
@@ -45,9 +45,9 @@ class AppColors {
   static const Color surfaceDark = Color(0xFF1E1E1E);
 
   // Gradient Colors for Mystical Theme
-  static const Color gradientStart = Color(0xFF6366F1); // Indigo
-  static const Color gradientMiddle = Color(0xFF8B5CF6); // Violet
-  static const Color gradientEnd = Color(0xFFA855F7); // Purple
+  static const Color gradientStart = Color(0xFFFE0000); // Red
+  static const Color gradientMiddle = Color(0xFFFF4D4D); // Light Red
+  static const Color gradientEnd = Color(0xFFB30000); // Dark Red
 
   // Text Colors
   static const Color textPrimaryLight = Color(0xFF212121);
@@ -72,7 +72,7 @@ class AppColors {
   static const Color zodiacWater = Color(0xFF3F51B5); // Cancer, Scorpio, Pisces
 
   // Chat Colors
-  static const Color chatBubbleUser = Color(0xFF1877F2);
+  static const Color chatBubbleUser = Color(0xFFFE0000);
   static const Color chatBubbleAstrologer = Color(0xFFE0E0E0);
   static const Color chatBubbleUserText = Color(0xFFFFFFFF);
   static const Color chatBubbleAstrologerText = Color(0xFF212121);

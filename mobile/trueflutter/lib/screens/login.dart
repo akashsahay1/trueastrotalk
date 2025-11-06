@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:email_validator/email_validator.dart';
+import 'package:flutter_svg/svg.dart';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 import '../services/auth/auth_service.dart';
@@ -189,8 +190,8 @@ class _LoginScreenState extends State<LoginScreen>
         GestureDetector(
           onTap: onTap,
           child: Container(
-            width: 70,
-            height: 70,
+            width: 45,
+            height: 45,
             decoration: BoxDecoration(
               color: AppColors.white,
               shape: BoxShape.circle,
@@ -205,8 +206,8 @@ class _LoginScreenState extends State<LoginScreen>
             child: isLoading
                 ? Center(
                     child: SizedBox(
-                      width: 24,
-                      height: 24,
+                      width: 20,
+                      height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.5,
                         valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
@@ -214,10 +215,10 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                   )
                 : Center(
-                    child: Image.asset(
+                    child: SvgPicture.asset(
                       imagePath,
-                      width: 40,
-                      height: 40,
+                      width: 20,
+                      height: 20,
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -499,23 +500,8 @@ class _LoginScreenState extends State<LoginScreen>
                     width: double.infinity,
                     height: 56,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.gradientStart,
-                          AppColors.gradientMiddle,
-                          AppColors.gradientEnd,
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                          blurRadius: 16,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(16),                     
                     ),
                     child: Material(
                       color: Colors.transparent,
@@ -590,7 +576,7 @@ class _LoginScreenState extends State<LoginScreen>
                     children: [
                       // Google Sign In Icon
                       _buildLoginIcon(
-                        imagePath: 'assets/images/google.png',
+                        imagePath: 'assets/images/google.svg',
                         label: 'Google',
                         isLoading: _isGoogleLoading,
                         onTap: _isGoogleLoading ? null : _onGoogleSignIn,
@@ -599,7 +585,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                       // Phone Login Icon
                       _buildLoginIcon(
-                        imagePath: 'assets/images/phone.png',
+                        imagePath: 'assets/images/phone.svg',
                         label: 'Phone',
                         onTap: () {
                           _triggerHaptic();

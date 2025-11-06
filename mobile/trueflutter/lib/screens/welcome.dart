@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/svg.dart';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 import '../services/auth/auth_service.dart';
@@ -148,7 +149,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                 ),
               )
             : Center(
-                child: Image.asset(
+                child: SvgPicture.asset(
                   imagePath,
                   width: 40,
                   height: 40,
@@ -237,7 +238,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                           children: [
                             // Google Sign In Icon
                             _buildSignUpIcon(
-                              imagePath: 'assets/images/google.png',
+                              imagePath: 'assets/images/google.svg',
                               isLoading: _isGoogleLoading,
                               onTap: _isGoogleLoading ? null : _handleGoogleSignIn,
                             ),
@@ -245,7 +246,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
 
                             // Email Sign Up Icon
                             _buildSignUpIcon(
-                              imagePath: 'assets/images/email.png',
+                              imagePath: 'assets/images/email.svg',
                               onTap: () {
                                 _triggerHaptic();
                                 Navigator.pushNamed(context, '/signup');
@@ -255,7 +256,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
 
                             // Phone Sign Up Icon
                             _buildSignUpIcon(
-                              imagePath: 'assets/images/phone.png',
+                              imagePath: 'assets/images/phone.svg',
                               onTap: () {
                                 _triggerHaptic();
                                 Navigator.pushNamed(context, '/phone-signup');
