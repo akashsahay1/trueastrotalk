@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Star } from 'lucide-react';
+import { ArrowLeft, Star, Heart, Briefcase, DollarSign, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -110,6 +110,61 @@ const PurvaPhalguni = () => {
                 </p>
                 <p className="text-muted-foreground">
                   These individuals are generous, friendly, and have the capacity to enjoy life while bringing pleasure and joy to others.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Life Aspects */}
+      <section className="py-16 bg-muted">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="text-center">
+              <CardHeader>
+                <Briefcase className="w-12 h-12 text-primary mx-auto mb-4" />
+                <CardTitle className="text-lg">Career</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Purva Phalguni natives excel in entertainment, arts, hospitality, and luxury industries. They make excellent performers, designers, and creative professionals due to their natural charm and artistic talents.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center">
+              <CardHeader>
+                <Heart className="w-12 h-12 text-primary mx-auto mb-4" />
+                <CardTitle className="text-lg">Relationships</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Purva Phalguni individuals are romantic, affectionate, and enjoy the pleasures of love. They are generous partners who create harmony and beauty in relationships and seek partners who appreciate luxury.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center">
+              <CardHeader>
+                <DollarSign className="w-12 h-12 text-primary mx-auto mb-4" />
+                <CardTitle className="text-lg">Finances</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Financial prosperity comes through creative and artistic endeavors. They should invest in entertainment, beauty, and luxury sectors while avoiding overspending on personal pleasures.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center">
+              <CardHeader>
+                <Shield className="w-12 h-12 text-primary mx-auto mb-4" />
+                <CardTitle className="text-lg">Health</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Purva Phalguni natives should maintain balance between pleasure and health. Regular relaxation and moderation in lifestyle choices are essential for long-term well-being and vitality.
                 </p>
               </CardContent>
             </Card>

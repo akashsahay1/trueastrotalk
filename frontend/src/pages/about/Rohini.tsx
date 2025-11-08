@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Star } from 'lucide-react';
+import { ArrowLeft, Star, Heart, Briefcase, DollarSign, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -110,6 +110,61 @@ const Rohini = () => {
                 </p>
                 <p className="text-muted-foreground">
                   These individuals are ambitious and have the ability to accumulate wealth and material possessions through their charm and intelligence.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Life Aspects */}
+      <section className="py-16 bg-muted">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="text-center">
+              <CardHeader>
+                <Briefcase className="w-12 h-12 text-primary mx-auto mb-4" />
+                <CardTitle className="text-lg">Career</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Rohini natives excel in creative fields, entertainment, and luxury industries. They make excellent artists, designers, and performers due to their natural beauty and artistic talents.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center">
+              <CardHeader>
+                <Heart className="w-12 h-12 text-primary mx-auto mb-4" />
+                <CardTitle className="text-lg">Relationships</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Rohini individuals are romantic and nurturing partners. They value beauty and comfort in relationships and are naturally attractive to others. They seek stable, loving partnerships.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center">
+              <CardHeader>
+                <DollarSign className="w-12 h-12 text-primary mx-auto mb-4" />
+                <CardTitle className="text-lg">Finances</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Financial prosperity comes naturally through their charm and creative abilities. They attract wealth and should invest in beauty, fashion, and luxury goods for steady growth.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center">
+              <CardHeader>
+                <Shield className="w-12 h-12 text-primary mx-auto mb-4" />
+                <CardTitle className="text-lg">Health</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Rohini natives should maintain balance in diet and avoid overindulgence. Regular beauty routines and gentle exercise help maintain their natural attractiveness and vitality.
                 </p>
               </CardContent>
             </Card>

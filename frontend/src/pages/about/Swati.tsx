@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Star } from 'lucide-react';
+import { ArrowLeft, Star, Heart, Briefcase, DollarSign, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -110,6 +110,61 @@ const Swati = () => {
                 </p>
                 <p className="text-muted-foreground">
                   These individuals are balanced, fair-minded, and have the ability to see multiple perspectives in any situation.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Life Aspects */}
+      <section className="py-16 bg-muted">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="text-center">
+              <CardHeader>
+                <Briefcase className="w-12 h-12 text-primary mx-auto mb-4" />
+                <CardTitle className="text-lg">Career</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Swati natives excel in communication, diplomacy, and business. They make excellent negotiators, salespeople, and entrepreneurs due to their adaptability and persuasive abilities.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center">
+              <CardHeader>
+                <Heart className="w-12 h-12 text-primary mx-auto mb-4" />
+                <CardTitle className="text-lg">Relationships</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Swati individuals value independence in relationships and need partners who respect their freedom. They are diplomatic and fair-minded, creating balanced partnerships.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center">
+              <CardHeader>
+                <DollarSign className="w-12 h-12 text-primary mx-auto mb-4" />
+                <CardTitle className="text-lg">Finances</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Financial success comes through trade, communication, and flexible business ventures. They should diversify investments and avoid being too dependent on single income sources.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center">
+              <CardHeader>
+                <Shield className="w-12 h-12 text-primary mx-auto mb-4" />
+                <CardTitle className="text-lg">Health</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Swati natives should maintain balance and avoid extremes in lifestyle. Regular movement and fresh air are essential for their well-being, reflecting their wind-like nature.
                 </p>
               </CardContent>
             </Card>

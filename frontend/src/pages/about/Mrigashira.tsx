@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Star } from 'lucide-react';
+import { ArrowLeft, Star, Heart, Briefcase, DollarSign, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -110,6 +110,61 @@ const Mrigashira = () => {
                 </p>
                 <p className="text-muted-foreground">
                   These individuals are creative, communicative, and have the ability to adapt to new situations quickly and effectively.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Life Aspects */}
+      <section className="py-16 bg-muted">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="text-center">
+              <CardHeader>
+                <Briefcase className="w-12 h-12 text-primary mx-auto mb-4" />
+                <CardTitle className="text-lg">Career</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Mrigashira natives excel in research, exploration, and communication fields. They make excellent journalists, travelers, and investigators due to their curious and seeking nature.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center">
+              <CardHeader>
+                <Heart className="w-12 h-12 text-primary mx-auto mb-4" />
+                <CardTitle className="text-lg">Relationships</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Mrigashira individuals are adventurous and seek variety in relationships. They need partners who can keep up with their restless nature and share their love for exploration and discovery.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center">
+              <CardHeader>
+                <DollarSign className="w-12 h-12 text-primary mx-auto mb-4" />
+                <CardTitle className="text-lg">Finances</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Financial success comes through their communication skills and adaptability. They should diversify investments and avoid putting all resources in one place due to their restless nature.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center">
+              <CardHeader>
+                <Shield className="w-12 h-12 text-primary mx-auto mb-4" />
+                <CardTitle className="text-lg">Health</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Mrigashira natives should manage their restless energy through regular travel and physical activity. They need variety in their routine to maintain mental and physical well-being.
                 </p>
               </CardContent>
             </Card>

@@ -1,10 +1,10 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Gem, Star, Wand2, ClipboardCheck, Fingerprint, AlertTriangle, Crown } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 const AscendantGemstones = () => {
-  useEffect(() => {
+  React.useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {

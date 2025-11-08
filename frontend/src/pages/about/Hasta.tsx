@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Star } from 'lucide-react';
+import { ArrowLeft, Star, Heart, Briefcase, DollarSign, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -110,6 +110,61 @@ const Hasta = () => {
                 </p>
                 <p className="text-muted-foreground">
                   These individuals are honest, helpful, and have the ability to create practical solutions to complex problems through their skills.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Life Aspects */}
+      <section className="py-16 bg-muted">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="text-center">
+              <CardHeader>
+                <Briefcase className="w-12 h-12 text-primary mx-auto mb-4" />
+                <CardTitle className="text-lg">Career</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Hasta natives excel in crafts, handicrafts, healing, and precision work. They make excellent artisans, surgeons, and skilled professionals due to their dexterity and attention to detail.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center">
+              <CardHeader>
+                <Heart className="w-12 h-12 text-primary mx-auto mb-4" />
+                <CardTitle className="text-lg">Relationships</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Hasta individuals are helpful, supportive, and caring partners. They express love through practical actions and service. They need partners who appreciate their thoughtful and caring nature.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center">
+              <CardHeader>
+                <DollarSign className="w-12 h-12 text-primary mx-auto mb-4" />
+                <CardTitle className="text-lg">Finances</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Financial success comes through skilled work and practical services. They should invest in businesses related to crafts, healthcare, and service industries for steady income growth.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center">
+              <CardHeader>
+                <Shield className="w-12 h-12 text-primary mx-auto mb-4" />
+                <CardTitle className="text-lg">Health</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Hasta natives should take care of their hands and wrists from overuse. Regular hand exercises and ergonomic practices are important for maintaining their skilled abilities and overall health.
                 </p>
               </CardContent>
             </Card>

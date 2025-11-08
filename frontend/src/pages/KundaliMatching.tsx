@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Calculator, User, Users, Star } from 'lucide-react';
 import Header from '@/components/Header';
@@ -28,7 +28,7 @@ interface AshtakootResult {
 }
 
 const KundaliMatching = () => {
-  const [boyDetails, setBoyDetails] = useState<PersonDetails>({
+  const [boyDetails, setBoyDetails] = React.useState<PersonDetails>({
     name: '',
     day: 1,
     month: 1,
@@ -39,7 +39,7 @@ const KundaliMatching = () => {
     birthplace: 'New Delhi, Delhi, India'
   });
 
-  const [girlDetails, setGirlDetails] = useState<PersonDetails>({
+  const [girlDetails, setGirlDetails] = React.useState<PersonDetails>({
     name: '',
     day: 1,
     month: 1,
@@ -50,9 +50,9 @@ const KundaliMatching = () => {
     birthplace: 'New Delhi, Delhi, India'
   });
 
-  const [showReport, setShowReport] = useState(false);
-  const [matchingResult, setMatchingResult] = useState<AshtakootResult[]>([]);
-  const [totalPoints, setTotalPoints] = useState(0);
+  const [showReport, setShowReport] = React.useState(false);
+  const [matchingResult, setMatchingResult] = React.useState<AshtakootResult[]>([]);
+  const [totalPoints, setTotalPoints] = React.useState(0);
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',

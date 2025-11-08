@@ -1,9 +1,9 @@
 
-import { useState, useEffect } from "react";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const RotatingTopics = () => {
-  const [currentTopicIndex, setCurrentTopicIndex] = useState(0);
+  const [currentTopicIndex, setCurrentTopicIndex] = React.useState(0);
 
   const topics = [
     {
@@ -92,7 +92,7 @@ const RotatingTopics = () => {
     }
   ];
 
-  useEffect(() => {
+  React.useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTopicIndex((prevIndex) => (prevIndex + 1) % topics.length);
     }, 15000); // 15 seconds

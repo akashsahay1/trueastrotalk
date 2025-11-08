@@ -1,11 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Star, Calculator, Info, List, Signature, Globe, Cake, Clock, Moon, BookOpen } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 const NakshatraCalculator = () => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = React.useState({
     fullName: '',
     gender: '',
     day: '',
@@ -18,7 +18,7 @@ const NakshatraCalculator = () => {
     unknownTime: false
   });
 
-  const [result, setResult] = useState<{
+  const [result, setResult] = React.useState<{
     nakshatra: string;
     symbol: string;
     deity: string;
@@ -27,7 +27,7 @@ const NakshatraCalculator = () => {
     traits: string;
   } | null>(null);
 
-  const [showResult, setShowResult] = useState(false);
+  const [showResult, setShowResult] = React.useState(false);
 
   const nakshatras = [
     'Ashwini', 'Bharani', 'Krittika', 'Rohini', 'Mrigashira', 

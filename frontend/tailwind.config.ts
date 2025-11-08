@@ -63,13 +63,20 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Updated color palette from image
+				// Airtel Brand Colors
+				airtel: {
+					red: 'hsl(354, 89%, 48%)',
+					lightGray: 'hsl(0, 0%, 97%)',
+					mediumGray: 'hsl(0, 0%, 47%)',
+					darkGray: 'hsl(0, 0%, 21%)',
+					black: 'hsl(0, 0%, 0%)'
+				},
 				facebook: {
-					primary: 'hsl(223, 100%, 54%)',
-					light: 'hsl(220, 13%, 91%)',
-					dark: 'hsl(223, 13%, 25%)',
-					accent: 'hsl(215, 16%, 47%)',
-					red: 'hsl(0, 73%, 41%)',
+					primary: 'hsl(354, 89%, 48%)',
+					light: 'hsl(0, 0%, 97%)',
+					dark: 'hsl(0, 0%, 21%)',
+					accent: 'hsl(0, 0%, 47%)',
+					red: 'hsl(354, 89%, 48%)',
 					green: 'hsl(141, 71%, 48%)',
 					yellow: 'hsl(45, 100%, 51%)',
 					purple: 'hsl(270, 91%, 65%)',

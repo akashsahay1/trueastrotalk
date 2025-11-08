@@ -1,14 +1,13 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Menu, X, Phone, MessageCircle, User, ChevronDown } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
 import LazyImage from "./LazyImage";
 
 const Header = () => {
   console.log("Header component rendering...");
   
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [activeDropdown, setActiveDropdown] = React.useState<string | null>(null);
 
   const toggleMenu = () => {
     console.log("Toggle menu clicked");
@@ -49,6 +48,7 @@ const Header = () => {
     { name: "Kundali Matching", path: "/kundali-matching" },
     { name: "Numerology Calculator", path: "/numerology-calculator" },
     { name: "Love Calculator", path: "/love-calculator" },
+    { name: "Lucky Mobile Calculator", path: "/lucky-mobile-calculator" },
     { name: "Signature Analysis", path: "/signature-calculator" },
     { name: "Rashi Calculator", path: "/rashi-calculator" },
     { name: "Nakshatra Calculator", path: "/nakshatra-calculator" },
@@ -75,42 +75,39 @@ const Header = () => {
   ];
 
   return (
-    <header className="bg-white shadow-md sticky top-0 z-50">
+    <header className="bg-card shadow-md sticky top-0 z-50 border-b border-border">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <LazyImage
-              src="/lovable-uploads/e7ea263c-3fc3-4c24-a313-de804c9f1d3f.png"
-              alt="Astrotalk"
-              className="h-10 w-10"
-              width={40}
-              height={40}
+          <Link to="/" className="flex items-center">
+            <img
+              src="/lovable-uploads/7533bfdf-8cad-46b3-8f85-d4e92a3928fe.png"
+              alt="Astrotalk Logo"
+              className="h-12 w-auto"
             />
-            <span className="text-2xl font-bold text-primary">Astrotalk</span>
           </Link>
 
           <nav className="hidden lg:flex items-center space-x-8">
-            <Link to="/" className="text-gray-700 hover:text-primary transition-colors">
+            <Link to="/" className="text-muted-foreground hover:text-primary transition-colors">
               Home
             </Link>
             
             {/* Horoscope Dropdown */}
             <div className="relative group">
               <button 
-                className="flex items-center text-gray-700 hover:text-primary transition-colors"
+                className="flex items-center text-muted-foreground hover:text-primary transition-colors"
                 onClick={() => handleDropdownToggle('horoscope')}
               >
                 Horoscope
                 <ChevronDown className="ml-1 h-4 w-4" />
               </button>
-              <div className="absolute top-full left-0 mt-2 w-64 bg-white shadow-lg rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              <div className="absolute top-full left-0 mt-2 w-64 bg-card shadow-lg rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-border">
                 <div className="py-2 grid grid-cols-2 gap-1">
                   {horoscopeItems.map((item) => (
                     <Link 
                       key={item.name} 
                       to={item.path} 
-                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100 text-sm"
+                      className="block px-4 py-2 text-muted-foreground hover:bg-muted text-sm"
                     >
                       {item.name}
                     </Link>
@@ -122,19 +119,19 @@ const Header = () => {
             {/* Services Dropdown */}
             <div className="relative group">
               <button 
-                className="flex items-center text-gray-700 hover:text-primary transition-colors"
+                className="flex items-center text-muted-foreground hover:text-primary transition-colors"
                 onClick={() => handleDropdownToggle('services')}
               >
                 Services
                 <ChevronDown className="ml-1 h-4 w-4" />
               </button>
-              <div className="absolute top-full left-0 mt-2 w-64 bg-white shadow-lg rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              <div className="absolute top-full left-0 mt-2 w-64 bg-card shadow-lg rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-border">
                 <div className="py-2">
                   {serviceItems.map((item) => (
                     <Link 
                       key={item.name} 
                       to={item.path} 
-                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      className="block px-4 py-2 text-muted-foreground hover:bg-muted"
                     >
                       {item.name}
                     </Link>
@@ -146,19 +143,19 @@ const Header = () => {
             {/* Calculators Dropdown */}
             <div className="relative group">
               <button 
-                className="flex items-center text-gray-700 hover:text-primary transition-colors"
+                className="flex items-center text-muted-foreground hover:text-primary transition-colors"
                 onClick={() => handleDropdownToggle('calculators')}
               >
                 Calculators
                 <ChevronDown className="ml-1 h-4 w-4" />
               </button>
-              <div className="absolute top-full left-0 mt-2 w-64 bg-white shadow-lg rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              <div className="absolute top-full left-0 mt-2 w-64 bg-card shadow-lg rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-border">
                 <div className="py-2">
                   {calculatorItems.map((item) => (
                     <Link 
                       key={item.name} 
                       to={item.path} 
-                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      className="block px-4 py-2 text-muted-foreground hover:bg-muted"
                     >
                       {item.name}
                     </Link>
@@ -167,22 +164,27 @@ const Header = () => {
               </div>
             </div>
 
+            {/* Lucky Mobile Calculator */}
+            <Link to="/lucky-mobile-calculator" className="text-muted-foreground hover:text-primary transition-colors">
+              Lucky Mobile Calculator
+            </Link>
+
             {/* About Dropdown */}
             <div className="relative group">
               <button 
-                className="flex items-center text-gray-700 hover:text-primary transition-colors"
+                className="flex items-center text-muted-foreground hover:text-primary transition-colors"
                 onClick={() => handleDropdownToggle('about')}
               >
                 About
                 <ChevronDown className="ml-1 h-4 w-4" />
               </button>
-              <div className="absolute top-full left-0 mt-2 w-64 bg-white shadow-lg rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              <div className="absolute top-full left-0 mt-2 w-64 bg-card shadow-lg rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-border">
                 <div className="py-2">
                   {aboutItems.map((item) => (
                     <Link 
                       key={item.name} 
                       to={item.path} 
-                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      className="block px-4 py-2 text-muted-foreground hover:bg-muted"
                     >
                       {item.name}
                     </Link>
@@ -192,26 +194,6 @@ const Header = () => {
             </div>
           </nav>
 
-          {/* Action Buttons */}
-          <div className="hidden lg:flex items-center space-x-4">
-            <Link to="/astrologer-registration">
-              <Button variant="outline" size="sm" className="flex items-center gap-2 text-orange-600 border-orange-600 hover:bg-orange-50">
-                <User className="w-4 h-4" />
-                Join as Astrologer
-              </Button>
-            </Link>
-            <Button variant="outline" size="sm" className="flex items-center gap-2">
-              <Phone className="w-4 h-4" />
-              Call Now
-            </Button>
-            <Button size="sm" className="bg-primary hover:bg-primary/90 text-white flex items-center gap-2">
-              <MessageCircle className="w-4 h-4" />
-              Chat Now
-            </Button>
-            <Button variant="ghost" size="sm">
-              <User className="w-4 h-4" />
-            </Button>
-          </div>
 
           {/* Mobile Menu Button */}
           <button
@@ -220,19 +202,19 @@ const Header = () => {
             aria-label="Toggle menu"
           >
             {isMenuOpen ? (
-              <X className="w-6 h-6 text-gray-700" />
+              <X className="w-6 h-6 text-muted-foreground" />
             ) : (
-              <Menu className="w-6 h-6 text-gray-700" />
+              <Menu className="w-6 h-6 text-muted-foreground" />
             )}
           </button>
         </div>
 
         {isMenuOpen && (
-          <div className="lg:hidden border-t border-gray-200 bg-white">
+          <div className="lg:hidden border-t border-border bg-card">
             <nav className="py-4 space-y-2">
               <Link
                 to="/"
-                className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+                className="block px-4 py-2 text-muted-foreground hover:bg-muted rounded-md"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Home
@@ -241,7 +223,7 @@ const Header = () => {
               {/* Mobile Horoscope */}
               <div className="px-4 py-2">
                 <button 
-                  className="w-full text-left font-medium text-gray-900 mb-2 flex items-center justify-between"
+                  className="w-full text-left font-medium text-card-foreground mb-2 flex items-center justify-between"
                   onClick={() => handleDropdownToggle('mobile-horoscope')}
                 >
                   Horoscope
@@ -253,7 +235,7 @@ const Header = () => {
                       <Link 
                         key={item.name} 
                         to={item.path} 
-                        className="block py-1 text-gray-600 hover:text-blue-600 text-sm"
+                        className="block py-1 text-muted-foreground hover:text-primary text-sm"
                         onClick={() => setIsMenuOpen(false)}
                       >
                         {item.name}
@@ -266,7 +248,7 @@ const Header = () => {
               {/* Mobile Services */}
               <div className="px-4 py-2">
                 <button 
-                  className="w-full text-left font-medium text-gray-900 mb-2 flex items-center justify-between"
+                  className="w-full text-left font-medium text-card-foreground mb-2 flex items-center justify-between"
                   onClick={() => handleDropdownToggle('mobile-services')}
                 >
                   Services
@@ -278,7 +260,7 @@ const Header = () => {
                       <Link 
                         key={item.name} 
                         to={item.path} 
-                        className="block py-1 text-gray-600 hover:text-blue-600"
+                        className="block py-1 text-muted-foreground hover:text-primary"
                         onClick={() => setIsMenuOpen(false)}
                       >
                         {item.name}
@@ -291,7 +273,7 @@ const Header = () => {
               {/* Mobile Calculators */}
               <div className="px-4 py-2">
                 <button 
-                  className="w-full text-left font-medium text-gray-900 mb-2 flex items-center justify-between"
+                  className="w-full text-left font-medium text-card-foreground mb-2 flex items-center justify-between"
                   onClick={() => handleDropdownToggle('mobile-calculators')}
                 >
                   Calculators
@@ -303,7 +285,7 @@ const Header = () => {
                       <Link 
                         key={item.name} 
                         to={item.path} 
-                        className="block py-1 text-gray-600 hover:text-blue-600"
+                        className="block py-1 text-muted-foreground hover:text-primary"
                         onClick={() => setIsMenuOpen(false)}
                       >
                         {item.name}
@@ -313,10 +295,19 @@ const Header = () => {
                 )}
               </div>
 
+              {/* Lucky Mobile Calculator - Mobile */}
+              <Link
+                to="/lucky-mobile-calculator"
+                className="block px-4 py-2 text-muted-foreground hover:bg-muted rounded-md"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Lucky Mobile Calculator
+              </Link>
+
               {/* Mobile About */}
               <div className="px-4 py-2">
                 <button 
-                  className="w-full text-left font-medium text-gray-900 mb-2 flex items-center justify-between"
+                  className="w-full text-left font-medium text-card-foreground mb-2 flex items-center justify-between"
                   onClick={() => handleDropdownToggle('mobile-about')}
                 >
                   About
@@ -328,7 +319,7 @@ const Header = () => {
                       <Link 
                         key={item.name} 
                         to={item.path} 
-                        className="block py-1 text-gray-600 hover:text-blue-600"
+                        className="block py-1 text-muted-foreground hover:text-primary"
                         onClick={() => setIsMenuOpen(false)}
                       >
                         {item.name}
@@ -338,22 +329,6 @@ const Header = () => {
                 )}
               </div>
 
-              <Link
-                to="/astrologer-registration"
-                className="block px-4 py-2 text-orange-600 font-medium hover:bg-orange-50 rounded-md border border-orange-600 text-center"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Join as Astrologer
-              </Link>
-
-              <div className="px-4 py-4 space-y-2">
-                <Button size="sm" className="w-full bg-primary hover:bg-primary/90 text-white">
-                  Chat Now
-                </Button>
-                <Button variant="outline" size="sm" className="w-full">
-                  Call Now
-                </Button>
-              </div>
             </nav>
           </div>
         )}

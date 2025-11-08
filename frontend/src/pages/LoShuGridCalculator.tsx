@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Calendar, Calculator, Star, Info, Brain, Heart, Users, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,12 +7,12 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 const LoShuGridCalculator = () => {
-  const [birthDay, setBirthDay] = useState('');
-  const [birthMonth, setBirthMonth] = useState('');
-  const [birthYear, setBirthYear] = useState('');
-  const [showResult, setShowResult] = useState(false);
-  const [digitCount, setDigitCount] = useState({1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0});
-  const [lifePath, setLifePath] = useState(0);
+  const [birthDay, setBirthDay] = React.useState('');
+  const [birthMonth, setBirthMonth] = React.useState('');
+  const [birthYear, setBirthYear] = React.useState('');
+  const [showResult, setShowResult] = React.useState(false);
+  const [digitCount, setDigitCount] = React.useState({1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0});
+  const [lifePath, setLifePath] = React.useState(0);
 
   // Number meanings
   const numberMeanings = {

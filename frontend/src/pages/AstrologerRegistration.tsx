@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,15 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 
 const AstrologerRegistration = () => {
-  const [showOtpPage, setShowOtpPage] = useState(true);
-  const [mobileNumber, setMobileNumber] = useState('');
-  const [countryCode, setCountryCode] = useState('+91');
-  const [termsOtp, setTermsOtp] = useState(false);
-  const [profilePic, setProfilePic] = useState<string | null>(null);
-  const [selectedSpecs, setSelectedSpecs] = useState<string[]>([]);
-  const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
+  const [showOtpPage, setShowOtpPage] = React.useState(true);
+  const [mobileNumber, setMobileNumber] = React.useState('');
+  const [countryCode, setCountryCode] = React.useState('+91');
+  const [termsOtp, setTermsOtp] = React.useState(false);
+  const [profilePic, setProfilePic] = React.useState<string | null>(null);
+  const [selectedSpecs, setSelectedSpecs] = React.useState<string[]>([]);
+  const [selectedLangs, setSelectedLangs] = React.useState<string[]>([]);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = React.useState({
     fullName: '',
     email: '',
     gender: '',

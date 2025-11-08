@@ -57,9 +57,9 @@ const Nakshatras = () => {
             <h1 className="text-4xl font-bold text-primary mb-4">
               Nakshatras
             </h1>
-            <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
+            <Link to="/about/nakshatras" className="text-xl text-muted-foreground hover:text-primary transition-colors cursor-pointer inline-block mb-8 max-w-3xl mx-auto">
               Discover the 27 lunar mansions and their significance in Vedic astrology
-            </p>
+            </Link>
           </div>
         </div>
       </section>

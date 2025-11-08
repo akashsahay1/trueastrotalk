@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Heart, User, Users, Star, Redo } from "lucide-react";
 import Header from "@/components/Header";
@@ -10,12 +10,12 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const LoveCalculator = () => {
-  const [showResult, setShowResult] = useState(false);
-  const [yourName, setYourName] = useState("");
-  const [partnerName, setPartnerName] = useState("");
-  const [yourGender, setYourGender] = useState("male");
-  const [partnerGender, setPartnerGender] = useState("female");
-  const [lovePercentage, setLovePercentage] = useState(0);
+  const [showResult, setShowResult] = React.useState(false);
+  const [yourName, setYourName] = React.useState("");
+  const [partnerName, setPartnerName] = React.useState("");
+  const [yourGender, setYourGender] = React.useState("male");
+  const [partnerGender, setPartnerGender] = React.useState("female");
+  const [lovePercentage, setLovePercentage] = React.useState(0);
 
   const loveQuotes = [
     "Your love will be a masterpiece, crafted with care and devotion.",

@@ -1,13 +1,5 @@
 
 import React from "react";
-
-// Global types for Bootstrap and jQuery
-declare global {
-  interface Window {
-    $: any;
-    jQuery: any;
-  }
-}
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,76 +11,13 @@ import Footer from "@/components/Footer";
 import LazyImage from "@/components/LazyImage";
 import SlidingAstrologers from "@/components/SlidingAstrologers";
 
+
 const Index: React.FC = () => {
   console.log("Index component rendering...");
   
   // Initialize state at the top level
-  const [currentSlide, setCurrentSlide] = React.useState(0);
   const [currentCalculatorSlide, setCurrentCalculatorSlide] = React.useState(0);
-
-  const heroSlides = [
-    {
-      title: "Career and Financial Guidance",
-      subtitle: "Choose your career direction and improve your financial situation. Contact for expert advice.",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
-      stats: {
-        clients: "10,000+",
-        experience: "19",
-        success: "99%",
-        accuracy: "99%"
-      },
-      services: ["Birth Chart Reading", "Love & Relationship", "Career Guidance"]
-    },
-    {
-      title: "Love & Relationship Guidance",
-      subtitle: "Find your perfect match and solve relationship problems with expert astrology guidance.",
-      image: "https://images.unsplash.com/photo-1494790108755-2616c9a05a1c?w=400&h=400&fit=crop&crop=face",
-      stats: {
-        clients: "15,000+",
-        experience: "22",
-        success: "97%",
-        accuracy: "98%"
-      },
-      services: ["Marriage Compatibility", "Love Problems", "Relationship Healing"]
-    },
-    {
-      title: "Marriage & Family Harmony",
-      subtitle: "Create lasting bonds and harmonious relationships through Vedic astrology wisdom.",
-      image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face",
-      stats: {
-        clients: "12,500+",
-        experience: "25",
-        success: "96%",
-        accuracy: "99%"
-      },
-      services: ["Kundali Matching", "Family Problems", "Marriage Timing"]
-    }
-  ];
-
-  // Bootstrap carousel functionality
-  React.useEffect(() => {
-    // Initialize Bootstrap carousel
-    const carousel = document.getElementById('heroCarousel');
-    if (carousel && window.$ && window.$.fn.carousel) {
-      window.$('#heroCarousel').carousel({
-        interval: 10000,
-        ride: 'carousel'
-      });
-      
-      // Listen for slide events to update current slide state
-      window.$('#heroCarousel').on('slid.bs.carousel', function (e) {
-        setCurrentSlide(e.to);
-      });
-    }
-
-    return () => {
-      if (window.$) {
-        window.$('#heroCarousel').off('slid.bs.carousel');
-      }
-    };
-  }, []);
-
-  const currentSlideData = heroSlides[currentSlide];
+  const [lifePathApi, setLifePathApi] = React.useState<any>(null);
 
   // Calculator Cards
   const calculatorCards = [
@@ -185,6 +114,73 @@ const Index: React.FC = () => {
     };
   }, [calculatorCards.length]);
 
+  // Auto-slide functionality for Life Path Numbers - every 2 seconds
+  React.useEffect(() => {
+    if (!lifePathApi) return;
+    
+    const interval = setInterval(() => {
+      lifePathApi?.scrollNext();
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [lifePathApi]);
+
+  // Life Path Numbers Data (1-31)
+  const lifePathNumbers = Array.from({ length: 31 }, (_, i) => {
+    const number = i + 1;
+    const titles = [
+      "The Leader", "The Peacemaker", "The Creator", "The Builder", "The Freedom Seeker",
+      "The Nurturer", "The Seeker", "The Powerhouse", "The Humanitarian", "The Innovator",
+      "The Inspirer", "The Analyst", "The Visionary", "The Freedom", "The Healer",
+      "The Awakening", "The Star", "The Manifester", "The Teacher", "The Awakener",
+      "The Intuitive", "The Master Builder", "The Compassionate", "The Warrior", "The Adventure",
+      "The Diplomat", "The Idealist", "The Abundance", "The Spiritual", "The Expression",
+      "The Master Teacher"
+    ];
+    
+    const descriptions = [
+      "Represents leadership, independence, and new beginnings",
+      "Symbolizes harmony, cooperation, and balance in relationships",
+      "Embodies creativity, self-expression, and joyful communication",
+      "Signifies stability, practicality, and strong foundations",
+      "Represents change, versatility, and freedom of expression",
+      "Symbolizes love, nurturing, and responsibility towards family",
+      "Embodies spiritual wisdom, introspection, and inner knowledge",
+      "Signifies material success, authority, and abundance",
+      "Represents compassion, completion, and humanitarian service",
+      "Symbolizes innovation, leadership, and pioneering spirit",
+      "Embodies inspiration, optimism, and spiritual enlightenment",
+      "Represents analytical thinking, harmony, and mediation",
+      "Signifies vision, imagination, and creative manifestation",
+      "Symbolizes freedom, exploration, and personal liberty",
+      "Embodies healing abilities, nurturing, and emotional depth",
+      "Represents spiritual awakening and higher consciousness",
+      "Signifies hope, inspiration, and spiritual guidance",
+      "Symbolizes material mastery and powerful manifestation",
+      "Embodies wisdom, teaching, and humanitarian leadership",
+      "Represents awakening consciousness and inner transformation",
+      "Signifies intuition, sensitivity, and psychic abilities",
+      "Symbolizes master building and large-scale manifestation",
+      "Embodies compassion, service, and universal love",
+      "Represents courage, determination, and warrior spirit",
+      "Signifies adventure, curiosity, and life experience",
+      "Symbolizes diplomacy, cooperation, and peaceful resolution",
+      "Embodies idealism, vision, and spiritual purpose",
+      "Represents material abundance and prosperity",
+      "Signifies spiritual mastery and enlightenment",
+      "Symbolizes self-expression, creativity, and communication",
+      "Embodies master teaching and spiritual leadership"
+    ];
+
+    return {
+      number,
+      title: `Life Path Number ${number}: ${titles[i]}`,
+      description: descriptions[i],
+      views: Math.floor(Math.random() * 3000) + 1000,
+      date: new Date(2025, Math.floor(Math.random() * 3), Math.floor(Math.random() * 28) + 1).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    };
+  });
+
   // Zodiac Signs Data
   const zodiacSigns = [
     { name: "Aries", symbol: "🐏", dates: "Mar 21 - Apr 19", element: "Fire", gradient: "from-red-400 to-pink-400" },
@@ -273,153 +269,215 @@ const Index: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#1877f2' }}>
+    <div className="min-h-screen bg-background">
       <Header />
       
-      {/* Hero Section with Bootstrap Carousel */}
-      <section className="hero-slider" style={{ backgroundColor: '#1877f2', minHeight: '100vh', position: 'relative' }}>
-        <div id="heroCarousel" className="carousel slide" data-ride="carousel" data-interval="10000">
-          {/* Carousel Indicators */}
-          <ol className="carousel-indicators" style={{ position: 'absolute', bottom: '30px', left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
-            {heroSlides.map((_, index) => (
-              <li
-                key={index}
-                data-target="#heroCarousel"
-                data-slide-to={index}
-                className={index === currentSlide ? 'active' : ''}
-                style={{
-                  width: '12px',
-                  height: '12px',
-                  borderRadius: '50%',
-                  backgroundColor: index === currentSlide ? '#fff' : 'rgba(255,255,255,0.5)',
-                  margin: '0 5px',
-                  cursor: 'pointer'
-                }}
-              />
-            ))}
-          </ol>
-
-          {/* Carousel Inner */}
-          <div className="carousel-inner" style={{ height: '100vh' }}>
-            {heroSlides.map((slide, index) => (
-              <div key={index} className={`carousel-item ${index === currentSlide ? 'active' : ''}`} style={{ height: '100vh' }}>
-                <div className="container" style={{ height: '100%', display: 'flex', alignItems: 'center', padding: '0 15px' }}>
-                  <div className="row align-items-center" style={{ width: '100%', minHeight: '80vh' }}>
-                    
-                    {/* Left Side Content */}
-                    <div className="col-lg-6">
-                      <div className="hero-content" style={{ padding: '2rem 0' }}>
-                        <h1 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 'bold', color: '#fff', lineHeight: '1.2', marginBottom: '1.5rem' }}>
-                          {slide.title.split(' ').slice(0, 2).join(' ')}<br />
-                          <span style={{ color: '#ffd700' }}>{slide.title.split(' ').slice(2).join(' ')}</span>
-                        </h1>
-                        
-                        <p style={{ fontSize: '1.25rem', color: 'rgba(255,255,255,0.9)', lineHeight: '1.6', maxWidth: '400px', marginBottom: '2rem' }}>
-                          {slide.subtitle}
-                        </p>
-
-                        {/* Statistics Card */}
-                        <div style={{ backgroundColor: '#fff', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', maxWidth: '300px', marginBottom: '2rem' }}>
-                          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#28a745', marginBottom: '0.5rem' }}>
-                            {slide.stats.clients}
-                          </div>
-                          <div style={{ color: '#6c757d', fontWeight: '500', marginBottom: '1rem' }}>Happy Clients</div>
-                          <div style={{ display: 'flex', alignItems: 'center' }}>
-                            {[...Array(5)].map((_, i) => (
-                              <span key={i} style={{ color: '#ffc107', fontSize: '1.2rem', marginRight: '2px' }}>★</span>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-                          <button className="btn" style={{ backgroundColor: '#fd7e14', borderColor: '#fd7e14', color: '#fff', padding: '0.75rem 2rem', fontSize: '1.1rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <MessageCircle size={20} />
-                            Chat Now
-                          </button>
-                          <button className="btn btn-outline-light" style={{ padding: '0.75rem 2rem', fontSize: '1.1rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Phone size={20} />
-                            Call Now
-                          </button>
-                        </div>
-                      </div>
+      {/* Hero Section - Call With Astrologer */}
+      <section className="relative min-h-screen bg-gradient-to-br from-yellow-50 via-amber-50 to-yellow-100 overflow-hidden">
+        <div className="container mx-auto px-4 py-20">
+          <div className="relative max-w-6xl mx-auto">
+            
+            {/* Decorative Elements */}
+            <div className="absolute top-10 left-10 w-8 h-8 bg-yellow-400 rounded-full opacity-60"></div>
+            <div className="absolute top-32 right-20 w-6 h-6 bg-yellow-300 rounded-full opacity-50"></div>
+            <div className="absolute bottom-20 left-32 w-10 h-10 bg-yellow-400 rounded-full opacity-40"></div>
+            <div className="absolute bottom-40 right-40 w-12 h-12 bg-yellow-300 rounded-full opacity-50"></div>
+            
+            {/* Central Container */}
+            <div className="relative min-h-[600px] flex items-center justify-center">
+              
+              {/* Service Cards - Orbital Layout */}
+              <div className="absolute w-full h-full">
+                
+                {/* Business - Top Left */}
+                <div className="absolute top-0 left-0 lg:left-10 w-72 bg-white border-2 border-yellow-400 rounded-2xl p-6 shadow-lg">
+                  <div className="flex items-start gap-3">
+                    <Sparkles className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-1" />
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Business</h3>
+                      <p className="text-gray-600 text-sm">Plan profitable ventures and expand your business with astrological insights.</p>
                     </div>
+                  </div>
+                </div>
 
-                    {/* Right Side - Astrologer Image with Badges */}
-                    <div className="col-lg-6">
-                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                        <div style={{ position: 'relative' }}>
-                          {/* Main Astrologer Image */}
-                          <div style={{ width: '320px', height: '320px', borderRadius: '50%', overflow: 'hidden', border: '8px solid #fff', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
-                            <LazyImage
-                              src={slide.image}
-                              alt="Expert Astrologer"
-                              className="w-full h-full object-cover"
-                              width={320}
-                              height={320}
-                            />
-                          </div>
+                {/* Finance - Left */}
+                <div className="absolute top-1/2 -translate-y-1/2 left-0 lg:-left-8 w-80 bg-white border-2 border-yellow-400 rounded-2xl p-6 shadow-lg">
+                  <div className="flex items-start gap-3">
+                    <DollarSign className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-1" />
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Finance</h3>
+                      <p className="text-gray-600 text-sm">Achieve financial stability and prosperity through powerful astrological insights.</p>
+                    </div>
+                  </div>
+                </div>
 
-                          {/* Experience Badge - Top Right */}
-                          <div style={{ position: 'absolute', top: '-16px', right: '-32px', backgroundColor: '#fd7e14', color: '#fff', borderRadius: '50%', padding: '1.5rem', boxShadow: '0 10px 20px rgba(0,0,0,0.1)', textAlign: 'center', minWidth: '80px' }}>
-                            <div style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>{slide.stats.experience}</div>
-                            <div style={{ fontSize: '0.8rem', fontWeight: '500' }}>Years Experience</div>
-                          </div>
+                {/* Health - Bottom Left */}
+                <div className="absolute bottom-0 left-0 lg:left-10 w-72 bg-white border-2 border-yellow-400 rounded-2xl p-6 shadow-lg">
+                  <div className="flex items-start gap-3">
+                    <Shield className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-1" />
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Health</h3>
+                      <p className="text-gray-600 text-sm">Maintain balance, energy, and well-being with the support of Vedic astrology insights.</p>
+                    </div>
+                  </div>
+                </div>
 
-                          {/* Success Rate Badge - Bottom Left */}
-                          <div style={{ position: 'absolute', bottom: '-24px', left: '-32px', backgroundColor: '#28a745', color: '#fff', borderRadius: '50%', width: '112px', height: '112px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 20px rgba(0,0,0,0.1)' }}>
-                            <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{slide.stats.success}</div>
-                            <div style={{ fontSize: '0.8rem' }}>Success</div>
-                          </div>
-                        </div>
+                {/* Marriage - Top Right */}
+                <div className="absolute top-0 right-0 lg:right-10 w-72 bg-white border-2 border-yellow-400 rounded-2xl p-6 shadow-lg">
+                  <div className="flex items-start gap-3">
+                    <Heart className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-1" />
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Marriage</h3>
+                      <p className="text-gray-600 text-sm">Create lasting bonds and harmonious relationships with divine guidance.</p>
+                    </div>
+                  </div>
+                </div>
 
-                        {/* Expert Astrologer Card - Right Side */}
-                        <div style={{ position: 'absolute', right: '-16px', top: '50%', transform: 'translateY(-50%)', backgroundColor: '#fff', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 15px 35px rgba(0,0,0,0.1)', maxWidth: '280px' }}>
-                          <div style={{ backgroundColor: '#6f42c1', color: '#fff', padding: '0.5rem 1rem', borderRadius: '25px', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '1rem', textAlign: 'center' }}>
-                            EXPERT ASTROLOGER
-                          </div>
-                          
-                          <h3 style={{ color: '#343a40', fontWeight: 'bold', marginBottom: '1rem', fontSize: '1.1rem' }}>Our Services</h3>
-                          <div style={{ marginBottom: '1rem' }}>
-                            {slide.services.map((service, serviceIndex) => (
-                              <div key={serviceIndex} style={{ display: 'flex', alignItems: 'center', color: '#6c757d', marginBottom: '0.5rem' }}>
-                                <div style={{ width: '8px', height: '8px', backgroundColor: '#007bff', borderRadius: '50%', marginRight: '0.75rem' }}></div>
-                                <span style={{ fontSize: '0.9rem' }}>{service}</span>
-                              </div>
-                            ))}
-                          </div>
-                          
-                          <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #e9ecef' }}>
-                            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#fd7e14' }}>{slide.stats.accuracy}</div>
-                            <div style={{ fontSize: '0.8rem', color: '#6c757d' }}>Accuracy</div>
-                          </div>
-                        </div>
-                      </div>
+                {/* Love - Right */}
+                <div className="absolute top-1/2 -translate-y-1/2 right-0 lg:-right-8 w-80 bg-white border-2 border-yellow-400 rounded-2xl p-6 shadow-lg">
+                  <div className="flex items-start gap-3">
+                    <Heart className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-1" />
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Love</h3>
+                      <p className="text-gray-600 text-sm">Discover true connection and emotional fulfillment with guidance from Vedic astrology.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Career - Bottom Right */}
+                <div className="absolute bottom-0 right-0 lg:right-10 w-72 bg-white border-2 border-yellow-400 rounded-2xl p-6 shadow-lg">
+                  <div className="flex items-start gap-3">
+                    <Briefcase className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-1" />
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Career</h3>
+                      <p className="text-gray-600 text-sm">Shape a successful and fulfilling career path with astrological wisdom.</p>
                     </div>
                   </div>
                 </div>
               </div>
-            ))}
+
+              {/* Center Section */}
+              <div className="relative z-10 text-center">
+                
+                {/* Central Astrologer Image */}
+                <div className="mb-8 inline-block">
+                  <div className="relative">
+                    <div className="w-64 h-64 rounded-full bg-gradient-to-br from-yellow-300 to-yellow-500 p-4 shadow-2xl">
+                      <img
+                        src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop&crop=face"
+                        alt="Expert Astrologer"
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Main Heading */}
+                <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 mb-8">
+                  Call With <span className="text-yellow-600">Astrologer</span>
+                </h1>
+
+                {/* Call Now Button */}
+                <Button 
+                  size="lg"
+                  className="bg-black hover:bg-gray-800 text-white px-12 py-6 text-xl font-bold rounded-full shadow-xl"
+                >
+                  <Phone className="mr-3 h-6 w-6" />
+                  CALL NOW
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Life Path Numbers Section (1-31) */}
+      <section className="py-16 bg-gradient-to-br from-slate-50 to-gray-100">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold mb-4 text-gray-900">Numerology Life Path Numbers 1–31</h2>
+            <p className="text-gray-600 text-lg">Discover the hidden meanings behind life path numbers and unlock the secrets of numerology, karma, and spirituality.</p>
           </div>
 
-          {/* Carousel Controls */}
-          <a className="carousel-control-prev" href="#heroCarousel" role="button" data-slide="prev" style={{ width: '5%' }}>
-            <span className="carousel-control-prev-icon" aria-hidden="true" style={{ backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: '50%', width: '40px', height: '40px' }}></span>
-            <span className="sr-only">Previous</span>
-          </a>
-          <a className="carousel-control-next" href="#heroCarousel" role="button" data-slide="next" style={{ width: '5%' }}>
-            <span className="carousel-control-next-icon" aria-hidden="true" style={{ backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: '50%', width: '40px', height: '40px' }}></span>
-            <span className="sr-only">Next</span>
-          </a>
+          <div className="mb-6 flex items-center justify-between">
+            <p className="text-gray-600">Showing 31 of 31 numbers</p>
+          </div>
+
+          <Carousel
+            opts={{
+              align: "start",
+              loop: true,
+            }}
+            className="w-full"
+            setApi={setLifePathApi}
+          >
+            <CarouselContent className="-ml-4">
+              {lifePathNumbers.map((item) => (
+                <CarouselItem key={item.number} className="pl-4 md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
+                  <Link to={`/life-path-number/${item.number}`} className="block h-full">
+                    <Card className="h-full bg-slate-800 border-slate-700 hover:shadow-2xl hover:scale-105 transition-all duration-300 overflow-hidden group cursor-pointer">
+                      <CardContent className="p-6 relative">
+                        {/* Astrologer Badge */}
+                        <Badge className="absolute top-4 left-4 bg-yellow-500 text-slate-900 font-semibold px-3 py-1">
+                          astrologer
+                        </Badge>
+
+                        {/* Heart Icon */}
+                        <button 
+                          className="absolute top-4 right-4 text-white hover:text-red-500 transition-colors z-10"
+                          onClick={(e) => e.preventDefault()}
+                        >
+                          <Heart className="w-5 h-5" />
+                        </button>
+
+                        {/* Number Display */}
+                        <div className="flex items-center justify-center my-8">
+                          <div className="relative">
+                            <div className="w-32 h-40 bg-gradient-to-b from-slate-600 to-slate-700 rounded-3xl flex items-center justify-center shadow-xl">
+                              <span className="text-6xl font-bold text-white">{item.number}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Title */}
+                        <h3 className="text-lg font-bold text-white mb-3 line-clamp-2 min-h-[3.5rem]">
+                          {item.title}
+                        </h3>
+
+                        {/* Description */}
+                        <p className="text-gray-300 text-sm mb-4 line-clamp-3">
+                          {item.description}
+                        </p>
+
+                        {/* Footer Metadata */}
+                        <div className="flex items-center justify-between text-xs text-gray-400 pt-4 border-t border-slate-700">
+                          <div className="flex items-center gap-1">
+                            <Eye className="w-4 h-4" />
+                            <span>{item.views}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-4 h-4" />
+                            <span>{item.date}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="left-0 -translate-x-12" />
+            <CarouselNext className="right-0 translate-x-12" />
+          </Carousel>
         </div>
       </section>
 
       {/* Zodiac Signs Section */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Read All Zodiac Sign's Horoscopes</h2>
-            <p className="text-gray-600">Discover your daily, weekly, and monthly predictions</p>
+            <h2 className="text-3xl font-bold mb-4 text-foreground">Read All Zodiac Sign's Horoscopes</h2>
+            <p className="text-muted-foreground">Discover your daily, weekly, and monthly predictions</p>
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -430,9 +488,9 @@ const Index: React.FC = () => {
                     <div className={`w-20 h-20 bg-gradient-to-br ${sign.gradient} rounded-full flex items-center justify-center text-white text-3xl mx-auto mb-3 shadow-lg`}>
                       {sign.symbol}
                     </div>
-                    <h3 className="font-bold text-gray-800 text-lg mb-1">{sign.name}</h3>
-                    <p className="text-sm text-gray-600 mb-2">{sign.dates}</p>
-                    <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700">{sign.element}</Badge>
+                    <h3 className="font-bold text-foreground text-lg mb-1">{sign.name}</h3>
+                    <p className="text-sm text-muted-foreground mb-2">{sign.dates}</p>
+                    <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">{sign.element}</Badge>
                   </CardContent>
                 </Card>
               </Link>
@@ -442,11 +500,13 @@ const Index: React.FC = () => {
       </section>
 
       {/* Nakshatras Section */}
-      <section className="py-16 bg-gray-100">
+      <section className="py-16 bg-muted">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Nakshatras</h2>
-            <p className="text-gray-600">Discover the 27 lunar mansions and their significance in Vedic astrology</p>
+            <h2 className="text-3xl font-bold mb-4 text-foreground">Nakshatras</h2>
+            <Link to="/about/nakshatras" className="text-muted-foreground hover:text-primary transition-colors cursor-pointer">
+              Discover the 27 lunar mansions and their significance in Vedic astrology
+            </Link>
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-9 gap-4">
@@ -455,8 +515,8 @@ const Index: React.FC = () => {
                 <Card className="hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer">
                   <CardContent className="p-4 text-center">
                     <div className="text-3xl mb-2">{nakshatra.symbol}</div>
-                    <h3 className="font-bold text-purple-800 text-sm mb-1">{nakshatra.name}</h3>
-                    <p className="text-xs text-gray-600 mb-1">Lord: {nakshatra.lord}</p>
+                    <h3 className="font-bold text-primary text-sm mb-1">{nakshatra.name}</h3>
+                    <p className="text-xs text-muted-foreground mb-1">Lord: {nakshatra.lord}</p>
                     <Badge variant="outline" className="text-xs">{nakshatra.nature}</Badge>
                     {index === 0 && (
                       <div className="mt-2">
@@ -848,11 +908,11 @@ const Index: React.FC = () => {
       </section>
 
       {/* Services Section */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Services We Offer</h2>
-            <p className="text-gray-600">Comprehensive astrological solutions for all aspects of life</p>
+            <h2 className="text-3xl font-bold mb-4 text-foreground">Services We Offer</h2>
+            <p className="text-muted-foreground">Comprehensive astrological solutions for all aspects of life</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -898,19 +958,19 @@ const Index: React.FC = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div className="text-center">
               <div className="text-4xl font-bold text-orange-500 mb-2">50+</div>
-              <div className="text-sm">Years Experience</div>
+              <div className="text-sm">Certified Astrologers</div>
             </div>
             <div className="text-center">
               <div className="text-4xl font-bold text-green-500 mb-2">25,000+</div>
-              <div className="text-sm">Happy Clients</div>
+              <div className="text-sm">Happy Consultations</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-blue-500 mb-2">4.8★</div>
-              <div className="text-sm">Rating</div>
+              <div className="text-4xl font-bold text-blue-500 mb-2">4.8⭐</div>
+              <div className="text-sm">Average Rating</div>
             </div>
             <div className="text-center">
               <div className="text-4xl font-bold text-purple-500 mb-2">24/7</div>
-              <div className="text-sm">Available</div>
+              <div className="text-sm">Available Support</div>
             </div>
           </div>
         </div>

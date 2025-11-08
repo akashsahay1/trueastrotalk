@@ -7,69 +7,71 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* DM Sans Color Palette */
+    --background: 0 0% 97%; /* #F7F7F7 - Light Gray */
+    --foreground: 0 0% 0%; /* #010101 - Black */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 0 0% 0%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 211 100% 50%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 51 100% 50%;
-    --secondary-foreground: 222.2 84% 4.9%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 122 64% 43%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --golden: 51 92% 49%;
-    --facebook: 211 100% 50%;
-    --whatsapp: 122 64% 43%;
-    --yellow-bright: 59 100% 50%;
-    --purple-deep: 248 60% 35%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 351 98% 47%; /* #F2031B - Red */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 21%; /* #363636 - Dark Gray */
+    --secondary-foreground: 0 0% 97%;
+    --muted: 0 0% 97%; /* #F7F7F7 - Light Gray */
+    --muted-foreground: 0 0% 48%; /* #7B7B7B - Medium Gray */
+    --accent: 351 98% 47%; /* #F2031B - Red */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 351 98% 47%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 48%; /* #7B7B7B - Medium Gray */
+    --input: 0 0% 100%;
+    --ring: 351 98% 47%;
+    --golden: 351 98% 47%;
+    --facebook: 351 98% 47%;
+    --whatsapp: 351 98% 47%;
+    --yellow-bright: 351 98% 47%;
+    --purple-deep: 351 98% 47%;
     --radius: 0.5rem;
-    --sidebar-background: 220 13% 91%;
-    --sidebar-foreground: 223 13% 25%;
-    --sidebar-primary: 223 100% 54%;
+    --sidebar-background: 0 0% 97%;
+    --sidebar-foreground: 0 0% 0%;
+    --sidebar-primary: 351 98% 47%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 13% 91%;
-    --sidebar-accent-foreground: 223 13% 25%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 223 100% 54%;
+    --sidebar-accent: 0 0% 21%;
+    --sidebar-accent-foreground: 0 0% 97%;
+    --sidebar-border: 0 0% 48%;
+    --sidebar-ring: 351 98% 47%;
   }
 
   .dark {
-    --background: 223 13% 25%;
-    --foreground: 0 0% 100%;
-    --card: 223 13% 25%;
-    --card-foreground: 0 0% 100%;
-    --popover: 223 13% 25%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 223 100% 54%;
+    /* DM Sans Dark Mode Palette */
+    --background: 0 0% 0%; /* #010101 - Black */
+    --foreground: 0 0% 97%; /* #F7F7F7 - Light Gray */
+    --card: 0 0% 21%; /* #363636 - Dark Gray */
+    --card-foreground: 0 0% 97%;
+    --popover: 0 0% 21%;
+    --popover-foreground: 0 0% 97%;
+    --primary: 351 98% 47%; /* #F2031B - Red */
     --primary-foreground: 0 0% 100%;
-    --secondary: 215 16% 47%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 215 16% 47%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 215 16% 47%;
+    --secondary: 0 0% 48%; /* #7B7B7B - Medium Gray */
+    --secondary-foreground: 0 0% 97%;
+    --muted: 0 0% 21%; /* #363636 - Dark Gray */
+    --muted-foreground: 0 0% 48%; /* #7B7B7B - Medium Gray */
+    --accent: 351 98% 47%; /* #F2031B - Red */
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 73% 41%;
+    --destructive: 351 98% 47%;
     --destructive-foreground: 0 0% 100%;
-    --border: 215 16% 47%;
-    --input: 215 16% 47%;
-    --ring: 223 100% 54%;
-    --sidebar-background: 223 13% 25%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 223 100% 54%;
+    --border: 0 0% 48%; /* #7B7B7B - Medium Gray */
+    --input: 0 0% 21%;
+    --ring: 351 98% 47%;
+    --sidebar-background: 0 0% 0%;
+    --sidebar-foreground: 0 0% 97%;
+    --sidebar-primary: 351 98% 47%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 16% 47%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 215 16% 47%;
-    --sidebar-ring: 223 100% 54%;
+    --sidebar-accent: 0 0% 21%;
+    --sidebar-accent-foreground: 0 0% 97%;
+    --sidebar-border: 0 0% 48%;
+    --sidebar-ring: 351 98% 47%;
   }
 }
 
@@ -147,24 +149,24 @@
     src: local('Inter');
   }
   
-  /* Primary color utilities based on image palette */
+  /* DM Sans brand color utilities */
   .facebook-primary {
-    background-color: hsl(223, 100%, 54%);
+    background-color: hsl(351, 98%, 47%); /* #F2031B - Red */
     color: white;
   }
-  
+
   .facebook-light {
-    background-color: hsl(220, 13%, 91%);
-    color: hsl(223, 13%, 25%);
+    background-color: hsl(0, 0%, 97%); /* #F7F7F7 - Light Gray */
+    color: hsl(0, 0%, 0%); /* #010101 - Black */
   }
-  
+
   .facebook-dark {
-    background-color: hsl(223, 13%, 25%);
-    color: white;
+    background-color: hsl(0, 0%, 0%); /* #010101 - Black */
+    color: hsl(0, 0%, 97%); /* #F7F7F7 - Light Gray */
   }
-  
+
   .facebook-accent {
-    background-color: hsl(215, 16%, 47%);
+    background-color: hsl(0, 0%, 48%); /* #7B7B7B - Medium Gray */
     color: white;
   }
   

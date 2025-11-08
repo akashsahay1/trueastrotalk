@@ -1,9 +1,8 @@
-
-import { useState, useEffect } from "react";
+import React from "react";
 import AstrologerCard from "./AstrologerCard";
 
 const SlidingAstrologers = () => {
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const [currentSlide, setCurrentSlide] = React.useState(0);
 
   const astrologers = [
     {
@@ -208,7 +207,7 @@ const SlidingAstrologers = () => {
     }
   ];
 
-  useEffect(() => {
+  React.useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prevSlide) => (prevSlide + 5) % astrologers.length);
     }, 15000); // 15 seconds

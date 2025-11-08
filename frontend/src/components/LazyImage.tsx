@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React from "react";
 
 interface LazyImageProps {
   src: string;
@@ -18,8 +18,8 @@ const LazyImage: React.FC<LazyImageProps> = ({
 }) => {
   console.log("LazyImage component rendering with src:", src);
   
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [hasError, setHasError] = useState(false);
+  const [isLoaded, setIsLoaded] = React.useState(false);
+  const [hasError, setHasError] = React.useState(false);
 
   const handleLoad = () => {
     console.log("Image loaded:", src);

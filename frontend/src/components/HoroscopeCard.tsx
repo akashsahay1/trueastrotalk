@@ -12,10 +12,10 @@ interface HoroscopeCardProps {
 const HoroscopeCard = ({ sign, element, dates }: HoroscopeCardProps) => {
   const getGradient = (element: string) => {
     switch (element) {
-      case "Fire": return "from-red-400 to-orange-500";
-      case "Earth": return "from-green-400 to-emerald-500";
-      case "Air": return "from-blue-400 to-cyan-500";
-      case "Water": return "from-purple-400 to-indigo-500";
+      case "Fire": return "from-primary to-primary/80";
+      case "Earth": return "from-secondary to-secondary/80";
+      case "Air": return "from-muted-foreground to-muted-foreground/80";
+      case "Water": return "from-primary/80 to-secondary";
       default: return "from-primary to-primary/80";
     }
   };
@@ -25,9 +25,9 @@ const HoroscopeCard = ({ sign, element, dates }: HoroscopeCardProps) => {
   };
 
   return (
-    <Card className={`text-center p-6 bg-gradient-to-br ${getGradient(element)} text-white hover:shadow-lg transition-shadow border-0`}>
+    <Card className={`text-center p-6 bg-gradient-to-br ${getGradient(element)} text-primary-foreground hover:shadow-lg transition-shadow border-0`}>
       <CardHeader className="pb-4">
-        <CardTitle className="text-2xl font-bold text-white">{sign}</CardTitle>
+        <CardTitle className="text-2xl font-bold text-primary-foreground">{sign}</CardTitle>
         <p className="text-sm opacity-90">{element} Sign</p>
       </CardHeader>
       <CardContent>
@@ -39,7 +39,7 @@ const HoroscopeCard = ({ sign, element, dates }: HoroscopeCardProps) => {
           asChild 
           variant="secondary" 
           size="sm" 
-          className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+          className="bg-card/20 hover:bg-card/30 text-primary-foreground border-card/30"
         >
           <Link to={getSignPath(sign)}>
             Read Full Horoscope

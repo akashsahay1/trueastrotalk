@@ -76,8 +76,10 @@ import Shatabhisha from "./pages/about/Shatabhisha";
 import PurvaBhadrapada from "./pages/about/PurvaBhadrapada";
 import UttaraBhadrapada from "./pages/about/UttaraBhadrapada";
 import Revati from "./pages/about/Revati";
+import NakshatrasGeneral from "./pages/about/NakshatrasGeneral";
 import Nakshatras from "./pages/Nakshatras";
 import AstrologerRegistration from "./pages/AstrologerRegistration";
+import LifePathNumber from "./pages/LifePathNumber";
 
 // Create a stable QueryClient instance
 const queryClient = new QueryClient({
@@ -173,8 +175,10 @@ const App: React.FC = () => {
             <Route path="/about/uttara-bhadrapada" element={<UttaraBhadrapada />} />
             <Route path="/about/revati" element={<Revati />} />
             
+            <Route path="/about/nakshatras" element={<NakshatrasGeneral />} />
             <Route path="/nakshatras" element={<Nakshatras />} />
             <Route path="/astrologer-registration" element={<AstrologerRegistration />} />
+            <Route path="/life-path-number/:number" element={<LifePathNumber />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
