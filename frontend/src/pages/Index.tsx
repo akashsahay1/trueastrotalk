@@ -276,21 +276,21 @@ const Index: React.FC = () => {
       <section className="relative min-h-screen bg-gradient-to-br from-yellow-50 via-amber-50 to-yellow-100 overflow-hidden">
         <div className="container mx-auto px-4 py-20">
           <div className="relative max-w-6xl mx-auto">
-            
+
             {/* Decorative Elements */}
-            <div className="absolute top-10 left-10 w-8 h-8 bg-yellow-400 rounded-full opacity-60"></div>
-            <div className="absolute top-32 right-20 w-6 h-6 bg-yellow-300 rounded-full opacity-50"></div>
-            <div className="absolute bottom-20 left-32 w-10 h-10 bg-yellow-400 rounded-full opacity-40"></div>
-            <div className="absolute bottom-40 right-40 w-12 h-12 bg-yellow-300 rounded-full opacity-50"></div>
-            
+            <div className="absolute top-10 left-10 w-8 h-8 bg-yellow-400 rounded-full opacity-60 hidden lg:block"></div>
+            <div className="absolute top-32 right-20 w-6 h-6 bg-yellow-300 rounded-full opacity-50 hidden lg:block"></div>
+            <div className="absolute bottom-20 left-32 w-10 h-10 bg-yellow-400 rounded-full opacity-40 hidden lg:block"></div>
+            <div className="absolute bottom-40 right-40 w-12 h-12 bg-yellow-300 rounded-full opacity-50 hidden lg:block"></div>
+
             {/* Central Container */}
-            <div className="relative min-h-[600px] flex items-center justify-center">
-              
-              {/* Service Cards - Orbital Layout */}
-              <div className="absolute w-full h-full">
-                
+            <div className="relative lg:min-h-[600px] flex items-center justify-center">
+
+              {/* Service Cards - Orbital Layout (Desktop Only) */}
+              <div className="hidden xl:block absolute w-full h-full">
+
                 {/* Business - Top Left */}
-                <div className="absolute top-0 left-0 lg:left-10 w-72 bg-white border-2 border-yellow-400 rounded-2xl p-6 shadow-lg">
+                <div className="absolute top-0 left-10 w-72 bg-white border-2 border-yellow-400 rounded-2xl p-6 shadow-lg">
                   <div className="flex items-start gap-3">
                     <Sparkles className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-1" />
                     <div>
@@ -301,7 +301,7 @@ const Index: React.FC = () => {
                 </div>
 
                 {/* Finance - Left */}
-                <div className="absolute top-1/2 -translate-y-1/2 left-0 lg:-left-8 w-80 bg-white border-2 border-yellow-400 rounded-2xl p-6 shadow-lg">
+                <div className="absolute top-1/2 -translate-y-1/2 -left-8 w-80 bg-white border-2 border-yellow-400 rounded-2xl p-6 shadow-lg">
                   <div className="flex items-start gap-3">
                     <DollarSign className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-1" />
                     <div>
@@ -312,7 +312,7 @@ const Index: React.FC = () => {
                 </div>
 
                 {/* Health - Bottom Left */}
-                <div className="absolute bottom-0 left-0 lg:left-10 w-72 bg-white border-2 border-yellow-400 rounded-2xl p-6 shadow-lg">
+                <div className="absolute bottom-0 left-10 w-72 bg-white border-2 border-yellow-400 rounded-2xl p-6 shadow-lg">
                   <div className="flex items-start gap-3">
                     <Shield className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-1" />
                     <div>
@@ -323,7 +323,7 @@ const Index: React.FC = () => {
                 </div>
 
                 {/* Marriage - Top Right */}
-                <div className="absolute top-0 right-0 lg:right-10 w-72 bg-white border-2 border-yellow-400 rounded-2xl p-6 shadow-lg">
+                <div className="absolute top-0 right-10 w-72 bg-white border-2 border-yellow-400 rounded-2xl p-6 shadow-lg">
                   <div className="flex items-start gap-3">
                     <Heart className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-1" />
                     <div>
@@ -334,7 +334,7 @@ const Index: React.FC = () => {
                 </div>
 
                 {/* Love - Right */}
-                <div className="absolute top-1/2 -translate-y-1/2 right-0 lg:-right-8 w-80 bg-white border-2 border-yellow-400 rounded-2xl p-6 shadow-lg">
+                <div className="absolute top-1/2 -translate-y-1/2 -right-8 w-80 bg-white border-2 border-yellow-400 rounded-2xl p-6 shadow-lg">
                   <div className="flex items-start gap-3">
                     <Heart className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-1" />
                     <div>
@@ -345,7 +345,7 @@ const Index: React.FC = () => {
                 </div>
 
                 {/* Career - Bottom Right */}
-                <div className="absolute bottom-0 right-0 lg:right-10 w-72 bg-white border-2 border-yellow-400 rounded-2xl p-6 shadow-lg">
+                <div className="absolute bottom-0 right-10 w-72 bg-white border-2 border-yellow-400 rounded-2xl p-6 shadow-lg">
                   <div className="flex items-start gap-3">
                     <Briefcase className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-1" />
                     <div>
@@ -358,13 +358,13 @@ const Index: React.FC = () => {
 
               {/* Center Section */}
               <div className="relative z-10 text-center">
-                
+
                 {/* Central Astrologer Image */}
                 <div className="mb-8 inline-block">
                   <div className="relative">
-                    <div className="w-64 h-64 rounded-full bg-gradient-to-br from-yellow-300 to-yellow-500 p-4 shadow-2xl">
+                    <div className="w-48 h-48 md:w-64 md:h-64 rounded-full bg-gradient-to-br from-yellow-300 to-yellow-500 p-4 shadow-2xl">
                       <img
-                        src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop&crop=face"
+                        src="/images/astrologer.jpeg"
                         alt="Expert Astrologer"
                         className="w-full h-full rounded-full object-cover"
                       />
@@ -373,18 +373,81 @@ const Index: React.FC = () => {
                 </div>
 
                 {/* Main Heading */}
-                <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 mb-8">
+                <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-8">
                   Call With <span className="text-yellow-600">Astrologer</span>
                 </h1>
 
                 {/* Call Now Button */}
-                <Button 
+                <Button
                   size="lg"
-                  className="bg-black hover:bg-gray-800 text-white px-12 py-6 text-xl font-bold rounded-full shadow-xl"
+                  className="bg-black hover:bg-gray-800 text-white px-8 md:px-12 py-4 md:py-6 text-lg md:text-xl font-bold rounded-full shadow-xl"
                 >
-                  <Phone className="mr-3 h-6 w-6" />
+                  <Phone className="mr-2 md:mr-3 h-5 w-5 md:h-6 md:w-6" />
                   CALL NOW
                 </Button>
+              </div>
+            </div>
+
+            {/* Service Cards Grid (Mobile/Tablet Only) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-12 xl:hidden">
+              <div className="bg-white border-2 border-yellow-400 rounded-2xl p-4 shadow-lg">
+                <div className="flex items-start gap-3">
+                  <Sparkles className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">Business</h3>
+                    <p className="text-gray-600 text-sm">Plan profitable ventures and expand your business with astrological insights.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border-2 border-yellow-400 rounded-2xl p-4 shadow-lg">
+                <div className="flex items-start gap-3">
+                  <DollarSign className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">Finance</h3>
+                    <p className="text-gray-600 text-sm">Achieve financial stability and prosperity through powerful astrological insights.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border-2 border-yellow-400 rounded-2xl p-4 shadow-lg">
+                <div className="flex items-start gap-3">
+                  <Shield className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">Health</h3>
+                    <p className="text-gray-600 text-sm">Maintain balance, energy, and well-being with the support of Vedic astrology insights.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border-2 border-yellow-400 rounded-2xl p-4 shadow-lg">
+                <div className="flex items-start gap-3">
+                  <Heart className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">Marriage</h3>
+                    <p className="text-gray-600 text-sm">Create lasting bonds and harmonious relationships with divine guidance.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border-2 border-yellow-400 rounded-2xl p-4 shadow-lg">
+                <div className="flex items-start gap-3">
+                  <Heart className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">Love</h3>
+                    <p className="text-gray-600 text-sm">Discover true connection and emotional fulfillment with guidance from Vedic astrology.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border-2 border-yellow-400 rounded-2xl p-4 shadow-lg">
+                <div className="flex items-start gap-3">
+                  <Briefcase className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">Career</h3>
+                    <p className="text-gray-600 text-sm">Shape a successful and fulfilling career path with astrological wisdom.</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

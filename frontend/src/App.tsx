@@ -7,6 +7,7 @@ import NotFound from "./pages/NotFound";
 import AboutAstrology from "./pages/AboutAstrology";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Contact from "./pages/Contact";
 import TrueAstrotalk from "./pages/about/TrueAstrotalk";
 import Kundali from "./pages/about/Kundali";
 import Palmistry from "./pages/about/Palmistry";
@@ -105,6 +106,7 @@ const App: React.FC = () => {
             <Route path="/about-astrology" element={<AboutAstrology />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/contact" element={<Contact />} />
             <Route path="/about/trueastrotalk" element={<TrueAstrotalk />} />
             <Route path="/about/kundali" element={<Kundali />} />
             <Route path="/about/palmistry" element={<Palmistry />} />

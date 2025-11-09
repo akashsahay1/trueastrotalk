@@ -75,26 +75,51 @@ const Header = () => {
   ];
 
   return (
-    <header className="bg-card shadow-md sticky top-0 z-50 border-b border-border">
-      <div className="container mx-auto px-4">
+    <header className="bg-card shadow-md sticky top-0 z-50 border-border">
+      <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center">
+          <Link to="/" className="flex items-center space-x-2 logo">
             <img
-              src="/lovable-uploads/7533bfdf-8cad-46b3-8f85-d4e92a3928fe.png"
+              src="/images/logo.jpeg"
               alt="Astrotalk Logo"
               className="h-12 w-auto"
             />
+						<span className="logotext">true Astrotalk</span>
           </Link>
 
-          <nav className="hidden lg:flex items-center space-x-8">
+          <nav className="hidden lg:flex items-center space-x-6">
             <Link to="/" className="text-muted-foreground hover:text-primary transition-colors">
               Home
             </Link>
-            
+
+            {/* About Dropdown */}
+            <div className="relative group">
+              <button
+                className="flex items-center text-muted-foreground hover:text-primary transition-colors"
+                onClick={() => handleDropdownToggle('about')}
+              >
+                About
+                <ChevronDown className="ml-1 h-4 w-4" />
+              </button>
+              <div className="absolute top-full left-0 mt-2 w-64 bg-card shadow-lg rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-border">
+                <div className="py-2">
+                  {aboutItems.map((item) => (
+                    <Link
+                      key={item.name}
+                      to={item.path}
+                      className="block px-4 py-2 text-muted-foreground hover:bg-muted"
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             {/* Horoscope Dropdown */}
             <div className="relative group">
-              <button 
+              <button
                 className="flex items-center text-muted-foreground hover:text-primary transition-colors"
                 onClick={() => handleDropdownToggle('horoscope')}
               >
@@ -104,9 +129,9 @@ const Header = () => {
               <div className="absolute top-full left-0 mt-2 w-64 bg-card shadow-lg rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-border">
                 <div className="py-2 grid grid-cols-2 gap-1">
                   {horoscopeItems.map((item) => (
-                    <Link 
-                      key={item.name} 
-                      to={item.path} 
+                    <Link
+                      key={item.name}
+                      to={item.path}
                       className="block px-4 py-2 text-muted-foreground hover:bg-muted text-sm"
                     >
                       {item.name}
@@ -118,7 +143,7 @@ const Header = () => {
 
             {/* Services Dropdown */}
             <div className="relative group">
-              <button 
+              <button
                 className="flex items-center text-muted-foreground hover:text-primary transition-colors"
                 onClick={() => handleDropdownToggle('services')}
               >
@@ -128,9 +153,9 @@ const Header = () => {
               <div className="absolute top-full left-0 mt-2 w-64 bg-card shadow-lg rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-border">
                 <div className="py-2">
                   {serviceItems.map((item) => (
-                    <Link 
-                      key={item.name} 
-                      to={item.path} 
+                    <Link
+                      key={item.name}
+                      to={item.path}
                       className="block px-4 py-2 text-muted-foreground hover:bg-muted"
                     >
                       {item.name}
@@ -142,7 +167,7 @@ const Header = () => {
 
             {/* Calculators Dropdown */}
             <div className="relative group">
-              <button 
+              <button
                 className="flex items-center text-muted-foreground hover:text-primary transition-colors"
                 onClick={() => handleDropdownToggle('calculators')}
               >
@@ -152,9 +177,9 @@ const Header = () => {
               <div className="absolute top-full left-0 mt-2 w-64 bg-card shadow-lg rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-border">
                 <div className="py-2">
                   {calculatorItems.map((item) => (
-                    <Link 
-                      key={item.name} 
-                      to={item.path} 
+                    <Link
+                      key={item.name}
+                      to={item.path}
                       className="block px-4 py-2 text-muted-foreground hover:bg-muted"
                     >
                       {item.name}
@@ -164,34 +189,10 @@ const Header = () => {
               </div>
             </div>
 
-            {/* Lucky Mobile Calculator */}
-            <Link to="/lucky-mobile-calculator" className="text-muted-foreground hover:text-primary transition-colors">
-              Lucky Mobile Calculator
+            {/* Contact */}
+            <Link to="/contact" className="text-muted-foreground hover:text-primary transition-colors">
+              Contact
             </Link>
-
-            {/* About Dropdown */}
-            <div className="relative group">
-              <button 
-                className="flex items-center text-muted-foreground hover:text-primary transition-colors"
-                onClick={() => handleDropdownToggle('about')}
-              >
-                About
-                <ChevronDown className="ml-1 h-4 w-4" />
-              </button>
-              <div className="absolute top-full left-0 mt-2 w-64 bg-card shadow-lg rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-border">
-                <div className="py-2">
-                  {aboutItems.map((item) => (
-                    <Link 
-                      key={item.name} 
-                      to={item.path} 
-                      className="block px-4 py-2 text-muted-foreground hover:bg-muted"
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </div>
           </nav>
 
 
@@ -219,10 +220,35 @@ const Header = () => {
               >
                 Home
               </Link>
-              
+
+              {/* Mobile About */}
+              <div className="px-4 py-2">
+                <button
+                  className="w-full text-left font-medium text-card-foreground mb-2 flex items-center justify-between"
+                  onClick={() => handleDropdownToggle('mobile-about')}
+                >
+                  About
+                  <ChevronDown className={`h-4 w-4 transition-transform ${activeDropdown === 'mobile-about' ? 'rotate-180' : ''}`} />
+                </button>
+                {activeDropdown === 'mobile-about' && (
+                  <div className="ml-4 space-y-1">
+                    {aboutItems.map((item) => (
+                      <Link
+                        key={item.name}
+                        to={item.path}
+                        className="block py-1 text-muted-foreground hover:text-primary"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        {item.name}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Mobile Horoscope */}
               <div className="px-4 py-2">
-                <button 
+                <button
                   className="w-full text-left font-medium text-card-foreground mb-2 flex items-center justify-between"
                   onClick={() => handleDropdownToggle('mobile-horoscope')}
                 >
@@ -232,9 +258,9 @@ const Header = () => {
                 {activeDropdown === 'mobile-horoscope' && (
                   <div className="ml-4 space-y-1 grid grid-cols-2 gap-1">
                     {horoscopeItems.map((item) => (
-                      <Link 
-                        key={item.name} 
-                        to={item.path} 
+                      <Link
+                        key={item.name}
+                        to={item.path}
                         className="block py-1 text-muted-foreground hover:text-primary text-sm"
                         onClick={() => setIsMenuOpen(false)}
                       >
@@ -247,7 +273,7 @@ const Header = () => {
 
               {/* Mobile Services */}
               <div className="px-4 py-2">
-                <button 
+                <button
                   className="w-full text-left font-medium text-card-foreground mb-2 flex items-center justify-between"
                   onClick={() => handleDropdownToggle('mobile-services')}
                 >
@@ -257,9 +283,9 @@ const Header = () => {
                 {activeDropdown === 'mobile-services' && (
                   <div className="ml-4 space-y-1">
                     {serviceItems.map((item) => (
-                      <Link 
-                        key={item.name} 
-                        to={item.path} 
+                      <Link
+                        key={item.name}
+                        to={item.path}
                         className="block py-1 text-muted-foreground hover:text-primary"
                         onClick={() => setIsMenuOpen(false)}
                       >
@@ -272,7 +298,7 @@ const Header = () => {
 
               {/* Mobile Calculators */}
               <div className="px-4 py-2">
-                <button 
+                <button
                   className="w-full text-left font-medium text-card-foreground mb-2 flex items-center justify-between"
                   onClick={() => handleDropdownToggle('mobile-calculators')}
                 >
@@ -282,9 +308,9 @@ const Header = () => {
                 {activeDropdown === 'mobile-calculators' && (
                   <div className="ml-4 space-y-1">
                     {calculatorItems.map((item) => (
-                      <Link 
-                        key={item.name} 
-                        to={item.path} 
+                      <Link
+                        key={item.name}
+                        to={item.path}
                         className="block py-1 text-muted-foreground hover:text-primary"
                         onClick={() => setIsMenuOpen(false)}
                       >
@@ -295,39 +321,14 @@ const Header = () => {
                 )}
               </div>
 
-              {/* Lucky Mobile Calculator - Mobile */}
+              {/* Mobile Contact */}
               <Link
-                to="/lucky-mobile-calculator"
+                to="/contact"
                 className="block px-4 py-2 text-muted-foreground hover:bg-muted rounded-md"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Lucky Mobile Calculator
+                Contact
               </Link>
-
-              {/* Mobile About */}
-              <div className="px-4 py-2">
-                <button 
-                  className="w-full text-left font-medium text-card-foreground mb-2 flex items-center justify-between"
-                  onClick={() => handleDropdownToggle('mobile-about')}
-                >
-                  About
-                  <ChevronDown className={`h-4 w-4 transition-transform ${activeDropdown === 'mobile-about' ? 'rotate-180' : ''}`} />
-                </button>
-                {activeDropdown === 'mobile-about' && (
-                  <div className="ml-4 space-y-1">
-                    {aboutItems.map((item) => (
-                      <Link 
-                        key={item.name} 
-                        to={item.path} 
-                        className="block py-1 text-muted-foreground hover:text-primary"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        {item.name}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
 
             </nav>
           </div>
