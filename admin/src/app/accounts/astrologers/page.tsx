@@ -522,7 +522,7 @@ export default function AstrologersPage() {
         requestBody
       });
 
-      const response = await fetch('/api/users/bulk-update-test', {
+      const response = await fetch('/api/users/bulk-update', {
         method: 'PATCH',
         headers,
         body: JSON.stringify(requestBody)
