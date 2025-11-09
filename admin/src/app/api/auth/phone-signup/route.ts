@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     const placeholderEmail = `${formattedPhone.replace(/\+/g, '')}@phone.trueastrotalk.com`;
 
     // Prepare user data
-    const userData: any = {
+    const userData: Record<string, unknown> = {
       user_id: userId,
       full_name: full_name.trim(),
       email_address: placeholderEmail, // Placeholder email for phone users

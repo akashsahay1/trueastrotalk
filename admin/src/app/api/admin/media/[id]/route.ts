@@ -5,11 +5,12 @@ import { unlink } from 'fs/promises';
 import path from 'path';
 import { withSecurity, SecurityPresets } from '@/lib/api-security';
 
-// DELETE - Delete media file
+// DELETE - Delete media file (internal handler)
 async function handleDELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { params } = context;
   try {
     const { id } = await params;
 
@@ -73,4 +74,14 @@ async function handleDELETE(
 }
 
 // Export secured handlers with admin-only access
-export const DELETE = withSecurity(handleDELETE, SecurityPresets.admin);
+// Wrapper to handle Next.js context parameter
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const securedHandler = withSecurity(
+    async (req: NextRequest) => handleDELETE(req, context),
+    SecurityPresets.admin
+  );
+  return securedHandler(request);
+}

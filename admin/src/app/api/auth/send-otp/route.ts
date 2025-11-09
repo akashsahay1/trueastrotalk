@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get or create OTP tracking record
-    let otpRecord = await usersCollection.findOne({
+    const otpRecord = await usersCollection.findOne({
       phone_number: formattedPhone,
       phone_verified: false,
     });

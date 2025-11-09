@@ -27,7 +27,7 @@ async function resolveMediaUrl(request: NextRequest, mediaId: string | ObjectId 
         // If ObjectId conversion fails, try as media_id
         mediaFile = await mediaCollection.findOne({ media_id: mediaId });
       }
-    } else {
+    } else if (mediaId instanceof ObjectId) {
       // Try to find by _id if it's an ObjectId instance
       mediaFile = await mediaCollection.findOne({ _id: mediaId });
     }

@@ -6,8 +6,9 @@ import DatabaseService from '@/lib/database';
 // GET - Fetch single category
 async function handleGET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { params } = context;
   try {
     const { id } = await params;
 
@@ -56,8 +57,9 @@ async function handleGET(
 // PUT - Update category
 async function handlePUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { params } = context;
   try {
     const { id } = await params;
     const body = await request.json();
@@ -156,8 +158,9 @@ async function handlePUT(
 // DELETE - Delete category
 async function handleDELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { params } = context;
   try {
     const { id } = await params;
 
@@ -220,6 +223,36 @@ async function handleDELETE(
 }
 
 // Export secured handlers with admin-only access
-export const GET = withSecurity(handleGET, SecurityPresets.admin);
-export const PUT = withSecurity(handlePUT, SecurityPresets.admin);
-export const DELETE = withSecurity(handleDELETE, SecurityPresets.admin);
+// Wrapper to handle Next.js context parameter
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const securedHandler = withSecurity(
+    async (req: NextRequest) => handleGET(req, context),
+    SecurityPresets.admin
+  );
+  return securedHandler(request);
+}
+
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const securedHandler = withSecurity(
+    async (req: NextRequest) => handlePUT(req, context),
+    SecurityPresets.admin
+  );
+  return securedHandler(request);
+}
+
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const securedHandler = withSecurity(
+    async (req: NextRequest) => handleDELETE(req, context),
+    SecurityPresets.admin
+  );
+  return securedHandler(request);
+}
