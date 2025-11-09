@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Menu, X, ChevronDown } from "lucide-react";
 import LazyImage from "./LazyImage";
+import logoImage from "@/assets/images/logo.jpeg";
 
 const Header = () => {
   console.log("Header component rendering...");
@@ -81,7 +82,7 @@ const Header = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 logo">
             <img
-              src="/images/logo.jpeg"
+              src={logoImage}
               alt="Astrotalk Logo"
               className="h-12 w-auto"
             />

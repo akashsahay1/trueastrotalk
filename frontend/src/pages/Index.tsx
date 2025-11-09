@@ -10,6 +10,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import LazyImage from "@/components/LazyImage";
 import SlidingAstrologers from "@/components/SlidingAstrologers";
+import astrologerImage from "@/assets/images/astrologer.jpeg";
 
 
 const Index: React.FC = () => {
@@ -364,7 +365,7 @@ const Index: React.FC = () => {
                   <div className="relative">
                     <div className="w-48 h-48 md:w-64 md:h-64 rounded-full bg-gradient-to-br from-yellow-300 to-yellow-500 p-4 shadow-2xl">
                       <img
-                        src="/images/astrologer.jpeg"
+                        src={astrologerImage}
                         alt="Expert Astrologer"
                         className="w-full h-full rounded-full object-cover"
                       />

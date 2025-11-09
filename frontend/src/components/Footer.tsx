@@ -1,4 +1,5 @@
 import { Facebook, Twitter, Instagram, Youtube } from "lucide-react";
+import logoImage from "@/assets/images/logo.jpeg";
 
 const Footer = () => {
   return (
@@ -8,7 +9,7 @@ const Footer = () => {
           <div>
 						<div className="logo">
 							<img
-								src="/images/logo.jpeg"
+								src={logoImage}
 								alt="True Astrotalk Logo"
 								className="h-12 w-auto mb-4"
 							/>
