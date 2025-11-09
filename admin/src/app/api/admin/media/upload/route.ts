@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient } from 'mongodb';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
+import { withSecurity, SecurityPresets } from '@/lib/api-security';
 
 const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const DB_NAME = 'trueastrotalkDB';
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -102,3 +103,6 @@ export async function POST(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+// Export secured handlers with upload preset (for file uploads)
+export const POST = withSecurity(handlePOST, SecurityPresets.upload);

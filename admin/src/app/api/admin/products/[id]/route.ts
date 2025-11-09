@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient, ObjectId } from 'mongodb';
+import { withSecurity, SecurityPresets } from '@/lib/api-security';
 
 const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const DB_NAME = 'trueastrotalkDB';
@@ -38,7 +39,7 @@ function getFullImageUrl(imageUrl: string | null | undefined, request: NextReque
 }
 
 // GET - Fetch single product
-export async function GET(
+async function handleGET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -91,7 +92,7 @@ export async function GET(
 }
 
 // PUT - Update product
-export async function PUT(
+async function handlePUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -190,7 +191,7 @@ export async function PUT(
 }
 
 // DELETE - Delete product
-export async function DELETE(
+async function handleDELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -249,3 +250,8 @@ export async function DELETE(
     }, { status: 500 });
   }
 }
+
+// Export secured handlers with admin-only access
+export const GET = withSecurity(handleGET, SecurityPresets.admin);
+export const PUT = withSecurity(handlePUT, SecurityPresets.admin);
+export const DELETE = withSecurity(handleDELETE, SecurityPresets.admin);

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient } from 'mongodb';
 import { generateCategoryId } from '@/lib/custom-id';
+import { withSecurity, SecurityPresets } from '@/lib/api-security';
 
 const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const DB_NAME = 'trueastrotalkDB';
 
 // GET - Fetch all categories
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const active = searchParams.get('active');
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
 }
 
 // POST - Create new category
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   try {
     const body = await request.json();
     const { name, description, is_active } = body;
@@ -121,3 +122,7 @@ export async function POST(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+// Export secured handlers with admin-only access
+export const GET = withSecurity(handleGET, SecurityPresets.admin);
+export const POST = withSecurity(handlePOST, SecurityPresets.admin);

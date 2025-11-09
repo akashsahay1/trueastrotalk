@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { findOrphanedFiles, cleanupOrphanedFiles } from '@/lib/file-cleanup';
+import { withSecurity, SecurityPresets } from '@/lib/api-security';
 
-export async function GET() {
+async function handleGET() {
   try {
     // Find orphaned files without deleting them (dry run)
     const result = await findOrphanedFiles({ 
@@ -30,7 +31,7 @@ export async function GET() {
   }
 }
 
-export async function DELETE(request: NextRequest) {
+async function handleDELETE(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const dryRun = url.searchParams.get('dry-run') === 'true';
@@ -75,3 +76,7 @@ export async function DELETE(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+// Export secured handlers with admin-only access
+export const GET = withSecurity(handleGET, SecurityPresets.admin);
+export const DELETE = withSecurity(handleDELETE, SecurityPresets.admin);

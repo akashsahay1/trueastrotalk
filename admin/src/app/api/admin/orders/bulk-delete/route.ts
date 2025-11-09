@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../../../lib/database';
 import '../../../../../lib/security';
+import { withSecurity, SecurityPresets } from '@/lib/api-security';
 
 // POST - Bulk delete orders (admin only)
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   try {
     const body = await request.json();
     const { order_ids } = body;
@@ -42,3 +43,6 @@ export async function POST(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+// Export secured handlers with admin-only access
+export const POST = withSecurity(handlePOST, SecurityPresets.admin);

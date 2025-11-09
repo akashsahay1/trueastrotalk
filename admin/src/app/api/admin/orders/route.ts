@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../../lib/database';
 import { emailService } from '../../../../lib/email-service';
 import '../../../../lib/security';
+import { withSecurity, SecurityPresets } from '@/lib/api-security';
 
 // Type definitions
 interface OrderItem {
@@ -56,8 +57,8 @@ async function resolveMediaUrl(request: NextRequest, mediaId: string | ObjectId 
   }
 }
 
-// GET - Admin view of all orders
-export async function GET(request: NextRequest) {
+// GET - Admin view of all orders (internal handler)
+async function handleGET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
@@ -297,8 +298,8 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// PUT - Update order status (admin only)
-export async function PUT(request: NextRequest) {
+// PUT - Update order status (internal handler)
+async function handlePUT(request: NextRequest) {
   try {
     const body = await request.json();
     const { order_id, status, payment_status, tracking_number } = body;
@@ -419,8 +420,8 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE - Delete single order (admin only)
-export async function DELETE(request: NextRequest) {
+// DELETE - Delete single order (internal handler)
+async function handleDELETE(request: NextRequest) {
   try {
     const body = await request.json();
     const { order_id } = body;
@@ -476,3 +477,8 @@ export async function DELETE(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+// Export secured handlers with admin-only access
+export const GET = withSecurity(handleGET, SecurityPresets.admin);
+export const PUT = withSecurity(handlePUT, SecurityPresets.admin);
+export const DELETE = withSecurity(handleDELETE, SecurityPresets.admin);

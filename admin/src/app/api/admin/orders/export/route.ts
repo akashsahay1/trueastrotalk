@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../../../lib/database';
 import '../../../../../lib/security';
+import { withSecurity, SecurityPresets } from '@/lib/api-security';
 
 // GET - Export orders to CSV/Excel (admin only)
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
@@ -230,3 +231,6 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+// Export secured handlers with admin-only access
+export const GET = withSecurity(handleGET, SecurityPresets.admin);

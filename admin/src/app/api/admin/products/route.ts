@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient, ObjectId } from 'mongodb';
 import { generateProductId } from '@/lib/custom-id';
+import { withSecurity, SecurityPresets } from '@/lib/api-security';
 
 const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const DB_NAME = 'trueastrotalkDB';
@@ -47,8 +48,8 @@ async function resolveMediaUrl(request: NextRequest, mediaId: string | ObjectId 
   }
 }
 
-// GET - Fetch all products
-export async function GET(request: NextRequest) {
+// GET - Fetch all products (internal handler)
+async function handleGET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
@@ -127,8 +128,8 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create new product
-export async function POST(request: NextRequest) {
+// POST - Create new product (internal handler)
+async function handlePOST(request: NextRequest) {
   try {
     const body = await request.json();
     const { name, description, price, category, stock_quantity, is_active, image_id } = body;
@@ -228,3 +229,7 @@ export async function POST(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+// Export secured handlers with admin-only access
+export const GET = withSecurity(handleGET, SecurityPresets.admin);
+export const POST = withSecurity(handlePOST, SecurityPresets.admin);

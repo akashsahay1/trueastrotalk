@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient } from 'mongodb';
 import { jwtVerify } from 'jose';
+import { withSecurity, SecurityPresets } from '@/lib/api-security';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
@@ -10,7 +11,7 @@ const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const DB_NAME = 'trueastrotalkDB';
 
 // GET - Load configuration
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   try {
     // Get token from cookies (httpOnly cookie)
     const token = request.cookies.get('auth-token')?.value;
@@ -112,7 +113,7 @@ export async function GET(request: NextRequest) {
 }
 
 // POST - Save configuration
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   try {
     // Get token from cookies (httpOnly cookie)
     const token = request.cookies.get('auth-token')?.value;
@@ -217,3 +218,7 @@ export async function POST(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+// Export secured handlers with admin-only access
+export const GET = withSecurity(handleGET, SecurityPresets.admin);
+export const POST = withSecurity(handlePOST, SecurityPresets.admin);

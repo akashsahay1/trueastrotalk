@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SecurityMiddleware } from '../../../../lib/security';
 import { PerformanceMonitor, performanceCache } from '../../../../lib/performance-cache';
 import DatabaseIndexManager from '../../../../lib/database-indexes';
+import { withSecurity, SecurityPresets } from '@/lib/api-security';
 
 // GET - Performance statistics and monitoring
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     console.log(`📊 Performance stats request from IP: ${ip}`);
@@ -123,7 +124,7 @@ export async function GET(request: NextRequest) {
 }
 
 // POST - Performance optimization actions
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     console.log(`⚡ Performance optimization action from IP: ${ip}`);
@@ -214,3 +215,7 @@ export async function POST(request: NextRequest) {
     }, { status: 400 });
   }
 }
+
+// Export secured handlers with admin-only access
+export const GET = withSecurity(handleGET, SecurityPresets.admin);
+export const POST = withSecurity(handlePOST, SecurityPresets.admin);

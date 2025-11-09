@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient, ObjectId } from 'mongodb';
 import { JWTSecurity } from '@/lib/security';
+import { withSecurity, SecurityPresets } from '@/lib/api-security';
 
 // Helper function to get base URL for images
 function getBaseUrl(request: NextRequest): string {
@@ -55,7 +56,7 @@ async function resolveProfileImage(user: Record<string, unknown>, mediaCollectio
 const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const DB_NAME = 'trueastrotalkDB';
 
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   try {
     // Verify admin authentication
     const token = request.cookies.get('auth-token')?.value;
@@ -156,7 +157,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function DELETE(request: NextRequest) {
+async function handleDELETE(request: NextRequest) {
   try {
     // Verify admin authentication
     const token = request.cookies.get('auth-token')?.value;
@@ -199,3 +200,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+// Export secured handlers with admin-only access
+export const GET = withSecurity(handleGET, SecurityPresets.admin);
+export const DELETE = withSecurity(handleDELETE, SecurityPresets.admin);

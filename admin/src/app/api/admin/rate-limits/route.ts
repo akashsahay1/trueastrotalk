@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import DatabaseService from '../../../../lib/database';
 import { SecurityMiddleware } from '../../../../lib/security';
+import { withSecurity, SecurityPresets } from '@/lib/api-security';
 
 // GET - View rate limit status and violations
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     console.log(`🔍 Rate limit monitoring request from IP: ${ip}`);
@@ -161,7 +162,7 @@ export async function GET(request: NextRequest) {
 }
 
 // DELETE - Clear rate limits (admin emergency action)
-export async function DELETE(request: NextRequest) {
+async function handleDELETE(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     console.log(`🗑️ Rate limit clear request from IP: ${ip}`);
@@ -242,3 +243,7 @@ export async function DELETE(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+// Export secured handlers with admin-only access
+export const GET = withSecurity(handleGET, SecurityPresets.admin);
+export const DELETE = withSecurity(handleDELETE, SecurityPresets.admin);
