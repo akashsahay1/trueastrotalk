@@ -49,6 +49,8 @@ Remote Path: /var/www/html/trueastrotalk/frontend/
 ```bash
 # From your local machine
 cd /Volumes/Projects/Projects/Trueastrotalk/trueastrotalk/frontend
+
+# --delete is SAFE for frontend (no user uploads)
 rsync -avz --delete dist/ root@your-server-ip:/var/www/html/trueastrotalk/frontend/
 ```
 
@@ -101,15 +103,76 @@ Local                                    → Remote
 # From your local machine
 cd /Volumes/Projects/Projects/Trueastrotalk/trueastrotalk/admin
 
-# Upload necessary files (excluding node_modules)
-rsync -avz --exclude 'node_modules' \
-           --exclude '.git' \
-           --exclude '.cache' \
-           --exclude '.next/cache' \
-           ./ root@your-server-ip:/var/www/html/trueastrotalk/backend/
+# IMPORTANT: NEVER use --delete flag for admin!
+# User uploads in public/uploads/ must be protected!
+
+# Upload necessary files (SAFE - excludes user uploads)
+rsync -avz \
+  --exclude 'node_modules' \
+  --exclude '.git' \
+  --exclude '.cache' \
+  --exclude '.next/cache' \
+  --exclude 'public/uploads' \
+  --exclude 'public/uploads/*' \
+  --exclude '.env' \
+  ./ root@your-server-ip:/var/www/html/trueastrotalk/backend/
 ```
 
-### 2.3 Install Dependencies on Server
+**⚠️ CRITICAL WARNING:**
+```bash
+# ❌ NEVER DO THIS - Deletes all user uploads!
+rsync -avz --delete admin/ root@server:/var/www/html/trueastrotalk/backend/
+
+# ✅ ALWAYS DO THIS - Excludes uploads
+rsync -avz --exclude 'public/uploads' admin/ root@server:/var/www/html/trueastrotalk/backend/
+```
+
+### 2.3 Protect User Uploads (CRITICAL - One-Time Setup)
+
+Before continuing, you MUST protect user uploads from being deleted during deployments.
+
+**SSH into server:**
+```bash
+ssh root@your-server-ip
+cd /var/www/html/trueastrotalk
+
+# Create shared directory for permanent data
+mkdir -p shared/uploads
+mkdir -p shared/logs
+
+# Move existing uploads to shared (if any)
+if [ -d "backend/public/uploads" ]; then
+  echo "Protecting existing uploads..."
+  cp -rp backend/public/uploads/* shared/uploads/ 2>/dev/null || true
+  mv backend/public/uploads backend/public/uploads.backup
+fi
+
+# Create symlink from deployment to shared uploads
+ln -s /var/www/html/trueastrotalk/shared/uploads backend/public/uploads
+
+# Set permissions
+chown -R www-data:www-data shared/uploads
+chmod -R 755 shared/uploads
+
+# Verify
+ls -la backend/public/uploads  # Should show symlink
+echo "✓ User uploads are now protected!"
+```
+
+**Optional: Move .env to shared location too:**
+```bash
+mv backend/.env shared/.env
+ln -s /var/www/html/trueastrotalk/shared/.env backend/.env
+chmod 600 shared/.env
+```
+
+**Why this is critical:**
+- User uploads contain profile images, documents, media files
+- These are irreplaceable user data
+- Deploying without this protection could delete all uploads!
+- See `UPLOADS_PROTECTION.md` for full details
+
+### 2.4 Install Dependencies on Server
 
 **SSH into your server:**
 ```bash
@@ -415,20 +478,30 @@ rsync -avz --delete dist/ root@your-server-ip:/var/www/html/trueastrotalk/fronte
 cd /Volumes/Projects/Projects/Trueastrotalk/trueastrotalk/admin
 npm run build
 
-# Upload changed files via FTP or rsync
-rsync -avz --exclude 'node_modules' ./ root@your-server-ip:/var/www/html/trueastrotalk/backend/
+# Upload changed files via FTP or rsync (PROTECTED - won't touch uploads)
+rsync -avz \
+  --exclude 'node_modules' \
+  --exclude 'public/uploads' \
+  --exclude '.env' \
+  ./ root@your-server-ip:/var/www/html/trueastrotalk/backend/
 
-# On server - restart PM2
+# On server - graceful reload (zero downtime)
 ssh root@your-server-ip
 cd /var/www/html/trueastrotalk/backend
 npm install --production  # if package.json changed
-pm2 restart all
+pm2 reload ecosystem.production.js  # Zero downtime reload
 ```
+
+**Important Files Protected:**
+- ✅ `public/uploads/` - User uploads preserved
+- ✅ `.env` - Environment variables safe (if using shared)
+- ✅ Zero downtime with `pm2 reload`
 
 ---
 
-## Part 9: Security Checklist
+## Part 9: Security & Data Protection Checklist
 
+### Security
 - [ ] .env file has 600 permissions (not readable by others)
 - [ ] Production Razorpay keys configured (not test keys)
 - [ ] Production SendGrid API key configured
@@ -436,8 +509,17 @@ pm2 restart all
 - [ ] MongoDB has authentication enabled
 - [ ] Firewall allows only necessary ports (80, 443, SSH)
 - [ ] SSL certificates are valid and auto-renewing
-- [ ] Regular backups configured for database
 - [ ] PM2 logs being monitored
+
+### Data Protection (CRITICAL)
+- [ ] **User uploads protected** (using shared directory + symlink)
+- [ ] **Never use --delete flag** when deploying admin
+- [ ] **Rsync excludes public/uploads** in all deployment commands
+- [ ] **Daily backups configured** for uploads directory
+- [ ] **Tested restore procedure** for uploads
+- [ ] **Database backups** running automatically
+- [ ] **Disk space monitoring** set up for uploads
+- [ ] **Read UPLOADS_PROTECTION.md** thoroughly
 
 ---
 
