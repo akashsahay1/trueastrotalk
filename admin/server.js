@@ -145,5 +145,46 @@ app.prepare().then(() => {
     if (err) throw err;
     console.log(`🚀 Server ready on http://${hostname}:${port}`);
     console.log(`📡 Socket.IO ready for real-time connections`);
+
+    // Signal PM2 that app is ready (for graceful reload)
+    if (process.send) {
+      process.send('ready');
+    }
+  });
+
+  // Graceful shutdown handler
+  const gracefulShutdown = (signal) => {
+    console.log(`\n${signal} received. Starting graceful shutdown...`);
+
+    // Stop accepting new connections
+    httpServer.close(() => {
+      console.log('✅ HTTP server closed');
+
+      // Close all socket connections
+      io.close(() => {
+        console.log('✅ Socket.IO server closed');
+
+        // Close database connections (already handled by DatabaseService)
+        console.log('✅ Graceful shutdown complete');
+        process.exit(0);
+      });
+    });
+
+    // Force shutdown after 10 seconds if graceful shutdown hangs
+    setTimeout(() => {
+      console.error('⚠️ Forced shutdown after timeout');
+      process.exit(1);
+    }, 10000);
+  };
+
+  // Handle shutdown signals
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+  // PM2 graceful reload
+  process.on('message', (msg) => {
+    if (msg === 'shutdown') {
+      gracefulShutdown('PM2 shutdown');
+    }
   });
 });
