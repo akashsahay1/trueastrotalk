@@ -7,7 +7,6 @@ import { withSecurity, SecurityPresets } from '@/lib/api-security';
 async function handleGET(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`🔍 Rate limit monitoring request from IP: ${ip}`);
 
     // Authenticate admin
     let authenticatedUser;
@@ -118,7 +117,6 @@ async function handleGET(request: NextRequest) {
       target: record.key.includes('email:') ? 'email' : 'ip'
     }));
 
-    console.log(`✅ Rate limit data retrieved - ${formattedRateLimits.length} records`);
 
     return NextResponse.json({
       success: true,
@@ -165,7 +163,6 @@ async function handleGET(request: NextRequest) {
 async function handleDELETE(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`🗑️ Rate limit clear request from IP: ${ip}`);
 
     // Authenticate admin
     let authenticatedUser;
@@ -197,7 +194,6 @@ async function handleDELETE(request: NextRequest) {
     if (key) {
       // Clear specific key
       const result = await rateLimitsCollection.deleteOne({ key });
-      console.log(`🗑️ Cleared rate limit for key: ${key}`);
       
       return NextResponse.json({
         success: true,
@@ -211,7 +207,6 @@ async function handleDELETE(request: NextRequest) {
         : { key: { $regex: `^${type}:` } };
       
       const result = await rateLimitsCollection.deleteMany(filter);
-      console.log(`🗑️ Cleared ${result.deletedCount} rate limit records of type: ${type}`);
       
       return NextResponse.json({
         success: true,
@@ -225,7 +220,6 @@ async function handleDELETE(request: NextRequest) {
         lastRequest: { $lt: cutoff }
       });
       
-      console.log(`🗑️ Cleared ${result.deletedCount} old rate limit records`);
       
       return NextResponse.json({
         success: true,

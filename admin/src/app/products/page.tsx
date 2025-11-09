@@ -380,7 +380,6 @@ export default function ProductsPage() {
                                 }}
                                 onClick={() => {
                                   // TODO: Open media library modal
-                                  console.log('Open media library for product:', product._id);
                                 }}
                                 title="Click to add image"
                               >

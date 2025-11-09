@@ -217,7 +217,6 @@ export async function POST(request: NextRequest) {
     const existingSession = await sessionsCollection.findOne({ session_id: sessionId });
     if (existingSession) {
       await client.close();
-      console.log(`⚠️ Session ${sessionId} already exists, returning existing session`);
       return NextResponse.json({
         success: true,
         message: 'Session already exists',
@@ -226,7 +225,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Create session record
-    console.log(`🔧 Creating session record: sessionId=${sessionId}, sessionType=${sessionType}, userId=${userId}, astrologerId=${astrologerId}`);
     
     const session = {
       session_id: sessionId,
@@ -244,7 +242,6 @@ export async function POST(request: NextRequest) {
     const result = await sessionsCollection.insertOne(session);
     await client.close();
 
-    console.log(`📝 Successfully created ${sessionType} session ${sessionId} between user ${userId} and astrologer ${astrologerId} - MongoDB ID: ${result.insertedId}`);
 
     return NextResponse.json({
       success: true,
@@ -317,27 +314,23 @@ export async function PATCH(request: NextRequest) {
     const usersCollection = db.collection('users');
 
     // Get the session to find the user_id (customer who should be charged)
-    console.log(`🔍 Looking for session with session_id: ${sessionId}, sessionType: ${sessionType}`);
     const session = await sessionsCollection.findOne({ 
       session_id: sessionId, 
       session_type: sessionType 
     });
 
     if (!session) {
-      console.log(`❌ Session not found: sessionId=${sessionId}, sessionType=${sessionType}`);
       // Show available sessions to help debug
       const availableSessions = await sessionsCollection.find(
         { session_id: sessionId }, // Search by just session_id to see if it exists with different type
         { projection: { session_id: 1, session_type: 1, status: 1 } }
       ).toArray();
-      console.log(`📊 Sessions with matching session_id:`, availableSessions);
       await client.close();
       return NextResponse.json({ 
         success: false,
         error: `Session not found: ${sessionId} with type ${sessionType}` 
       }, { status: 404 });
     }
-    console.log(`✅ Found session: ${sessionId} - Status: ${session.status}, Type: ${session.session_type}, User: ${session.user_id}, Astrologer: ${session.astrologer_id}`);
 
     // Only allow the customer (user) to update their own session billing
     // or allow astrologers to update sessions where they are the provider
@@ -392,7 +385,6 @@ export async function PATCH(request: NextRequest) {
         }
       );
 
-      console.log(`💰 Deducted ₹${amountToDeduct} from user ${session.user_id} for ${sessionType} session ${sessionId}`);
 
       // Credit astrologer's wallet (80% of the amount, 20% platform commission)
       const astrologerShare = amountToDeduct * 0.8; // 80% to astrologer
@@ -486,7 +478,6 @@ export async function PATCH(request: NextRequest) {
           { upsert: true }
         );
 
-        console.log(`💰 Updated transactions - Astrologer: ₹${astrologerTotalShare}, Commission: ₹${totalPlatformCommission}`);
       }
     }
 

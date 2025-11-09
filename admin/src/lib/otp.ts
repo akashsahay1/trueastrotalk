@@ -62,7 +62,6 @@ export function verifyOTP(inputOTP: string, storedOTP: string | null, expiryDate
 } {
   // Bypass mode check
   if (OTP_BYPASS_MODE && inputOTP === OTP_BYPASS_CODE) {
-    console.log('🔓 OTP Bypass Mode: Accepting test OTP 0000');
     return { valid: true };
   }
 
@@ -150,13 +149,10 @@ export function isValidPhoneNumber(phone: string): boolean {
  */
 export async function sendOTPSMS(phone: string, otp: string): Promise<boolean> {
   if (OTP_BYPASS_MODE) {
-    console.log(`📱 [TEST MODE] OTP for ${phone}: ${otp}`);
-    console.log(`🔓 Use "${OTP_BYPASS_CODE}" to bypass verification`);
     return true;
   }
 
   // TODO: Implement actual SMS sending with Twilio/MSG91/etc
-  console.log(`📱 Sending OTP ${otp} to ${phone}`);
   console.warn('⚠️ SMS provider not configured. OTP will only be logged.');
 
   return true;

@@ -81,7 +81,6 @@ async function validateGoogleToken(idToken: string): Promise<{ email: string; na
 async function handleLogin(request: NextRequest): Promise<NextResponse> {
   // Apply rate limiting (in production, use proper middleware)
   const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-  console.log(`🔐 Login attempt from IP: ${ip}`);
 
   // Parse and validate request body
   const body = await request.json();
@@ -184,7 +183,6 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
 
     // Handle Google authentication for non-existing users
     if (!user && auth_type === 'google') {
-      console.log(`🔍 User ${userEmail} not found, validating Google token...`);
       
       const googleUserInfo = await validateGoogleToken(google_access_token as string);
       
@@ -206,7 +204,6 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
       }
       
       // Valid Google user but not registered
-      console.log(`✅ Valid Google user ${userEmail} needs registration`);
       return NextResponse.json({
         success: false,
         error: 'USER_NOT_REGISTERED',
@@ -221,7 +218,6 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
 
   // User not found
   if (!user) {
-    console.log(`❌ Login failed for ${userEmail}: User not found`);
     
     // Generic error message to prevent user enumeration
     throw ErrorHandler.createError(
@@ -233,7 +229,6 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
 
   // Check account status
   if (user.account_status === 'banned') {
-    console.log(`🚫 Login blocked for ${userEmail}: Account banned`);
     throw ErrorHandler.createError(
       ErrorCode.ACCOUNT_LOCKED,
       'Account banned',
@@ -242,7 +237,6 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
   }
 
   if (user.account_status === 'inactive') {
-    console.log(`⏸️ Login blocked for ${userEmail}: Account inactive`);
     throw ErrorHandler.createError(
       ErrorCode.ACCESS_DENIED,
       'Account inactive',
@@ -256,7 +250,6 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
       const googleUserInfo = await validateGoogleToken(google_access_token as string);
       
       if (!googleUserInfo || googleUserInfo.email !== userEmail) {
-        console.log(`❌ Google auth failed for ${userEmail}: Invalid token`);
         return NextResponse.json({
           success: false,
           error: 'INVALID_GOOGLE_TOKEN',
@@ -264,12 +257,10 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
         }, { status: 401 });
       }
       
-      console.log(`✅ Google authentication successful for ${userEmail}`);
       
     } else if (auth_type === 'email') {
       // Verify password using bcrypt
       if (!user.password) {
-        console.log(`❌ Login failed for ${userEmail}: No password set`);
         return NextResponse.json({
           success: false,
           error: 'NO_PASSWORD_SET',
@@ -281,7 +272,6 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
         const isPasswordValid = await PasswordSecurity.verifyPassword(password as string, user.password as string);
         
         if (!isPasswordValid) {
-          console.log(`❌ Login failed for ${userEmail}: Invalid password`);
           
           // Log failed login attempt
           await usersCollection.updateOne(
@@ -316,7 +306,6 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
         }, { status: 500 });
       }
       
-      console.log(`✅ Email authentication successful for ${userEmail}`);
     }
 
     // Check for too many failed login attempts
@@ -399,7 +388,6 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
       // Continue with login even if update fails
     }
 
-    console.log(`✅ Login successful for ${userEmail} (${user.user_type})`);
 
     // Prepare response based on user type
     if (user.user_type === 'administrator') {

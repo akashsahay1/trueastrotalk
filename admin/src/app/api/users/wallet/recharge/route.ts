@@ -192,10 +192,8 @@ export async function POST(request: NextRequest) {
       const RAZORPAY_KEY_ID = razorpayConfig.keyId as string;
       const RAZORPAY_KEY_SECRET = razorpayConfig.keySecret as string;
 
-      console.log(`🔑 Using Razorpay credentials from database: ${RAZORPAY_KEY_ID.substring(0, 15)}...`);
 
       // Verify payment with Razorpay and get actual payment method
-      console.log(`🔍 Verifying Razorpay payment: ${payment_id}`);
       const razorpayVerification = await verifyRazorpayPayment(payment_id, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET);
 
       if (!razorpayVerification.verified) {
@@ -223,7 +221,6 @@ export async function POST(request: NextRequest) {
       }
 
       const actualPaymentMethod = razorpayVerification.method;
-      console.log(`✅ Payment verified: ${actualPaymentMethod}`);
       // Check for duplicate payment ID (prevent double processing)
       if (payment_id) {
         const existingCompletedTransaction = await transactionsCollection.findOne({
@@ -283,7 +280,6 @@ export async function POST(request: NextRequest) {
             }
           }
         );
-        console.log(`✅ Updated existing transaction: ${pendingTransaction._id}`);
       } else {
         // Create new transaction record (fallback for legacy payments)
         const transaction = {
@@ -301,11 +297,9 @@ export async function POST(request: NextRequest) {
         };
 
         await transactionsCollection.insertOne(transaction);
-        console.log(`✅ Created new transaction for legacy payment`);
       }
       await client.close();
 
-      console.log(`✅ Wallet recharged successfully: ₹${amount} via ${actualPaymentMethod}`);
 
       return NextResponse.json({
         success: true,

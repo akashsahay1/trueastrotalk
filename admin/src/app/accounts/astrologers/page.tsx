@@ -186,7 +186,6 @@ export default function AstrologersPage() {
   }, []);
 
   const fetchUsers = useCallback(async (page: number, searchTerm: string, filterParams: FilterParams = {}, pageLimit?: number) => {
-    console.log(searchTerm, filterParams);
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -216,7 +215,6 @@ export default function AstrologersPage() {
 
       const data = await response.json();
 
-      console.log(data);
 
       if (response.ok) {
         setUsers(data.data.users);
@@ -514,13 +512,6 @@ export default function AstrologersPage() {
         }
       };
 
-      console.log('Bulk update request:', {
-        userCount: selectedUsers.length,
-        firstFewIds: selectedUsers.slice(0, 5),
-        field: bulkUpdateData.field,
-        value: bulkUpdateData.value,
-        requestBody
-      });
 
       const response = await fetch('/api/users/bulk-update', {
         method: 'PATCH',

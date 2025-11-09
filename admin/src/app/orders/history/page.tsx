@@ -130,7 +130,6 @@ export default function HistoryOrdersPage() {
         ...(customerFilter && { customer: customerFilter }),
       });
 
-      console.log('🔍 History Page API Call:', `/api/admin/orders?${queryParams}`);
       const response = await fetch(`/api/admin/orders?${queryParams}`);
       const data: OrdersResponse = await response.json();
 

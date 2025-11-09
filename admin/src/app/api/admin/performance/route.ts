@@ -8,7 +8,6 @@ import { withSecurity, SecurityPresets } from '@/lib/api-security';
 async function handleGET(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`📊 Performance stats request from IP: ${ip}`);
 
     // Authenticate admin user
     let authenticatedUser;
@@ -127,7 +126,6 @@ async function handleGET(request: NextRequest) {
 async function handlePOST(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`⚡ Performance optimization action from IP: ${ip}`);
 
     // Authenticate admin user
     let authenticatedUser;
@@ -197,7 +195,6 @@ async function handlePOST(request: NextRequest) {
         throw new Error(`Unknown optimization action: ${action}`);
     }
 
-    console.log(`✅ Performance optimization completed: ${action}`);
 
     return NextResponse.json({
       success: true,

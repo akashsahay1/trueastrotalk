@@ -12,7 +12,6 @@ import { Validator } from '../../../../lib/validation';
 export async function POST(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`🔐 Password change attempt from IP: ${ip}`);
 
     // Rate limiting for password change attempts (more lenient for legitimate users)
     const rateLimitResult = await SecurityMiddleware.checkRateLimit(
@@ -23,7 +22,6 @@ export async function POST(request: NextRequest) {
     );
 
     if (!rateLimitResult.allowed) {
-      console.log(`🚫 Rate limit exceeded for password change from IP: ${ip}`);
 
       return NextResponse.json({
         success: false,
@@ -126,7 +124,6 @@ export async function POST(request: NextRequest) {
 
     // Check per-user rate limit for failed attempts
     if (!userRateLimit.allowed) {
-      console.log(`🚫 Per-user rate limit exceeded for password change: ${user.userId}`);
       return NextResponse.json({
         success: false,
         error: 'RATE_LIMIT_EXCEEDED',
@@ -147,7 +144,6 @@ export async function POST(request: NextRequest) {
     );
 
     if (!isCurrentPasswordValid) {
-      console.log(`🚫 Invalid current password for user: ${dbUser.user_id} (${dbUser.email_address})`);
 
       // Record failed attempt for per-user rate limiting
       await SecurityMiddleware.checkRateLimit(
@@ -200,7 +196,6 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log(`🔐 Password successfully changed for user: ${dbUser.user_id} (${dbUser.email_address})`);
 
     return NextResponse.json({
       success: true,

@@ -36,7 +36,6 @@ class DatabaseService {
     this.isConnecting = true;
 
     try {
-      console.log('🔗 Establishing database connection...');
       
       const client = new MongoClient(MONGODB_URL!, {
         maxPoolSize: 50,
@@ -62,13 +61,9 @@ class DatabaseService {
         isConnected: true
       };
 
-      console.log('✅ Database connected successfully');
-      console.log(`📊 Database URL: ${MONGODB_URL}`);
-      console.log(`📊 Database Name: ${DB_NAME}`);
       
       // Handle connection events
       client.on('close', () => {
-        console.log('⚠️ Database connection closed');
         if (this.connection) {
           this.connection.isConnected = false;
         }
@@ -140,11 +135,9 @@ class DatabaseService {
    */
   static async closeConnection(): Promise<void> {
     if (this.connection && this.connection.isConnected) {
-      console.log('🔒 Closing database connection...');
       await this.connection.client.close();
       this.connection.isConnected = false;
       this.connection = null;
-      console.log('✅ Database connection closed');
     }
   }
 
@@ -177,13 +170,11 @@ class DatabaseService {
 
 // Graceful shutdown handling
 process.on('SIGINT', async () => {
-  console.log('📤 Received SIGINT, closing database connection...');
   await DatabaseService.closeConnection();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
-  console.log('📤 Received SIGTERM, closing database connection...');
   await DatabaseService.closeConnection();
   process.exit(0);
 });

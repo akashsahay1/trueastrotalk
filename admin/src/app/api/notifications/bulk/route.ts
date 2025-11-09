@@ -45,7 +45,6 @@ interface AuthenticatedUser {
 export async function POST(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`📢 Bulk notification request from IP: ${ip}`);
 
     // Authenticate user (only admins can send bulk notifications)
     let authenticatedUser;
@@ -189,7 +188,6 @@ export async function POST(request: NextRequest) {
     }));
 
     // Log notification attempt
-    console.log(`📤 Sending ${type} notification to ${targets.length} users`);
 
     // Send notifications
     const successCount = await NotificationService.sendBulkNotifications(
@@ -222,7 +220,6 @@ export async function POST(request: NextRequest) {
       created_at: new Date()
     });
 
-    console.log(`✅ Bulk notification completed: ${successCount}/${targets.length} successful`);
 
     return NextResponse.json({
       success: true,
@@ -249,7 +246,6 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`📊 Bulk notification history request from IP: ${ip}`);
 
     // Authenticate user (only admins can view bulk notification history)
     let authenticatedUser;

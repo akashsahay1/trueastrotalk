@@ -12,12 +12,10 @@ import { emailService } from '../../../../lib/email-service';
 export async function POST(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`🔐 Forgot password request from IP: ${ip}`);
 
     // Progressive rate limiting - gets stricter with repeated violations
     const rateLimitResult = await SecurityMiddleware.checkProgressiveRateLimit(request, 'forgot-password');
     if (!rateLimitResult.allowed) {
-      console.log(`🚫 Rate limit exceeded for forgot password from IP: ${ip} (Level ${rateLimitResult.level})`);
       
       return NextResponse.json({
         success: false,
@@ -78,7 +76,6 @@ export async function POST(request: NextRequest) {
     );
 
     if (!emailRateLimitResult.allowed) {
-      console.log(`🚫 Email rate limit exceeded for: ${normalizedEmail} from IP: ${ip}`);
       
       // Use same generic message for security
       return NextResponse.json({
@@ -105,7 +102,6 @@ export async function POST(request: NextRequest) {
 
     // If user doesn't exist, still return success but don't send email
     if (!user) {
-      console.log(`🔐 Password reset requested for non-existent email: ${normalizedEmail}`);
       return NextResponse.json(successResponse);
     }
 
@@ -146,7 +142,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Log the password reset request
-    console.log(`🔐 Password reset token generated for user: ${user._id} (${normalizedEmail})`);
 
     // Return success response (same whether user exists or not for security)
     return NextResponse.json(successResponse);

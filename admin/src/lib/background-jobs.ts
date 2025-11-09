@@ -12,11 +12,9 @@ class BackgroundJobsService {
    */
   static start() {
     if (this.isRunning) {
-      console.log('⚠️ Background jobs are already running');
       return;
     }
 
-    console.log('🚀 Starting background jobs...');
     this.isRunning = true;
 
     // Update real-time user statistics every 30 seconds
@@ -44,7 +42,6 @@ class BackgroundJobsService {
     cron.schedule('0 0 2 * * *', async () => {
       try {
         await this.cleanupOldMetrics();
-        console.log('✅ Old metrics cleaned up');
       } catch (error) {
         console.error('❌ Failed to cleanup old metrics:', error instanceof Error ? error.message : String(error));
       }
@@ -54,13 +51,11 @@ class BackgroundJobsService {
     cron.schedule('0 0 3 * * *', async () => {
       try {
         await this.cleanupOldErrors();
-        console.log('✅ Old errors cleaned up');
       } catch (error) {
         console.error('❌ Failed to cleanup old errors:', error instanceof Error ? error.message : String(error));
       }
     });
 
-    console.log('✅ Background jobs started successfully');
   }
 
   /**
@@ -71,11 +66,9 @@ class BackgroundJobsService {
       return;
     }
 
-    console.log('🛑 Stopping background jobs...');
     // Note: node-cron doesn't have a global destroy method
     // Individual tasks are destroyed when they go out of scope
     this.isRunning = false;
-    console.log('✅ Background jobs stopped');
   }
 
   /**
@@ -132,7 +125,6 @@ class BackgroundJobsService {
         timestamp: { $lt: thirtyDaysAgo }
       });
 
-      console.log(`🧹 Cleaned up ${result.deletedCount} old performance metrics`);
     } catch (error) {
       console.error('Failed to cleanup old metrics:', error instanceof Error ? error.message : String(error));
     }
@@ -155,7 +147,6 @@ class BackgroundJobsService {
         resolved: true
       });
 
-      console.log(`🧹 Cleaned up ${result.deletedCount} old resolved errors`);
     } catch (error) {
       console.error('Failed to cleanup old errors:', error instanceof Error ? error.message : String(error));
     }

@@ -16,7 +16,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { phone_number } = body;
 
-    console.log('📱 Send OTP request for:', phone_number);
 
     // Validate phone number
     if (!phone_number) {
@@ -96,9 +95,7 @@ export async function POST(request: NextRequest) {
     const expiry = getOTPExpiry();
     const now = new Date();
 
-    console.log(`🔑 Generated OTP: ${otp} for ${formattedPhone}`);
     if (OTP_BYPASS_MODE) {
-      console.log('🔓 Bypass mode enabled - use "0000" for testing');
     }
 
     // Send OTP via SMS
@@ -150,7 +147,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log(`✅ OTP sent successfully to ${formattedPhone}`);
 
     return NextResponse.json({
       success: true,

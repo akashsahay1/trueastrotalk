@@ -12,7 +12,6 @@ import { Validator } from '../../../../lib/validation';
 export async function POST(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`🔐 Password reset attempt from IP: ${ip}`);
 
     // Rate limiting for password reset attempts
     const rateLimitResult = await SecurityMiddleware.checkRateLimit(
@@ -23,7 +22,6 @@ export async function POST(request: NextRequest) {
     );
     
     if (!rateLimitResult.allowed) {
-      console.log(`🚫 Rate limit exceeded for password reset from IP: ${ip}`);
       
       return NextResponse.json({
         success: false,
@@ -129,7 +127,6 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log(`🔐 Password successfully reset for user: ${user._id} (${user.email_address})`);
 
     return NextResponse.json({
       success: true,

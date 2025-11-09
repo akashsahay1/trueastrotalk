@@ -6,7 +6,6 @@ import { SecurityMiddleware, InputSanitizer } from '../../../../../lib/security'
 export async function POST(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`💳 Payment order creation request from IP: ${ip}`);
 
     // Authenticate user
     let user;
@@ -144,7 +143,6 @@ export async function POST(request: NextRequest) {
     };
 
     // Log payment attempt (excluding sensitive data)
-    console.log(`💳 Creating Razorpay order for user ${user.userId}: ₹${amount} for ${purpose}`);
     
     // Create the order using Razorpay API with timeout
     const controller = new AbortController();
@@ -224,7 +222,6 @@ export async function POST(request: NextRequest) {
 
     await transactionsCollection.insertOne(transactionRecord);
 
-    console.log(`✅ Payment order created successfully: ${razorpayOrder.id} for user ${user.userId}`);
 
     // Return sanitized response (no sensitive data)
     return NextResponse.json({

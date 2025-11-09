@@ -28,7 +28,6 @@ export async function handleGoogleProfileImage(profileData: GoogleProfileData) {
     const result = await UploadService.registerExternalImage();
 
     if (result.success) {
-      console.log('Google profile image registered in media library:', result.file_id);
       return {
         mediaId: result.file_id,
         imageUrl: picture,

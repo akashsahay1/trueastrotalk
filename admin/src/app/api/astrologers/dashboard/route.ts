@@ -10,7 +10,6 @@ import {
 export async function GET(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`📊 Astrologer dashboard request from IP: ${ip}`);
 
     // Authenticate astrologer
     let authenticatedUser;
@@ -258,7 +257,6 @@ export async function GET(request: NextRequest) {
       ? ((thisMonthEarnings[0].total - lastMonthEarnings[0].total) / lastMonthEarnings[0].total) * 100
       : 0;
 
-    console.log(`✅ Dashboard data retrieved for astrologer: ${astrologer.full_name}`);
 
     return NextResponse.json({
       success: true,
@@ -358,7 +356,6 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`⚙️ Astrologer settings update from IP: ${ip}`);
 
     // Authenticate astrologer
     let authenticatedUser;
@@ -505,7 +502,6 @@ export async function PUT(request: NextRequest) {
       }, { status: 404 });
     }
 
-    console.log(`✅ Astrologer settings updated: ${astrologerId}`);
 
     return NextResponse.json({
       success: true,

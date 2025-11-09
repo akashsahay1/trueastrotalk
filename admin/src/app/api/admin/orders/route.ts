@@ -453,7 +453,6 @@ async function handleDELETE(request: NextRequest) {
       await transactionsCollection.deleteOne({
         razorpay_order_id: order.razorpay_order_id
       });
-      console.log(`🗑️ Deleted related transaction for razorpay_order_id: ${order.razorpay_order_id}`);
     }
 
     // Delete the order
@@ -461,7 +460,6 @@ async function handleDELETE(request: NextRequest) {
       _id: new ObjectId(order_id as string)
     });
 
-    console.log(`🗑️ Deleted order: ${order.order_number}`);
 
     return NextResponse.json({
       success: true,

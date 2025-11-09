@@ -78,7 +78,6 @@ async function deleteFile(filePath: string, options?: { deleteFromFilesystem?: b
         const fs = await import('fs/promises');
         await fs.unlink(fullPath);
         if (options.logActivity) {
-          console.log(`🗑️ Deleted old profile image: ${filePath}`);
         }
       }
     }
@@ -91,7 +90,6 @@ async function deleteFile(filePath: string, options?: { deleteFromFilesystem?: b
 export async function GET(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`👤 Profile fetch request from IP: ${ip}`);
 
     // Authenticate user with enhanced security
     let user;
@@ -157,11 +155,7 @@ export async function GET(request: NextRequest) {
     // Resolve profile image to full URL
     const profileImageUrl = await resolveProfileImage(dbUser, mediaCollection, baseUrl);
     
-    console.log(`📷 Profile image resolution for user ${user.userId}:`);
-    console.log(`   - profile_image_id: ${dbUser.profile_image_id}`);
-    console.log(`   - resolved URL: ${profileImageUrl}`);
 
-    console.log(`✅ Profile fetched successfully for user: ${user.userId}`);
 
     return NextResponse.json({
       success: true,
@@ -223,7 +217,6 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`📝 Profile update request from IP: ${ip}`);
 
     // Authenticate user with enhanced security
     let user;

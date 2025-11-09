@@ -39,14 +39,11 @@ export const config = {
 
 export default function SocketHandler(req: NextApiRequest, res: NextApiResponseServerIO) {
   if (res.socket.server.io) {
-    console.log('Socket is already running');
   } else {
-    console.log('Socket is initializing');
     const io = new ServerIO(res.socket.server);
     res.socket.server.io = io;
 
     io.on('connection', (socket) => {
-      console.log('User connected:', socket.id);
 
       // Handle user authentication
       socket.on('authenticate', async (data) => {
@@ -83,7 +80,6 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
           }
 
           socket.emit('authenticated', { success: true, userId, userType });
-          console.log(`User ${userId} (${userType}) authenticated`);
 
         } catch (error) {
           console.error('Authentication error:', error);
@@ -385,7 +381,6 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
 
       // Handle disconnection
       socket.on('disconnect', async () => {
-        console.log('User disconnected:', socket.id);
         
         const userInfo = connectedUsers.get(socket.id);
         if (userInfo) {

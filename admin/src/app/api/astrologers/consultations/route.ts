@@ -40,7 +40,6 @@ interface SessionData {
 export async function GET(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`📋 Astrologer consultations request from IP: ${ip}`);
 
     // Authenticate astrologer
     let authenticatedUser;
@@ -257,7 +256,6 @@ export async function GET(request: NextRequest) {
         .reduce((sum, c, _, arr) => sum + (c.rating || 0) / arr.length, 0)
     };
 
-    console.log(`✅ Consultations data retrieved for astrologer: ${astrologerId}`);
 
     return NextResponse.json({
       success: true,
@@ -298,7 +296,6 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`🔄 Consultation update request from IP: ${ip}`);
 
     // Authenticate astrologer
     let authenticatedUser;
@@ -446,7 +443,6 @@ export async function PUT(request: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log(`✅ Consultation ${action} successful for: ${consultation_id}`);
 
     return NextResponse.json({
       success: true,

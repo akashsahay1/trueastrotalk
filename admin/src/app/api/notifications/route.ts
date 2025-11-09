@@ -39,7 +39,6 @@ interface NotificationTarget {
 export async function GET(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`🔔 Notifications fetch request from IP: ${ip}`);
 
     // Authenticate user
     let authenticatedUser;
@@ -109,7 +108,6 @@ export async function GET(request: NextRequest) {
       updated_at: notification.updated_at
     }));
 
-    console.log(`✅ Retrieved ${notifications.length} notifications for user ${userId}`);
 
     return NextResponse.json({
       success: true,
@@ -141,7 +139,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`🔔 Notification action request from IP: ${ip}`);
 
     // Authenticate user
     let authenticatedUser;
@@ -183,7 +180,6 @@ export async function POST(request: NextRequest) {
         }
       );
 
-      console.log(`✅ FCM token registered for user ${(authenticatedUser as unknown as AuthenticatedUser).userId}`);
 
       return NextResponse.json({
         success: true,
@@ -278,7 +274,6 @@ export async function POST(request: NextRequest) {
       notificationObj
     );
 
-    console.log(`✅ Notification sent to ${successCount}/${targets.length} users`);
 
     return NextResponse.json({
       success: true,
@@ -304,7 +299,6 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`📖 Mark notifications read request from IP: ${ip}`);
 
     // Authenticate user
     let authenticatedUser;
@@ -369,7 +363,6 @@ export async function PUT(request: NextRequest) {
       }
     );
 
-    console.log(`✅ Marked ${result.modifiedCount} notifications as read for user ${userId}`);
 
     return NextResponse.json({
       success: true,

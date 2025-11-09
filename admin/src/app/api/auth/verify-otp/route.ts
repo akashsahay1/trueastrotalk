@@ -13,7 +13,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { phone_number, otp } = body;
 
-    console.log('🔐 Verify OTP request for:', phone_number);
 
     // Validate inputs
     if (!phone_number || !otp) {
@@ -95,9 +94,6 @@ export async function POST(request: NextRequest) {
     if (!verification.valid) {
       const remainingAttempts = MAX_OTP_ATTEMPTS - (attempts + 1);
 
-      console.log(
-        `❌ Invalid OTP attempt for ${formattedPhone}. Remaining: ${remainingAttempts}`
-      );
 
       return NextResponse.json(
         {
@@ -126,9 +122,7 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    console.log(`✅ OTP verified successfully for ${formattedPhone}`);
     if (OTP_BYPASS_MODE && otp === '0000') {
-      console.log('🔓 Verification done via bypass mode');
     }
 
     return NextResponse.json({

@@ -94,9 +94,7 @@ export async function GET(
 
     // Resolve profile image to full URL for display
     const baseUrl = getBaseUrl(request);
-    console.log('Resolving profile image for user:', user.email_address, 'ID:', user.profile_image_id);
     userResponse.profile_image = await resolveProfileImage(user, mediaCollection, baseUrl);
-    console.log('Resolved profile image:', userResponse.profile_image);
 
     return NextResponse.json({
       success: true,
@@ -124,11 +122,6 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
     
-    console.log('Edit user request body:', {
-      profile_image_id: body.profile_image_id,
-      social_auth_profile_image: body.social_auth_profile_image,
-      auth_type: body.auth_type
-    });
     
     // Validate ObjectId
     if (!ObjectId.isValid(id)) {
@@ -349,7 +342,6 @@ export async function PUT(
           body.verification_status,
           body.verification_status_message
         ).then(sent => {
-          console.log(`Astrologer ${body.verification_status} email sent: ${sent}`);
         }).catch(error => {
           console.error('Error sending astrologer status email:', error);
         });
@@ -420,7 +412,6 @@ export async function DELETE(
       );
     }
 
-    console.log(`✅ Successfully deleted user ${id} and associated files`);
 
     return NextResponse.json({
       message: 'User and associated files deleted successfully'

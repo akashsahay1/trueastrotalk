@@ -5,7 +5,6 @@ import { JWTSecurity } from '../../../../lib/security';
 export async function POST(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`🔄 Token refresh request from IP: ${ip}`);
 
     // Extract refresh token from multiple sources
     let refreshToken = request.cookies.get('refresh_token')?.value;
@@ -33,7 +32,6 @@ export async function POST(request: NextRequest) {
     try {
       tokenData = JWTSecurity.verifyRefreshToken(refreshToken);
     } catch {
-      console.log('❌ Invalid refresh token');
       return NextResponse.json({
         success: false,
         error: 'INVALID_REFRESH_TOKEN',
@@ -57,7 +55,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      console.log(`❌ User ${tokenData.userId} not found or banned`);
       return NextResponse.json({
         success: false,
         error: 'USER_NOT_FOUND',
@@ -102,7 +99,6 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    console.log(`✅ Tokens refreshed for user: ${user.email_address}`);
 
     // Determine response format based on User-Agent or request source
     const userAgent = request.headers.get('user-agent') || '';

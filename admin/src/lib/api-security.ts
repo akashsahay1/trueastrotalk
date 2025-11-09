@@ -70,10 +70,6 @@ class CSRFProtection {
     const cookieToken = request.cookies.get(this.TOKEN_COOKIE)?.value;
     
     if (!headerToken || !cookieToken) {
-      console.log('CSRF validation failed - missing tokens:', {
-        hasHeader: !!headerToken,
-        hasCookie: !!cookieToken
-      });
       return false;
     }
     
@@ -84,7 +80,6 @@ class CSRFProtection {
     );
     
     if (!isValid) {
-      console.log('CSRF validation failed - token mismatch');
     }
     
     return isValid;
@@ -131,7 +126,6 @@ export function withSecurity(
         );
         
         if (!rateLimitResult.allowed) {
-          console.log(`🚫 Rate limit exceeded for ${rateLimitKey}`);
           return NextResponse.json({
             success: false,
             error: 'RATE_LIMIT_EXCEEDED',
@@ -157,7 +151,6 @@ export function withSecurity(
           // Check role-based access
           if (securityOptions.allowedRoles && 
               !securityOptions.allowedRoles.includes(authenticatedUser.user_type as string)) {
-            console.log(`🚫 Access denied for user type: ${authenticatedUser.user_type}`);
             return NextResponse.json({
               success: false,
               error: 'ACCESS_DENIED',
@@ -165,7 +158,6 @@ export function withSecurity(
             }, { status: 403 });
           }
         } catch (error) {
-          console.log(`🚫 Authentication failed: ${error}`);
           return NextResponse.json({
             success: false,
             error: 'AUTHENTICATION_REQUIRED',
@@ -180,7 +172,6 @@ export function withSecurity(
         const isValidCSRF = await CSRFProtection.validateToken(request);
         
         if (!isValidCSRF) {
-          console.log(`🚫 CSRF validation failed for ${request.method} ${request.nextUrl.pathname}`);
           return NextResponse.json({
             success: false,
             error: 'CSRF_VALIDATION_FAILED',

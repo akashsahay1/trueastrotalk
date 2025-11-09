@@ -20,15 +20,6 @@ export async function POST(request: NextRequest) {
       gender,
     } = body;
 
-    console.log('📝 Phone signup request:', {
-      phone_number,
-      full_name,
-      user_type,
-      date_of_birth,
-      time_of_birth,
-      place_of_birth,
-      gender,
-    });
 
     // Validate required fields
     if (!phone_number || !full_name) {
@@ -191,7 +182,6 @@ export async function POST(request: NextRequest) {
       gender: user.gender || null,
     };
 
-    console.log(`✅ Phone signup successful for ${formattedPhone} - User ID: ${userId}`);
 
     return NextResponse.json({
       success: true,

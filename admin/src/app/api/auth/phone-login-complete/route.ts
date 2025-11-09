@@ -11,7 +11,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { phone_number } = body;
 
-    console.log('📝 Phone login complete request:', { phone_number });
 
     // Validate required fields
     if (!phone_number) {
@@ -92,7 +91,6 @@ export async function POST(request: NextRequest) {
       gender: user.gender || null,
     };
 
-    console.log(`✅ Phone login successful for ${formattedPhone} - User ID: ${user.user_id}`);
 
     return NextResponse.json({
       success: true,

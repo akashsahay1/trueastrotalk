@@ -9,7 +9,6 @@ import {
 export async function GET(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`💰 Astrologer earnings request from IP: ${ip}`);
 
     // Authenticate astrologer
     let authenticatedUser;
@@ -223,7 +222,6 @@ export async function GET(request: NextRequest) {
       ? ((lastPeriodEarnings - previousPeriodEarnings) / previousPeriodEarnings) * 100 
       : 0;
 
-    console.log(`✅ Earnings data retrieved for astrologer: ${astrologerId}`);
 
     return NextResponse.json({
       success: true,
@@ -319,7 +317,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`💸 Withdrawal request from IP: ${ip}`);
 
     // Authenticate astrologer
     let authenticatedUser;
@@ -457,7 +454,6 @@ export async function POST(request: NextRequest) {
       ]
     );
 
-    console.log(`✅ Withdrawal request created: ₹${withdrawalAmount} for astrologer ${astrologerId}`);
 
     return NextResponse.json({
       success: true,

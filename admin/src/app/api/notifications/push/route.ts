@@ -15,7 +15,6 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`🔔 Push notification request from IP: ${ip}`);
 
     // Authenticate user (only admins can send notifications)
     let authenticatedUser;
@@ -117,7 +116,6 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    console.log(`✅ Push notification ${success ? 'sent' : 'failed'} for user ${recipient_id}`);
 
     return NextResponse.json({
       success,

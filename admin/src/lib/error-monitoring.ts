@@ -369,7 +369,6 @@ export class ErrorMonitoring {
         date: { $lt: cutoffDate.toISOString().split('T')[0] }
       });
 
-      console.log(`Cleaned up ${logsResult.deletedCount} error logs and ${statsResult.deletedCount} stats records`);
     } catch (error) {
       console.error('Failed to cleanup old errors:', error);
     }

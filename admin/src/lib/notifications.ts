@@ -132,7 +132,6 @@ export class NotificationService {
    */
   static async sendToUser(target: NotificationTarget, notification: NotificationData): Promise<boolean> {
     try {
-      console.log(`📢 Sending ${notification.type} notification to user ${target.userId}`);
 
       // Store notification in database
       await this.storeNotification(target, notification);
@@ -159,7 +158,6 @@ export class NotificationService {
         result.status === 'fulfilled' && result.value === true
       ).length;
 
-      console.log(`✅ Notification sent via ${successCount}/${channels.length} channels`);
       return successCount > 0;
 
     } catch (error) {
@@ -174,13 +172,11 @@ export class NotificationService {
   static async sendPushNotification(target: NotificationTarget, notification: NotificationData): Promise<boolean> {
     try {
       if (!firebaseApp || !target.fcmToken) {
-        console.log('❌ Firebase not initialized or no FCM token');
         return false;
       }
 
       // Check notification type preferences
       if (!this.isNotificationTypeEnabled(target.preferences, notification.type)) {
-        console.log(`🔕 ${notification.type} notifications disabled for user ${target.userId}`);
         return false;
       }
 
@@ -221,7 +217,6 @@ export class NotificationService {
       };
 
       const response = await firebaseApp.messaging().send(message);
-      console.log(`✅ Push notification sent successfully: ${response}`);
       
       // Update delivery status
       await this.updateNotificationStatus(target.userId, notification.type, 'delivered');
@@ -241,13 +236,11 @@ export class NotificationService {
   static async sendEmailNotification(target: NotificationTarget, notification: NotificationData): Promise<boolean> {
     try {
       if (!process.env.SENDGRID_API_KEY || !target.email) {
-        console.log('❌ SendGrid not configured or no email address');
         return false;
       }
 
       // Check notification type preferences
       if (!this.isNotificationTypeEnabled(target.preferences, notification.type)) {
-        console.log(`🔕 ${notification.type} email notifications disabled for user ${target.userId}`);
         return false;
       }
 
@@ -277,7 +270,6 @@ export class NotificationService {
       };
 
       await sgMail.send(msg);
-      console.log(`✅ Email notification sent to ${target.email}`);
       
       // Update delivery status
       await this.updateNotificationStatus(target.userId, notification.type, 'delivered');
@@ -296,7 +288,6 @@ export class NotificationService {
    */
   static async sendBulkNotifications(targets: NotificationTarget[], notification: NotificationData): Promise<number> {
     try {
-      console.log(`📢 Sending bulk ${notification.type} notification to ${targets.length} users`);
 
       const results = await Promise.allSettled(
         targets.map(target => this.sendToUser(target, notification))
@@ -306,7 +297,6 @@ export class NotificationService {
         result.status === 'fulfilled' && result.value === true
       ).length;
 
-      console.log(`✅ Bulk notification sent successfully to ${successCount}/${targets.length} users`);
       return successCount;
 
     } catch (error) {

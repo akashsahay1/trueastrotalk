@@ -5,7 +5,6 @@ import { JWTSecurity } from '../../../../lib/security';
 export async function POST(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`🚪 Logout request from IP: ${ip}`);
 
     // Extract token from multiple sources (header, cookies)
     let token = JWTSecurity.extractTokenFromHeader(request);
@@ -25,7 +24,6 @@ export async function POST(request: NextRequest) {
         userId = tokenData?.userId;
         
         if (userId) {
-          console.log(`👤 Logging out user: ${userId}`);
           
           // Update user's online status and logout time
           const usersCollection = await DatabaseService.getCollection('users');
@@ -40,11 +38,9 @@ export async function POST(request: NextRequest) {
             }
           );
           
-          console.log(`✅ User ${userId} logged out successfully`);
         }
       } catch {
         // Token is invalid but we still proceed with logout
-        console.log('⚠️ Invalid token during logout - proceeding anyway');
       }
     }
 

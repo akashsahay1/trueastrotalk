@@ -15,7 +15,6 @@ export class NotificationTriggers {
   static async onPaymentSuccess(userId: string, amount: number, transactionId: string): Promise<void> {
     try {
       await NotificationService.sendPaymentSuccessNotification(userId, amount, transactionId);
-      console.log(`✅ Payment success notification sent to user ${userId}`);
     } catch (error) {
       console.error('Error sending payment success notification:', error);
     }
@@ -51,7 +50,6 @@ export class NotificationTriggers {
         );
       }
       
-      console.log(`✅ Order placed notification sent to user ${userId}`);
     } catch (error) {
       console.error('Error sending order placed notification:', error);
     }
@@ -86,7 +84,6 @@ export class NotificationTriggers {
         );
       }
       
-      console.log(`✅ Order shipped notification sent to user ${userId}`);
     } catch (error) {
       console.error('Error sending order shipped notification:', error);
     }
@@ -120,7 +117,6 @@ export class NotificationTriggers {
         );
       }
       
-      console.log(`✅ Astrologer approval notification sent to ${astrologerId}`);
     } catch (error) {
       console.error('Error sending astrologer approval notification:', error);
     }
@@ -154,7 +150,6 @@ export class NotificationTriggers {
         );
       }
       
-      console.log(`✅ Astrologer rejection notification sent to ${astrologerId}`);
     } catch (error) {
       console.error('Error sending astrologer rejection notification:', error);
     }
@@ -193,7 +188,6 @@ export class NotificationTriggers {
         );
       }
       
-      console.log(`✅ Chat session started notification sent to astrologer ${astrologerId}`);
     } catch (error) {
       console.error('Error sending chat session started notification:', error);
     }
@@ -231,7 +225,6 @@ export class NotificationTriggers {
         );
       }
       
-      console.log(`✅ Incoming call notification sent to ${receiverId}`);
     } catch (error) {
       console.error('Error sending incoming call notification:', error);
     }
@@ -266,7 +259,6 @@ export class NotificationTriggers {
         );
       }
       
-      console.log(`✅ Wallet recharged notification sent to user ${userId}`);
     } catch (error) {
       console.error('Error sending wallet recharged notification:', error);
     }
@@ -306,7 +298,6 @@ export class NotificationTriggers {
         );
       }
       
-      console.log(`✅ Withdrawal processed notification sent to astrologer ${astrologerId}`);
     } catch (error) {
       console.error('Error sending withdrawal processed notification:', error);
     }
@@ -354,7 +345,6 @@ export class NotificationTriggers {
         data: data || {}
       });
 
-      console.log(`✅ Promotional notification sent to ${successCount}/${targets.length} users`);
       return successCount;
     } catch (error) {
       console.error('Error sending promotional notification:', error);
@@ -398,7 +388,6 @@ export class NotificationTriggers {
         scheduleAt: scheduledTime
       });
 
-      console.log(`✅ System maintenance notification sent to ${successCount}/${targets.length} users`);
       return successCount;
     } catch (error) {
       console.error('Error sending system maintenance notification:', error);

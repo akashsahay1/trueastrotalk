@@ -30,7 +30,6 @@ export async function deleteFile(filePath: string, options: FileCleanupOptions =
       if (existsSync(fullPath)) {
         await unlink(fullPath);
         if (logActivity) {
-          console.log(`✅ Deleted file: ${filePath}`);
         }
         return true;
       }
@@ -104,7 +103,6 @@ export async function cleanupUserFiles(userId: string, options: FileCleanupOptio
     const deletedCount = await deleteFiles(filesToDelete, options);
     
     if (logActivity && deletedCount > 0) {
-      console.log(`✅ Deleted ${deletedCount} files for user ${userId}`);
     }
 
     // Remove media files from database
@@ -117,7 +115,6 @@ export async function cleanupUserFiles(userId: string, options: FileCleanupOptio
       });
       
       if (logActivity) {
-        console.log(`✅ Deleted ${userMediaFiles.length} media records from database`);
       }
     }
 
@@ -183,14 +180,12 @@ export async function findOrphanedFiles(options: FileCleanupOptions = {}): Promi
     }
 
     if (logActivity) {
-      console.log('🔍 Scanning uploads directory for files...');
     }
 
     // Get all files in uploads directory
     const allFiles = await getAllFilesRecursively(uploadsPath, uploadsPath);
     
     if (logActivity) {
-      console.log(`📂 Found ${allFiles.length} files in uploads directory`);
     }
 
     // Get all file references from database
@@ -214,7 +209,6 @@ export async function findOrphanedFiles(options: FileCleanupOptions = {}): Promi
           } else {
             // Log missing referenced files for cleanup later
             if (logActivity) {
-              console.log(`⚠️ User ${user.full_name || 'Unknown'} references missing file: ${user.profile_image}`);
             }
           }
         }
@@ -238,7 +232,6 @@ export async function findOrphanedFiles(options: FileCleanupOptions = {}): Promi
         } else {
           // Log missing media files for cleanup later
           if (logActivity) {
-            console.log(`⚠️ Media file record references missing file: ${media.file_path}`);
           }
         }
       }
@@ -272,8 +265,6 @@ export async function findOrphanedFiles(options: FileCleanupOptions = {}): Promi
     const orphanedFiles = allFiles.filter(file => !referencedFiles.has(file));
 
     if (logActivity) {
-      console.log(`📊 Database references: ${referencedFiles.size} files`);
-      console.log(`🗑️ Orphaned files found: ${orphanedFiles.length} files`);
     }
 
     return {
@@ -304,7 +295,6 @@ export async function cleanupOrphanedFiles(options: FileCleanupOptions = {}): Pr
   const { deleteFromFilesystem = true, logActivity = true } = options;
   
   if (logActivity) {
-    console.log('🧹 Starting orphaned files cleanup...');
   }
 
   const result = {
@@ -320,13 +310,11 @@ export async function cleanupOrphanedFiles(options: FileCleanupOptions = {}): Pr
 
     if (orphanedFiles.length === 0) {
       if (logActivity) {
-        console.log('✅ No orphaned files found!');
       }
       return result;
     }
 
     if (logActivity) {
-      console.log(`🗑️ Found ${orphanedFiles.length} orphaned files to delete`);
     }
 
     // Delete orphaned files
@@ -345,12 +333,10 @@ export async function cleanupOrphanedFiles(options: FileCleanupOptions = {}): Pr
             result.totalSize += fileSize;
             
             if (logActivity) {
-              console.log(`✅ Deleted: ${filePath} (${fileSize} bytes)`);
             }
           } else {
             result.totalSize += fileSize;
             if (logActivity) {
-              console.log(`📝 Would delete: ${filePath} (${fileSize} bytes)`);
             }
           }
         }
@@ -366,10 +352,6 @@ export async function cleanupOrphanedFiles(options: FileCleanupOptions = {}): Pr
     }
 
     if (logActivity) {
-      console.log(`🧹 Cleanup completed:`);
-      console.log(`   ✅ Deleted: ${result.deletedCount} files`);
-      console.log(`   ❌ Failed: ${result.failedCount} files`);
-      console.log(`   💾 Space freed: ${(result.totalSize / 1024 / 1024).toFixed(2)} MB`);
     }
 
   } catch (error) {

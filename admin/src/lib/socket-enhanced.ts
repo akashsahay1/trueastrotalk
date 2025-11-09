@@ -145,9 +145,7 @@ async function getDbConnection(): Promise<{ client: MongoClient; db: Db }> {
 
 export default function SocketHandler(req: NextApiRequest, res: NextApiResponseServerIO) {
   if (res.socket.server.io) {
-    console.log('Socket is already running');
   } else {
-    console.log('Socket is initializing');
     const io = new ServerIO(res.socket.server, {
       cors: {
         origin: "*",
@@ -180,7 +178,6 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
     });
 
     io.on('connection', (socket: Socket) => {
-      console.log('User connected:', socket.id, 'UserId:', socket.data.userId);
 
       // Auto-authenticate on connection
       handleAuthentication(socket);
@@ -277,7 +274,6 @@ async function handleAuthentication(socket: Socket) {
     // Notify others about online status
     socket.broadcast.emit('user_online', { userId, userType });
     
-    console.log(`User ${userId} (${userType}) authenticated and online`);
   } catch (error) {
     console.error('Authentication error:', error);
     socket.emit('authentication_error', { error: 'Authentication failed' });
@@ -304,7 +300,6 @@ async function handleJoinChatSession(socket: Socket, data: ChatSessionData) {
       messages: messages.reverse() 
     });
     
-    console.log(`User ${socket.data.userId} joined chat session ${sessionId}`);
   } catch (error) {
     console.error('Join chat session error:', error);
     socket.emit('chat_error', { error: 'Failed to join chat session' });
@@ -315,7 +310,6 @@ async function handleLeaveChatSession(socket: Socket, data: ChatSessionData) {
   try {
     const { sessionId } = data;
     socket.leave(`chat_${sessionId}`);
-    console.log(`User ${socket.data.userId} left chat session ${sessionId}`);
   } catch (error) {
     console.error('Leave chat session error:', error);
   }
@@ -409,7 +403,6 @@ async function handleSendMessage(socket: Socket, io: ServerIO, data: MessageData
       message: formattedMessage
     });
     
-    console.log(`Message sent in session ${sessionId} by ${senderId}`);
   } catch (error) {
     console.error('Send message error:', error);
     socket.emit('message_error', { error: 'Failed to send message' });
@@ -552,9 +545,6 @@ async function handleInitiateCall(socket: Socket, io: ServerIO, data: CallData) 
     }
 
     // Debug logging for name resolution
-    console.log(`📞 Call initiation:`);
-    console.log(`   - Caller: ${caller.full_name} (${caller.user_type})`);
-    console.log(`   - Target: ${target.full_name} (${target.user_type})`);
     
     // Create call session in database
     const callSession = {
@@ -606,7 +596,6 @@ async function handleInitiateCall(socket: Socket, io: ServerIO, data: CallData) 
       targetAvatar: target?.profile_picture
     });
     
-    console.log(`Call initiated: ${sessionId} from ${callerId} to ${targetUserId}`);
   } catch (error) {
     console.error('Initiate call error:', error);
     socket.emit('call_error', { error: 'Failed to initiate call' });
@@ -652,7 +641,6 @@ async function handleAnswerCall(socket: Socket, io: ServerIO, data: CallData) {
     io.to(`user_${call.userId}`).emit('call_answered', { sessionId });
     io.to(`user_${call.astrologerId}`).emit('call_answered', { sessionId });
     
-    console.log(`Call answered: ${sessionId}`);
   } catch (error) {
     console.error('Answer call error:', error);
     socket.emit('call_error', { error: 'Failed to answer call' });
@@ -695,7 +683,6 @@ async function handleRejectCall(socket: Socket, io: ServerIO, data: CallData) {
     io.to(`user_${call.userId}`).emit('call_rejected', { sessionId, reason });
     io.to(`user_${call.astrologerId}`).emit('call_rejected', { sessionId, reason });
     
-    console.log(`Call rejected: ${sessionId}, reason: ${reason}`);
   } catch (error) {
     console.error('Reject call error:', error);
     socket.emit('call_error', { error: 'Failed to reject call' });
@@ -793,7 +780,6 @@ async function handleEndCall(socket: Socket, io: ServerIO, data: CallData) {
     io.to(`user_${call.userId}`).emit('call_ended', { sessionId });
     io.to(`user_${call.astrologerId}`).emit('call_ended', { sessionId });
     
-    console.log(`Call ended: ${sessionId}`);
   } catch (error) {
     console.error('End call error:', error);
     socket.emit('call_error', { error: 'Failed to end call' });
@@ -821,7 +807,6 @@ async function handleWebRTCOffer(socket: Socket, io: ServerIO, data: CallData) {
       fromUserId: socket.data.userId 
     });
     
-    console.log(`WebRTC offer sent for session ${sessionId}`);
   } catch (error) {
     console.error('WebRTC offer error:', error);
   }
@@ -848,7 +833,6 @@ async function handleWebRTCAnswer(socket: Socket, io: ServerIO, data: CallData) 
       fromUserId: socket.data.userId 
     });
     
-    console.log(`WebRTC answer sent for session ${sessionId}`);
   } catch (error) {
     console.error('WebRTC answer error:', error);
   }
@@ -881,7 +865,6 @@ async function handleWebRTCIceCandidate(socket: Socket, io: ServerIO, data: Call
       fromUserId: socket.data.userId 
     });
     
-    console.log(`ICE candidate sent for session ${sessionId}`);
   } catch (error) {
     console.error('WebRTC ICE candidate error:', error);
   }
@@ -897,7 +880,6 @@ async function handleWebRTCRenegotiate(socket: Socket, io: ServerIO, data: CallD
       fromUserId: socket.data.userId 
     });
     
-    console.log(`WebRTC renegotiation for session ${sessionId}`);
   } catch (error) {
     console.error('WebRTC renegotiate error:', error);
   }
@@ -921,7 +903,6 @@ async function handleGetOnlineStatus(socket: Socket, data: OnlineStatusData) {
 
 async function handleDisconnect(socket: Socket, io: ServerIO) {
   try {
-    console.log('User disconnected:', socket.id);
     
     const userInfo = connectedUsers.get(socket.id);
     if (!userInfo) return;
@@ -960,7 +941,6 @@ async function handleDisconnect(socket: Socket, io: ServerIO) {
     // Notify others about offline status
     socket.broadcast.emit('user_offline', { userId, userType });
     
-    console.log(`User ${userId} (${userType}) disconnected`);
   } catch (error) {
     console.error('Disconnect error:', error);
   }

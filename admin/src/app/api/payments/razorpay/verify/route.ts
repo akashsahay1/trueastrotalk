@@ -7,7 +7,6 @@ import { SecurityMiddleware, InputSanitizer } from '../../../../../lib/security'
 export async function POST(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`✅ Payment verification request from IP: ${ip}`);
 
     // Authenticate user
     let user;
@@ -60,10 +59,8 @@ export async function POST(request: NextRequest) {
         const userData = await usersCollectionForUserId.findOne({ _id: new ObjectId(user.userId as string) });
         if (userData && userData.user_id) {
           actualUserId = userData.user_id;
-          console.log(`🔄 Using actual user_id: ${actualUserId} instead of JWT userId: ${user.userId}`);
         }
       } catch {
-        console.log(`⚠️ Could not resolve user_id from JWT, using as-is: ${user.userId}`);
       }
     }
 
@@ -76,7 +73,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (!paymentTransaction) {
-      console.log(`❌ Payment transaction not found: ${razorpay_order_id} for user ${user.userId}`);
       return NextResponse.json({
         success: false,
         error: 'PAYMENT_TRANSACTION_NOT_FOUND',
@@ -86,7 +82,6 @@ export async function POST(request: NextRequest) {
 
     // Verify amount matches
     if (Math.abs((paymentTransaction.amount as number) - amount) > 0.01) {
-      console.log(`❌ Amount mismatch for order ${razorpay_order_id}: expected ${paymentTransaction.amount}, got ${amount}`);
       return NextResponse.json({
         success: false,
         error: 'AMOUNT_MISMATCH',
@@ -135,7 +130,6 @@ export async function POST(request: NextRequest) {
     );
 
     if (!isSignatureValid) {
-      console.log(`❌ Invalid signature for payment ${razorpay_payment_id}`);
       
       // Mark transaction as failed
       await transactionsCollection.updateOne(
@@ -181,13 +175,11 @@ export async function POST(request: NextRequest) {
       
       // Still proceed with local verification if API is down
       // but log the issue for manual review
-      console.log(`⚠️ Proceeding with local verification for payment ${razorpay_payment_id} due to API error`);
     }
 
     // Additional verification if API call succeeded
     if (paymentDetails) {
       if (paymentDetails.status !== 'captured' && paymentDetails.status !== 'authorized') {
-        console.log(`❌ Payment ${razorpay_payment_id} status is ${paymentDetails.status}`);
         
         await transactionsCollection.updateOne(
           { _id: paymentTransaction._id },
@@ -214,7 +206,6 @@ export async function POST(request: NextRequest) {
       const expectedAmountInPaise = Math.round(amount * 100);
       
       if (apiAmountInPaise !== expectedAmountInPaise) {
-        console.log(`❌ API amount mismatch for payment ${razorpay_payment_id}: expected ${expectedAmountInPaise}, got ${apiAmountInPaise}`);
         
         await transactionsCollection.updateOne(
           { _id: paymentTransaction._id },
@@ -277,7 +268,6 @@ export async function POST(request: NextRequest) {
       
       // If not found by razorpay_order_id, try to find by user_id, amount and pending status
       if (!order) {
-        console.log(`⚠️ Order not found by razorpay_order_id, trying to find by user_id and amount...`);
         order = await ordersCollection.findOne({
           user_id: actualUserId,
           total_amount: amount,
@@ -293,7 +283,6 @@ export async function POST(request: NextRequest) {
             { _id: order._id },
             { $set: { razorpay_order_id: razorpay_order_id } }
           );
-          console.log(`✅ Order ${order.order_id} linked with razorpay_order_id: ${razorpay_order_id}`);
         }
       }
       
@@ -311,7 +300,6 @@ export async function POST(request: NextRequest) {
             }
           }
         );
-        console.log(`✅ Order ${order.order_id} payment confirmed and status updated`);
       } else {
         console.error(`❌ Order not found for razorpay_order_id: ${razorpay_order_id}`);
       }
@@ -319,7 +307,6 @@ export async function POST(request: NextRequest) {
     // Note: Transaction record is already created and updated above
     // No need for additional transaction record creation
 
-    console.log(`✅ Payment verified and processed successfully: ${razorpay_payment_id} for user ${user.userId}`);
 
     return NextResponse.json({
       success: true,

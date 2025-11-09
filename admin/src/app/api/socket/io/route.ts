@@ -17,7 +17,6 @@ export async function GET() {
   // Initialize Socket.IO server if it hasn't been initialized
   try {
     if (!global.socketIO) {
-      console.log('🔌 Initializing Socket.IO server...');
       
       // For App Router, we need to create the Socket.IO server manually
       // This is a simplified approach - in production, you might want to use a separate server
@@ -35,7 +34,6 @@ export async function GET() {
       // Store globally to prevent multiple initializations
       global.socketIO = io;
 
-      console.log('✅ Socket.IO server initialized');
     }
 
     return res;

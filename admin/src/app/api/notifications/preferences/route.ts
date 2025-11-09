@@ -10,7 +10,6 @@ import {
 export async function GET(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`⚙️ Notification preferences fetch request from IP: ${ip}`);
 
     // Authenticate user
     let authenticatedUser;
@@ -61,7 +60,6 @@ export async function GET(request: NextRequest) {
 
     const preferences = (user.notification_preferences as Record<string, unknown>) || defaultPreferences;
 
-    console.log(`✅ Retrieved notification preferences for user ${userId}`);
 
     return NextResponse.json({
       success: true,
@@ -96,7 +94,6 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`⚙️ Notification preferences update request from IP: ${ip}`);
 
     // Authenticate user
     let authenticatedUser;
@@ -176,7 +173,6 @@ export async function PUT(request: NextRequest) {
       }, { status: 404 });
     }
 
-    console.log(`✅ Updated notification preferences for user ${userId}`);
 
     return NextResponse.json({
       success: true,

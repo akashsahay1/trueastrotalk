@@ -31,12 +31,6 @@ export const PATCH = withSecurity(async (request: NextRequest) => {
     let body;
     try {
       body = await request.json();
-      console.log('Bulk update request received:', {
-        hasBody: !!body,
-        bodyKeys: body ? Object.keys(body) : [],
-        userIdsType: body?.userIds ? typeof body.userIds : 'undefined',
-        userIdsLength: Array.isArray(body?.userIds) ? body.userIds.length : 0
-      });
     } catch (e) {
       console.error('Error parsing request body:', e);
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
@@ -46,7 +40,6 @@ export const PATCH = withSecurity(async (request: NextRequest) => {
 
     // Validation
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
-      console.log('Validation failed:', { userIds, isArray: Array.isArray(userIds) });
       return NextResponse.json({ error: 'User IDs are required' }, { status: 400 });
     }
 

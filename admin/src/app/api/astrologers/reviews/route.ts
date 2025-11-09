@@ -80,7 +80,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { astrologer_id, user_id, rating, comment } = body;
 
-    console.log('📝 Review submission request:', { astrologer_id, user_id, rating, comment: comment?.substring(0, 50) });
 
     // Validate required fields
     if (!astrologer_id || !user_id || !rating) {
@@ -152,7 +151,6 @@ export async function POST(request: NextRequest) {
       // Update astrologer's average rating
       await updateAstrologerRating(astrologer_id);
 
-      console.log('✅ Review added successfully:', result.insertedId);
 
       return NextResponse.json({
         success: true,
@@ -178,7 +176,6 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { review_id, user_id, rating, comment } = body;
 
-    console.log('✏️ Review update request:', { review_id, user_id, rating });
 
     // Validate required fields
     if (!review_id || !user_id) {
@@ -241,7 +238,6 @@ export async function PUT(request: NextRequest) {
       // Update astrologer's average rating
       await updateAstrologerRating(review.astrologer_id);
 
-      console.log('✅ Review updated successfully:', review_id);
 
       return NextResponse.json({
         success: true,
@@ -270,7 +266,6 @@ export async function DELETE(request: NextRequest) {
     const review_id = searchParams.get('review_id');
     const user_id = searchParams.get('user_id');
 
-    console.log('🗑️ Review delete request:', { review_id, user_id });
 
     // Validate required parameters
     if (!review_id || !user_id) {
@@ -315,7 +310,6 @@ export async function DELETE(request: NextRequest) {
       // Update astrologer's average rating
       await updateAstrologerRating(astrologer_id);
 
-      console.log('✅ Review deleted successfully:', review_id);
 
       return NextResponse.json({
         success: true,
@@ -365,7 +359,6 @@ async function updateAstrologerRating(astrologer_id: string) {
         }
       );
 
-      console.log(`✅ Updated rating for astrologer ${astrologer_id}: ${averageRating.toFixed(1)} (${totalReviews} reviews)`);
     }
   } catch (error) {
     console.error('❌ Error updating astrologer rating:', error);

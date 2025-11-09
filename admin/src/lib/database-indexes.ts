@@ -10,7 +10,6 @@ export class DatabaseIndexManager {
    */
   static async createOptimizedIndexes(): Promise<void> {
     try {
-      console.log('🔄 Creating database indexes for performance optimization...');
 
       // Users collection indexes
       const usersCollection = await DatabaseService.getCollection('users');
@@ -163,7 +162,6 @@ export class DatabaseIndexManager {
         })
       ]);
 
-      console.log('✅ Database indexes created successfully');
 
     } catch (error) {
       console.error('❌ Error creating database indexes:', error);

@@ -12,7 +12,6 @@ const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@trueastrotalk.com';
 // Initialize SendGrid
 if (SENDGRID_API_KEY) {
   sgMail.setApiKey(SENDGRID_API_KEY);
-  console.log('✅ SendGrid initialized successfully');
 } else {
   console.warn('⚠️ SENDGRID_API_KEY not configured - emails will fail');
 }

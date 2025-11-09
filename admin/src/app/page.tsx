@@ -27,7 +27,6 @@ export default function HomePage() {
           return;
         }
       } catch {
-        console.log('Not authenticated');
       }
       
       setCheckingAuth(false);

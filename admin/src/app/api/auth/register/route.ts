@@ -130,7 +130,6 @@ async function validateGoogleRegistration(googleToken: string): Promise<{ email:
 export async function POST(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`📝 Registration attempt from IP: ${ip}`);
 
     // Check if request is multipart/form-data or JSON
     const contentType = request.headers.get('content-type') || '';
@@ -290,11 +289,9 @@ export async function POST(request: NextRequest) {
     // Validate Google token if provided
     let googleUserInfo = null;
     if (auth_type === 'google' && google_id_token) {
-      console.log(`🔍 Validating Google ID token for registration...`);
       googleUserInfo = await validateGoogleRegistration(google_id_token as string);
       
       if (!googleUserInfo) {
-        console.log(`❌ Google token validation failed`);
         return NextResponse.json({
           success: false,
           error: 'INVALID_GOOGLE_TOKEN',
@@ -302,8 +299,6 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
       
-      console.log(`✅ Google token validated successfully`);
-      console.log(`👤 Google user info:`, { email: googleUserInfo.email, name: googleUserInfo.name, hasPicture: !!googleUserInfo.picture });
 
       // Verify email matches Google token
       if (googleUserInfo.email !== cleanEmail) {
@@ -356,18 +351,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Connect to database
-    console.log(`🔗 Connecting to database...`);
     const usersCollection = await DatabaseService.getCollection('users');
-    console.log(`📊 Connected to collection: users`);
 
     // Check if user already exists
-    console.log(`🔍 Checking for existing user with email: ${cleanEmail}`);
     const existingUser = await usersCollection.findOne({
       email_address: cleanEmail
     });
-    console.log(`🔍 Existing user found:`, existingUser ? 'YES' : 'NO');
     if (existingUser) {
-      console.log(`🔍 Existing user details:`, { id: existingUser._id, email: existingUser.email_address, user_type: existingUser.user_type });
     }
 
     if (existingUser) {
@@ -432,7 +422,6 @@ export async function POST(request: NextRequest) {
       userData.google_id = googleUserInfo.email;
       userData.profile_image = googleUserInfo.picture || '';
       userData.email_verified = true;
-      console.log(`📸 Setting profile_image for Google user: ${userData.profile_image}`);
     }
 
     // Add personal information
@@ -507,7 +496,6 @@ export async function POST(request: NextRequest) {
         userData.profile_image_id = uploadResult.mediaId;
         // Also store the path for backward compatibility if needed
         userData.profile_image = uploadResult.filePath;
-        console.log(`📸 Profile image uploaded with media_id: ${uploadResult.mediaId}`);
       }
     }
 
@@ -521,7 +509,6 @@ export async function POST(request: NextRequest) {
       
       if (uploadResult) {
         userData.pan_card_id = uploadResult.mediaId;
-        console.log(`📄 PAN card uploaded with media_id: ${uploadResult.mediaId}`);
       }
     }
 
@@ -536,7 +523,6 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log(`✅ User registered successfully: ${cleanEmail} (${user_type})`);
 
     // Generate JWT tokens for immediate login
     const tokenPayload = {

@@ -187,7 +187,6 @@ class APIMiddleware {
     const ip = this.getClientIP(request);
     const userAgent = request.headers.get('user-agent');
     
-    console.log(`${request.method} ${request.url} - ${ip} - ${duration}ms - ${userAgent}`);
   }
 
   /**

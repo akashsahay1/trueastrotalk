@@ -7,7 +7,6 @@ import { SecurityMiddleware, InputSanitizer } from '../../../lib/security';
 export async function GET(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`💬 Chat sessions fetch request from IP: ${ip}`);
 
     // Authenticate user
     let authenticatedUser;
@@ -142,7 +141,6 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    console.log(`✅ Retrieved ${chatSessions.length} chat sessions for user ${userId}`);
 
     return NextResponse.json({
       success: true,
@@ -169,7 +167,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`💬 Chat session creation request from IP: ${ip}`);
 
     // Authenticate user
     let authenticatedUser;
@@ -277,7 +274,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingSession) {
-      console.log(`📱 Returning existing chat session ${existingSession._id} for user ${user_id}`);
       return NextResponse.json({
         success: true,
         message: 'Active session already exists',
@@ -340,7 +336,6 @@ export async function POST(request: NextRequest) {
     const result = await chatSessionsCollection.insertOne(sessionData);
     const sessionId = result.insertedId.toString();
 
-    console.log(`✅ Chat session created successfully: ${sessionId} between user ${user_id} and astrologer ${astrologer_id}`);
 
     return NextResponse.json({
       success: true,

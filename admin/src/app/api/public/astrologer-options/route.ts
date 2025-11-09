@@ -19,7 +19,6 @@ interface AstrologerOption {
 // GET - Fetch astrologer options (public endpoint - no authentication required)
 export async function GET(request: NextRequest) {
   try {
-    console.log('📋 Public astrologer options request');
 
     // Get query parameters
     const { searchParams } = new URL(request.url);
@@ -100,7 +99,6 @@ export async function GET(request: NextRequest) {
         ];
       }
 
-      console.log(`✅ Retrieved astrologer options: ${Object.keys(result).join(', ')}`);
 
       return NextResponse.json({
         success: true,

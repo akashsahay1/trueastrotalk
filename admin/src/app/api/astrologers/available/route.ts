@@ -17,14 +17,9 @@ function getBaseUrl(request: NextRequest): string {
 // Helper function to resolve profile image
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function resolveProfileImage(user: Record<string, unknown>, mediaCollection: any, baseUrl: string): Promise<string | null> {
-  console.log(`🖼️ Resolving profile image for ${user.full_name}:`);
-  console.log(`   - auth_type: ${user.auth_type}`);
-  console.log(`   - profile_image_id: ${user.profile_image_id}`);
-  console.log(`   - social_auth_profile_image: ${user.social_auth_profile_image}`);
   
   // Priority 1: If user has Google auth and social_auth_profile_image, use external URL
   if (user.auth_type === 'google' && user.social_auth_profile_image && typeof user.social_auth_profile_image === 'string') {
-    console.log(`   ✅ Using Google profile image: ${user.social_auth_profile_image}`);
     return user.social_auth_profile_image;
   }
   
@@ -33,16 +28,13 @@ async function resolveProfileImage(user: Record<string, unknown>, mediaCollectio
     try {
       // The profile_image_id refers to media_id field in media collection, not _id
       const mediaId = user.profile_image_id.toString();
-      console.log(`   🔍 Looking for media_id: ${mediaId}`);
         
       const mediaFile = await mediaCollection.findOne({ media_id: mediaId });
       
       if (mediaFile) {
         const imageUrl = `${baseUrl}${mediaFile.file_path}`;
-        console.log(`   ✅ Found media file: ${imageUrl}`);
         return imageUrl;
       } else {
-        console.log(`   ❌ Media file not found for media_id: ${mediaId}`);
       }
     } catch (error) {
       console.error('   ❌ Error resolving media file:', error);
@@ -50,14 +42,12 @@ async function resolveProfileImage(user: Record<string, unknown>, mediaCollectio
   }
   
   // No profile image - return null to indicate no image uploaded
-  console.log(`   ℹ️ No profile image found, returning null`);
   return null;
 }
 
 export async function GET(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-    console.log(`🔮 Available astrologers request from IP: ${ip}`);
 
     const { searchParams } = new URL(request.url);
     
@@ -91,7 +81,6 @@ export async function GET(request: NextRequest) {
       query.is_online = true;
     }
 
-	  console.log('🔍 Query for available astrologers:', query);	
     // Get astrologers with their profile data
     const astrologers = await usersCollection.find(query)
       .sort({ is_online: -1, created_at: -1 }) // Online first, then newest
