@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
 import { withSecurity, SecurityPresets } from '@/lib/api-security';
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import DatabaseService from '@/lib/database';
 
 // GET - Fetch all media files with filtering options
 async function handleGET(request: NextRequest) {
@@ -16,11 +13,7 @@ async function handleGET(request: NextRequest) {
     const uploadedBy = searchParams.get('uploaded_by'); // Filter by uploader
     const skip = (page - 1) * limit;
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const mediaCollection = db.collection('media');
+    const mediaCollection = await DatabaseService.getCollection('media');
 
     // Build query with filters
     const query: Record<string, unknown> = {};
@@ -60,7 +53,6 @@ async function handleGET(request: NextRequest) {
       }
     ]).toArray();
 
-    await client.close();
 
     return NextResponse.json({
       success: true,

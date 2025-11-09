@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
+import DatabaseService from '@/lib/database';
+import { ObjectId } from 'mongodb';
 import { jwtVerify } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 );
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
 
 // PATCH - Update transaction status (admin only, for dispute resolution)
 export async function PATCH(
@@ -57,11 +55,7 @@ export async function PATCH(
     }
 
     // Connect to MongoDB
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const transactionsCollection = db.collection('transactions');
+    const transactionsCollection = await DatabaseService.getCollection('transactions');
 
     // Get the current transaction
     const currentTransaction = await transactionsCollection.findOne({
@@ -69,7 +63,6 @@ export async function PATCH(
     });
 
     if (!currentTransaction) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Transaction not found'
@@ -78,7 +71,6 @@ export async function PATCH(
 
     // Only allow updates for pending transactions
     if (currentTransaction.status !== 'pending') {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Only pending transactions can be updated'
@@ -99,9 +91,6 @@ export async function PATCH(
       { _id: new ObjectId(transactionId) },
       { $set: updateData }
     );
-
-    await client.close();
-
     if (result.matchedCount === 0) {
       return NextResponse.json({
         success: false,
@@ -157,19 +146,12 @@ export async function GET(
     }
 
     // Connect to MongoDB
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const transactionsCollection = db.collection('transactions');
+    const transactionsCollection = await DatabaseService.getCollection('transactions');
 
     // Get the transaction with user details
     const transaction = await transactionsCollection.findOne({
       _id: new ObjectId(transactionId)
     });
-
-    await client.close();
-
     if (!transaction) {
       return NextResponse.json({
         success: false,

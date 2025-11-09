@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
+import DatabaseService from '@/lib/database';
+import { ObjectId } from 'mongodb';
 import { jwtVerify } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 );
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
 
 export async function PATCH(request: NextRequest) {
   try {
@@ -42,11 +40,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Connect to MongoDB
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const usersCollection = db.collection('users');
+    const usersCollection = await DatabaseService.getCollection('users');
 
     // Update user's FCM token
     const updateQuery = {
@@ -60,9 +54,6 @@ export async function PATCH(request: NextRequest) {
       { _id: new ObjectId(userId) },
       updateQuery
     );
-
-    await client.close();
-
     if (result.matchedCount === 0) {
       return NextResponse.json({ 
         error: 'User not found' 

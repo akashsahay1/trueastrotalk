@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
+import DatabaseService from '@/lib/database';
+
 import { unlink } from 'fs/promises';
 import path from 'path';
 import { withSecurity, SecurityPresets } from '@/lib/api-security';
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
 
 // DELETE - Delete media file
 async function handleDELETE(
@@ -15,11 +13,7 @@ async function handleDELETE(
   try {
     const { id } = await params;
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const mediaCollection = db.collection('media');
+    const mediaCollection = await DatabaseService.getCollection('media');
 
     // Get file info before deleting - only support custom media_id
     let fileInfo;
@@ -30,7 +24,6 @@ async function handleDELETE(
       fileInfo = await mediaCollection.findOne({ media_id: id });
       deleteQuery = { media_id: id };
     } else {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Invalid file ID format - must be custom media_id'
@@ -38,7 +31,6 @@ async function handleDELETE(
     }
     
     if (!fileInfo) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'File not found'
@@ -47,9 +39,6 @@ async function handleDELETE(
 
     // Delete file from database
     const result = await mediaCollection.deleteOne(deleteQuery);
-    
-    await client.close();
-
     if (result.deletedCount === 0) {
       return NextResponse.json({
         success: false,

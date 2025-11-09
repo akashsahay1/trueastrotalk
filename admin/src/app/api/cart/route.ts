@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import DatabaseService from '@/lib/database';
+import { ObjectId } from 'mongodb';
 
 // GET - Get user's cart
 export async function GET(request: NextRequest) {
@@ -18,12 +16,8 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const cartCollection = db.collection('cart_items');
-    const productsCollection = db.collection('products');
+    const cartCollection = await DatabaseService.getCollection('cart_items');
+    const productsCollection = await DatabaseService.getCollection('products');
 
     // Get cart items for user
     const cartItems = await cartCollection.find({ user_id: userId }).toArray();
@@ -62,9 +56,6 @@ export async function GET(request: NextRequest) {
     const subtotal = validCartItems.reduce((total, item) => {
       return total + (item.product!.price * item.quantity);
     }, 0);
-
-    await client.close();
-
     return NextResponse.json({
       success: true,
       cart: {
@@ -101,12 +92,8 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const cartCollection = db.collection('cart_items');
-    const productsCollection = db.collection('products');
+    const cartCollection = await DatabaseService.getCollection('cart_items');
+    const productsCollection = await DatabaseService.getCollection('products');
 
     // Check if product exists and is active
     const product = await productsCollection.findOne({ 
@@ -115,7 +102,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (!product) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Product not found',
@@ -125,7 +111,6 @@ export async function POST(request: NextRequest) {
 
     // Check stock availability
     if (product.stock_quantity < quantity) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Insufficient stock',
@@ -145,7 +130,6 @@ export async function POST(request: NextRequest) {
       
       // Check if new quantity exceeds stock
       if (newQuantity > product.stock_quantity) {
-        await client.close();
         return NextResponse.json({
           success: false,
           error: 'Insufficient stock',
@@ -162,8 +146,6 @@ export async function POST(request: NextRequest) {
           }
         }
       );
-
-      await client.close();
       return NextResponse.json({
         success: true,
         message: 'Cart updated successfully'
@@ -179,8 +161,6 @@ export async function POST(request: NextRequest) {
       };
 
       await cartCollection.insertOne(cartItemData);
-      await client.close();
-
       return NextResponse.json({
         success: true,
         message: 'Item added to cart successfully'
@@ -219,12 +199,8 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const cartCollection = db.collection('cart_items');
-    const productsCollection = db.collection('products');
+    const cartCollection = await DatabaseService.getCollection('cart_items');
+    const productsCollection = await DatabaseService.getCollection('products');
 
     if (quantity === 0) {
       // Remove item from cart
@@ -232,9 +208,6 @@ export async function PUT(request: NextRequest) {
         user_id: user_id,
         product_id: product_id
       });
-
-      await client.close();
-
       if (result.deletedCount > 0) {
         return NextResponse.json({
           success: true,
@@ -256,7 +229,6 @@ export async function PUT(request: NextRequest) {
     });
 
     if (!product) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Product not found',
@@ -265,7 +237,6 @@ export async function PUT(request: NextRequest) {
     }
 
     if (product.stock_quantity < quantity) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Insufficient stock',
@@ -286,9 +257,6 @@ export async function PUT(request: NextRequest) {
         }
       }
     );
-
-    await client.close();
-
     if (result.matchedCount > 0) {
       return NextResponse.json({
         success: true,
@@ -327,11 +295,7 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const cartCollection = db.collection('cart_items');
+    const cartCollection = await DatabaseService.getCollection('cart_items');
 
     let result;
     let message;
@@ -350,9 +314,6 @@ export async function DELETE(request: NextRequest) {
       });
       message = 'Cart cleared successfully';
     }
-
-    await client.close();
-
     return NextResponse.json({
       success: true,
       message: message,

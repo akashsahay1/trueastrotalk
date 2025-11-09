@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
+import DatabaseService from '@/lib/database';
+
 import { jwtVerify } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 );
 
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const DB_NAME = 'trueastrotalk';
 
 export async function GET(request: NextRequest) {
@@ -45,20 +45,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Connect to MongoDB
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const usersCollection = db.collection('users');
+    const usersCollection = await DatabaseService.getCollection('users');
 
     // Look up user by custom user_id, not MongoDB ObjectId
     const user = await usersCollection.findOne(
       { user_id: payload.userId as string },
       { projection: { wallet_balance: 1, full_name: 1, email_address: 1 } }
     );
-
-    await client.close();
-
     if (!user) {
       return NextResponse.json({ 
         success: false,

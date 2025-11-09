@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import DatabaseService from '@/lib/database';
+import { ObjectId } from 'mongodb';
 
 // GET - Get user's addresses
 export async function GET(request: NextRequest) {
@@ -18,11 +16,7 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const addressesCollection = db.collection('user_addresses');
+    const addressesCollection = await DatabaseService.getCollection('user_addresses');
 
     const addresses = await addressesCollection
       .find({ user_id: userId })
@@ -46,9 +40,6 @@ export async function GET(request: NextRequest) {
       created_at: address.created_at,
       updated_at: address.updated_at
     }));
-
-    await client.close();
-
     return NextResponse.json({
       success: true,
       addresses: formattedAddresses
@@ -113,11 +104,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const addressesCollection = db.collection('user_addresses');
+    const addressesCollection = await DatabaseService.getCollection('user_addresses');
 
     // If this is set as default, unset other default addresses
     if (is_default) {
@@ -150,9 +137,6 @@ export async function POST(request: NextRequest) {
 
     const result = await addressesCollection.insertOne(addressData);
     const addressId = result.insertedId.toString();
-
-    await client.close();
-
     return NextResponse.json({
       success: true,
       message: 'Address created successfully',
@@ -205,11 +189,7 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const addressesCollection = db.collection('user_addresses');
+    const addressesCollection = await DatabaseService.getCollection('user_addresses');
 
     // Check if address exists and belongs to user
     const existingAddress = await addressesCollection.findOne({
@@ -218,7 +198,6 @@ export async function PUT(request: NextRequest) {
     });
 
     if (!existingAddress) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Address not found',
@@ -237,7 +216,6 @@ export async function PUT(request: NextRequest) {
       const cleanPhone = phone_number.replace(/[^\d]/g, '');
       const phoneRegex = /^[6-9]\d{9}$/;
       if (!phoneRegex.test(cleanPhone)) {
-        await client.close();
         return NextResponse.json({
           success: false,
           error: 'Invalid phone number',
@@ -253,7 +231,6 @@ export async function PUT(request: NextRequest) {
     if (postal_code !== undefined) {
       const postalCodeRegex = /^[1-9][0-9]{5}$/;
       if (!postalCodeRegex.test(postal_code)) {
-        await client.close();
         return NextResponse.json({
           success: false,
           error: 'Invalid postal code',
@@ -281,9 +258,6 @@ export async function PUT(request: NextRequest) {
       { _id: new ObjectId(address_id) },
       { $set: updateData }
     );
-
-    await client.close();
-
     return NextResponse.json({
       success: true,
       message: 'Address updated successfully'
@@ -322,11 +296,7 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const addressesCollection = db.collection('user_addresses');
+    const addressesCollection = await DatabaseService.getCollection('user_addresses');
 
     // Check if address exists and belongs to user
     const existingAddress = await addressesCollection.findOne({
@@ -335,7 +305,6 @@ export async function DELETE(request: NextRequest) {
     });
 
     if (!existingAddress) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Address not found',
@@ -360,9 +329,6 @@ export async function DELETE(request: NextRequest) {
         );
       }
     }
-
-    await client.close();
-
     return NextResponse.json({
       success: true,
       message: 'Address deleted successfully'

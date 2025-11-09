@@ -1,17 +1,10 @@
 import { NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import DatabaseService from '@/lib/database';
 
 export async function POST() {
   try {
     // Connect to MongoDB
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const usersCollection = db.collection('users');
+    const usersCollection = await DatabaseService.getCollection('users');
 
     const results = [];
 
@@ -31,9 +24,6 @@ export async function POST() {
     // List all indexes to verify
     const indexes = await usersCollection.listIndexes().toArray();
     results.push(`Current indexes: ${indexes.map(idx => idx.name).join(', ')}`);
-
-    await client.close();
-
     return NextResponse.json({
       success: true,
       message: 'Database index fix completed',

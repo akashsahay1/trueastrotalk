@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import DatabaseService from '@/lib/database';
 import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
-import { MongoClient } from 'mongodb';
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
 
 export async function POST(request: NextRequest) {
   try {
@@ -85,11 +82,7 @@ export async function POST(request: NextRequest) {
     const publicUrl = `/uploads/${year}/${month}/${fileName}`;
 
     // Save to media library in database (consistent with other uploads)
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const mediaCollection = db.collection('media');
+    const mediaCollection = await DatabaseService.getCollection('media');
 
     const fileData = {
       filename: fileName,
@@ -107,9 +100,6 @@ export async function POST(request: NextRequest) {
     };
 
     const result = await mediaCollection.insertOne(fileData);
-    
-    await client.close();
-    
     return NextResponse.json({
       success: true,
       message: 'File uploaded successfully',

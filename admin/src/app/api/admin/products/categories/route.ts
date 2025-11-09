@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
 import { generateCategoryId } from '@/lib/custom-id';
 import { withSecurity, SecurityPresets } from '@/lib/api-security';
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import DatabaseService from '@/lib/database';
 
 // GET - Fetch all categories
 async function handleGET(request: NextRequest) {
@@ -12,12 +9,8 @@ async function handleGET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const active = searchParams.get('active');
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const categoriesCollection = db.collection('product_categories');
-    const productsCollection = db.collection('products');
+    const categoriesCollection = await DatabaseService.getCollection('product_categories');
+    const productsCollection = await DatabaseService.getCollection('products');
 
     // Build query
     const query: Record<string, unknown> = {};
@@ -40,8 +33,6 @@ async function handleGET(request: NextRequest) {
         };
       })
     );
-
-    await client.close();
 
     return NextResponse.json({
       success: true,
@@ -73,19 +64,14 @@ async function handlePOST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const categoriesCollection = db.collection('product_categories');
+    const categoriesCollection = await DatabaseService.getCollection('product_categories');
 
     // Check if category with same name already exists
-    const existingCategory = await categoriesCollection.findOne({ 
-      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') } 
+    const existingCategory = await categoriesCollection.findOne({
+      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') }
     });
-    
+
     if (existingCategory) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Category already exists',
@@ -104,8 +90,6 @@ async function handlePOST(request: NextRequest) {
     };
 
     const result = await categoriesCollection.insertOne(categoryData);
-    
-    await client.close();
 
     return NextResponse.json({
       success: true,

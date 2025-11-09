@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
+import { ObjectId } from 'mongodb';
 import { withSecurity, SecurityPresets } from '@/lib/api-security';
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import DatabaseService from '@/lib/database';
 
 // Helper function to convert relative image URLs to full URLs
 function getFullImageUrl(imageUrl: string | null | undefined, request: NextRequest): string | null {
@@ -53,15 +51,9 @@ async function handleGET(
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const productsCollection = db.collection('products');
+    const productsCollection = await DatabaseService.getCollection('products');
 
     const product = await productsCollection.findOne({ _id: new ObjectId(id) });
-    
-    await client.close();
 
     if (!product) {
       return NextResponse.json({
@@ -117,16 +109,11 @@ async function handlePUT(
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const productsCollection = db.collection('products');
+    const productsCollection = await DatabaseService.getCollection('products');
 
     // Check if product exists
     const existingProduct = await productsCollection.findOne({ _id: new ObjectId(id) });
     if (!existingProduct) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Product not found'
@@ -138,9 +125,8 @@ async function handlePUT(
       name,
       _id: { $ne: new ObjectId(id) }
     });
-    
+
     if (duplicateProduct) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Product name already exists',
@@ -164,8 +150,6 @@ async function handlePUT(
       { _id: new ObjectId(id) },
       { $set: updateData }
     );
-
-    await client.close();
 
     if (result.modifiedCount === 0) {
       return NextResponse.json({
@@ -205,16 +189,11 @@ async function handleDELETE(
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const productsCollection = db.collection('products');
+    const productsCollection = await DatabaseService.getCollection('products');
 
     // Check if product exists
     const existingProduct = await productsCollection.findOne({ _id: new ObjectId(id) });
     if (!existingProduct) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Product not found'
@@ -225,8 +204,6 @@ async function handleDELETE(
     // For now, we'll allow deletion
 
     const result = await productsCollection.deleteOne({ _id: new ObjectId(id) });
-    
-    await client.close();
 
     if (result.deletedCount === 0) {
       return NextResponse.json({

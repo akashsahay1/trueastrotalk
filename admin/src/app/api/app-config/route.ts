@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
+import DatabaseService from '@/lib/database';
+
 import { jwtVerify } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 );
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
 
 // GET - App configuration for authenticated users only
 export async function GET(request: NextRequest) {
@@ -46,11 +44,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Connect to MongoDB
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const settingsCollection = db.collection('app_settings');
+    const settingsCollection = await DatabaseService.getCollection('app_settings');
 
     try {
       // Get current configuration
@@ -63,9 +57,6 @@ export async function GET(request: NextRequest) {
           message: 'App configuration has not been set up yet'
         }, { status: 404 });
       }
-
-      await client.close();
-
       // Return only safe, public configuration data
       const publicConfig = {
         razorpay: {
@@ -91,7 +82,6 @@ export async function GET(request: NextRequest) {
       });
 
     } catch (error) {
-      await client.close();
       throw error;
     }
 

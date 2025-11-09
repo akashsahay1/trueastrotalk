@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import DatabaseService from '@/lib/database';
+import { ObjectId } from 'mongodb';
 
 // GET - Get call session details
 export async function GET(
@@ -24,19 +22,14 @@ export async function GET(
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const callSessionsCollection = db.collection('call_sessions');
-    const usersCollection = db.collection('users');
-    const astrologersCollection = db.collection('astrologers');
+    const callSessionsCollection = await DatabaseService.getCollection('call_sessions');
+    const usersCollection = await DatabaseService.getCollection('users');
+    const astrologersCollection = await DatabaseService.getCollection('astrologers');
 
     // Get call session
     const session = await callSessionsCollection.findOne({ _id: new ObjectId(sessionId) });
 
     if (!session) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Session not found',
@@ -46,7 +39,6 @@ export async function GET(
 
     // Verify user access
     if (userId && userType === 'user' && session.user_id !== userId) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Access denied',
@@ -55,7 +47,6 @@ export async function GET(
     }
 
     if (userId && userType === 'astrologer' && session.astrologer_id !== userId) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Access denied',
@@ -100,9 +91,6 @@ export async function GET(
       created_at: session.created_at,
       updated_at: session.updated_at
     };
-
-    await client.close();
-
     return NextResponse.json({
       success: true,
       session: formattedSession
@@ -146,17 +134,12 @@ export async function PUT(
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const callSessionsCollection = db.collection('call_sessions');
+    const callSessionsCollection = await DatabaseService.getCollection('call_sessions');
 
     // Get session
     const session = await callSessionsCollection.findOne({ _id: new ObjectId(sessionId) });
 
     if (!session) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Session not found',
@@ -166,7 +149,6 @@ export async function PUT(
 
     // Verify user has permission to perform this action
     if (user_type === 'user' && session.user_id !== user_id) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Access denied',
@@ -175,7 +157,6 @@ export async function PUT(
     }
 
     if (user_type === 'astrologer' && session.astrologer_id !== user_id) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Access denied',
@@ -192,7 +173,6 @@ export async function PUT(
     switch (action) {
       case 'ring':
         if (session.status !== 'pending') {
-          await client.close();
           return NextResponse.json({
             success: false,
             error: 'Invalid action',
@@ -205,7 +185,6 @@ export async function PUT(
 
       case 'answer':
         if (session.status !== 'ringing' && session.status !== 'pending') {
-          await client.close();
           return NextResponse.json({
             success: false,
             error: 'Invalid action',
@@ -222,7 +201,6 @@ export async function PUT(
 
       case 'reject':
         if (!['pending', 'ringing'].includes(session.status)) {
-          await client.close();
           return NextResponse.json({
             success: false,
             error: 'Invalid action',
@@ -235,7 +213,6 @@ export async function PUT(
 
       case 'end':
         if (session.status !== 'active') {
-          await client.close();
           return NextResponse.json({
             success: false,
             error: 'Invalid action',
@@ -257,7 +234,6 @@ export async function PUT(
 
       case 'rate':
         if (session.status !== 'completed') {
-          await client.close();
           return NextResponse.json({
             success: false,
             error: 'Invalid action',
@@ -266,7 +242,6 @@ export async function PUT(
         }
         
         if (!rating || rating < 1 || rating > 5) {
-          await client.close();
           return NextResponse.json({
             success: false,
             error: 'Invalid rating',
@@ -280,7 +255,6 @@ export async function PUT(
 
       case 'missed':
         if (!['ringing', 'pending'].includes(session.status)) {
-          await client.close();
           return NextResponse.json({
             success: false,
             error: 'Invalid action',
@@ -292,7 +266,6 @@ export async function PUT(
         break;
 
       default:
-        await client.close();
         return NextResponse.json({
           success: false,
           error: 'Invalid action',
@@ -305,9 +278,6 @@ export async function PUT(
       { _id: new ObjectId(sessionId) },
       { $set: updateData }
     );
-
-    await client.close();
-
     const sessionResponse: Record<string, unknown> = {
       _id: sessionId,
       status: updateData.status,

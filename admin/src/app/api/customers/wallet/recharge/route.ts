@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
+import DatabaseService from '@/lib/database';
+import { ObjectId } from 'mongodb';
 import { jwtVerify } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 );
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,12 +82,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Connect to MongoDB
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const usersCollection = db.collection('users');
-    const transactionsCollection = db.collection('transactions');
+    const usersCollection = await DatabaseService.getCollection('users');
+    const transactionsCollection = await DatabaseService.getCollection('transactions');
 
     try {
       // Check for duplicate payment ID (prevent double processing)
@@ -142,8 +136,6 @@ export async function POST(request: NextRequest) {
       };
 
       await transactionsCollection.insertOne(transaction);
-      await client.close();
-
       return NextResponse.json({
         success: true,
         message: 'Wallet recharged successfully',
@@ -155,7 +147,6 @@ export async function POST(request: NextRequest) {
       });
 
     } catch (error) {
-      await client.close();
       throw error;
     }
 

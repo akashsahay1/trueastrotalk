@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
+import DatabaseService from '@/lib/database';
+import { ObjectId } from 'mongodb';
 import { jwtVerify } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 );
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -30,17 +28,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const sessionId = decodeURIComponent(id);
 
     // Connect to MongoDB
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const sessionsCollection = db.collection('sessions');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
 
     // Find the session by session_id
     const session = await sessionsCollection.findOne({ session_id: sessionId });
-
-    await client.close();
-
     if (!session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
@@ -102,16 +93,9 @@ export async function DELETE(
     }
 
     // Connect to MongoDB
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const sessionsCollection = db.collection('sessions');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
 
     const result = await sessionsCollection.deleteOne({ _id: new ObjectId(id) });
-
-    await client.close();
-
     if (result.deletedCount === 0) {
       return NextResponse.json(
         { error: 'Session not found' },

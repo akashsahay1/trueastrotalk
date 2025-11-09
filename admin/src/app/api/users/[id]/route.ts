@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
+import DatabaseService from '@/lib/database';
+import { ObjectId } from 'mongodb';
 import crypto from 'crypto';
 import { omit } from '@/utils/omit';
 import { cleanupUserFiles } from '@/lib/file-cleanup';
-import { envConfig, envHelpers } from '@/lib/env-config';
 import { emailService } from '@/lib/email-service';
 
 // Helper function to get base URL for images
@@ -59,20 +59,15 @@ function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const client = new MongoClient(envHelpers.getDatabaseUrl());
-  
   try {
     const { id } = await params;
-    
-    await client.connect();
-    const db = client.db(envConfig.DB_NAME);
-    const usersCollection = db.collection('users');
-    const mediaCollection = db.collection('media');
+
+    const usersCollection = await DatabaseService.getCollection('users');
+    const mediaCollection = await DatabaseService.getCollection('media');
 
     // Try to find user by user_id field (custom format like user_xxx)
     let user = await usersCollection.findOne({ user_id: id });
@@ -108,7 +103,6 @@ export async function GET(
       { status: 500 }
     );
   } finally {
-    await client.close();
   }
 }
 
@@ -116,8 +110,6 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const client = new MongoClient(envHelpers.getDatabaseUrl());
-  
   try {
     const { id } = await params;
     const body = await request.json();
@@ -200,9 +192,7 @@ export async function PUT(
       }
     }
 
-    await client.connect();
-    const db = client.db(envConfig.DB_NAME);
-    const usersCollection = db.collection('users');
+        const usersCollection = await DatabaseService.getCollection('users');
 
     // Check if user exists
     const existingUser = await usersCollection.findOne({ _id: new ObjectId(id) });
@@ -238,7 +228,7 @@ export async function PUT(
       if (!existingUser.profile_image_id) {
         try {
           // Find default avatar in media library
-          const mediaCollection = db.collection('media');
+          const mediaCollection = await DatabaseService.getCollection('media');
           const defaultAvatar = await mediaCollection.findOne({ original_name: 'default_astrologer_avatar.jpg' });
           if (defaultAvatar) {
             profileImageUpdates.profile_image_id = defaultAvatar.media_id;
@@ -325,7 +315,7 @@ export async function PUT(
     
     // Resolve profile image to full URL for response
     const baseUrl = getBaseUrl(request);
-    const mediaCollection = db.collection('media');
+    const mediaCollection = await DatabaseService.getCollection('media');
     userResponse.profile_image = await resolveProfileImage(updatedUser!, mediaCollection, baseUrl);
 
     // Send email notification if astrologer verification status changed
@@ -360,7 +350,6 @@ export async function PUT(
       { status: 500 }
     );
   } finally {
-    await client.close();
   }
 }
 
@@ -368,8 +357,6 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const client = new MongoClient(envHelpers.getDatabaseUrl());
-  
   try {
     const { id } = await params;
     
@@ -381,9 +368,7 @@ export async function DELETE(
       );
     }
 
-    await client.connect();
-    const db = client.db(envConfig.DB_NAME);
-    const usersCollection = db.collection('users');
+        const usersCollection = await DatabaseService.getCollection('users');
 
     // Check if user exists
     const user = await usersCollection.findOne({ _id: new ObjectId(id) });
@@ -412,7 +397,6 @@ export async function DELETE(
       );
     }
 
-
     return NextResponse.json({
       message: 'User and associated files deleted successfully'
     });
@@ -424,6 +408,5 @@ export async function DELETE(
       { status: 500 }
     );
   } finally {
-    await client.close();
   }
 }

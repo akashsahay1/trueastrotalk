@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
+import DatabaseService from '@/lib/database';
+
 import { jwtVerify } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 );
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,11 +49,7 @@ export async function GET(request: NextRequest) {
     const type = url.searchParams.get('type'); // 'credit' or 'debit'
 
     // Connect to MongoDB
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const transactionsCollection = db.collection('transactions');
+    const transactionsCollection = await DatabaseService.getCollection('transactions');
 
     // Build query for customer transactions (debits from user_id or credits to user_id)
     const query: Record<string, unknown> = {
@@ -80,9 +74,6 @@ export async function GET(request: NextRequest) {
     // Get total count
     const totalCount = await transactionsCollection.countDocuments(query);
     const hasMore = (offset + limit) < totalCount;
-
-    await client.close();
-
     // Format transactions for mobile app
     const formattedTransactions = transactions.map(transaction => ({
       _id: transaction._id,

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
+import { ObjectId } from 'mongodb';
 import { JWTSecurity } from '@/lib/security';
 import { withSecurity, SecurityPresets } from '@/lib/api-security';
+import DatabaseService from '@/lib/database';
 
 // Helper function to get base URL for images
 function getBaseUrl(request: NextRequest): string {
@@ -11,8 +12,7 @@ function getBaseUrl(request: NextRequest): string {
 }
 
 // Helper function to resolve profile image to full URL
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function resolveProfileImage(user: Record<string, unknown>, mediaCollection: any, baseUrl: string): Promise<string | null> {
+async function resolveProfileImage(user: Record<string, unknown>, mediaCollection: Awaited<ReturnType<typeof DatabaseService.getCollection>>, baseUrl: string): Promise<string | null> {
   // Priority 1: If user has Google auth and social_auth_profile_image, use external URL
   if (user.auth_type === 'google' && user.social_auth_profile_image && typeof user.social_auth_profile_image === 'string') {
     return user.social_auth_profile_image;
@@ -53,9 +53,6 @@ async function resolveProfileImage(user: Record<string, unknown>, mediaCollectio
   return null;
 }
 
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
-
 async function handleGET(request: NextRequest) {
   try {
     // Verify admin authentication
@@ -80,12 +77,8 @@ async function handleGET(request: NextRequest) {
     const userType = searchParams.get('type');
     const searchQuery = searchParams.get('search');
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-
-    const db = client.db(DB_NAME);
-    const usersCollection = db.collection('users');
-    const mediaCollection = db.collection('media');
+    const usersCollection = await DatabaseService.getCollection('users');
+    const mediaCollection = await DatabaseService.getCollection('media');
 
     // Build filter query
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -132,7 +125,6 @@ async function handleGET(request: NextRequest) {
       })
     );
 
-    await client.close();
 
     return NextResponse.json({
       success: true,
@@ -181,13 +173,9 @@ async function handleDELETE(request: NextRequest) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const result = await db.collection('users').deleteOne({ _id: new ObjectId(userId) });
+    const usersCollection = await DatabaseService.getCollection('users');
+    const result = await usersCollection.deleteOne({ _id: new ObjectId(userId) });
 
-    await client.close();
 
     if (result.deletedCount === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });

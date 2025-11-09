@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
-
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import DatabaseService from '@/lib/database';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,14 +10,10 @@ export async function GET(request: NextRequest) {
     const userType = url.searchParams.get('type') || '';
     
     const skip = (page - 1) * limit;
-    
-    const client = new MongoClient(MONGODB_URI);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const usersCollection = db.collection('users');
-    const sessionsCollection = db.collection('sessions');
-    const transactionsCollection = db.collection('transactions');
+
+    const usersCollection = await DatabaseService.getCollection('users');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
+    const transactionsCollection = await DatabaseService.getCollection('transactions');
     
     const wallets = [];
     
@@ -112,9 +105,6 @@ export async function GET(request: NextRequest) {
     const totalPages = Math.ceil(totalCount / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
-    
-    await client.close();
-    
     return NextResponse.json({
       success: true,
       data: {

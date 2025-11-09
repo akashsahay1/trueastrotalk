@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import DatabaseService from '@/lib/database';
 
 // GET - Get user's call sessions
 export async function GET(request: NextRequest) {
@@ -23,13 +20,9 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const callSessionsCollection = db.collection('call_sessions');
-    const usersCollection = db.collection('users');
-    const astrologersCollection = db.collection('astrologers');
+    const callSessionsCollection = await DatabaseService.getCollection('call_sessions');
+    const usersCollection = await DatabaseService.getCollection('users');
+    const astrologersCollection = await DatabaseService.getCollection('astrologers');
 
     // Build query based on user type
     const query: Record<string, unknown> = {};
@@ -91,9 +84,6 @@ export async function GET(request: NextRequest) {
         };
       })
     );
-
-    await client.close();
-
     return NextResponse.json({
       success: true,
       call_sessions: populatedSessions,
@@ -137,13 +127,9 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const callSessionsCollection = db.collection('call_sessions');
-    const astrologersCollection = db.collection('astrologers');
-    const usersCollection = db.collection('users');
+    const callSessionsCollection = await DatabaseService.getCollection('call_sessions');
+    const astrologersCollection = await DatabaseService.getCollection('astrologers');
+    const usersCollection = await DatabaseService.getCollection('users');
 
     // Check if astrologer exists and is online (removed availability check)
     const astrologer = await astrologersCollection.findOne({ 
@@ -152,7 +138,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (!astrologer) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Astrologer not available',
@@ -163,7 +148,6 @@ export async function POST(request: NextRequest) {
     // Check if user exists
     const user = await usersCollection.findOne({ user_id: user_id });
     if (!user) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'User not found',
@@ -179,7 +163,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingSession) {
-      await client.close();
       return NextResponse.json({
         success: true,
         message: 'Active call session already exists',
@@ -213,9 +196,6 @@ export async function POST(request: NextRequest) {
 
     const result = await callSessionsCollection.insertOne(sessionData);
     const sessionId = result.insertedId.toString();
-
-    await client.close();
-
     return NextResponse.json({
       success: true,
       message: 'Call session created successfully',

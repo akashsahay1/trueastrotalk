@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
+import DatabaseService from '@/lib/database';
+
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import { withSecurity, SecurityPresets } from '@/lib/api-security';
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
 
 async function handlePOST(request: NextRequest) {
   try {
@@ -64,11 +62,7 @@ async function handlePOST(request: NextRequest) {
     await writeFile(filePath, buffer);
 
     // Save file info to database
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const mediaCollection = db.collection('media');
+    const mediaCollection = await DatabaseService.getCollection('media');
 
     const fileData = {
       file_name: filename,
@@ -83,9 +77,6 @@ async function handlePOST(request: NextRequest) {
     };
 
     const result = await mediaCollection.insertOne(fileData);
-    
-    await client.close();
-
     return NextResponse.json({
       success: true,
       message: 'File uploaded successfully',

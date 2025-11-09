@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
+import DatabaseService from '@/lib/database';
+
 import { jwtVerify } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 );
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,12 +49,8 @@ export async function GET(request: NextRequest) {
     const type = url.searchParams.get('type'); // 'call', 'chat', 'video'
 
     // Connect to MongoDB
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const sessionsCollection = db.collection('sessions');
-    const usersCollection = db.collection('users');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
+    const usersCollection = await DatabaseService.getCollection('users');
 
     // Build query
     const query: Record<string, unknown> = {
@@ -110,9 +104,6 @@ export async function GET(request: NextRequest) {
     // Get total count
     const totalCount = await sessionsCollection.countDocuments(query);
     const hasMore = (offset + limit) < totalCount;
-
-    await client.close();
-
     return NextResponse.json({
       success: true,
       data: {

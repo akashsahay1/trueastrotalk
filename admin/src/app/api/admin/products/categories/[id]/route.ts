@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
+import { ObjectId } from 'mongodb';
 import { withSecurity, SecurityPresets } from '@/lib/api-security';
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import DatabaseService from '@/lib/database';
 
 // GET - Fetch single category
 async function handleGET(
@@ -20,17 +18,12 @@ async function handleGET(
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const categoriesCollection = db.collection('product_categories');
-    const productsCollection = db.collection('products');
+    const categoriesCollection = await DatabaseService.getCollection('product_categories');
+    const productsCollection = await DatabaseService.getCollection('products');
 
     const category = await categoriesCollection.findOne({ _id: new ObjectId(id) });
-    
+
     if (!category) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Category not found'
@@ -41,8 +34,6 @@ async function handleGET(
     const productCount = await productsCollection.countDocuments({
       category: category.name
     });
-
-    await client.close();
 
     return NextResponse.json({
       success: true,
@@ -88,17 +79,12 @@ async function handlePUT(
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const categoriesCollection = db.collection('product_categories');
-    const productsCollection = db.collection('products');
+    const categoriesCollection = await DatabaseService.getCollection('product_categories');
+    const productsCollection = await DatabaseService.getCollection('products');
 
     // Check if category exists
     const existingCategory = await categoriesCollection.findOne({ _id: new ObjectId(id) });
     if (!existingCategory) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Category not found'
@@ -112,7 +98,6 @@ async function handlePUT(
     });
     
     if (duplicateCategory) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Category name already exists',
@@ -144,7 +129,6 @@ async function handlePUT(
       );
     }
 
-    await client.close();
 
     if (result.modifiedCount === 0 && oldName === newName) {
       return NextResponse.json({
@@ -184,17 +168,12 @@ async function handleDELETE(
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const categoriesCollection = db.collection('product_categories');
-    const productsCollection = db.collection('products');
+    const categoriesCollection = await DatabaseService.getCollection('product_categories');
+    const productsCollection = await DatabaseService.getCollection('products');
 
     // Check if category exists
     const existingCategory = await categoriesCollection.findOne({ _id: new ObjectId(id) });
     if (!existingCategory) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Category not found'
@@ -207,7 +186,6 @@ async function handleDELETE(
     });
 
     if (productsUsingCategory > 0) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Cannot delete category',
@@ -217,7 +195,6 @@ async function handleDELETE(
 
     const result = await categoriesCollection.deleteOne({ _id: new ObjectId(id) });
     
-    await client.close();
 
     if (result.deletedCount === 0) {
       return NextResponse.json({

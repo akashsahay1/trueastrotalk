@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
-
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import DatabaseService from '@/lib/database';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,15 +9,11 @@ export async function GET(request: NextRequest) {
     const search = url.searchParams.get('search') || '';
     const dateFrom = url.searchParams.get('date_from') || '';
     const dateTo = url.searchParams.get('date_to') || '';
-    
+
     const skip = (page - 1) * limit;
-    
-    const client = new MongoClient(MONGODB_URI);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const astrologersCollection = db.collection('astrologers');
-    const sessionsCollection = db.collection('sessions');
+
+    const astrologersCollection = await DatabaseService.getCollection('astrologers');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
     
     // Build query for search
     let mongoQuery: Record<string, unknown> = {};
@@ -119,9 +112,6 @@ export async function GET(request: NextRequest) {
     const totalPages = Math.ceil(totalCount / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
-    
-    await client.close();
-    
     return NextResponse.json({
       success: true,
       data: {

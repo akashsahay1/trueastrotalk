@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
+import DatabaseService from '@/lib/database';
+
 import { jwtVerify } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 );
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
 
 /**
  * Verify Razorpay payment and get payment details including actual payment method
@@ -165,13 +163,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Connect to MongoDB
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-
-    const db = client.db(DB_NAME);
-    const usersCollection = db.collection('users');
-    const transactionsCollection = db.collection('transactions');
-    const settingsCollection = db.collection('app_settings');
+    const usersCollection = await DatabaseService.getCollection('users');
+    const transactionsCollection = await DatabaseService.getCollection('transactions');
+    const settingsCollection = await DatabaseService.getCollection('app_settings');
 
     try {
       // Get Razorpay credentials from database
@@ -181,7 +175,6 @@ export async function POST(request: NextRequest) {
       const razorpayConfig = configObj?.razorpay as Record<string, unknown>;
       if (!razorpayConfig?.keyId || !razorpayConfig?.keySecret) {
         console.error('Missing Razorpay credentials in database configuration');
-        await client.close();
         return NextResponse.json({
           success: false,
           error: 'PAYMENT_SERVICE_UNAVAILABLE',
@@ -192,13 +185,11 @@ export async function POST(request: NextRequest) {
       const RAZORPAY_KEY_ID = razorpayConfig.keyId as string;
       const RAZORPAY_KEY_SECRET = razorpayConfig.keySecret as string;
 
-
       // Verify payment with Razorpay and get actual payment method
       const razorpayVerification = await verifyRazorpayPayment(payment_id, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET);
 
       if (!razorpayVerification.verified) {
         console.error('❌ Payment verification failed:', razorpayVerification.error);
-        await client.close();
         return NextResponse.json({
           success: false,
           error: 'PAYMENT_VERIFICATION_FAILED',
@@ -212,7 +203,6 @@ export async function POST(request: NextRequest) {
           requested: amount,
           verified: razorpayVerification.amount
         });
-        await client.close();
         return NextResponse.json({
           success: false,
           error: 'Amount mismatch',
@@ -298,9 +288,6 @@ export async function POST(request: NextRequest) {
 
         await transactionsCollection.insertOne(transaction);
       }
-      await client.close();
-
-
       return NextResponse.json({
         success: true,
         message: 'Wallet recharged successfully',
@@ -312,7 +299,6 @@ export async function POST(request: NextRequest) {
       });
 
     } catch (error) {
-      await client.close();
       throw error;
     }
 

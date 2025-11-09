@@ -1,46 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
+import { ObjectId } from 'mongodb';
 import { generateProductId } from '@/lib/custom-id';
 import { withSecurity, SecurityPresets } from '@/lib/api-security';
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import DatabaseService from '@/lib/database';
 
 // Helper function to resolve media ID to full URL
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function resolveMediaUrl(request: NextRequest, mediaId: string | ObjectId | null | undefined, db: any): Promise<string | null> {
+async function resolveMediaUrl(request: NextRequest, mediaId: string | ObjectId | null | undefined): Promise<string | null> {
   if (!mediaId) return null;
-  
+
   try {
+    const mediaCollection = await DatabaseService.getCollection('media');
     let mediaFile;
-    
+
     // Check if it's our custom media ID format (media_timestamp_random)
     if (typeof mediaId === 'string' && mediaId.startsWith('media_')) {
-      mediaFile = await db.collection('media').findOne({ media_id: mediaId });
+      mediaFile = await mediaCollection.findOne({ media_id: mediaId });
     } else if (typeof mediaId === 'string' && mediaId.length === 24) {
       // Fallback: try as ObjectId for backward compatibility
       try {
-        mediaFile = await db.collection('media').findOne({ _id: new ObjectId(mediaId) });
+        mediaFile = await mediaCollection.findOne({ _id: new ObjectId(mediaId) });
         // If not found by _id, try by media_id (in case it's actually a media_id)
         if (!mediaFile) {
-          mediaFile = await db.collection('media').findOne({ media_id: mediaId });
+          mediaFile = await mediaCollection.findOne({ media_id: mediaId });
         }
       } catch {
         // If ObjectId conversion fails, try as media_id
-        mediaFile = await db.collection('media').findOne({ media_id: mediaId });
+        mediaFile = await mediaCollection.findOne({ media_id: mediaId });
       }
     } else {
       // Try to find by _id if it's an ObjectId instance
-      mediaFile = await db.collection('media').findOne({ _id: mediaId });
+      mediaFile = await mediaCollection.findOne({ _id: mediaId });
     }
-    
+
     if (!mediaFile || !mediaFile.file_path) return null;
-    
+
     // Get the actual host from the request headers
     const host = request.headers.get('host') || 'www.trueastrotalk.com';
     const protocol = request.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
     const baseUrl = `${protocol}://${host}`;
-    
+
     return `${baseUrl}${mediaFile.file_path}`;
   } catch (error) {
     console.error('Error resolving media URL:', error);
@@ -58,11 +56,7 @@ async function handleGET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const skip = (page - 1) * limit;
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const productsCollection = db.collection('products');
+    const productsCollection = await DatabaseService.getCollection('products');
 
     // Build query
     const query: Record<string, unknown> = {};
@@ -82,18 +76,18 @@ async function handleGET(request: NextRequest) {
     const productsWithFullUrls = await Promise.all(
       products.map(async (product) => {
         // Resolve featured image from image_id (media_id)
-        const imageUrl = product.image_id ? 
-          await resolveMediaUrl(request, product.image_id, client.db(DB_NAME)) : null;
-        
+        const imageUrl = product.image_id ?
+          await resolveMediaUrl(request, product.image_id) : null;
+
         // Resolve gallery images from images array (array of media_ids)
         const galleryImages = [];
         if (product.images && Array.isArray(product.images)) {
           for (const mediaId of product.images) {
-            const url = await resolveMediaUrl(request, mediaId, client.db(DB_NAME));
+            const url = await resolveMediaUrl(request, mediaId);
             if (url) galleryImages.push(url);
           }
         }
-        
+
         return {
           ...product,
           featured_image: imageUrl, // Resolved featured image URL
@@ -104,8 +98,6 @@ async function handleGET(request: NextRequest) {
         };
       })
     );
-
-    await client.close();
 
     return NextResponse.json({
       success: true,
@@ -143,16 +135,11 @@ async function handlePOST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const productsCollection = db.collection('products');
+    const productsCollection = await DatabaseService.getCollection('products');
 
     // Check if product with same name already exists
     const existingProduct = await productsCollection.findOne({ name });
     if (existingProduct) {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Product already exists',
@@ -176,11 +163,11 @@ async function handlePOST(request: NextRequest) {
 
     const result = await productsCollection.insertOne(productData);
     const productId = result.insertedId.toString();
-    
+
     // If image_id is provided, validate it exists in media collection
     if (image_id && image_id.trim() !== '') {
-      const mediaCollection = db.collection('media');
-      
+      const mediaCollection = await DatabaseService.getCollection('media');
+
       let mediaExists = null;
       if (image_id.startsWith('media_')) {
         // Check for media_id format
@@ -189,30 +176,27 @@ async function handlePOST(request: NextRequest) {
         // Check for ObjectId format
         mediaExists = await mediaCollection.findOne({ _id: new ObjectId(image_id) });
       }
-      
+
       if (!mediaExists) {
-        await client.close();
         return NextResponse.json({
           success: false,
           error: 'Invalid image ID',
           message: 'The provided image ID does not exist in media library.'
         }, { status: 400 });
       }
-      
+
       // Update the media record to associate it with this product
       await mediaCollection.updateOne(
         image_id.startsWith('media_') ? { media_id: image_id } : { _id: new ObjectId(image_id) },
-        { 
-          $set: { 
+        {
+          $set: {
             file_type: 'product_image',
             associated_record: productId,
             updated_at: new Date()
-          } 
+          }
         }
       );
     }
-    
-    await client.close();
 
     return NextResponse.json({
       success: true,

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
+import DatabaseService from '@/lib/database';
+
 import crypto from 'crypto';
 import { omit } from '@/utils/omit';
-import { envConfig, envHelpers } from '@/lib/env-config';
 import { emailService } from '@/lib/email-service';
 import { withSecurity, SecurityPresets } from '@/lib/api-security';
 import { generateUserId } from '@/lib/custom-id';
@@ -12,8 +12,6 @@ function hashPassword(password: string): string {
 }
 
 export const POST = withSecurity(async (request: NextRequest) => {
-  const client = new MongoClient(envHelpers.getDatabaseUrl());
-  
   try {
     const body = await request.json();
     
@@ -75,9 +73,7 @@ export const POST = withSecurity(async (request: NextRequest) => {
       }
     }
 
-    await client.connect();
-    const db = client.db(envConfig.DB_NAME);
-    const usersCollection = db.collection('users');
+        const usersCollection = await DatabaseService.getCollection('users');
 
     // Check if user already exists
     const existingUser = await usersCollection.findOne({
@@ -193,6 +189,5 @@ export const POST = withSecurity(async (request: NextRequest) => {
       { status: 500 }
     );
   } finally {
-    await client.close();
   }
 }, SecurityPresets.admin);

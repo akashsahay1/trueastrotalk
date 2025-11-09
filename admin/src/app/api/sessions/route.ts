@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
+import DatabaseService from '@/lib/database';
+import { ObjectId } from 'mongodb';
 import { jwtVerify } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 );
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
 
 export async function GET(request: NextRequest) {
   try {
@@ -44,11 +42,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Connect to MongoDB
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const sessionsCollection = db.collection('sessions');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
 
     // Build MongoDB query
     const mongoQuery: Record<string, unknown> = {};
@@ -116,9 +110,6 @@ export async function GET(request: NextRequest) {
       .skip(skip)
       .limit(limit)
       .toArray();
-
-    await client.close();
-
     // Convert MongoDB documents to proper format
     const formattedSessions = sessions.map(session => ({
       ...session,
@@ -207,16 +198,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Connect to MongoDB
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const sessionsCollection = db.collection('sessions');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
 
     // Check if session already exists to prevent duplicates
     const existingSession = await sessionsCollection.findOne({ session_id: sessionId });
     if (existingSession) {
-      await client.close();
       return NextResponse.json({
         success: true,
         message: 'Session already exists',
@@ -240,9 +226,6 @@ export async function POST(request: NextRequest) {
     };
 
     const result = await sessionsCollection.insertOne(session);
-    await client.close();
-
-
     return NextResponse.json({
       success: true,
       message: 'Session created successfully',
@@ -306,12 +289,8 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Connect to MongoDB
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const sessionsCollection = db.collection('sessions');
-    const usersCollection = db.collection('users');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
+    const usersCollection = await DatabaseService.getCollection('users');
 
     // Get the session to find the user_id (customer who should be charged)
     const session = await sessionsCollection.findOne({ 
@@ -325,7 +304,6 @@ export async function PATCH(request: NextRequest) {
         { session_id: sessionId }, // Search by just session_id to see if it exists with different type
         { projection: { session_id: 1, session_type: 1, status: 1 } }
       ).toArray();
-      await client.close();
       return NextResponse.json({ 
         success: false,
         error: `Session not found: ${sessionId} with type ${sessionType}` 
@@ -335,7 +313,6 @@ export async function PATCH(request: NextRequest) {
     // Only allow the customer (user) to update their own session billing
     // or allow astrologers to update sessions where they are the provider
     if (payload.user_type === 'customer' && session.user_id !== payload.userId) {
-      await client.close();
       return NextResponse.json({ 
         success: false,
         error: 'Forbidden',
@@ -356,7 +333,6 @@ export async function PATCH(request: NextRequest) {
       );
 
       if (!user) {
-        await client.close();
         return NextResponse.json({ 
           success: false,
           error: 'User not found' 
@@ -367,7 +343,6 @@ export async function PATCH(request: NextRequest) {
 
       // Check if user has sufficient balance
       if (currentBalance < amountToDeduct) {
-        await client.close();
         return NextResponse.json({ 
           success: false,
           error: 'Insufficient balance',
@@ -384,7 +359,6 @@ export async function PATCH(request: NextRequest) {
           $currentDate: { updated_at: true }
         }
       );
-
 
       // Credit astrologer's wallet (80% of the amount, 20% platform commission)
       const astrologerShare = amountToDeduct * 0.8; // 80% to astrologer
@@ -409,7 +383,7 @@ export async function PATCH(request: NextRequest) {
         );
 
         // Update or create wallet transaction records
-        const walletTransactionsCollection = db.collection('transactions');
+        const walletTransactionsCollection = await DatabaseService.getCollection('transactions');
         
         // Customer debit transaction - update existing or create new
         await walletTransactionsCollection.updateOne(
@@ -494,9 +468,6 @@ export async function PATCH(request: NextRequest) {
       { session_id: sessionId, session_type: sessionType },
       updateQuery
     );
-
-    await client.close();
-
     return NextResponse.json({
       success: true,
       message: 'Session billing updated successfully',
@@ -536,11 +507,7 @@ export async function DELETE(request: NextRequest) {
     const { sessionIds, deleteAll } = body;
 
     // Connect to MongoDB
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const sessionsCollection = db.collection('sessions');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
 
     let result;
     if (deleteAll) {
@@ -552,12 +519,8 @@ export async function DELETE(request: NextRequest) {
         _id: { $in: sessionIds.map((id: string) => new ObjectId(id)) }
       });
     } else {
-      await client.close();
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
     }
-
-    await client.close();
-
     return NextResponse.json({
       message: `Successfully deleted ${result.deletedCount} sessions`,
       deletedCount: result.deletedCount

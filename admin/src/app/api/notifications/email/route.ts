@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
-import * as sgMail from '@sendgrid/mail';
+import DatabaseService from '@/lib/database';
 
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import * as sgMail from '@sendgrid/mail';
 
 // SendGrid configuration
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
@@ -211,11 +209,7 @@ export async function POST(request: NextRequest) {
     const info = await sgMail.send(mailOptions);
 
     // Log email to database
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const emailLogsCollection = db.collection('email_logs');
+    const emailLogsCollection = await DatabaseService.getCollection('email_logs');
 
     const emailLog = {
       type: type,
@@ -229,8 +223,6 @@ export async function POST(request: NextRequest) {
     };
 
     await emailLogsCollection.insertOne(emailLog);
-    await client.close();
-
     return NextResponse.json({
       success: true,
       message: 'Email sent successfully via SendGrid',
@@ -242,11 +234,7 @@ export async function POST(request: NextRequest) {
     
     // Log failed email to database
     try {
-      const client = new MongoClient(MONGODB_URL);
-      await client.connect();
-      
-      const db = client.db(DB_NAME);
-      const emailLogsCollection = db.collection('email_logs');
+      const emailLogsCollection = await DatabaseService.getCollection('email_logs');
 
       const emailLog = {
         type: body?.type || 'unknown',
@@ -260,7 +248,6 @@ export async function POST(request: NextRequest) {
       };
 
       await emailLogsCollection.insertOne(emailLog);
-      await client.close();
     } catch (logError) {
       console.error('Error logging email failure:', logError);
     }
@@ -283,11 +270,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const skip = (page - 1) * limit;
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const emailLogsCollection = db.collection('email_logs');
+    const emailLogsCollection = await DatabaseService.getCollection('email_logs');
 
     // Build query
     const query: Record<string, unknown> = {};
@@ -316,9 +299,6 @@ export async function GET(request: NextRequest) {
       error: log.error,
       sent_at: log.sent_at
     }));
-
-    await client.close();
-
     return NextResponse.json({
       success: true,
       email_logs: formattedLogs,

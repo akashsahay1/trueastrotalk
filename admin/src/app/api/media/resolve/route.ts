@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
-
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+import DatabaseService from '@/lib/database';
+import { ObjectId } from 'mongodb';
 
 // Base URL for serving images - should be configurable via environment variables
 const getBaseUrl = (request: NextRequest) => {
@@ -25,11 +23,7 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const mediaCollection = db.collection('media');
+    const mediaCollection = await DatabaseService.getCollection('media');
 
     // Find the media file by custom media_id or ObjectId
     let mediaFile = null;
@@ -42,7 +36,6 @@ export async function GET(request: NextRequest) {
       try {
         mediaFile = await mediaCollection.findOne({ _id: new ObjectId(mediaId) });
       } catch {
-        await client.close();
         return NextResponse.json({
           success: false,
           error: 'Invalid ObjectId format',
@@ -50,16 +43,12 @@ export async function GET(request: NextRequest) {
         }, { status: 400 });
       }
     } else {
-      await client.close();
       return NextResponse.json({
         success: false,
         error: 'Invalid media ID',
         message: 'Media ID must be in custom format (media_xxxxx_xxxxx) or valid ObjectId'
       }, { status: 400 });
     }
-
-    await client.close();
-
     if (!mediaFile) {
       return NextResponse.json({
         success: false,
@@ -111,11 +100,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGODB_URL);
-    await client.connect();
-    
-    const db = client.db(DB_NAME);
-    const mediaCollection = db.collection('media');
+    const mediaCollection = await DatabaseService.getCollection('media');
 
     // Filter only valid custom media_ids
     const customMediaIds = media_ids.filter(id => typeof id === 'string' && id.startsWith('media_'));
@@ -129,9 +114,6 @@ export async function POST(request: NextRequest) {
       }).toArray();
       mediaFiles.push(...customFiles);
     }
-
-    await client.close();
-
     // Construct full URLs for all found media files
     const baseUrl = getBaseUrl(request);
     
