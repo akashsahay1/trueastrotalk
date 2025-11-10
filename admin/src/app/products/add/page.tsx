@@ -21,7 +21,6 @@ export default function AddProductPage() {
   const [loading, setLoading] = useState(false);
   const [showMediaLibrary, setShowMediaLibrary] = useState(false);
   const [mediaLibraryMode, setMediaLibraryMode] = useState<'primary' | 'gallery'>('primary');
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
   const [formData, setFormData] = useState({
     // Basic Information

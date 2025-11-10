@@ -27,8 +27,7 @@ interface NotificationData {
   scheduleAt?: Date;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface NotificationTarget {
+interface _NotificationTarget {
   userId: string;
   userType: 'customer' | 'astrologer' | string;
   fcmToken?: string;

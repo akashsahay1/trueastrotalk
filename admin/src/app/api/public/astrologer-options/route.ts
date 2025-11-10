@@ -10,8 +10,7 @@ interface AstrologerOptionValue {
 
 type OptionValue = string | AstrologerOptionValue;
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface AstrologerOption {
+interface _AstrologerOption {
   type: string;
   values: OptionValue[];
 }

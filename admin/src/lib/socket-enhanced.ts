@@ -56,8 +56,7 @@ interface MessageData {
   timestamp?: Date;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface SocketAuth {
+interface _SocketAuth {
   userId?: string;
   userType?: 'user' | 'astrologer';
   token?: string;
