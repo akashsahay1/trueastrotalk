@@ -120,8 +120,8 @@ class BackgroundJobsService {
 
       const { default: DatabaseService } = await import('./database.js');
       const collection = await DatabaseService.getCollection('performance_metrics');
-      
-      const result = await collection.deleteMany({
+
+      const _result = await collection.deleteMany({
         timestamp: { $lt: thirtyDaysAgo }
       });
 
@@ -142,7 +142,7 @@ class BackgroundJobsService {
       const collection = await DatabaseService.getCollection('app_errors');
       
       // Only delete resolved errors older than 90 days
-      const result = await collection.deleteMany({
+      const _result = await collection.deleteMany({
         created_at: { $lt: ninetyDaysAgo },
         resolved: true
       });

@@ -9,7 +9,7 @@ import {
 // GET - Get user's notification preferences
 export async function GET(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Authenticate user
     let authenticatedUser;
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
 // PUT - Update user's notification preferences
 export async function PUT(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Authenticate user
     let authenticatedUser;

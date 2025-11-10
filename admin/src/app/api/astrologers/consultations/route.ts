@@ -39,7 +39,7 @@ interface SessionData {
 // GET - Astrologer consultations history
 export async function GET(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Authenticate astrologer
     let authenticatedUser;
@@ -295,7 +295,7 @@ export async function GET(request: NextRequest) {
 // PUT - Update consultation (join, end, add notes)
 export async function PUT(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Authenticate astrologer
     let authenticatedUser;

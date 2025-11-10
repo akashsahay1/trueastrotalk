@@ -147,7 +147,7 @@ export function isValidPhoneNumber(phone: string): boolean {
  * Send OTP via SMS (placeholder for actual SMS provider)
  * In testing mode, just logs the OTP
  */
-export async function sendOTPSMS(phone: string, otp: string): Promise<boolean> {
+export async function sendOTPSMS(_phone: string, _otp: string): Promise<boolean> {
   if (OTP_BYPASS_MODE) {
     return true;
   }

@@ -331,7 +331,7 @@ export async function PUT(
           astrologerData,
           body.verification_status,
           body.verification_status_message
-        ).then(sent => {
+        ).then(_sent => {
         }).catch(error => {
           console.error('Error sending astrologer status email:', error);
         });

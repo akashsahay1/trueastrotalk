@@ -7,7 +7,7 @@ import { withSecurity, SecurityPresets } from '@/lib/api-security';
 // GET - Performance statistics and monitoring
 async function handleGET(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Authenticate admin user
     let authenticatedUser;
@@ -125,7 +125,7 @@ async function handleGET(request: NextRequest) {
 // POST - Performance optimization actions
 async function handlePOST(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Authenticate admin user
     let authenticatedUser;

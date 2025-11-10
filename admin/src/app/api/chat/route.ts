@@ -6,7 +6,7 @@ import { SecurityMiddleware, InputSanitizer } from '../../../lib/security';
 // GET - Get user's chat sessions
 export async function GET(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Authenticate user
     let authenticatedUser;
@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
 // POST - Create new chat session
 export async function POST(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Authenticate user
     let authenticatedUser;
@@ -326,7 +326,7 @@ export async function POST(request: NextRequest) {
       astrologer_unread_count: 0,
       created_at: new Date(),
       updated_at: new Date(),
-      created_by_ip: ip,
+      created_by_ip: _ip,
       metadata: {
         user_agent: request.headers.get('user-agent') || '',
         client_type: request.headers.get('x-client-type') || 'web'

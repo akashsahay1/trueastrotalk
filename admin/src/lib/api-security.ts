@@ -157,7 +157,7 @@ export function withSecurity(
               message: 'You do not have permission to access this resource.',
             }, { status: 403 });
           }
-        } catch (error) {
+        } catch (_error) {
           return NextResponse.json({
             success: false,
             error: 'AUTHENTICATION_REQUIRED',

@@ -11,7 +11,7 @@ import { emailService } from '../../../../lib/email-service';
 // POST - Forgot password request
 export async function POST(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Progressive rate limiting - gets stricter with repeated violations
     const rateLimitResult = await SecurityMiddleware.checkProgressiveRateLimit(request, 'forgot-password');

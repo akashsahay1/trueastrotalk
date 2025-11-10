@@ -216,8 +216,8 @@ export class NotificationService {
         }
       };
 
-      const response = await firebaseApp.messaging().send(message);
-      
+      const _response = await firebaseApp.messaging().send(message);
+
       // Update delivery status
       await this.updateNotificationStatus(target.userId, notification.type, 'delivered');
       

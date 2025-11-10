@@ -38,7 +38,7 @@ interface NotificationTarget {
 // GET - Get user's notifications
 export async function GET(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Authenticate user
     let authenticatedUser;
@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
 // POST - Send notification (admin only) or register FCM token
 export async function POST(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Authenticate user
     let authenticatedUser;
@@ -298,7 +298,7 @@ export async function POST(request: NextRequest) {
 // PUT - Mark notifications as read
 export async function PUT(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Authenticate user
     let authenticatedUser;

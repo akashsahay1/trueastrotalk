@@ -9,7 +9,7 @@ import {
 // GET - Astrologer dashboard data
 export async function GET(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Authenticate astrologer
     let authenticatedUser;
@@ -355,7 +355,7 @@ export async function GET(request: NextRequest) {
 // PUT - Update astrologer availability and settings
 export async function PUT(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Authenticate astrologer
     let authenticatedUser;

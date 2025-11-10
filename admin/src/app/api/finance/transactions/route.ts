@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import DatabaseService from '@/lib/database';
 import { ObjectId } from 'mongodb';
 
-const DB_NAME = 'trueastrotalk';
-
 export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);

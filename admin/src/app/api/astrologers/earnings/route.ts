@@ -8,7 +8,7 @@ import {
 // GET - Astrologer earnings analytics
 export async function GET(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Authenticate astrologer
     let authenticatedUser;
@@ -316,7 +316,7 @@ export async function GET(request: NextRequest) {
 // POST - Request withdrawal
 export async function POST(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Authenticate astrologer
     let authenticatedUser;
@@ -425,7 +425,7 @@ export async function POST(request: NextRequest) {
       requested_at: new Date(),
       created_at: new Date(),
       updated_at: new Date(),
-      request_ip: ip,
+      request_ip: _ip,
       metadata: {
         user_agent: request.headers.get('user-agent') || '',
         astrologer_name: astrologer.full_name,

@@ -6,7 +6,7 @@ import { withSecurity, SecurityPresets } from '@/lib/api-security';
 // GET - View rate limit status and violations
 async function handleGET(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Authenticate admin
     let authenticatedUser;
@@ -162,7 +162,7 @@ async function handleGET(request: NextRequest) {
 // DELETE - Clear rate limits (admin emergency action)
 async function handleDELETE(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Authenticate admin
     let authenticatedUser;

@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert';
+import { getCSRFToken } from '@/lib/csrf';
 
 interface MediaFile {
   _id: string;
@@ -118,7 +119,7 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
 
       try {
         const xhr = new XMLHttpRequest();
-        
+
         // Create a promise for each upload
         await new Promise<void>((resolve) => {
           xhr.upload.addEventListener('progress', (e) => {
@@ -152,6 +153,13 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
           };
 
           xhr.open('POST', '/api/admin/media/upload');
+
+          // Add CSRF token to request headers
+          const csrfToken = getCSRFToken();
+          if (csrfToken) {
+            xhr.setRequestHeader('x-csrf-token', csrfToken);
+          }
+
           xhr.send(formData);
         });
 

@@ -47,7 +47,7 @@ async function resolveProfileImage(user: Record<string, unknown>, mediaCollectio
 
 export async function GET(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     const { searchParams } = new URL(request.url);
     

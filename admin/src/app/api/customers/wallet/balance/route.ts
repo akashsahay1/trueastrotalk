@@ -7,8 +7,6 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 );
 
-const DB_NAME = 'trueastrotalk';
-
 export async function GET(request: NextRequest) {
   try {
     // Get token from header

@@ -4,7 +4,7 @@ import { JWTSecurity } from '../../../../lib/security';
 
 export async function POST(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Extract refresh token from multiple sources
     let refreshToken = request.cookies.get('refresh_token')?.value;

@@ -39,7 +39,7 @@ class EmailService {
         text: emailData.text,
       };
 
-      const result = await sgMail.send(msg);
+      const _result = await sgMail.send(msg);
       return true;
     } catch (error) {
       console.error('Error sending email via SendGrid:', error);

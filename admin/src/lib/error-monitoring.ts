@@ -359,13 +359,13 @@ export class ErrorMonitoring {
       cutoffDate.setDate(cutoffDate.getDate() - this.ERROR_RETENTION_DAYS);
 
       // Delete old error logs
-      const logsResult = await errorLogsCollection.deleteMany({
+      const _logsResult = await errorLogsCollection.deleteMany({
         created_at: { $lt: cutoffDate },
         resolved: true // Only delete resolved errors
       });
 
       // Delete old stats
-      const statsResult = await errorStatsCollection.deleteMany({
+      const _statsResult = await errorStatsCollection.deleteMany({
         date: { $lt: cutoffDate.toISOString().split('T')[0] }
       });
 

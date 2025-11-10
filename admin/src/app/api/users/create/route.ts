@@ -160,7 +160,7 @@ export const POST = withSecurity(async (request: NextRequest) => {
         emailService.sendWelcomeEmail(newUser),
         // Send admin notification email
         emailService.sendAdminSignupNotification(newUser)
-      ]).then(([welcomeSent, adminNotificationSent]) => {
+      ]).then(([_welcomeSent, _adminNotificationSent]) => {
       }).catch(error => {
         console.error('Error sending emails:', error);
       });

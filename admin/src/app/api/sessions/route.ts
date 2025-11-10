@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
       billing_updated_at: null
     };
 
-    const result = await sessionsCollection.insertOne(session);
+    const _result = await sessionsCollection.insertOne(session);
     return NextResponse.json({
       success: true,
       message: 'Session created successfully',
@@ -300,11 +300,11 @@ export async function PATCH(request: NextRequest) {
 
     if (!session) {
       // Show available sessions to help debug
-      const availableSessions = await sessionsCollection.find(
+      const _availableSessions = await sessionsCollection.find(
         { session_id: sessionId }, // Search by just session_id to see if it exists with different type
         { projection: { session_id: 1, session_type: 1, status: 1 } }
       ).toArray();
-      return NextResponse.json({ 
+      return NextResponse.json({
         success: false,
         error: `Session not found: ${sessionId} with type ${sessionType}` 
       }, { status: 404 });

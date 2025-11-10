@@ -11,7 +11,7 @@ import { Validator } from '../../../../lib/validation';
 // POST - Change password for authenticated user
 export async function POST(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Rate limiting for password change attempts (more lenient for legitimate users)
     const rateLimitResult = await SecurityMiddleware.checkRateLimit(

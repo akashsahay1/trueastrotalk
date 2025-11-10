@@ -44,7 +44,7 @@ interface AuthenticatedUser {
 // POST - Send bulk notifications to customers or astrologers
 export async function POST(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Authenticate user (only admins can send bulk notifications)
     let authenticatedUser;
@@ -245,7 +245,7 @@ export async function POST(request: NextRequest) {
 // GET - Get bulk notification history
 export async function GET(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Authenticate user (only admins can view bulk notification history)
     let authenticatedUser;

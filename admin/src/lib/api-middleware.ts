@@ -183,10 +183,10 @@ class APIMiddleware {
    * Request logging
    */
   static logRequest(request: NextRequest, startTime: number = Date.now()): void {
-    const duration = Date.now() - startTime;
-    const ip = this.getClientIP(request);
-    const userAgent = request.headers.get('user-agent');
-    
+    const _duration = Date.now() - startTime;
+    const _ip = this.getClientIP(request);
+    const _userAgent = request.headers.get('user-agent');
+
   }
 
   /**

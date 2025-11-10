@@ -89,7 +89,7 @@ async function deleteFile(filePath: string, options?: { deleteFromFilesystem?: b
 // GET user profile
 export async function GET(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Authenticate user with enhanced security
     let user;
@@ -216,7 +216,7 @@ export async function GET(request: NextRequest) {
 // PUT update user profile (handles both JSON data and file uploads)
 export async function PUT(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
     // Authenticate user with enhanced security
     let user;
