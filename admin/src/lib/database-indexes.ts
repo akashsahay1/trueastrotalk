@@ -36,56 +36,60 @@ export class DatabaseIndexManager {
         })
       ]);
 
-      // Chat sessions collection indexes
-      const chatSessionsCollection = await DatabaseService.getCollection('chat_sessions');
+      // Unified Sessions collection indexes (chat + voice_call + video_call)
+      const sessionsCollection = await DatabaseService.getCollection('sessions');
       await Promise.all([
-        chatSessionsCollection.createIndex({ astrologer_id: 1, status: 1 }, { background: true }),
-        chatSessionsCollection.createIndex({ customer_id: 1, status: 1 }, { background: true }),
-        chatSessionsCollection.createIndex({ created_at: -1 }, { background: true }),
-        chatSessionsCollection.createIndex({ astrologer_id: 1, created_at: -1 }, { background: true }),
-        chatSessionsCollection.createIndex({ status: 1, created_at: -1 }, { background: true }),
-        chatSessionsCollection.createIndex({ 
-          astrologer_id: 1, 
-          status: 1, 
-          duration_minutes: 1 
+        // Core indexes for unified collection
+        sessionsCollection.createIndex({ session_type: 1, status: 1 }, { background: true }),
+        sessionsCollection.createIndex({ user_id: 1, session_type: 1, created_at: -1 }, { background: true }),
+        sessionsCollection.createIndex({ astrologer_id: 1, session_type: 1, created_at: -1 }, { background: true }),
+        sessionsCollection.createIndex({ status: 1, created_at: -1 }, { background: true }),
+        sessionsCollection.createIndex({ session_id: 1 }, { background: true }),
+        sessionsCollection.createIndex({ created_at: -1 }, { background: true }),
+
+        // Composite indexes for filtering and sorting
+        sessionsCollection.createIndex({
+          session_type: 1,
+          astrologer_id: 1,
+          status: 1,
+          created_at: -1
+        }, { background: true }),
+        sessionsCollection.createIndex({
+          session_type: 1,
+          user_id: 1,
+          status: 1,
+          created_at: -1
+        }, { background: true }),
+
+        // Index for billing queries
+        sessionsCollection.createIndex({
+          session_type: 1,
+          status: 1,
+          billing_updated_at: 1
         }, { background: true })
       ]);
 
-      // Call sessions collection indexes
-      const callSessionsCollection = await DatabaseService.getCollection('call_sessions');
+      // Transactions collection indexes (unified wallet + all transactions)
+      const transactionsCollection = await DatabaseService.getCollection('transactions');
       await Promise.all([
-        callSessionsCollection.createIndex({ astrologer_id: 1, status: 1 }, { background: true }),
-        callSessionsCollection.createIndex({ customer_id: 1, status: 1 }, { background: true }),
-        callSessionsCollection.createIndex({ created_at: -1 }, { background: true }),
-        callSessionsCollection.createIndex({ astrologer_id: 1, created_at: -1 }, { background: true })
-      ]);
-
-      // Sessions collection (general) indexes
-      const sessionsCollection = await DatabaseService.getCollection('sessions');
-      await Promise.all([
-        sessionsCollection.createIndex({ astrologer_id: 1 }, { background: true }),
-        sessionsCollection.createIndex({ customer_id: 1 }, { background: true }),
-        sessionsCollection.createIndex({ created_at: -1 }, { background: true }),
-        sessionsCollection.createIndex({ astrologer_id: 1, created_at: -1 }, { background: true })
-      ]);
-
-      // Wallet transactions collection indexes
-      const walletTransactionsCollection = await DatabaseService.getCollection('wallet_transactions');
-      await Promise.all([
-        walletTransactionsCollection.createIndex({ 
-          recipient_id: 1, 
-          transaction_type: 1, 
-          status: 1 
+        transactionsCollection.createIndex({
+          user_id: 1,
+          transaction_type: 1,
+          status: 1
         }, { background: true }),
-        walletTransactionsCollection.createIndex({ 
-          sender_id: 1, 
-          created_at: -1 
+        transactionsCollection.createIndex({
+          recipient_user_id: 1,
+          created_at: -1
         }, { background: true }),
-        walletTransactionsCollection.createIndex({ created_at: -1 }, { background: true }),
-        walletTransactionsCollection.createIndex({ 
-          transaction_type: 1, 
-          status: 1, 
-          created_at: -1 
+        transactionsCollection.createIndex({ created_at: -1 }, { background: true }),
+        transactionsCollection.createIndex({
+          transaction_type: 1,
+          status: 1,
+          created_at: -1
+        }, { background: true }),
+        transactionsCollection.createIndex({
+          session_id: 1,
+          service_type: 1
         }, { background: true })
       ]);
 

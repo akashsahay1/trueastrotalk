@@ -93,9 +93,9 @@ export async function POST(request: NextRequest) {
         });
 
       case 'get_online_astrologers':
-        const astrologersCollection = await DatabaseService.getCollection('astrologers');
+        const astrologersCollection = await DatabaseService.getCollection('users');
         const astrologers = await astrologersCollection
-          .find({ is_online: true, is_available: true })
+          .find({ user_type: 'astrologer', is_online: true, is_available: true })
           .project({
             _id: 1,
             full_name: 1,
@@ -131,10 +131,11 @@ export async function POST(request: NextRequest) {
         const { user_id, user_type, is_online } = data as Record<string, unknown>;
         
         if (user_type === 'astrologer') {
-          const astrologersCollection = await DatabaseService.getCollection('astrologers'); await astrologersCollection.updateOne(
-            { _id: new ObjectId(user_id as string) },
-            { 
-              $set: { 
+          const usersCollectionForUpdate = await DatabaseService.getCollection('users');
+          await usersCollectionForUpdate.updateOne(
+            { user_id: user_id as string, user_type: 'astrologer' },
+            {
+              $set: {
                 is_online: is_online,
                 last_seen: new Date()
               }

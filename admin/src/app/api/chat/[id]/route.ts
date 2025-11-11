@@ -69,8 +69,8 @@ export async function GET(
 
     // Get user and astrologer details
     const [user, astrologer] = await Promise.all([
-      usersCollection.findOne({ _id: new ObjectId(session.user_id) }),
-      usersCollection.findOne({ _id: new ObjectId(session.astrologer_id), user_type: 'astrologer' })
+      usersCollection.findOne({ user_id: session.user_id }),
+      usersCollection.findOne({ user_id: session.astrologer_id, user_type: 'astrologer' })
     ]);
 
     // Mark messages as read for the requesting user

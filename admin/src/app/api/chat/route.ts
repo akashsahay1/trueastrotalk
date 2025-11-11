@@ -39,15 +39,17 @@ export async function GET(request: NextRequest) {
       }, { status: 403 });
     }
 
-    const chatSessionsCollection = await DatabaseService.getCollection('chat_sessions');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
     const usersCollection = await DatabaseService.getCollection('users');
 
     // Build secure query based on user type
-    const query: Record<string, unknown> = {};
+    const query: Record<string, unknown> = {
+      session_type: 'chat' // Only get chat sessions from unified collection
+    };
     if (userType === 'customer') {
-      query.user_id = new ObjectId(userId as string);
+      query.user_id = userId as string;
     } else if (userType === 'astrologer') {
-      query.astrologer_id = new ObjectId(userId as string);
+      query.astrologer_id = userId as string;
     }
     
     // Validate and sanitize status filter
@@ -59,7 +61,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get chat sessions with pagination and security projection
-    const chatSessions = await chatSessionsCollection
+    const chatSessions = await sessionsCollection
       .find(query, {
         projection: {
           // Don't expose sensitive internal data
@@ -72,33 +74,33 @@ export async function GET(request: NextRequest) {
       .limit(limit)
       .toArray();
 
-    const totalSessions = await chatSessionsCollection.countDocuments(query);
+    const totalSessions = await sessionsCollection.countDocuments(query);
 
     // Populate user and astrologer details securely
     const populatedSessions = await Promise.all(
       chatSessions.map(async (session) => {
         const [user, astrologer] = await Promise.all([
           usersCollection.findOne(
-            { _id: new ObjectId(session.user_id as string) },
-            { 
-              projection: { 
-                password: 0, 
+            { user_id: session.user_id as string },
+            {
+              projection: {
+                password: 0,
                 google_access_token: 0,
                 failed_login_attempts: 0,
                 registration_ip: 0
-              } 
+              }
             }
           ),
           usersCollection.findOne(
-            { _id: new ObjectId(session.astrologer_id as string) },
-            { 
-              projection: { 
-                password: 0, 
+            { user_id: session.astrologer_id as string, user_type: 'astrologer' },
+            {
+              projection: {
+                password: 0,
                 google_access_token: 0,
                 failed_login_attempts: 0,
                 registration_ip: 0,
                 total_earnings: 0  // Don't expose earnings to customers
-              } 
+              }
             }
           )
         ]);
@@ -214,12 +216,12 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const chatSessionsCollection = await DatabaseService.getCollection('chat_sessions');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
     const usersCollection = await DatabaseService.getCollection('users');
 
     // Check if astrologer exists and is available
-    const astrologer = await usersCollection.findOne({ 
-      _id: new ObjectId(astrologer_id as string),
+    const astrologer = await usersCollection.findOne({
+      user_id: astrologer_id as string,
       user_type: 'astrologer',
       account_status: 'active',
       approval_status: 'approved'
@@ -243,8 +245,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify customer exists and has active account
-    const user = await usersCollection.findOne({ 
-      _id: new ObjectId(user_id as string),
+    const user = await usersCollection.findOne({
+      user_id: user_id as string,
       account_status: 'active'
     });
     
@@ -267,9 +269,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if there's already an active session between these users
-    const existingSession = await chatSessionsCollection.findOne({
-      user_id: new ObjectId(user_id as string),
-      astrologer_id: new ObjectId(astrologer_id as string),
+    const existingSession = await sessionsCollection.findOne({
+      session_type: 'chat',
+      user_id: user_id as string,
+      astrologer_id: astrologer_id as string,
       status: { $in: ['pending', 'active'] }
     });
 
@@ -296,8 +299,9 @@ export async function POST(request: NextRequest) {
 
     // Check for rate limiting - max 3 new sessions per hour per user
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const recentSessions = await chatSessionsCollection.countDocuments({
-      user_id: new ObjectId(user_id as string),
+    const recentSessions = await sessionsCollection.countDocuments({
+      session_type: 'chat',
+      user_id: user_id as string,
       created_at: { $gte: oneHourAgo }
     });
 
@@ -309,21 +313,31 @@ export async function POST(request: NextRequest) {
       }, { status: 429 });
     }
 
-    // Create new chat session with secure data
+    // Create new chat session with secure data in unified sessions collection
     const sessionData = {
       _id: new ObjectId(),
-      user_id: new ObjectId(user_id as string),
-      astrologer_id: new ObjectId(astrologer_id as string),
+      session_id: new ObjectId().toString(),
+      session_type: 'chat', // Add session_type for unified collection
+      user_id: user_id as string,
+      astrologer_id: astrologer_id as string,
       status: 'pending', // pending -> active -> completed -> cancelled
       rate_per_minute: Number(astrologer.chat_rate) || 30,
       start_time: new Date(),
       end_time: null,
       duration_minutes: 0,
       total_amount: 0,
+
+      // Chat-specific fields
       last_message: null,
       last_message_time: null,
       user_unread_count: 0,
       astrologer_unread_count: 0,
+
+      // Call-specific fields (null for chat)
+      call_quality_rating: null,
+      connection_id: null,
+
+      billing_updated_at: null,
       created_at: new Date(),
       updated_at: new Date(),
       created_by_ip: _ip,
@@ -333,7 +347,7 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    const result = await chatSessionsCollection.insertOne(sessionData);
+    const result = await sessionsCollection.insertOne(sessionData);
     const sessionId = result.insertedId.toString();
 
 

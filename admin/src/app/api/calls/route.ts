@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ObjectId } from 'mongodb';
 import DatabaseService from '@/lib/database';
 
 // GET - Get user's call sessions
@@ -20,12 +21,13 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const callSessionsCollection = await DatabaseService.getCollection('call_sessions');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
     const usersCollection = await DatabaseService.getCollection('users');
-    const astrologersCollection = await DatabaseService.getCollection('astrologers');
 
-    // Build query based on user type
-    const query: Record<string, unknown> = {};
+    // Build query based on user type - filter for call sessions (voice and video)
+    const query: Record<string, unknown> = {
+      session_type: { $in: ['voice_call', 'video_call'] } // Only get call sessions from unified collection
+    };
     if (userType === 'user') {
       query.user_id = userId;
     } else {
@@ -37,21 +39,21 @@ export async function GET(request: NextRequest) {
     }
 
     // Get call sessions with pagination
-    const callSessions = await callSessionsCollection
+    const callSessions = await sessionsCollection
       .find(query)
       .sort({ updated_at: -1 })
       .skip(skip)
       .limit(limit)
       .toArray();
 
-    const totalSessions = await callSessionsCollection.countDocuments(query);
+    const totalSessions = await sessionsCollection.countDocuments(query);
 
     // Populate user and astrologer details
     const populatedSessions = await Promise.all(
       callSessions.map(async (session) => {
         const [user, astrologer] = await Promise.all([
           usersCollection.findOne({ user_id: session.user_id }),
-          astrologersCollection.findOne({ user_id: session.astrologer_id })
+          usersCollection.findOne({ user_id: session.astrologer_id, user_type: 'astrologer' })
         ]);
 
         return {
@@ -127,13 +129,13 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const callSessionsCollection = await DatabaseService.getCollection('call_sessions');
-    const astrologersCollection = await DatabaseService.getCollection('astrologers');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
     const usersCollection = await DatabaseService.getCollection('users');
 
     // Check if astrologer exists and is online (removed availability check)
-    const astrologer = await astrologersCollection.findOne({ 
+    const astrologer = await usersCollection.findOne({
       user_id: astrologer_id,
+      user_type: 'astrologer',
       is_online: true
     });
 
@@ -156,7 +158,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if there's already an active call session
-    const existingSession = await callSessionsCollection.findOne({
+    const sessionType = call_type === 'video' ? 'video_call' : 'voice_call';
+    const existingSession = await sessionsCollection.findOne({
+      session_type: sessionType,
       user_id: user_id,
       astrologer_id: astrologer_id,
       status: { $in: ['pending', 'ringing', 'active'] }
@@ -177,24 +181,36 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Create new call session
+    // Create new call session in unified sessions collection
     const sessionData = {
+      _id: new ObjectId(),
+      session_id: new ObjectId().toString(),
+      session_type: sessionType, // 'voice_call' or 'video_call'
       user_id: user_id,
       astrologer_id: astrologer_id,
-      call_type: call_type,
       status: 'pending', // pending -> ringing -> active -> completed/missed/rejected
       rate_per_minute: call_type === 'video' ? (astrologer.video_call_rate || astrologer.call_rate || 10.0) : (astrologer.call_rate || 8.0),
       start_time: null,
       end_time: null,
       duration_minutes: 0,
       total_amount: 0.0,
+
+      // Chat-specific fields (null for calls)
+      last_message: null,
+      last_message_time: null,
+      user_unread_count: 0,
+      astrologer_unread_count: 0,
+
+      // Call-specific fields
       call_quality_rating: null,
       connection_id: null, // For WebRTC connection
+
+      billing_updated_at: null,
       created_at: new Date(),
       updated_at: new Date()
     };
 
-    const result = await callSessionsCollection.insertOne(sessionData);
+    const result = await sessionsCollection.insertOne(sessionData);
     const sessionId = result.insertedId.toString();
     return NextResponse.json({
       success: true,
@@ -203,7 +219,8 @@ export async function POST(request: NextRequest) {
       session: {
         _id: sessionId,
         status: sessionData.status,
-        call_type: sessionData.call_type,
+        session_type: sessionData.session_type,
+        call_type: call_type, // Keep call_type for backwards compatibility
         rate_per_minute: sessionData.rate_per_minute,
         created_at: sessionData.created_at,
         user: {

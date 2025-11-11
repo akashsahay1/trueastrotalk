@@ -12,19 +12,17 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * limit;
 
-    const astrologersCollection = await DatabaseService.getCollection('astrologers');
+    const usersCollection = await DatabaseService.getCollection('users');
     const sessionsCollection = await DatabaseService.getCollection('sessions');
-    
-    // Build query for search
-    let mongoQuery: Record<string, unknown> = {};
+
+    // Build query for search - only get astrologers from users collection
+    const mongoQuery: Record<string, unknown> = { user_type: 'astrologer' };
     if (search) {
-      mongoQuery = {
-        full_name: { $regex: search, $options: 'i' }
-      };
+      mongoQuery.full_name = { $regex: search, $options: 'i' };
     }
-    
+
     // Get astrologers
-    const astrologers = await astrologersCollection
+    const astrologers = await usersCollection
       .find(mongoQuery)
       .skip(skip)
       .limit(limit)
@@ -33,8 +31,8 @@ export async function GET(request: NextRequest) {
     const commissions = [];
     
     for (const astrologer of astrologers) {
-      // Build session query with date filter
-      const sessionQuery: Record<string, unknown> = { astrologer_id: astrologer._id.toString() };
+      // Build session query with date filter - use custom user_id
+      const sessionQuery: Record<string, unknown> = { astrologer_id: astrologer.user_id };
       
       if (dateFrom || dateTo) {
         (sessionQuery as Record<string, unknown>).created_at = {};
@@ -108,7 +106,7 @@ export async function GET(request: NextRequest) {
     commissions.sort((a, b) => b.total_commission - a.total_commission);
     
     // Get total count for pagination
-    const totalCount = await astrologersCollection.countDocuments(mongoQuery);
+    const totalCount = await usersCollection.countDocuments(mongoQuery);
     const totalPages = Math.ceil(totalCount / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;

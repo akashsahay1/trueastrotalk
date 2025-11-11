@@ -411,7 +411,7 @@ export async function PUT(request: NextRequest) {
 
     // Add image to media library if uploaded
     if (imageUrl && profileImageFile) {
-      const mediaCollection = await DatabaseService.getCollection('media_files');
+      const mediaCollection = await DatabaseService.getCollection('media');
       const fileData = {
         filename: path.basename(imageUrl),
         original_name: profileImageFile.name,
@@ -445,9 +445,9 @@ export async function PUT(request: NextRequest) {
 
     // Get base URL for image resolution
     const baseUrl = getBaseUrl(request);
-    
+
     // Resolve profile image to full URL
-    const mediaCollection2 = await DatabaseService.getCollection('media_files');
+    const mediaCollection2 = await DatabaseService.getCollection('media');
     const profileImageUrl = await resolveProfileImage(updatedUser, mediaCollection2, baseUrl);
 
 

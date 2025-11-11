@@ -24,7 +24,6 @@ export async function GET(
 
     const callSessionsCollection = await DatabaseService.getCollection('call_sessions');
     const usersCollection = await DatabaseService.getCollection('users');
-    const astrologersCollection = await DatabaseService.getCollection('astrologers');
 
     // Get call session
     const session = await callSessionsCollection.findOne({ _id: new ObjectId(sessionId) });
@@ -56,8 +55,8 @@ export async function GET(
 
     // Get user and astrologer details
     const [user, astrologer] = await Promise.all([
-      usersCollection.findOne({ _id: new ObjectId(session.user_id) }),
-      astrologersCollection.findOne({ _id: new ObjectId(session.astrologer_id) })
+      usersCollection.findOne({ user_id: session.user_id }),
+      usersCollection.findOne({ user_id: session.astrologer_id, user_type: 'astrologer' })
     ]);
 
     // Format response
