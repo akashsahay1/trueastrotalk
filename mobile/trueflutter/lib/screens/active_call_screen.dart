@@ -447,7 +447,18 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
           mirror: false,
           objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
           placeholderBuilder: (context) => Container(
-            color: Colors.black,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF1A1A1A), // Dark grey with slight warmth
+                  Color(0xFF2D1B1B), // Dark with subtle red tint
+                  Color(0xFF1A1A1A), // Back to dark grey
+                ],
+                stops: [0.0, 0.5, 1.0],
+              ),
+            ),
             child: const Center(
               child: Icon(
                 Icons.videocam_off,
@@ -477,7 +488,16 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
                   mirror: true,
                   objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                   placeholderBuilder: (context) => Container(
-                    color: Colors.black87,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFF2A2A2A), // Slightly lighter dark grey
+                          Color(0xFF3D2323), // Dark with subtle red tint
+                        ],
+                      ),
+                    ),
                     child: const Center(
                       child: Icon(
                         Icons.person,

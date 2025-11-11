@@ -161,7 +161,7 @@ flutter_native_splash:
   android_12:
     image: "assets/images/logo_rounded.png"
     color: "#FFFFFF"
-    icon_background_color: "#FFFFFF"
+    icon_background_color: "#FE0000"
     branding: "assets/images/branding_logo.png"
 
   # Platform configuration
