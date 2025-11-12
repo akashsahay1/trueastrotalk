@@ -16,7 +16,7 @@ export default function LoginPage() {
   useEffect(() => {
     // Add body class for login page styling
     document.body.className = 'bg-light';
-    
+
     return () => {
       // Clean up on unmount
       document.body.className = '';
@@ -59,14 +59,14 @@ export default function LoginPage() {
         <div className="card shadow-sm">
           <div className="card-header text-center">
             <a href="/dashboard" className="d-flex flex-column align-items-center">
-              <Image 
-                className="logo-img mb-2" 
-                src="/logo.png" 
+              <Image
+                className="logo-img mb-2"
+                src="/logo.png"
                 alt="True Astrotalk Logo"
                 width={80}
                 height={80}
               />
-              <h3 className="text-primary mb-0" style={{ color: '#1877F2' }}>True Astrotalk</h3>
+              <h3 className="text-danger mb-0">True Astrotalk</h3>
               <small className="text-muted">Admin Panel</small>
             </a>
             <span className="splash-description mt-3">Please enter your admin credentials.</span>
@@ -79,12 +79,12 @@ export default function LoginPage() {
             )}
             <form onSubmit={handleSubmit}>
               <div className="form-group mb-2">
-                <input 
-                  className="form-control" 
-                  id="email" 
-                  type="email" 
-                  placeholder="Email Address" 
-                  autoComplete="email" 
+                <input
+                  className="form-control"
+                  id="email"
+                  type="email"
+                  placeholder="Email Address"
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -93,11 +93,11 @@ export default function LoginPage() {
               </div>
               <div className="form-group mb-2">
                 <div className="position-relative">
-                  <input 
-                    className="form-control" 
-                    id="password" 
+                  <input
+                    className="form-control"
+                    id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Password" 
+                    placeholder="Password"
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -108,9 +108,9 @@ export default function LoginPage() {
                   <button
                     type="button"
                     className="btn btn-link position-absolute"
-                    style={{ 
-                      right: '10px', 
-                      top: '50%', 
+                    style={{
+                      right: '10px',
+                      top: '50%',
                       transform: 'translateY(-50%)',
                       border: 'none',
                       background: 'none',
@@ -122,14 +122,14 @@ export default function LoginPage() {
                   >
                     {showPassword ? (
                       <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/>
-                        <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/>
-                        <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.708zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
+                        <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z" />
+                        <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z" />
+                        <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.708zm10.296 8.884-12-12 .708-.708 12 12-.708.708z" />
                       </svg>
                     ) : (
                       <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
-                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z" />
+                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z" />
                       </svg>
                     )}
                   </button>
@@ -141,10 +141,9 @@ export default function LoginPage() {
                   <span className="custom-control-label">Remember Me</span>
                 </label>
               </div>
-              <button 
-                type="submit" 
-                className="btn btn-primary btn-lg btn-block"
-                style={{ backgroundColor: '#1877F2', borderColor: '#1877F2' }}
+              <button
+                type="submit"
+                className="btn btn-danger btn-lg btn-block"
                 disabled={loading}
               >
                 {loading ? 'Signing in...' : 'Sign in'}

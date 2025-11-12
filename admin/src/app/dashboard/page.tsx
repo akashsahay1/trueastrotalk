@@ -34,7 +34,7 @@ export default function DashboardPage() {
   useEffect(() => {
     // Remove the bg-light class for dashboard
     document.body.className = '';
-    
+
     // Fetch dashboard data
     fetchDashboardData();
   }, []);
@@ -43,7 +43,7 @@ export default function DashboardPage() {
     try {
       const response = await fetch('/api/dashboard/stats');
       const data = await response.json();
-      
+
       if (response.ok) {
         // API returns data directly, not in a nested stats object
         setStats({
@@ -65,7 +65,7 @@ export default function DashboardPage() {
     <div className="dashboard-main-wrapper">
       <Header />
       <Sidebar />
-      
+
       {/* Dashboard Content */}
       <div className="dashboard-wrapper">
         <div className="dashboard-ecommerce">
@@ -94,7 +94,7 @@ export default function DashboardPage() {
             <div className="ecommerce-widget">
               <div className="row">
                 <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-primary shadow-sm h-100">
+                  <div className="card border-top-danger shadow-sm h-100">
                     <div className="card-body">
                       <h5 className="text-muted mb-4">Customers</h5>
                       <div className="d-flex justify-content-between">
@@ -114,7 +114,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-primary shadow-sm h-100">
+                  <div className="card border-top-danger shadow-sm h-100">
                     <div className="card-body">
                       <h5 className="text-muted mb-4">Astrologers</h5>
                       <div className="d-flex justify-content-between">
@@ -134,7 +134,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-primary shadow-sm h-100">
+                  <div className="card border-top-danger shadow-sm h-100">
                     <div className="card-body">
                       <h5 className="text-muted mb-4">Sessions</h5>
                       <div className="d-flex justify-content-between">
@@ -154,7 +154,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12 mb-4">
-                  <div className="card border-top-primary shadow-sm h-100">
+                  <div className="card border-top-danger shadow-sm h-100">
                     <div className="card-body">
                       <h5 className="text-muted mb-4">Revenue</h5>
                       <div className="d-flex justify-content-between">
@@ -207,11 +207,10 @@ export default function DashboardPage() {
                                 <td>{customer.email_address}</td>
                                 <td>{customer.phone_number}</td>
                                 <td>
-                                  <span className={`badge ${
-                                    customer.account_status === 'active' ? 'badge-success' : 
-                                    customer.account_status === 'inactive' ? 'badge-warning' : 
-                                    'badge-danger'
-                                  }`}>
+                                  <span className={`badge ${customer.account_status === 'active' ? 'badge-success' :
+                                      customer.account_status === 'inactive' ? 'badge-warning' :
+                                        'badge-danger'
+                                    }`}>
                                     {customer.account_status}
                                   </span>
                                 </td>

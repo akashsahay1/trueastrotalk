@@ -38,7 +38,7 @@ export default function Header() {
       <nav className="navbar navbar-expand-lg navbar-light bg-white fixed-top">
         <a className="navbar-brand" href="/dashboard">
           <Image src="/logo.png" alt="True Astrotalk" width={40} height={40} />
-					<span className="ml-3"><strong>True Astrotalk</strong></span>
+          <span className="ml-3"><strong>True Astrotalk</strong></span>
         </a>
         <div className="ml-auto" id="navbarSupportedContent">
           <ul className="navbar-nav ml-auto navbar-right-top flex-row">
@@ -48,7 +48,7 @@ export default function Header() {
                 {userInfo.profile_image ? (
                   <Image src={userInfo.profile_image} alt={userInfo.full_name} className="avatar-xs rounded-circle" width={32} height={32} />
                 ) : (
-                  <div className="avatar-xs rounded-circle bg-primary text-white d-flex align-items-center justify-content-center">
+                  <div className="avatar-xs rounded-circle bg-danger text-white d-flex align-items-center justify-content-center">
                     {userInfo.full_name.charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -58,14 +58,8 @@ export default function Header() {
                   <h5 className="mb-0 text-white nav-user-name">{userInfo.full_name}</h5>
                   <span className="status"></span><span className="text-capitalize">{userInfo.user_type}</span>
                 </div>
-                <a className="dropdown-item" href="#">
-                  <i className="fas fa-user mr-2"></i>Account
-                </a>
-                <a className="dropdown-item" href="#">
-                  <i className="fas fa-cog mr-2"></i>Settings
-                </a>
-                <button 
-                  className="dropdown-item" 
+                <button
+                  className="dropdown-item"
                   onClick={handleLogout}
                   disabled={loggingOut}
                 >

@@ -5,8 +5,8 @@
 
 /* Override Bootstrap primary color with Facebook Blue */
 :root {
-  --primary-color: #1877f2;
-  --primary-hover: #1565d8;
+  --primary-color: #FE0000;
+  --primary-hover: #d30000ff;
   --primary-light: #e3f2fd;
   --background: #ffffff;
   --foreground: #171717;
