@@ -9,6 +9,7 @@ import MediaLibrary from '@/components/admin/MediaLibrary';
 import Image from 'next/image';
 import { validateForm, getProductFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/client-validation';
 import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
+import { getCSRFToken } from '@/lib/csrf';
 
 // interface Product {
 //   _id: string;
@@ -295,11 +296,18 @@ export default function EditProductPage() {
     };
 
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch(`/api/admin/products/${productId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(productData),
       });
 

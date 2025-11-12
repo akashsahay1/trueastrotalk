@@ -5,6 +5,7 @@ import Sidebar from '@/components/admin/Sidebar';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
+import { getCSRFToken } from '@/lib/csrf';
 
 interface AppConfig {
   razorpay: {
@@ -76,13 +77,20 @@ export default function GeneralSettingsPage() {
   const saveConfig = async () => {
     setSaving(true);
     showLoadingAlert('Saving configuration...');
-    
+
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch('/api/admin/settings/general', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include', // Include cookies in request
         body: JSON.stringify(config),
       });

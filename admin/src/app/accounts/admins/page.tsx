@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert';
 import { Pagination } from '@/components/admin/ui/Pagination';
+import { getCSRFToken } from '@/lib/csrf';
 
 interface User {
   _id: string;
@@ -236,8 +237,15 @@ export default function AdminsPage() {
 
     setDeleting('bulk');
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {};
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const deletePromises = selectedUsers.map(userId =>
-        fetch(`/api/admin/users?id=${userId}`, { method: 'DELETE' })
+        fetch(`/api/admin/users?id=${userId}`, { method: 'DELETE', headers })
       );
 
       const results = await Promise.allSettled(deletePromises);
@@ -267,8 +275,16 @@ export default function AdminsPage() {
 
     setDeleting(userId);
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {};
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch(`/api/admin/users?id=${userId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers
       });
 
       if (response.ok) {

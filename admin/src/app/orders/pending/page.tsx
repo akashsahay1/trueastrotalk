@@ -6,6 +6,7 @@ import Sidebar from '@/components/admin/Sidebar';
 import Link from 'next/link';
 import Image from 'next/image';
 import Swal from 'sweetalert2';
+import { getCSRFToken } from '@/lib/csrf';
 
 interface OrderItem {
   product_id: string;
@@ -193,11 +194,18 @@ export default function PendingOrdersPage() {
 
     try {
       setBulkUpdating(true);
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch('/api/admin/orders/bulk-update', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           order_ids: selectedOrders,
           status: bulkStatus

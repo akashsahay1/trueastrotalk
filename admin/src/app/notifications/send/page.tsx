@@ -5,6 +5,7 @@ import Sidebar from '@/components/admin/Sidebar';
 import Link from 'next/link';
 import { useState } from 'react';
 import { successMessages, errorMessages } from '@/lib/sweetalert';
+import { getCSRFToken } from '@/lib/csrf';
 
 export default function SendNotificationPage() {
   const [formData, setFormData] = useState({
@@ -52,11 +53,18 @@ export default function SendNotificationPage() {
 
     setSending(true);
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch('/api/notifications', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(formData),
       });
 

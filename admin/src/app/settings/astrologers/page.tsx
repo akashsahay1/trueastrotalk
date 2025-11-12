@@ -5,6 +5,7 @@ import Sidebar from '@/components/admin/Sidebar';
 import { useEffect, useState } from 'react';
 import { successMessages, errorMessages, confirmMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
 import Link from 'next/link';
+import { getCSRFToken } from '@/lib/csrf';
 
 interface AstrologerOption {
   _id: string;
@@ -58,13 +59,20 @@ export default function AstrologerOptionsPage() {
     }
 
     showLoadingAlert('Adding new item...');
-    
+
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch('/api/astrologer-options', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           category: activeTab,
           name: newItemName.trim(),
@@ -96,13 +104,20 @@ export default function AstrologerOptionsPage() {
     }
 
     showLoadingAlert('Updating item...');
-    
+
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch(`/api/astrologer-options/${item._id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           name: editName.trim(),
           isActive: item.isActive,
@@ -130,13 +145,20 @@ export default function AstrologerOptionsPage() {
 
   const handleToggleStatus = async (item: AstrologerOption) => {
     showLoadingAlert('Updating status...');
-    
+
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch(`/api/astrologer-options/${item._id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           name: item.name,
           isActive: !item.isActive,
@@ -165,10 +187,18 @@ export default function AstrologerOptionsPage() {
     if (!confirmed) return;
 
     showLoadingAlert('Deleting item...');
-    
+
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {};
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch(`/api/astrologer-options/${item._id}`, {
         method: 'DELETE',
+        headers,
       });
 
       if (response.ok) {

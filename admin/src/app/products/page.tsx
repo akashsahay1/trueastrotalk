@@ -7,6 +7,7 @@ import Sidebar from '@/components/admin/Sidebar';
 import Image from 'next/image';
 import { confirmDialogs, errorMessages } from '@/lib/sweetalert';
 import { Pagination } from '@/components/admin/ui/Pagination';
+import { getCSRFToken } from '@/lib/csrf';
 
 interface Product {
   _id: string;
@@ -104,8 +105,16 @@ export default function ProductsPage() {
     if (!confirmed) return;
 
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {};
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch(`/api/admin/products/${id}`, {
         method: 'DELETE',
+        headers,
       });
 
       if (response.ok) {
@@ -121,16 +130,26 @@ export default function ProductsPage() {
 
   const handleBulkDelete = async () => {
     if (selectedProducts.length === 0) return;
-    
+
     const confirmed = await confirmDialogs.deleteItem(`${selectedProducts.length} products`);
     if (!confirmed) return;
 
     setBulkLoading(true);
     try {
-      const deletePromises = selectedProducts.map(id => 
-        fetch(`/api/admin/products/${id}`, { method: 'DELETE' })
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {};
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
+      const deletePromises = selectedProducts.map(id =>
+        fetch(`/api/admin/products/${id}`, {
+          method: 'DELETE',
+          headers,
+        })
       );
-      
+
       await Promise.all(deletePromises);
       setSelectedProducts([]);
       fetchProducts();

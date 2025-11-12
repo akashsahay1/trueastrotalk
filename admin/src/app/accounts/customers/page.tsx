@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert';
 import { Pagination } from '@/components/admin/ui/Pagination';
 import tableStyles from '@/styles/table.module.css';
+import { getCSRFToken } from '@/lib/csrf';
 
 interface User {
   _id: string;
@@ -202,8 +203,16 @@ export default function CustomersPage() {
 
     setDeleting(userId);
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {};
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch(`/api/users/${userId}`, {
         method: 'DELETE',
+        headers
       });
 
       if (response.ok) {
@@ -232,8 +241,15 @@ export default function CustomersPage() {
 
     setDeleting('bulk');
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {};
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const deletePromises = selectedUsers.map(userId =>
-        fetch(`/api/users/${userId}`, { method: 'DELETE' })
+        fetch(`/api/users/${userId}`, { method: 'DELETE', headers })
       );
 
       const results = await Promise.allSettled(deletePromises);

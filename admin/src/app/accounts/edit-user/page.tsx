@@ -10,6 +10,7 @@ import Image from 'next/image';
 // Removed unused import clearValidationErrors
 import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
 import AirDatePickerComponent from '@/components/admin/AirDatePickerComponent';
+import { getCSRFToken } from '@/lib/csrf';
 
 interface FormData {
   user_id: string;
@@ -530,11 +531,18 @@ function EditUserContent() {
     setLoading(true);
 
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch(`/api/users/${userId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(formData),
       });
 

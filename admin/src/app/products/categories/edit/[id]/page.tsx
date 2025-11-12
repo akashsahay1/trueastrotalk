@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';import Header from '@/components/admin/Header';
+import Link from 'next/link';
+import Header from '@/components/admin/Header';
 import Sidebar from '@/components/admin/Sidebar';
 import { validateForm, getCategoryFormRules, displayFieldErrors, clearValidationErrors } from '@/lib/client-validation';
 import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
+import { getCSRFToken } from '@/lib/csrf';
 
 interface Category {
   _id: string;
@@ -100,11 +102,18 @@ export default function EditCategoryPage() {
     setSaving(true);
     
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch(`/api/admin/products/categories/${categoryId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(formData),
       });
 

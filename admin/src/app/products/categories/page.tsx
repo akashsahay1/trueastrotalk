@@ -6,6 +6,7 @@ import Header from '@/components/admin/Header';
 import Sidebar from '@/components/admin/Sidebar';
 import { confirmDialogs, errorMessages } from '@/lib/sweetalert';
 import { Pagination } from '@/components/admin/ui/Pagination';
+import { getCSRFToken } from '@/lib/csrf';
 
 interface Category {
   _id: string;
@@ -71,8 +72,16 @@ export default function CategoriesPage() {
     if (!confirmed) return;
 
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {};
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch(`/api/admin/products/categories/${id}`, {
         method: 'DELETE',
+        headers,
       });
 
       if (response.ok) {
@@ -89,14 +98,21 @@ export default function CategoriesPage() {
 
   const handleBulkDelete = async () => {
     if (selectedCategories.length === 0) return;
-    
+
     const confirmed = await confirmDialogs.deleteItem(`${selectedCategories.length} categories`);
     if (!confirmed) return;
 
     setBulkLoading(true);
     try {
-      const deletePromises = selectedCategories.map(id => 
-        fetch(`/api/admin/products/categories/${id}`, { method: 'DELETE' })
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {};
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
+      const deletePromises = selectedCategories.map(id =>
+        fetch(`/api/admin/products/categories/${id}`, { method: 'DELETE', headers })
       );
       
       await Promise.all(deletePromises);

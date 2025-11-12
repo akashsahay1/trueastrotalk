@@ -4,6 +4,7 @@ import Header from '@/components/admin/Header';
 import Sidebar from '@/components/admin/Sidebar';
 import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { getCSRFToken } from '@/lib/csrf';
 import Link from 'next/link';
 interface Transaction {
   _id: string;
@@ -176,11 +177,18 @@ function TransactionsContent() {
     }
 
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch(`/api/finance/transactions/${transactionId}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           status: newStatus,
           admin_action: actionType,

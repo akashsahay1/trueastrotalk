@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { confirmDialogs, successMessages, errorMessages } from '@/lib/sweetalert';
 import { Pagination } from '@/components/admin/ui/Pagination';
+import { getCSRFToken } from '@/lib/csrf';
 interface CallSession {
   _id: string;
   customer_name: string;
@@ -238,8 +239,16 @@ export default function CallSessionsPage() {
 
     setDeleting(sessionId);
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {};
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch(`/api/sessions/${sessionId}`, {
         method: 'DELETE',
+        headers,
       });
 
       if (response.ok) {
@@ -268,11 +277,18 @@ export default function CallSessionsPage() {
 
     setDeleting('bulk');
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch('/api/sessions', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({ sessionIds: selectedSessions })
       });
 

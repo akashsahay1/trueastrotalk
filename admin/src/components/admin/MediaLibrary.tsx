@@ -202,9 +202,17 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
       // Find the file to get its media_id if available
       const file = mediaFiles.find(f => f._id === fileId);
       const deleteId = file?.media_id || fileId;
-      
+
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {};
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch(`/api/admin/media/${deleteId}`, {
         method: 'DELETE',
+        headers,
       });
 
       if (response.ok) {
@@ -232,16 +240,26 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
 
   const handleBulkDelete = async () => {
     if (selectedFiles.size === 0) return;
-    
+
     const confirmed = await confirmDialogs.deleteItem(`${selectedFiles.size} file(s)`);
     if (!confirmed) return;
 
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {};
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const deletePromises = Array.from(selectedFiles).map(fileId => {
         // Find the file to get its media_id if available
         const file = mediaFiles.find(f => f._id === fileId);
         const deleteId = file?.media_id || fileId;
-        return fetch(`/api/admin/media/${deleteId}`, { method: 'DELETE' });
+        return fetch(`/api/admin/media/${deleteId}`, {
+          method: 'DELETE',
+          headers,
+        });
       });
 
       await Promise.all(deletePromises);

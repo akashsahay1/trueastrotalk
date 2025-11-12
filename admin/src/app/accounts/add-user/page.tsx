@@ -10,6 +10,7 @@ import Image from 'next/image';
 import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } from '@/lib/sweetalert';
 import AirDatePickerComponent from '@/components/admin/AirDatePickerComponent';
 import MediaLibrary from '@/components/admin/MediaLibrary';
+import { getCSRFToken } from '@/lib/csrf';
 
 interface FormData {
   user_id: string;
@@ -445,11 +446,18 @@ function AddUserPageContent() {
     setLoading(true);
 
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch('/api/users/create', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(formData),
       });
 

@@ -6,6 +6,7 @@ import Sidebar from '@/components/admin/Sidebar';
 import Link from 'next/link';
 import Image from 'next/image';
 import Swal from 'sweetalert2';
+import { getCSRFToken } from '@/lib/csrf';
 
 interface OrderItem {
   product_id: string;
@@ -190,11 +191,18 @@ export default function CompleteOrdersPage() {
 
     try {
       setBulkUpdating(true);
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch('/api/admin/orders/bulk-update', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           order_ids: selectedOrders,
           status: bulkStatus
@@ -415,11 +423,18 @@ export default function CompleteOrdersPage() {
     try {
       setSavingEdit(true);
 
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch('/api/admin/orders', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           order_id: editingOrder._id,
           status: editStatus,
@@ -549,12 +564,19 @@ export default function CompleteOrdersPage() {
 
     try {
       setRefundingOrderId(order._id);
-      
+
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch('/api/payments/razorpay/refund', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           orderId: order._id,
           refundAmount: parseFloat(refundAmount),

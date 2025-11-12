@@ -7,6 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/admin/Header';
 import Sidebar from '@/components/admin/Sidebar';
+import { getCSRFToken } from '@/lib/csrf';
 
 interface ErrorSummary {
   total_errors: number;
@@ -135,11 +136,18 @@ export default function ReportsPage() {
   // Resolve error
   const resolveError = async (errorId: string) => {
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch('/api/reports/errors', {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           error_id: errorId,
           action: 'resolve',

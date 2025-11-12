@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { getCSRFToken } from '@/lib/csrf';
 
 interface OrphanedFilesData {
   totalFiles: number;
@@ -50,11 +51,18 @@ export default function FileCleanupPage() {
     setError(null);
 
     try {
-      const url = dryRun 
+      const url = dryRun
         ? '/api/admin/cleanup/orphaned-files?dry-run=true'
         : '/api/admin/cleanup/orphaned-files?confirm=true';
 
-      const response = await fetch(url, { method: 'DELETE' });
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {};
+
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
+      const response = await fetch(url, { method: 'DELETE', headers });
       const result = await response.json();
 
       if (result.success) {

@@ -478,7 +478,7 @@ export default function AstrologersPage() {
     const valueLabel = valueLabels[bulkUpdateData.value] || bulkUpdateData.value;
 
     const confirmed = await confirmDialogs.bulkUpdate(
-      selectedUsers.length, 
+      selectedUsers.length,
       fieldLabel,
       valueLabel
     );
@@ -486,8 +486,8 @@ export default function AstrologersPage() {
 
     setBulkUpdating(true);
     try {
-      const csrfToken = getCSRFToken();
-      
+      let csrfToken = getCSRFToken();
+
       if (!csrfToken) {
         console.error('No CSRF token found. Fetching new token...');
         // Try to fetch a new CSRF token
@@ -495,19 +495,24 @@ export default function AstrologersPage() {
         const csrfData = await csrfResponse.json();
         if (csrfData.success && csrfData.csrfToken) {
           localStorage.setItem('csrf-token', csrfData.csrfToken);
+          csrfToken = csrfData.csrfToken;
         }
       }
-      
-      // For test endpoint, we don't need CSRF token
+
+      // Add CSRF token to headers
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
       };
 
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const requestBody = {
         userIds: selectedUsers,
         updates: {
-          [bulkUpdateData.field]: bulkUpdateData.field === 'is_online' || bulkUpdateData.field === 'is_featured' 
-            ? bulkUpdateData.value === 'true' 
+          [bulkUpdateData.field]: bulkUpdateData.field === 'is_online' || bulkUpdateData.field === 'is_featured'
+            ? bulkUpdateData.value === 'true'
             : bulkUpdateData.value
         }
       };
