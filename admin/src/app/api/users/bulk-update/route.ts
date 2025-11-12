@@ -1,40 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import DatabaseService from '@/lib/database';
 import { ObjectId } from 'mongodb';
-import { jwtVerify } from 'jose';
-import { withSecurity } from '@/lib/api-security';
+import { withSecurity, AuthenticatedNextRequest, getRequestBody } from '@/lib/api-security';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-);
-
-export const PATCH = withSecurity(async (request: NextRequest) => {
+export const PATCH = withSecurity(async (request: AuthenticatedNextRequest) => {
   try {
-    // Verify authentication
-    const token = request.cookies.get('auth-token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Get parsed body from middleware (already sanitized and parsed)
+    const body = await getRequestBody<{ userIds?: string[]; updates?: Record<string, unknown> }>(request);
 
-    try {
-      const { payload } = await jwtVerify(token, JWT_SECRET);
-      if (payload.user_type !== 'administrator') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-    } catch {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    // Parse request body
-    let body;
-    try {
-      body = await request.json();
-    } catch (e) {
-      console.error('Error parsing request body:', e);
+    if (!body) {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
 
-    const { userIds, updates } = body || {};
+    const { userIds, updates } = body;
 
     // Validation
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
@@ -56,11 +34,11 @@ export const PATCH = withSecurity(async (request: NextRequest) => {
     }
 
     // Validate field values
-    if (updates.account_status && !['active', 'inactive', 'banned'].includes(updates.account_status)) {
+    if (updates.account_status && !['active', 'inactive', 'banned'].includes(updates.account_status as string)) {
       return NextResponse.json({ error: 'Invalid account_status value' }, { status: 400 });
     }
 
-    if (updates.verification_status && !['verified', 'pending', 'rejected'].includes(updates.verification_status)) {
+    if (updates.verification_status && !['verified', 'pending', 'rejected'].includes(updates.verification_status as string)) {
       return NextResponse.json({ error: 'Invalid verification_status value' }, { status: 400 });
     }
 

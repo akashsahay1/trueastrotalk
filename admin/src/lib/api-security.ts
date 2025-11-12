@@ -21,9 +21,10 @@ export interface AuthenticatedUser {
  * Provides rate limiting, authentication, CSRF protection, and input validation
  */
 
-// Extended NextRequest type with authenticated user
+// Extended NextRequest type with authenticated user and parsed body
 export interface AuthenticatedNextRequest extends NextRequest {
   user?: AuthenticatedUser;
+  parsedBody?: unknown;
 }
 
 // Handler context type for route handlers (Next.js expects this structure)
@@ -181,34 +182,23 @@ export function withSecurity(
       }
       
       // 4. Input Sanitization (automatic for all requests with body)
-      if (securityOptions.validateInput && 
+      if (securityOptions.validateInput &&
           ['POST', 'PUT', 'PATCH'].includes(request.method)) {
         try {
           const contentType = request.headers.get('content-type');
           if (contentType?.includes('application/json')) {
             const body = await request.json();
             const sanitizedBody = InputSanitizer.sanitizeMongoQuery(body);
-            
-            // Create new request with sanitized body
-            // Clone the request to preserve cookies and other properties
-            const clonedHeaders = new Headers(request.headers);
-            const sanitizedRequest = new NextRequest(request.url, {
-              method: request.method,
-              headers: clonedHeaders,
-              body: JSON.stringify(sanitizedBody),
-            });
-            
-            // Copy cookies from original request
-            request.cookies.getAll().forEach(cookie => {
-              sanitizedRequest.cookies.set(cookie.name, cookie.value);
-            });
-            
+
+            // Attach sanitized body to request object for handler to access
+            (request as AuthenticatedNextRequest).parsedBody = sanitizedBody;
+
             // Add authenticated user to request if available
             if (authenticatedUser) {
-              (sanitizedRequest as AuthenticatedNextRequest).user = authenticatedUser as unknown as AuthenticatedUser;
+              (request as AuthenticatedNextRequest).user = authenticatedUser as unknown as AuthenticatedUser;
             }
-            
-            return await handler(sanitizedRequest);
+
+            return await handler(request as AuthenticatedNextRequest);
           }
         } catch (error) {
           console.error('Input validation error:', error);
@@ -340,3 +330,21 @@ export const SecurityPresets = {
 
 // Export CSRF protection for manual use
 export { CSRFProtection };
+
+/**
+ * Helper function to get the parsed body from an AuthenticatedNextRequest
+ * Use this in route handlers to access the body that was already parsed and sanitized by withSecurity
+ */
+export async function getRequestBody<T = unknown>(request: AuthenticatedNextRequest): Promise<T | null> {
+  // If body was already parsed by middleware, use it
+  if (request.parsedBody !== undefined) {
+    return request.parsedBody as T;
+  }
+
+  // Otherwise, try to parse it (for routes that don't use validateInput)
+  try {
+    return await request.json() as T;
+  } catch {
+    return null;
+  }
+}
