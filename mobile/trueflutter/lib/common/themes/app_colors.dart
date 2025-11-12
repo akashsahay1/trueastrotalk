@@ -37,17 +37,15 @@ class AppColors {
   static const Color info = Color(0xFF2196F3);
 
   // Background Colors - Gradient-friendly
-  static const Color backgroundLight = Color(
-    0xFFFAFAFA,
-  ); // Light grey for better contrast
+  static const Color backgroundLight = Color(0xFFFAFAFA);
   static const Color backgroundDark = Color(0xFF121212);
   static const Color surfaceLight = Color(0xFFFFFFFF);
   static const Color surfaceDark = Color(0xFF1E1E1E);
 
   // Gradient Colors for Mystical Theme
-  static const Color gradientStart = Color(0xFFFE0000); // Red
-  static const Color gradientMiddle = Color(0xFFFF4D4D); // Light Red
-  static const Color gradientEnd = Color(0xFFB30000); // Dark Red
+  static const Color gradientStart = Color(0xFFFE0000); 
+  static const Color gradientMiddle = Color(0xFFFF4D4D);
+  static const Color gradientEnd = Color(0xFFB30000);
 
   // Text Colors
   static const Color textPrimaryLight = Color(0xFF212121);
@@ -64,12 +62,12 @@ class AppColors {
   static const Color dividerDark = Color(0xFF616161);
 
   // Astrology Specific Colors
-  static const Color zodiacFire = Color(0xFFFF6B35); // Aries, Leo, Sagittarius
+  static const Color zodiacFire = Color(0xFFFF6B35); 
   static const Color zodiacEarth = Color(
     0xFF8BC34A,
   ); // Taurus, Virgo, Capricorn
-  static const Color zodiacAir = Color(0xFF03DAC6); // Gemini, Libra, Aquarius
-  static const Color zodiacWater = Color(0xFF3F51B5); // Cancer, Scorpio, Pisces
+  static const Color zodiacAir = Color(0xFF03DAC6); 
+  static const Color zodiacWater = Color(0xFF3F51B5);
 
   // Chat Colors
   static const Color chatBubbleUser = Color(0xFFFE0000);
