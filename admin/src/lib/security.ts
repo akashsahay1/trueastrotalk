@@ -250,15 +250,37 @@ export class InputSanitizer {
       return query;
     }
 
+    // Handle arrays separately to preserve their structure
+    if (Array.isArray(query)) {
+      return query.map(item => {
+        if (typeof item === 'object' && item !== null) {
+          return this.sanitizeMongoQuery(item as Record<string, unknown>);
+        } else if (typeof item === 'string') {
+          return this.sanitizeString(item);
+        }
+        return item;
+      }) as unknown as Record<string, unknown>;
+    }
+
     const sanitized: Record<string, unknown> = {};
-    
+
     for (const [key, value] of Object.entries(query)) {
       // Remove MongoDB operators that shouldn't be in user input
       if (typeof key === 'string' && key.startsWith('$')) {
         continue;
       }
 
-      if (typeof value === 'object' && value !== null) {
+      // Handle arrays
+      if (Array.isArray(value)) {
+        sanitized[key] = value.map(item => {
+          if (typeof item === 'object' && item !== null) {
+            return this.sanitizeMongoQuery(item as Record<string, unknown>);
+          } else if (typeof item === 'string') {
+            return this.sanitizeString(item);
+          }
+          return item;
+        });
+      } else if (typeof value === 'object' && value !== null) {
         sanitized[key] = this.sanitizeMongoQuery(value as Record<string, unknown>);
       } else if (typeof value === 'string') {
         sanitized[key] = this.sanitizeString(value);

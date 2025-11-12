@@ -53,8 +53,9 @@ export const PATCH = withSecurity(async (request: AuthenticatedNextRequest) => {
     // Connect to MongoDB
     const usersCollection = await DatabaseService.getCollection('users');
 
-    // Convert userIds to ObjectIds
-    const objectIds = userIds.map((id: string) => new ObjectId(id));
+    // Check if IDs are MongoDB ObjectIds or custom user_ids
+    // MongoDB ObjectIds are 24 hex characters, custom IDs are different
+    const isObjectId = userIds[0].length === 24 && /^[0-9a-fA-F]{24}$/.test(userIds[0]);
 
     // Prepare update document with timestamp
     const updateDoc = {
@@ -62,11 +63,22 @@ export const PATCH = withSecurity(async (request: AuthenticatedNextRequest) => {
       updated_at: new Date()
     };
 
-    // Perform bulk update
-    const result = await usersCollection.updateMany(
-      { _id: { $in: objectIds } },
-      { $set: updateDoc }
-    );
+    // Perform bulk update using appropriate ID field
+    let result;
+    if (isObjectId) {
+      // Use MongoDB _id
+      const objectIds = userIds.map((id: string) => new ObjectId(id));
+      result = await usersCollection.updateMany(
+        { _id: { $in: objectIds } },
+        { $set: updateDoc }
+      );
+    } else {
+      // Use custom user_id field
+      result = await usersCollection.updateMany(
+        { user_id: { $in: userIds } },
+        { $set: updateDoc }
+      );
+    }
     return NextResponse.json({
       success: true,
       message: 'Bulk update completed successfully',
