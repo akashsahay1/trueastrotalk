@@ -232,8 +232,10 @@ class UserApiService {
   Future<Map<String, dynamic>> googleSignIn({required String googleIdToken, required String googleAccessToken, String role = 'customer'}) async {
     try {
       final response = await _dio.post(
-        ApiEndpoints.googleAuth,
+        ApiEndpoints.login,
         data: {
+          'email_address': '', // Will be extracted from Google token
+          'auth_type': 'google',
           'google_id_token': googleIdToken,
           'google_access_token': googleAccessToken,
           'role': role, // Default role for new users
@@ -1229,9 +1231,135 @@ class UserApiService {
     }
   }
 
-  // Phone Authentication Methods
+  // Unified Authentication Methods (New)
+
+  /// Send OTP to email or phone for unified authentication
+  Future<Map<String, dynamic>> sendUnifiedOTP({
+    required String identifier,
+    required String authType, // 'email' or 'phone'
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiEndpoints.sendOtp,
+        data: {
+          'identifier': identifier,
+          'auth_type': authType,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': response.data['message'] ?? 'OTP sent successfully',
+          'otp_sent_to': response.data['otp_sent_to'] ?? identifier,
+          'expiry_seconds': response.data['expiry_seconds'] ?? 300,
+          'testing_mode': response.data['testing_mode'] ?? false,
+        };
+      } else {
+        return {
+          'success': false,
+          'error': response.data['error'] ?? 'Failed to send OTP',
+        };
+      }
+    } on DioException catch (e) {
+      debugPrint('❌ Send Unified OTP error: ${e.response?.statusCode} - ${e.response?.data}');
+      return {
+        'success': false,
+        'error': e.response?.data['error'] ?? _handleDioException(e),
+      };
+    }
+  }
+
+  /// Verify OTP for unified authentication (email or phone)
+  Future<Map<String, dynamic>> verifyUnifiedOTP({
+    required String identifier,
+    required String otp,
+    required String authType,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiEndpoints.verifyOtp,
+        data: {
+          'identifier': identifier,
+          'otp': otp,
+          'auth_type': authType,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': response.data['message'] ?? 'OTP verified successfully',
+          'user_exists': response.data['user_exists'] ?? false,
+          'requires_signup': response.data['requires_signup'] ?? true,
+          'identifier': response.data['identifier'] ?? identifier,
+          // If user exists, return login tokens
+          if (response.data['user'] != null) 'user': User.fromJson(response.data['user']),
+          if (response.data['access_token'] != null) 'access_token': response.data['access_token'],
+          if (response.data['refresh_token'] != null) 'refresh_token': response.data['refresh_token'],
+        };
+      } else {
+        return {
+          'success': false,
+          'error': response.data['error'] ?? 'Invalid OTP',
+          'remaining_attempts': response.data['remaining_attempts'],
+        };
+      }
+    } on DioException catch (e) {
+      debugPrint('❌ Verify Unified OTP error: ${e.response?.statusCode} - ${e.response?.data}');
+      return {
+        'success': false,
+        'error': e.response?.data['error'] ?? _handleDioException(e),
+        'remaining_attempts': e.response?.data['remaining_attempts'],
+      };
+    }
+  }
+
+  /// Link an additional auth method (email or phone) to existing account
+  Future<Map<String, dynamic>> linkAccount({
+    required String token,
+    required String linkType, // 'email' or 'phone'
+    required String identifier,
+    required String otp,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiEndpoints.linkAccount,
+        data: {
+          'link_type': linkType,
+          'identifier': identifier,
+          'otp': otp,
+        },
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': response.data['message'] ?? 'Account linked successfully',
+          'user': User.fromJson(response.data['user']),
+        };
+      } else {
+        return {
+          'success': false,
+          'error': response.data['error'] ?? 'Failed to link account',
+        };
+      }
+    } on DioException catch (e) {
+      debugPrint('❌ Link account error: ${e.response?.statusCode} - ${e.response?.data}');
+      return {
+        'success': false,
+        'error': e.response?.data['error'] ?? _handleDioException(e),
+      };
+    }
+  }
+
+  // Phone Authentication Methods (Legacy - kept for backward compatibility)
 
   /// Send OTP to phone number for verification (signup)
+  @Deprecated('Use sendUnifiedOTP with authType="phone" instead')
   Future<Map<String, dynamic>> sendOTP(String phoneNumber) async {
     try {
       final response = await _dio.post(
@@ -1266,8 +1394,11 @@ class UserApiService {
   Future<Map<String, dynamic>> sendOTPForLogin(String phoneNumber) async {
     try {
       final response = await _dio.post(
-        ApiEndpoints.phoneLogin,
-        data: {'phone_number': phoneNumber},
+        ApiEndpoints.sendOtp,
+        data: {
+          'identifier': phoneNumber,
+          'auth_type': 'phone',
+        },
       );
 
       if (response.statusCode == 200) {
@@ -1354,8 +1485,11 @@ class UserApiService {
       if (gender != null) data['gender'] = gender;
 
       final response = await _dio.post(
-        ApiEndpoints.phoneSignup,
-        data: data,
+        ApiEndpoints.sendOtp,
+        data: {
+          'identifier': data['phone_number'],
+          'auth_type': 'phone',
+        },
       );
 
       if (response.statusCode == 200) {
@@ -1389,8 +1523,11 @@ class UserApiService {
   Future<Map<String, dynamic>> phoneLoginComplete(String phoneNumber) async {
     try {
       final response = await _dio.post(
-        ApiEndpoints.phoneLoginComplete,
-        data: {'phone_number': phoneNumber},
+        ApiEndpoints.login,
+        data: {
+          'identifier': phoneNumber,
+          'auth_type': 'phone',
+        },
       );
 
       if (response.statusCode == 200) {

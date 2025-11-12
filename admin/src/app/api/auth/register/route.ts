@@ -206,12 +206,29 @@ export async function POST(request: NextRequest) {
       birth_place
     } = sanitizedBody;
 
-    // Validate required fields
-    if (!full_name || !email_address || !user_type) {
+    // Validate required fields based on auth type
+    if (!full_name || !user_type) {
       return NextResponse.json({
         success: false,
         error: 'MISSING_REQUIRED_FIELDS',
-        message: 'Full name, email, and user type are required'
+        message: 'Full name and user type are required'
+      }, { status: 400 });
+    }
+
+    // Either email or phone is required depending on auth type
+    if (auth_type === 'phone' && !phone_number) {
+      return NextResponse.json({
+        success: false,
+        error: 'MISSING_PHONE',
+        message: 'Phone number is required for phone registration'
+      }, { status: 400 });
+    }
+
+    if ((auth_type === 'email' || auth_type === 'google') && !email_address) {
+      return NextResponse.json({
+        success: false,
+        error: 'MISSING_EMAIL',
+        message: 'Email address is required for email/Google registration'
       }, { status: 400 });
     }
 
@@ -224,34 +241,38 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Sanitize and validate email
-    const cleanEmail = InputSanitizer.sanitizeEmail(email_address as string);
-    const emailValidation = ValidationSchemas.userRegistration.validate({
-      name: full_name,
-      email: cleanEmail,
-      phone: phone_number || '+1234567890', // Dummy for validation
-      password: password || 'dummy123',
-      user_type: user_type
-    });
+    // Sanitize email if provided
+    const cleanEmail = email_address ? InputSanitizer.sanitizeEmail(email_address as string) : '';
 
-    if (emailValidation.error) {
-      const errorMessage = emailValidation.error.details
-        .map(detail => detail.message)
-        .join(', ');
-      
-      return NextResponse.json({
-        success: false,
-        error: 'VALIDATION_ERROR',
-        message: errorMessage
-      }, { status: 400 });
+    // Only validate if we have an email
+    if (cleanEmail) {
+      const emailValidation = ValidationSchemas.userRegistration.validate({
+        name: full_name,
+        email: cleanEmail,
+        phone: phone_number || '+1234567890', // Dummy for validation
+        password: password || 'dummy123',
+        user_type: user_type
+      });
+
+      if (emailValidation.error) {
+        const errorMessage = emailValidation.error.details
+          .map(detail => detail.message)
+          .join(', ');
+
+        return NextResponse.json({
+          success: false,
+          error: 'VALIDATION_ERROR',
+          message: errorMessage
+        }, { status: 400 });
+      }
     }
 
-    // Validate auth type
-    if (!['email', 'google'].includes(auth_type as string)) {
+    // Validate auth type - now includes 'phone'
+    if (!['email', 'google', 'phone'].includes(auth_type as string)) {
       return NextResponse.json({
         success: false,
         error: 'INVALID_AUTH_TYPE',
-        message: 'Authentication type must be email or google'
+        message: 'Authentication type must be email, google, or phone'
       }, { status: 400 });
     }
 
@@ -271,6 +292,25 @@ export async function POST(request: NextRequest) {
         error: 'MISSING_GOOGLE_TOKEN',
         message: 'Google ID token is required for Google registration'
       }, { status: 400 });
+    }
+
+    // For phone registration, verify that OTP was already verified
+    if (auth_type === 'phone' && phone_number) {
+      const usersCollection = await DatabaseService.getCollection('users');
+      const cleanPhone = InputSanitizer.sanitizePhoneNumber(phone_number as string);
+
+      const otpRecord = await usersCollection.findOne({
+        phone_number: cleanPhone,
+        phone_verified: true
+      });
+
+      if (!otpRecord) {
+        return NextResponse.json({
+          success: false,
+          error: 'PHONE_NOT_VERIFIED',
+          message: 'Phone number must be verified before registration. Please verify OTP first.'
+        }, { status: 400 });
+      }
     }
 
     // Validate password strength for email registration
@@ -353,25 +393,30 @@ export async function POST(request: NextRequest) {
     // Connect to database
     const usersCollection = await DatabaseService.getCollection('users');
 
-    // Check if user already exists
-    const existingUser = await usersCollection.findOne({
-      email_address: cleanEmail
-    });
-    if (existingUser) {
-    }
+    // Check if user already exists - check both email and phone
+    // For phone registration, we're updating an existing OTP record
+    // For email/google, we need to ensure no conflicts
+    if (cleanEmail) {
+      const existingUser = await usersCollection.findOne({
+        email_address: cleanEmail,
+        full_name: { $exists: true, $ne: '' } // Only check fully registered users
+      });
 
-    if (existingUser) {
-      return NextResponse.json({
-        success: false,
-        error: 'USER_EXISTS',
-        message: 'An account with this email already exists'
-      }, { status: 409 });
+      if (existingUser) {
+        return NextResponse.json({
+          success: false,
+          error: 'USER_EXISTS',
+          message: 'An account with this email already exists'
+        }, { status: 409 });
+      }
     }
 
     // Check if phone number is already registered (if provided)
     if (phone_number) {
+      const cleanPhone = InputSanitizer.sanitizePhoneNumber(phone_number as string);
       const existingPhone = await usersCollection.findOne({
-        phone_number: InputSanitizer.sanitizePhoneNumber(phone_number as string)
+        phone_number: cleanPhone,
+        full_name: { $exists: true, $ne: '' } // Only check fully registered users
       });
 
       if (existingPhone) {
@@ -391,11 +436,32 @@ export async function POST(request: NextRequest) {
 
     // Prepare user document
     const now = new Date();
+
+    // For phone registration, we update existing OTP record
+    // For email/google registration, we create new record
+    let isUpdatingExisting = false;
+    let existingUserId: ObjectId | null = null;
+    let existingCreatedAt = now;
+
+    if (auth_type === 'phone' && phone_number) {
+      const cleanPhone = InputSanitizer.sanitizePhoneNumber(phone_number as string);
+      const existingRecord = await usersCollection.findOne({
+        phone_number: cleanPhone,
+        phone_verified: true
+      });
+
+      if (existingRecord) {
+        isUpdatingExisting = true;
+        existingUserId = existingRecord._id;
+        existingCreatedAt = existingRecord.created_at || now;
+      }
+    }
+
     const userData: Record<string, unknown> = {
-      _id: new ObjectId(),
-      user_id: generateUserId(),
+      _id: isUpdatingExisting && existingUserId ? existingUserId : new ObjectId(),
+      user_id: isUpdatingExisting && existingUserId ? existingUserId.toString() : generateUserId(),
       full_name: (full_name as string).trim(),
-      email_address: cleanEmail,
+      email_address: cleanEmail || '',
       phone_number: phone_number ? InputSanitizer.sanitizePhoneNumber(phone_number as string) : '',
       user_type,
       auth_type,
@@ -403,11 +469,11 @@ export async function POST(request: NextRequest) {
       verification_status: 'unverified',
       is_online: false,
       wallet_balance: 0,
-      created_at: now,
+      created_at: existingCreatedAt,
       updated_at: now,
       registration_ip: ip,
       email_verified: auth_type === 'google' ? true : false,
-      phone_verified: false,
+      phone_verified: auth_type === 'phone' ? true : false,
       failed_login_attempts: 0,
       login_count: 0
     };
@@ -512,15 +578,33 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Insert user into database
-    const result = await usersCollection.insertOne(userData);
+    // Insert or update user in database
+    let result;
+    if (isUpdatingExisting && existingUserId) {
+      // Update existing OTP record with full user data
+      result = await usersCollection.updateOne(
+        { _id: existingUserId },
+        { $set: userData }
+      );
 
-    if (!result.insertedId) {
-      return NextResponse.json({
-        success: false,
-        error: 'REGISTRATION_FAILED',
-        message: 'Failed to create account. Please try again.'
-      }, { status: 500 });
+      if (!result.modifiedCount && !result.matchedCount) {
+        return NextResponse.json({
+          success: false,
+          error: 'REGISTRATION_FAILED',
+          message: 'Failed to complete registration. Please try again.'
+        }, { status: 500 });
+      }
+    } else {
+      // Create new user
+      result = await usersCollection.insertOne(userData);
+
+      if (!result.insertedId) {
+        return NextResponse.json({
+          success: false,
+          error: 'REGISTRATION_FAILED',
+          message: 'Failed to create account. Please try again.'
+        }, { status: 500 });
+      }
     }
 
 

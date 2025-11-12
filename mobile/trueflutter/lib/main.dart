@@ -9,11 +9,10 @@ import 'common/themes/app_theme.dart';
 import 'config/config.dart';
 import 'screens/onboarding.dart';
 import 'screens/welcome.dart';
-import 'screens/login.dart';
-import 'screens/signup.dart';
-import 'screens/phone_signup.dart';
-import 'screens/phone_login.dart';
+import 'screens/auth/unified_auth_screen.dart';
+import 'screens/auth/signup_completion_screen.dart';
 import 'screens/otp_verification.dart';
+import 'screens/signup.dart'; // Keep for astrologer signup only
 import 'screens/forgot_password_screen.dart';
 import 'screens/home.dart';
 import 'screens/orders_list.dart';
@@ -157,19 +156,24 @@ class TrueAstrotalkApp extends StatelessWidget {
       routes: {
         '/onboarding': (context) => const OnboardingScreen(),
         '/welcome': (context) => const WelcomeScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/signup': (context) => const SignupScreen(),
-        '/register': (context) => const SignupScreen(),
-        '/astrologer-signup': (context) => const SignupScreen(isAdvanced: true),
-        '/phone-signup': (context) => const PhoneSignupScreen(),
-        '/phone-login': (context) => const PhoneLoginScreen(),
+
+        // Unified auth flow
+        '/auth': (context) => const UnifiedAuthScreen(),
+        '/signup-completion': (context) => const SignupCompletionScreen(),
         '/otp-verification': (context) => const OTPVerificationScreen(),
+
+        // Astrologer signup (uses advanced multi-page form)
+        '/astrologer-signup': (context) => const SignupScreen(isAdvanced: true),
+
+        // Home screens
         '/home': (context) => const HomeScreen(),
         '/customer/home': (context) => const HomeScreen(),
         '/astrologer/dashboard': (context) => const HomeScreen(),
         '/astrologer/pending': (context) => const Scaffold(
           body: Center(child: Text('Astrologer Account Pending Approval')),
         ),
+
+        // Other screens
         '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/orders': (context) => const OrdersListScreen(),
       },

@@ -22,20 +22,24 @@ class _LoginScreenState extends State<LoginScreen>
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   late final AuthService _authService;
-  
+
   // Animation controllers
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late AnimationController _shakeController;
-  
+
   // Animations
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _shakeAnimation;
-  
+
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _isGoogleLoading = false;
+
+  // Error message state
+  String? _emailError;
+  String? _passwordError;
 
   @override
   void initState() {
@@ -108,8 +112,34 @@ class _LoginScreenState extends State<LoginScreen>
     HapticFeedback.heavyImpact();
   }
 
+  String? _validateEmail(String? value) {
+    if (value?.trim().isEmpty ?? true) {
+      return 'Email is required';
+    }
+    if (!EmailValidator.validate(value!)) {
+      return 'Please enter a valid email';
+    }
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    if (value?.isEmpty ?? true) {
+      return 'Password is required';
+    }
+    if (value!.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+    return null;
+  }
+
   void _onLogin() async {
-    if (!_formKey.currentState!.validate()) {
+    // Validate and capture error messages
+    setState(() {
+      _emailError = _validateEmail(_emailController.text);
+      _passwordError = _validatePassword(_passwordController.text);
+    });
+
+    if (_emailError != null || _passwordError != null) {
       _triggerErrorHaptic();
       _shakeController.forward().then((_) => _shakeController.reverse());
       return;
@@ -425,25 +455,32 @@ class _LoginScreenState extends State<LoginScreen>
                                 label: 'Email Address',
                                 icon: Icons.mail_outline,
                                 keyboardType: TextInputType.emailAddress,
-                                validator: (value) {
-                                  if (value?.trim().isEmpty ?? true) {
-                                    return 'Email is required';
+                                errorText: _emailError,
+                                onChanged: (value) {
+                                  if (_emailError != null) {
+                                    setState(() {
+                                      _emailError = _validateEmail(value);
+                                    });
                                   }
-                                  if (!EmailValidator.validate(value!)) {
-                                    return 'Please enter a valid email';
-                                  }
-                                  return null;
                                 },
                               ),
-                              
+
                               const SizedBox(height: 20),
-                              
+
                               // Password Field
                               _buildTextField(
                                 controller: _passwordController,
                                 label: 'Password',
                                 icon: Icons.lock_outline,
                                 obscureText: _obscurePassword,
+                                errorText: _passwordError,
+                                onChanged: (value) {
+                                  if (_passwordError != null) {
+                                    setState(() {
+                                      _passwordError = _validatePassword(value);
+                                    });
+                                  }
+                                },
                                 suffixIcon: IconButton(
                                   onPressed: () {
                                     setState(() => _obscurePassword = !_obscurePassword);
@@ -456,15 +493,6 @@ class _LoginScreenState extends State<LoginScreen>
                                     size: 20,
                                   ),
                                 ),
-                                validator: (value) {
-                                  if (value?.isEmpty ?? true) {
-                                    return 'Password is required';
-                                  }
-                                  if (value!.length < 6) {
-                                    return 'Password must be at least 6 characters';
-                                  }
-                                  return null;
-                                },
                               ),
                             ],
                           ),
@@ -689,10 +717,11 @@ class _LoginScreenState extends State<LoginScreen>
     required TextEditingController controller,
     required String label,
     required IconData icon,
-    String? Function(String?)? validator,
+    String? errorText,
     TextInputType? keyboardType,
     bool obscureText = false,
     Widget? suffixIcon,
+    void Function(String)? onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -717,11 +746,11 @@ class _LoginScreenState extends State<LoginScreen>
               ),
             ],
           ),
-          child: TextFormField(
+          child: TextField(
             controller: controller,
-            validator: validator,
             keyboardType: keyboardType,
             obscureText: obscureText,
+            onChanged: onChanged,
             style: AppTextStyles.bodyLarge.copyWith(
               color: AppColors.textPrimary,
               fontWeight: FontWeight.w500,
@@ -742,13 +771,21 @@ class _LoginScreenState extends State<LoginScreen>
                 horizontal: 20,
                 vertical: 18,
               ),
-              errorStyle: AppTextStyles.bodySmall.copyWith(
+            ),
+          ),
+        ),
+        // Display error message below the container
+        if (errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8, left: 4),
+            child: Text(
+              errorText,
+              style: AppTextStyles.bodySmall.copyWith(
                 color: AppColors.error,
                 height: 1.4,
               ),
             ),
           ),
-        ),
       ],
     );
   }

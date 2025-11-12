@@ -18,13 +18,24 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
   final _otpController = TextEditingController();
   late final AuthService _authService;
 
+  // Unified authentication fields
+  String _identifier = ''; // Can be email or phone
+  String _authType = 'phone'; // 'email' or 'phone'
+  String _otpSentTo = ''; // Display string for where OTP was sent
+
+  // Legacy phone-specific fields (for backward compatibility)
   String _phoneNumber = '';
   String _fullName = '';
   String? _dateOfBirth;
   String? _timeOfBirth;
   String? _placeOfBirth;
   String _gender = 'male';
-  bool _isLogin = false; // Flag to indicate if this is login flow
+  bool _isLogin = false; // Flag to indicate if this is login flow (legacy)
+
+  // Google signup data
+  String? _googleName;
+  String? _googleAccessToken;
+  String? _googleIdToken;
 
   bool _isVerifying = false;
   bool _isResending = false;
@@ -50,16 +61,40 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // Get arguments passed from phone signup/login screen
+    // Get arguments passed from unified auth or legacy screens
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     if (args != null) {
-      _phoneNumber = args['phone_number'] ?? '';
-      _fullName = args['full_name'] ?? '';
-      _dateOfBirth = args['date_of_birth'];
-      _timeOfBirth = args['time_of_birth'];
-      _placeOfBirth = args['place_of_birth'];
-      _gender = args['gender'] ?? 'male';
-      _isLogin = args['is_login'] ?? false; // Check if this is login flow
+      // New unified flow parameters
+      if (args.containsKey('identifier')) {
+        _identifier = args['identifier'] ?? '';
+        _authType = args['auth_type'] ?? 'phone';
+        _otpSentTo = args['otp_sent_to'] ?? _identifier;
+
+        // Override expiry if provided
+        if (args['expiry_seconds'] != null) {
+          _remainingSeconds = args['expiry_seconds'] as int;
+        }
+
+        // Google signup completion data
+        if (args.containsKey('google_access_token')) {
+          _googleName = args['name'];
+          _googleAccessToken = args['google_access_token'];
+          _googleIdToken = args['google_id_token'];
+        }
+      }
+      // Legacy phone flow parameters (backward compatibility)
+      else if (args.containsKey('phone_number')) {
+        _phoneNumber = args['phone_number'] ?? '';
+        _identifier = _phoneNumber;
+        _authType = 'phone';
+        _otpSentTo = _phoneNumber;
+        _fullName = args['full_name'] ?? '';
+        _dateOfBirth = args['date_of_birth'];
+        _timeOfBirth = args['time_of_birth'];
+        _placeOfBirth = args['place_of_birth'];
+        _gender = args['gender'] ?? 'male';
+        _isLogin = args['is_login'] ?? false;
+      }
     }
   }
 
@@ -112,73 +147,134 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
     setState(() => _isVerifying = true);
 
     try {
-      // First verify the OTP
-      final verifyResult = await _authService.verifyOTP(_phoneNumber, otp);
+      // Use unified verification if using new flow, otherwise use legacy
+      final bool isUnifiedFlow = _phoneNumber.isEmpty || _identifier.isNotEmpty;
 
-      if (verifyResult['success']) {
-        if (_isLogin) {
-          // Login flow - complete login and fetch user data
-          final loginResult = await _authService.phoneLoginComplete(_phoneNumber);
+      if (isUnifiedFlow) {
+        // New unified flow
+        final verifyResult = await _authService.verifyUnifiedOTP(
+          identifier: _identifier,
+          otp: otp,
+          authType: _authType,
+        );
 
-          if (loginResult['success']) {
+        if (verifyResult['success']) {
+          final userExists = verifyResult['user_exists'] ?? false;
+
+          if (userExists) {
+            // User exists - login flow
             if (mounted) {
               _showSnackBar('Login successful!', isError: false);
-
-              // Navigate to home screen
               await Future.delayed(const Duration(milliseconds: 500));
 
               if (mounted) {
-                Navigator.pushReplacementNamed(context, '/home');
+                final user = verifyResult['user'];
+                // Navigate based on role
+                if (user.isCustomer) {
+                  Navigator.pushReplacementNamed(context, '/customer/home');
+                } else if (user.isAstrologer) {
+                  Navigator.pushReplacementNamed(context, '/astrologer/dashboard');
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
               }
             }
           } else {
-            _showSnackBar(
-              loginResult['error'] ?? 'Failed to login',
-              isError: true,
-            );
-            _otpController.clear();
+            // New user - navigate to signup completion
+            if (mounted) {
+              Navigator.pushReplacementNamed(
+                context,
+                '/signup-completion',
+                arguments: {
+                  'identifier': _identifier,
+                  'auth_type': _authType,
+                  if (_googleName != null) 'name': _googleName,
+                  if (_googleAccessToken != null) 'google_access_token': _googleAccessToken,
+                  if (_googleIdToken != null) 'google_id_token': _googleIdToken,
+                },
+              );
+            }
           }
         } else {
-          // Signup flow - complete signup after OTP verification
-          final signupResult = await _authService.phoneSignUp(
-            _phoneNumber,
-            _fullName,
-            'customer', // Phone signup is always for customers
-            dateOfBirth: _dateOfBirth,
-            timeOfBirth: _timeOfBirth,
-            placeOfBirth: _placeOfBirth,
-            gender: _gender,
-          );
+          final remainingAttempts = verifyResult['remaining_attempts'];
+          String errorMsg = verifyResult['error'] ?? 'Invalid OTP';
 
-          if (signupResult['success']) {
-            if (mounted) {
-              _showSnackBar('Account created successfully!', isError: false);
-
-              // Navigate to customer home screen
-              await Future.delayed(const Duration(milliseconds: 500));
-
-              if (mounted) {
-                Navigator.pushReplacementNamed(context, '/customer/home');
-              }
-            }
-          } else {
-            _showSnackBar(
-              signupResult['error'] ?? 'Failed to create account',
-              isError: true,
-            );
-            _otpController.clear();
+          if (remainingAttempts != null) {
+            errorMsg += ' ($remainingAttempts attempts left)';
           }
+
+          _showSnackBar(errorMsg, isError: true);
+          _otpController.clear();
         }
       } else {
-        final remainingAttempts = verifyResult['remaining_attempts'];
-        String errorMsg = verifyResult['error'] ?? 'Invalid OTP';
+        // Legacy phone flow (backward compatibility)
+        final verifyResult = await _authService.verifyOTP(_phoneNumber, otp);
 
-        if (remainingAttempts != null) {
-          errorMsg += ' ($remainingAttempts attempts left)';
+        if (verifyResult['success']) {
+          if (_isLogin) {
+            // Login flow - complete login and fetch user data
+            final loginResult = await _authService.phoneLoginComplete(_phoneNumber);
+
+            if (loginResult['success']) {
+              if (mounted) {
+                _showSnackBar('Login successful!', isError: false);
+
+                // Navigate to home screen
+                await Future.delayed(const Duration(milliseconds: 500));
+
+                if (mounted) {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              }
+            } else {
+              _showSnackBar(
+                loginResult['error'] ?? 'Failed to login',
+                isError: true,
+              );
+              _otpController.clear();
+            }
+          } else {
+            // Signup flow - complete signup after OTP verification
+            final signupResult = await _authService.phoneSignUp(
+              _phoneNumber,
+              _fullName,
+              'customer', // Phone signup is always for customers
+              dateOfBirth: _dateOfBirth,
+              timeOfBirth: _timeOfBirth,
+              placeOfBirth: _placeOfBirth,
+              gender: _gender,
+            );
+
+            if (signupResult['success']) {
+              if (mounted) {
+                _showSnackBar('Account created successfully!', isError: false);
+
+                // Navigate to customer home screen
+                await Future.delayed(const Duration(milliseconds: 500));
+
+                if (mounted) {
+                  Navigator.pushReplacementNamed(context, '/customer/home');
+                }
+              }
+            } else {
+              _showSnackBar(
+                signupResult['error'] ?? 'Failed to create account',
+                isError: true,
+              );
+              _otpController.clear();
+            }
+          }
+        } else {
+          final remainingAttempts = verifyResult['remaining_attempts'];
+          String errorMsg = verifyResult['error'] ?? 'Invalid OTP';
+
+          if (remainingAttempts != null) {
+            errorMsg += ' ($remainingAttempts attempts left)';
+          }
+
+          _showSnackBar(errorMsg, isError: true);
+          _otpController.clear();
         }
-
-        _showSnackBar(errorMsg, isError: true);
-        _otpController.clear();
       }
     } catch (e) {
       _showSnackBar('Error: ${e.toString()}', isError: true);
@@ -196,7 +292,22 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
     setState(() => _isResending = true);
 
     try {
-      final result = await _authService.sendOTP(_phoneNumber);
+      // Use unified OTP for all flows
+      final bool isUnifiedFlow = _phoneNumber.isEmpty || _identifier.isNotEmpty;
+      final Map<String, dynamic> result;
+
+      if (isUnifiedFlow) {
+        result = await _authService.sendUnifiedOTP(
+          identifier: _identifier,
+          authType: _authType,
+        );
+      } else {
+        // Legacy phone number flow - use unified method
+        result = await _authService.sendUnifiedOTP(
+          identifier: _phoneNumber,
+          authType: 'phone',
+        );
+      }
 
       if (result['success']) {
         _showSnackBar('OTP sent successfully!', isError: false);
@@ -238,7 +349,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
       backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
         title: Text(
-          'Verify Phone',
+          _authType == 'email' ? 'Verify Email' : 'Verify Phone',
           style: AppTextStyles.heading5.copyWith(color: AppColors.white),
         ),
         backgroundColor: AppColors.primary,
@@ -262,7 +373,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.phone_android,
+                  _authType == 'email' ? Icons.email_outlined : Icons.phone_android,
                   size: 40,
                   color: AppColors.primary,
                 ),
@@ -293,9 +404,9 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
 
               const SizedBox(height: 4),
 
-              // Phone number
+              // Email or Phone number
               Text(
-                _phoneNumber,
+                _otpSentTo.isNotEmpty ? _otpSentTo : _phoneNumber,
                 style: AppTextStyles.bodyLarge.copyWith(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w600,

@@ -716,7 +716,105 @@ class AuthService {
 
   // Phone Authentication Methods
 
+  // Unified Authentication Methods (New)
+
+  /// Send OTP to email or phone for unified authentication
+  Future<Map<String, dynamic>> sendUnifiedOTP({
+    required String identifier,
+    required String authType,
+  }) async {
+    try {
+      return await _userApiService.sendUnifiedOTP(
+        identifier: identifier,
+        authType: authType,
+      );
+    } catch (e) {
+      final appError = ErrorHandler.handleError(e, context: 'send-otp');
+      return {
+        'success': false,
+        'error': appError.userMessage.isNotEmpty
+            ? appError.userMessage
+            : 'Failed to send OTP. Please try again.'
+      };
+    }
+  }
+
+  /// Verify OTP for unified authentication (email or phone)
+  Future<Map<String, dynamic>> verifyUnifiedOTP({
+    required String identifier,
+    required String otp,
+    required String authType,
+  }) async {
+    try {
+      final result = await _userApiService.verifyUnifiedOTP(
+        identifier: identifier,
+        otp: otp,
+        authType: authType,
+      );
+
+      // If user exists, save auth data
+      if (result['success'] && result['user'] != null) {
+        final user = result['user'] as app_user.User;
+        final token = result['access_token'] as String;
+        final refreshToken = result['refresh_token'] as String? ?? '';
+
+        await _saveAuthData(user, token, refreshToken);
+      }
+
+      return result;
+    } catch (e) {
+      final appError = ErrorHandler.handleError(e, context: 'verify-otp');
+      return {
+        'success': false,
+        'error': appError.userMessage.isNotEmpty
+            ? appError.userMessage
+            : 'Failed to verify OTP. Please try again.'
+      };
+    }
+  }
+
+  /// Link an additional auth method (email or phone) to existing account
+  Future<Map<String, dynamic>> linkAccount({
+    required String token,
+    required String linkType,
+    required String identifier,
+    required String otp,
+  }) async {
+    try {
+      final result = await _userApiService.linkAccount(
+        token: token,
+        linkType: linkType,
+        identifier: identifier,
+        otp: otp,
+      );
+
+      // Update current user if successful
+      if (result['success'] && result['user'] != null) {
+        _currentUser = result['user'] as app_user.User;
+        await _saveUserData(_currentUser!);
+      }
+
+      return result;
+    } catch (e) {
+      final appError = ErrorHandler.handleError(e, context: 'link-account');
+      return {
+        'success': false,
+        'error': appError.userMessage.isNotEmpty
+            ? appError.userMessage
+            : 'Failed to link account. Please try again.'
+      };
+    }
+  }
+
+  /// Get current auth token
+  Future<String?> getAuthToken() async {
+    return _authToken;
+  }
+
+  // Legacy Phone Authentication Methods (for backward compatibility)
+
   /// Send OTP to phone number for verification (signup)
+  @Deprecated('Use sendUnifiedOTP with authType="phone" instead')
   Future<Map<String, dynamic>> sendOTP(String phoneNumber) async {
     try {
       return await _userApiService.sendOTP(phoneNumber);

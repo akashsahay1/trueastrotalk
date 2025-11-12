@@ -43,19 +43,26 @@ class ApiEndpoints {
   static const String wallet = '/wallet';
   static const String upload = '/upload';
 
-  // Auth endpoints
+  // Auth endpoints - Unified
   static const String register = '$auth/register';
   static const String login = '$auth/login';
-  static const String sendOtp = '$auth/send-otp';
-  static const String verifyOtp = '$auth/verify-otp';
-  static const String phoneSignup = '$auth/phone-signup';
-  static const String phoneLogin = '$auth/phone-login';
-  static const String phoneLoginComplete = '$auth/phone-login-complete';
+  static const String sendOtp = '$auth/send-otp'; // Unified OTP endpoint for email/phone
+  static const String verifyOtp = '$auth/verify-otp'; // Unified verification
+  static const String linkAccount = '$auth/link-account'; // For progressive account linking
   static const String refreshToken = '$auth/refresh-token';
   static const String logout = '$auth/logout';
   static const String authStatus = '$auth/status';
-  static const String googleAuth = '$auth/google';
   static const String changePassword = '$auth/change-password';
+
+  // Legacy endpoints (kept for backward compatibility during migration)
+  @Deprecated('Use sendOtp with auth_type parameter instead')
+  static const String phoneSignup = '$auth/phone-signup';
+  @Deprecated('Use login with auth_type=phone instead')
+  static const String phoneLogin = '$auth/phone-login';
+  @Deprecated('Use login with auth_type=phone instead')
+  static const String phoneLoginComplete = '$auth/phone-login-complete';
+  @Deprecated('Use login with auth_type=google instead')
+  static const String googleAuth = '$auth/google';
 
   // User wallet endpoints (unified for customers and astrologers)
   static const String userWalletBalance = '$users/wallet/balance';

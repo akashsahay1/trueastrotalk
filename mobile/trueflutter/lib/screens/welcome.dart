@@ -83,8 +83,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
       }
     } on GoogleSignUpRequiredException catch (googleException) {
       if (mounted) {
-        // Navigate to signup screen with Google data
-        Navigator.pushNamed(context, '/signup', arguments: {'name': googleException.name, 'email': googleException.email, 'google_access_token': googleException.accessToken, 'google_id_token': googleException.idToken, 'auth_type': 'google'});
+        // Navigate to signup completion screen with Google data
+        Navigator.pushNamed(context, '/signup-completion', arguments: {
+          'identifier': googleException.email,
+          'auth_type': 'google',
+          'name': googleException.name,
+          'google_access_token': googleException.accessToken,
+          'google_id_token': googleException.idToken,
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -112,50 +118,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
-      ),
-    );
-  }
-
-  Widget _buildSignUpIcon({
-    required String imagePath,
-    VoidCallback? onTap,
-    bool isLoading = false,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 70,
-        height: 70,
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: isLoading
-            ? Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                  ),
-                ),
-              )
-            : Center(
-                child: SvgPicture.asset(
-                  imagePath,
-                  width: 40,
-                  height: 40,
-                  fit: BoxFit.cover,
-                ),
-              ),
       ),
     );
   }
@@ -222,52 +184,129 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        // Sign up options title
-                        Text(
-                          'Sign up with',
-                          style: AppTextStyles.bodyLarge.copyWith(
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.w500,
+                        // Get Started Button (Primary CTA)
+                        Container(
+                          width: double.infinity,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {
+                                _triggerHaptic();
+                                Navigator.pushNamed(context, '/auth');
+                              },
+                              borderRadius: BorderRadius.circular(16),
+                              child: Center(
+                                child: Text(
+                                  'Get Started',
+                                  style: AppTextStyles.buttonLarge.copyWith(
+                                    color: AppColors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 24),
 
-                        // Sign up method icons in a row
+                        const SizedBox(height: 16),
+
+                        // OR Divider
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            // Google Sign In Icon
-                            _buildSignUpIcon(
-                              imagePath: 'assets/images/google.svg',
-                              isLoading: _isGoogleLoading,
-                              onTap: _isGoogleLoading ? null : _handleGoogleSignIn,
+                            Expanded(
+                              child: Container(
+                                height: 1,
+                                color: AppColors.grey300,
+                              ),
                             ),
-                            const SizedBox(width: 24),
-
-                            // Email Sign Up Icon
-                            _buildSignUpIcon(
-                              imagePath: 'assets/images/email.svg',
-                              onTap: () {
-                                _triggerHaptic();
-                                Navigator.pushNamed(context, '/signup');
-                              },
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(
+                                'OR',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                             ),
-                            const SizedBox(width: 24),
-
-                            // Phone Sign Up Icon
-                            _buildSignUpIcon(
-                              imagePath: 'assets/images/phone.svg',
-                              onTap: () {
-                                _triggerHaptic();
-                                Navigator.pushNamed(context, '/phone-signup');
-                              },
+                            Expanded(
+                              child: Container(
+                                height: 1,
+                                color: AppColors.grey300,
+                              ),
                             ),
                           ],
                         ),
 
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 16),
 
-                        // Login and Join as Astrologer Links - Fixed Overflow
+                        // Google Sign-In Button (Secondary)
+                        Container(
+                          width: double.infinity,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: AppColors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: AppColors.grey300,
+                              width: 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.06),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: _isGoogleLoading ? null : _handleGoogleSignIn,
+                              borderRadius: BorderRadius.circular(16),
+                              child: Center(
+                                child: _isGoogleLoading
+                                    ? SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                            AppColors.primary,
+                                          ),
+                                        ),
+                                      )
+                                    : Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          SvgPicture.asset(
+                                            'assets/images/google.svg',
+                                            width: 20,
+                                            height: 20,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            'Continue with Google',
+                                            style: AppTextStyles.buttonLarge.copyWith(
+                                              color: AppColors.textPrimary,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Login and Join as Astrologer Links
                         Column(
                           children: [
                             // Login Link
@@ -276,7 +315,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                               child: TextButton(
                                 onPressed: () {
                                   _triggerHaptic();
-                                  Navigator.pushNamed(context, '/login');
+                                  Navigator.pushNamed(context, '/auth');
                                 },
                                 style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
                                 child: Text(

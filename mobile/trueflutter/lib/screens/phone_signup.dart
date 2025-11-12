@@ -93,7 +93,10 @@ class _PhoneSignupScreenState extends State<PhoneSignupScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final result = await _authService.sendOTP(_completePhoneNumber);
+      final result = await _authService.sendUnifiedOTP(
+        identifier: _completePhoneNumber,
+        authType: 'phone',
+      );
 
       if (result['success']) {
         if (mounted) {

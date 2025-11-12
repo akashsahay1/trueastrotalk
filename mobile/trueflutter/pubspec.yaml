@@ -127,7 +127,7 @@ flutter:
     - assets/config/
     - assets/audio/
 
-# App Icon Configuration
+# App Icon Configuration dart run flutter_launcher_icons
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
@@ -146,20 +146,20 @@ flutter_launcher_icons:
     generate: true
     image_path: "assets/images/logo.png"
 
-# Native Splash Screen Configuration
+# Native Splash Screen Configuration - dart run flutter_native_splash:create
 flutter_native_splash:
   # Background color
   color: "#FFFFFF"
   color_dark: "#FFFFFF"
 
   # Logo image
-  image: "assets/images/logo_rounded.png"
-  image_dark: "assets/images/logo_rounded.png"
-  branding: "assets/images/branding_logo.png"
+  image: "assets/images/logo.png"
+  image_dark: "assets/images/logo.png"
+  branding: "assets/images/logo.png"
 
   # Android 12+ splash configuration
   android_12:
-    image: "assets/images/logo_rounded.png"
+    image: "assets/images/logo.png"
     color: "#FFFFFF"
     icon_background_color: "#FE0000"
     branding: "assets/images/branding_logo.png"

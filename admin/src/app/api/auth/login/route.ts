@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 // import rateLimit from 'express-rate-limit';
 import DatabaseService from '../../../../lib/database';
-import { 
-  PasswordSecurity, 
-  JWTSecurity, 
-  ValidationSchemas, 
-  InputSanitizer, 
+import {
+  PasswordSecurity,
+  JWTSecurity,
+  ValidationSchemas,
+  InputSanitizer,
   // SecurityMiddleware,
-  // RateLimitConfig 
+  // RateLimitConfig
 } from '../../../../lib/security';
 import { ErrorHandler, ErrorCode } from '../../../../lib/error-handler';
-import { Validator } from '../../../../lib/validation';
+import { formatPhoneNumber, isValidPhoneNumber } from '@/lib/otp';
 
 // Rate limiting for login attempts
 // const loginLimiter = rateLimit({
@@ -84,50 +84,72 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
 
   // Parse and validate request body
   const body = await request.json();
-  
+
   // Sanitize input to prevent XSS and injection attacks
   const sanitizedBody = InputSanitizer.sanitizeMongoQuery(body);
-  
-  const { 
-    email_address, 
-    password, 
-    auth_type = 'email', 
-    google_access_token, 
-    google_photo_url, 
+
+  const {
+    email_address,
+    identifier,
+    password,
+    auth_type,
+    google_access_token,
+    google_photo_url,
     google_display_name,
     device_info
   } = sanitizedBody;
-  
-  // Standardize to email_address only
-  const userEmail = InputSanitizer.sanitizeEmail(email_address as string || '');
-  
+
+  // Support both identifier (new) and email_address (legacy)
+  const userIdentifier = identifier || email_address;
+  let detectedAuthType = auth_type;
+
   // Validate required fields
-  Validator.validateRequestBody(sanitizedBody, [
-    { field: 'email_address', value: userEmail, rules: ['required', 'email'] },
-    { field: 'auth_type', value: auth_type, rules: ['required'] }
-  ]);
+  if (!userIdentifier) {
+    return NextResponse.json({
+      success: false,
+      error: 'MISSING_IDENTIFIER',
+      message: 'Email or phone number is required'
+    }, { status: 400 });
+  }
+
+  // Auto-detect auth type if not provided
+  if (!detectedAuthType) {
+    detectedAuthType = (userIdentifier as string).includes('@') ? 'email' : 'phone';
+  }
 
   // Validate auth type
-  if (!['email', 'google'].includes(auth_type as string)) {
-    throw ErrorHandler.validationError('Invalid authentication type');
+  if (!['email', 'google', 'phone'].includes(detectedAuthType as string)) {
+    return NextResponse.json({
+      success: false,
+      error: 'INVALID_AUTH_TYPE',
+      message: 'Invalid authentication type'
+    }, { status: 400 });
   }
 
-  // For email auth, password is required
-  if (auth_type === 'email' && !password) {
-    throw ErrorHandler.validationError('Password is required for email authentication');
-  }
+  // Format and validate identifier based on type
+  let formattedIdentifier: string;
+  let queryField: string;
 
-  // For Google auth, token is required
-  if (auth_type === 'google' && !google_access_token) {
-    throw ErrorHandler.validationError('Google access token is required');
-  }
+  if (detectedAuthType === 'phone') {
+    formattedIdentifier = formatPhoneNumber(userIdentifier as string);
+    if (!isValidPhoneNumber(formattedIdentifier)) {
+      return NextResponse.json({
+        success: false,
+        error: 'INVALID_PHONE',
+        message: 'Please provide a valid phone number'
+      }, { status: 400 });
+    }
+    queryField = 'phone_number';
+  } else {
+    // email or google
+    formattedIdentifier = InputSanitizer.sanitizeEmail(userIdentifier as string);
 
     // Validate email format
-    const emailValidation = ValidationSchemas.userLogin.validate({ 
-      email: userEmail, 
+    const emailValidation = ValidationSchemas.userLogin.validate({
+      email: formattedIdentifier,
       password: password || 'dummy' // Dummy password for validation
     });
-    
+
     if (emailValidation.error && emailValidation.error.details.some(d => d.path.includes('email'))) {
       return NextResponse.json({
         success: false,
@@ -135,40 +157,42 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
         message: 'Please provide a valid email address'
       }, { status: 400 });
     }
+    queryField = 'email_address';
+  }
 
-    // Validate auth type
-    if (!['email', 'google'].includes(auth_type as string)) {
-      return NextResponse.json({
-        success: false,
-        error: 'INVALID_AUTH_TYPE',
-        message: 'Invalid authentication type'
-      }, { status: 400 });
-    }
+  // For email auth, password is required
+  if (detectedAuthType === 'email' && !password) {
+    return NextResponse.json({
+      success: false,
+      error: 'MISSING_PASSWORD',
+      message: 'Password is required for email authentication'
+    }, { status: 400 });
+  }
 
-    // For email auth, password is required
-    if (auth_type === 'email' && !password) {
-      return NextResponse.json({
-        success: false,
-        error: 'MISSING_PASSWORD',
-        message: 'Password is required for email authentication'
-      }, { status: 400 });
-    }
+  // For Google auth, token is required
+  if (detectedAuthType === 'google' && !google_access_token) {
+    return NextResponse.json({
+      success: false,
+      error: 'MISSING_GOOGLE_TOKEN',
+      message: 'Google access token is required'
+    }, { status: 400 });
+  }
 
-    // For Google auth, token is required
-    if (auth_type === 'google' && !google_access_token) {
-      return NextResponse.json({
-        success: false,
-        error: 'MISSING_GOOGLE_TOKEN',
-        message: 'Google access token is required'
-      }, { status: 400 });
-    }
+  // For phone auth, password is required (unless using OTP which is handled separately)
+  if (detectedAuthType === 'phone' && !password) {
+    return NextResponse.json({
+      success: false,
+      error: 'MISSING_PASSWORD',
+      message: 'Password is required for phone authentication. Use OTP verification for passwordless login.'
+    }, { status: 400 });
+  }
 
   // Connect to database
   const usersCollection = await DatabaseService.getCollection('users');
 
   // Build secure query with proper sanitization
   const userQuery: Record<string, unknown> = {
-    email_address: userEmail,
+    [queryField]: formattedIdentifier,
     account_status: { $ne: 'banned' }
   };
 
@@ -182,10 +206,10 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
   }
 
     // Handle Google authentication for non-existing users
-    if (!user && auth_type === 'google') {
-      
+    if (!user && detectedAuthType === 'google') {
+
       const googleUserInfo = await validateGoogleToken(google_access_token as string);
-      
+
       if (!googleUserInfo) {
         throw ErrorHandler.createError(
           ErrorCode.INVALID_CREDENTIALS,
@@ -193,16 +217,16 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
           'Invalid or expired Google authentication token'
         );
       }
-      
+
       // Verify email matches
-      if (googleUserInfo.email !== userEmail) {
+      if (googleUserInfo.email !== formattedIdentifier) {
         throw ErrorHandler.createError(
           ErrorCode.INVALID_CREDENTIALS,
           'Email mismatch',
           'Google token email does not match provided email'
         );
       }
-      
+
       // Valid Google user but not registered
       return NextResponse.json({
         success: false,
@@ -218,12 +242,14 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
 
   // User not found
   if (!user) {
-    
+
     // Generic error message to prevent user enumeration
     throw ErrorHandler.createError(
       ErrorCode.INVALID_CREDENTIALS,
       'User not found',
-      'Invalid email or password'
+      detectedAuthType === 'phone'
+        ? 'Invalid phone number or password'
+        : 'Invalid email or password'
     );
   }
 
@@ -245,34 +271,36 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
   }
 
     // Authenticate based on auth type
-    if (auth_type === 'google') {
+    if (detectedAuthType === 'google') {
       // Validate Google token for existing user
       const googleUserInfo = await validateGoogleToken(google_access_token as string);
-      
-      if (!googleUserInfo || googleUserInfo.email !== userEmail) {
+
+      if (!googleUserInfo || googleUserInfo.email !== formattedIdentifier) {
         return NextResponse.json({
           success: false,
           error: 'INVALID_GOOGLE_TOKEN',
           message: 'Invalid Google authentication'
         }, { status: 401 });
       }
-      
-      
-    } else if (auth_type === 'email') {
+
+
+    } else if (detectedAuthType === 'email' || detectedAuthType === 'phone') {
       // Verify password using bcrypt
       if (!user.password) {
         return NextResponse.json({
           success: false,
           error: 'NO_PASSWORD_SET',
-          message: 'Please set a password or use Google sign-in'
+          message: detectedAuthType === 'phone'
+            ? 'Please use OTP verification for phone login or set a password'
+            : 'Please set a password or use Google sign-in'
         }, { status: 401 });
       }
 
       try {
         const isPasswordValid = await PasswordSecurity.verifyPassword(password as string, user.password as string);
-        
+
         if (!isPasswordValid) {
-          
+
           // Log failed login attempt
           await usersCollection.updateOne(
             { _id: user._id },
@@ -290,11 +318,13 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
               }
             ]
           );
-          
+
           return NextResponse.json({
             success: false,
             error: 'INVALID_CREDENTIALS',
-            message: 'Invalid email or password'
+            message: detectedAuthType === 'phone'
+              ? 'Invalid phone number or password'
+              : 'Invalid email or password'
           }, { status: 401 });
         }
       } catch (passwordError) {
@@ -305,7 +335,7 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
           message: 'Unable to verify credentials'
         }, { status: 500 });
       }
-      
+
     }
 
     // Check for too many failed login attempts
@@ -358,7 +388,7 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
     };
 
     // Update Google profile data if applicable
-    if (auth_type === 'google') {
+    if (detectedAuthType === 'google') {
       if (google_photo_url) {
         updateData.profile_image = google_photo_url;
       }
