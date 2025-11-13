@@ -91,6 +91,36 @@ export async function GET(
     const baseUrl = getBaseUrl(request);
     userResponse.profile_image = await resolveProfileImage(user, mediaCollection, baseUrl);
 
+    // Resolve PAN card image to full URL if exists
+    if (user.pan_card_id) {
+      try {
+        const panCardRef = user.pan_card_id;
+        let mediaFile = null;
+
+        if (typeof panCardRef === 'string') {
+          // Check if it's our custom media_id format
+          if (panCardRef.startsWith('media_')) {
+            mediaFile = await mediaCollection.findOne({ media_id: panCardRef });
+          } else if (panCardRef.length === 24) {
+            // Try legacy ObjectId lookup first
+            try {
+              mediaFile = await mediaCollection.findOne({ _id: new ObjectId(panCardRef) });
+            } catch {
+              mediaFile = await mediaCollection.findOne({ media_id: panCardRef });
+            }
+          }
+        } else if (panCardRef instanceof ObjectId) {
+          mediaFile = await mediaCollection.findOne({ _id: panCardRef });
+        }
+
+        if (mediaFile && mediaFile.file_path) {
+          userResponse.pan_card_image = `${baseUrl}${mediaFile.file_path}`;
+        }
+      } catch (error) {
+        console.error('Error resolving PAN card media file:', error);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       user: userResponse
@@ -220,7 +250,7 @@ export async function PUT(
 
     // Handle profile image updates based on new system
     const profileImageUpdates: Record<string, unknown> = {};
-    
+
     // If user is Google auth and has external profile image URL
     if (body.auth_type === 'google' && body.social_auth_profile_image && typeof body.social_auth_profile_image === 'string' && body.social_auth_profile_image.startsWith('http')) {
       profileImageUpdates.social_auth_profile_image = body.social_auth_profile_image;
@@ -249,6 +279,17 @@ export async function PUT(
       profileImageUpdates.profile_image_id = null;
       if (existingUser.social_auth_profile_image) {
         profileImageUpdates.social_auth_profile_image = null;
+      }
+    }
+
+    // Handle PAN card image updates
+    if (body.pan_card_id !== undefined) {
+      if (body.pan_card_id && typeof body.pan_card_id === 'string' && body.pan_card_id.trim() !== '') {
+        // Set PAN card media_id
+        profileImageUpdates.pan_card_id = body.pan_card_id.trim();
+      } else if (body.pan_card_id === '' || body.pan_card_id === null) {
+        // Remove PAN card
+        profileImageUpdates.pan_card_id = null;
       }
     }
 
@@ -312,11 +353,41 @@ export async function PUT(
     // Get updated user data and resolve profile image
     const updatedUser = await usersCollection.findOne({ _id: new ObjectId(id) });
     const userResponse = omit(updatedUser!, ['password']);
-    
+
     // Resolve profile image to full URL for response
     const baseUrl = getBaseUrl(request);
     const mediaCollection = await DatabaseService.getCollection('media');
     userResponse.profile_image = await resolveProfileImage(updatedUser!, mediaCollection, baseUrl);
+
+    // Resolve PAN card image to full URL if exists
+    if (updatedUser!.pan_card_id) {
+      try {
+        const panCardRef = updatedUser!.pan_card_id;
+        let mediaFile = null;
+
+        if (typeof panCardRef === 'string') {
+          // Check if it's our custom media_id format
+          if (panCardRef.startsWith('media_')) {
+            mediaFile = await mediaCollection.findOne({ media_id: panCardRef });
+          } else if (panCardRef.length === 24) {
+            // Try legacy ObjectId lookup first
+            try {
+              mediaFile = await mediaCollection.findOne({ _id: new ObjectId(panCardRef) });
+            } catch {
+              mediaFile = await mediaCollection.findOne({ media_id: panCardRef });
+            }
+          }
+        } else if (panCardRef instanceof ObjectId) {
+          mediaFile = await mediaCollection.findOne({ _id: panCardRef });
+        }
+
+        if (mediaFile && mediaFile.file_path) {
+          userResponse.pan_card_image = `${baseUrl}${mediaFile.file_path}`;
+        }
+      } catch (error) {
+        console.error('Error resolving PAN card media file:', error);
+      }
+    }
 
     // Send email notification if astrologer verification status changed
     if (verificationStatusChanged && isAstrologer && body.verification_status) {

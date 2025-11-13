@@ -123,11 +123,10 @@ class WalletService extends ChangeNotifier {
       if (token == null) return;
 
       final response = await _userApiService.getWalletBalance(token);
-      if (response['success'] == true) {
-        _currentBalance = response['data']['wallet_balance']?.toDouble() ?? 0.0;
-        notifyListeners();
-        debugPrint('💰 Wallet balance refreshed: ₹$_currentBalance');
-      }
+      // response is already the data object from getWalletBalance
+      _currentBalance = (response['wallet_balance'] ?? 0.0).toDouble();
+      notifyListeners();
+      debugPrint('💰 Wallet balance refreshed: ₹$_currentBalance');
     } catch (e) {
       debugPrint('❌ Failed to refresh wallet balance: $e');
     }

@@ -72,6 +72,7 @@ async function handlePOST(request: NextRequest) {
       mime_type: file.type,
       category: 'image',
       uploaded_by: null,
+      uploaded_at: new Date(),
       created_at: new Date(),
       updated_at: new Date()
     };
