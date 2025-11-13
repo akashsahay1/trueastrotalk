@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Calendar, User, MapPin, Clock } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import GooglePlacesAutocomplete from '@/components/GooglePlacesAutocomplete';
 
 const RashiCalculator = () => {
   const [currentPage, setCurrentPage] = useState('form');
@@ -270,10 +271,9 @@ const RashiCalculator = () => {
                     <MapPin className="inline w-4 h-4 mr-2" />
                     Place of Birth *
                   </label>
-                  <input
-                    type="text"
+                  <GooglePlacesAutocomplete
                     value={formData.birthPlace}
-                    onChange={(e) => handleInputChange('birthPlace', e.target.value)}
+                    onChange={(value) => handleInputChange('birthPlace', value)}
                     placeholder="Enter your birth place"
                     className="w-full p-4 border-2 border-gray-300 rounded-lg focus:border-pink-500 focus:outline-none transition-colors"
                     required

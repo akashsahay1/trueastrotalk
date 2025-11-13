@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Calendar, Clock, Search } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import GooglePlacesAutocomplete from '@/components/GooglePlacesAutocomplete';
 
 const PanchakCalculator = () => {
   const [selectedYear, setSelectedYear] = useState(2024);
@@ -164,41 +165,15 @@ const PanchakCalculator = () => {
                   <MapPin className="inline w-4 h-4 mr-1" />
                   Select Location
                 </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search location..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      setShowDropdown(true);
-                    }}
-                    onFocus={() => setShowDropdown(true)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                  />
-                  <Search className="absolute right-3 top-3 w-5 h-5 text-gray-400" />
-                  
-                  {showDropdown && searchQuery && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                      {filteredLocations.slice(0, 10).map((location, index) => (
-                        <div
-                          key={index}
-                          className="p-3 hover:bg-orange-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                          onClick={() => {
-                            setSelectedLocation(location);
-                            setSearchQuery(location);
-                            setShowDropdown(false);
-                          }}
-                        >
-                          <div className="flex items-center">
-                            <MapPin className="w-4 h-4 text-orange-500 mr-2" />
-                            <span className="text-sm">{location}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <GooglePlacesAutocomplete
+                  value={selectedLocation}
+                  onChange={(value) => {
+                    setSelectedLocation(value);
+                    setSearchQuery(value);
+                  }}
+                  placeholder="Search location..."
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                />
               </div>
 
               {/* Year Selection */}

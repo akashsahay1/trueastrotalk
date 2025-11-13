@@ -26,10 +26,10 @@ const Contact: React.FC = () => {
                   </div>
                   <h3 className="text-lg font-semibold mb-2">Phone</h3>
                   <a
-                    href="tel:+919835635299"
+                    href="tel:+919234066099"
                     className="text-primary hover:underline"
                   >
-                    +91-9835635299
+                    +91-9234066099
                   </a>
                   <p className="text-muted-foreground text-xs mt-2">
                     Available 24/7
@@ -79,14 +79,14 @@ const Contact: React.FC = () => {
           <div className="mb-12">
             <div className="rounded-lg overflow-hidden shadow-lg border-2 border-gray-200">
               <iframe
-                src="https://www.google.com/maps?q=23.3851789,85.3239654&hl=en&z=15&output=embed"
+                src="https://www.google.com/maps?q=DAV+Nageswar+Public+School+Tetri+Chandaghasi+Ranchi+834010&hl=en&z=15&output=embed"
                 width="100%"
                 height="400"
                 style={{ border: 0 }}
                 allowFullScreen
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
-                title="true Astrotalk Location"
+                title="true Astrotalk Location - Near DAV Nageswar Public School"
               ></iframe>
             </div>
           </div>
@@ -94,18 +94,14 @@ const Contact: React.FC = () => {
           {/* Additional Information */}
           <div className="p-6 bg-primary/5 rounded-lg">
             <h2 className="text-2xl font-semibold mb-4 text-center">Why Choose true Astrotalk?</h2>
-            <div className="grid md:grid-cols-3 gap-6 mt-6">
+            <div className="grid md:grid-cols-2 gap-6 mt-6">
               <div className="text-center">
                 <div className="text-3xl font-bold text-primary mb-2">24/7</div>
                 <p className="text-muted-foreground">Available Round the Clock</p>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-primary mb-2">100+</div>
+                <div className="text-3xl font-bold text-primary mb-2">250+</div>
                 <p className="text-muted-foreground">Expert Astrologers</p>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-primary mb-2">10k+</div>
-                <p className="text-muted-foreground">Satisfied Clients</p>
               </div>
             </div>
           </div>

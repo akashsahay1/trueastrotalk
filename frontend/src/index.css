@@ -148,6 +148,22 @@
     font-display: swap;
     src: local('Inter');
   }
+
+  /* Ergonomique font for logo */
+  @font-face {
+    font-family: 'Ergonomique';
+    font-display: swap;
+    src: url('/src/assets/fonts/ergonomique/ergonomique-regular-webfont.woff2') format('woff2'),
+         url('/src/assets/fonts/ergonomique/ergonomique-regular-webfont.woff') format('woff'),
+         url('/src/assets/fonts/ergonomique/ergonomique-regular.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+  }
+
+  /* Logo text styling */
+  .logotext {
+    font-family: 'Ergonomique', sans-serif;
+  }
   
   /* DM Sans brand color utilities */
   .facebook-primary {

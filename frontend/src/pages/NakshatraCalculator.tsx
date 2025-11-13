@@ -3,6 +3,7 @@ import React from 'react';
 import { Star, Calculator, Info, List, Signature, Globe, Cake, Clock, Moon, BookOpen } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import GooglePlacesAutocomplete from '@/components/GooglePlacesAutocomplete';
 
 const NakshatraCalculator = () => {
   const [formData, setFormData] = React.useState({
@@ -233,10 +234,9 @@ const NakshatraCalculator = () => {
                       <Globe className="w-4 h-4 mr-2" />
                       Place of Birth *
                     </label>
-                    <input
-                      type="text"
+                    <GooglePlacesAutocomplete
                       value={formData.birthPlace}
-                      onChange={(e) => handleInputChange('birthPlace', e.target.value)}
+                      onChange={(value) => handleInputChange('birthPlace', value)}
                       placeholder="Enter your birth place"
                       className="w-full p-4 bg-white/10 border-2 border-white/20 rounded-lg text-white placeholder-gray-400 focus:border-red-400 focus:outline-none transition-colors"
                       required

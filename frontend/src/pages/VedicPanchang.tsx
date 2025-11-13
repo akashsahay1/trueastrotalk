@@ -334,15 +334,9 @@ const VedicPanchang = () => {
               </div>
             </div>
           </div>
-
-          {/* Footer */}
-          <div className="text-center py-8 mt-10 border-t border-white/20">
-            <p className="text-lg mb-2">© {selectedYear || new Date().getFullYear()} वैदिक पंचांग - सम्पूर्ण हिन्दू कैलेंडर एवं शुभ मुहूर्त जानकारी</p>
-            <p>समस्त जानकारी ज्योतिषीय गणना के आधार पर प्रदान की गई है</p>
-          </div>
         </div>
       </div>
-      
+
       <Footer />
     </div>
   );

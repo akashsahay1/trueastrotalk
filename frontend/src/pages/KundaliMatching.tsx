@@ -4,6 +4,7 @@ import { ArrowLeft, Calculator, User, Users, Star } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
+import GooglePlacesAutocomplete from '@/components/GooglePlacesAutocomplete';
 
 interface PersonDetails {
   name: string;
@@ -515,13 +516,11 @@ const KundaliMatching = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Birth Place</label>
-                      <input
-                        type="text"
+                      <GooglePlacesAutocomplete
                         value={boyDetails.birthplace}
-                        onChange={(e) => updateBoyDetail('birthplace', e.target.value)}
+                        onChange={(value) => updateBoyDetail('birthplace', value)}
                         placeholder="Search for city or district"
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                        list="cities"
                       />
                     </div>
                   </div>
@@ -701,13 +700,11 @@ const KundaliMatching = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Birth Place</label>
-                      <input
-                        type="text"
+                      <GooglePlacesAutocomplete
                         value={girlDetails.birthplace}
-                        onChange={(e) => updateGirlDetail('birthplace', e.target.value)}
+                        onChange={(value) => updateGirlDetail('birthplace', value)}
                         placeholder="Search for city or district"
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                        list="cities"
                       />
                     </div>
                   </div>

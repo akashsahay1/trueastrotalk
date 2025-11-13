@@ -2,11 +2,11 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Menu, X, ChevronDown } from "lucide-react";
 import LazyImage from "./LazyImage";
-import logoImage from "@/assets/images/logo.jpeg";
+import logoImage from "@/assets/images/logo.png";
 
 const Header = () => {
   console.log("Header component rendering...");
-  
+
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [activeDropdown, setActiveDropdown] = React.useState<string | null>(null);
 
@@ -86,7 +86,7 @@ const Header = () => {
               alt="Astrotalk Logo"
               className="h-12 w-auto"
             />
-						<span className="logotext">true Astrotalk</span>
+            <span className="logotext">true Astrotalk</span>
           </Link>
 
           <nav className="hidden lg:flex items-center space-x-6">

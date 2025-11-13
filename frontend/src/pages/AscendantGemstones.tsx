@@ -124,7 +124,7 @@ const AscendantGemstones = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-gray-100 relative overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-gray-100 overflow-x-hidden">
       <Header />
       
       {/* Animated background pattern */}
@@ -390,14 +390,8 @@ const AscendantGemstones = () => {
             "The right gemstone worn at the right time can transform obstacles into opportunities and challenges into triumphs."
           </p>
         </section>
-
-        {/* Footer Text */}
-        <div className="text-center mt-12 text-gray-400">
-          <p className="text-lg mb-2">Vedic Astrology Gemstone Guide | Created with Cosmic Wisdom</p>
-          <p>© 2023 Ascendant Gemstones | Always consult a qualified astrologer before wearing gemstones</p>
-        </div>
       </div>
-      
+
       <Footer />
     </div>
   );

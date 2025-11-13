@@ -474,7 +474,7 @@ const LuckyMobileCalculator = () => {
         <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
           <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-6">
+            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6 leading-tight py-2">
               🔢 अंक ज्योतिष कैलकुलेटर
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
@@ -496,19 +496,14 @@ const LuckyMobileCalculator = () => {
                   <Label htmlFor="name" className="text-lg font-semibold flex items-center gap-2">
                     👤 नाम दर्ज करें:
                   </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="name"
-                      type="text"
-                      placeholder="अपना नाम हिंदी या अंग्रेजी में लिखें"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="h-12 text-lg border-2 focus:border-primary transition-colors"
-                    />
-                    <Button variant="outline" onClick={loadExample} className="h-12 px-4 border-2">
-                      उदाहरण
-                    </Button>
-                  </div>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="अपना नाम हिंदी या अंग्रेजी में लिखें"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="h-12 text-lg border-2 focus:border-primary transition-colors"
+                  />
                 </div>
                 
                 <div className="space-y-3">
@@ -518,7 +513,7 @@ const LuckyMobileCalculator = () => {
                   <Input
                     id="mobile"
                     type="text"
-                    placeholder="9507000066"
+                    placeholder="1234567890"
                     value={mobile}
                     onChange={(e) => setMobile(e.target.value)}
                     maxLength={10}
@@ -600,10 +595,6 @@ const LuckyMobileCalculator = () => {
                     </CardHeader>
                     <CardContent className="p-6">
                       <div className="space-y-4">
-                        <div className="p-4 bg-card/80 backdrop-blur-sm rounded-lg border">
-                          <p className="font-medium">गणना: {nameResult.breakdown}</p>
-                          <p className="text-sm text-muted-foreground">कुल: {nameResult.total} → {nameResult.reduced}</p>
-                        </div>
                         <div className="text-center py-8 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg border">
                           <p className="text-5xl font-bold text-green-600 dark:text-green-400 mb-2">{nameResult.reduced}</p>
                         </div>
@@ -625,9 +616,6 @@ const LuckyMobileCalculator = () => {
                     </CardHeader>
                     <CardContent className="p-6">
                       <div className="space-y-4">
-                        <div className="p-4 bg-card/80 backdrop-blur-sm rounded-lg border">
-                          <p className="font-medium">गणना: {dobResult.breakdown}</p>
-                        </div>
                         <div className="text-center py-8 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-lg border">
                           <p className="text-5xl font-bold text-blue-600 dark:text-blue-400 mb-2">{dobResult.lifePathNumber}</p>
                         </div>
@@ -650,15 +638,6 @@ const LuckyMobileCalculator = () => {
                   </CardHeader>
                   <CardContent className="p-6">
                     <div className="space-y-6">
-                      <div className="p-4 bg-card/80 backdrop-blur-sm rounded-lg border">
-                        <p className="font-medium">गणना: {mobileResult.breakdown}</p>
-                        <p className="text-sm text-muted-foreground">कुल: {mobileResult.total} → {mobileResult.reduced}</p>
-                        {mobileResult.original !== mobileResult.modified && (
-                          <p className="text-sm text-orange-600 dark:text-orange-400">
-                            मूल: {mobileResult.original} → संशोधित: {mobileResult.modified}
-                          </p>
-                        )}
-                      </div>
                       <div className="text-center py-8 bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-lg border">
                         <p className="text-5xl font-bold text-orange-600 dark:text-orange-400 mb-2">{mobileResult.reduced}</p>
                       </div>
@@ -798,20 +777,6 @@ const LuckyMobileCalculator = () => {
                   </CardContent>
                 </Card>
               )}
-              <Card className="border-0 shadow-xl bg-gradient-to-br from-accent/5 to-secondary/5">
-                <CardHeader className="bg-gradient-to-r from-accent/20 to-secondary/20 rounded-t-lg">
-                  <CardTitle className="text-xl">📊 अक्षर से अंक चार्ट (A=1 से Z=26)</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-9 gap-3">
-                    {Object.entries(letterToNumber).map(([letter, number]) => (
-                      <div key={letter} className="bg-gradient-to-br from-primary to-secondary text-primary-foreground p-3 rounded-lg text-center font-bold text-sm shadow-md hover:shadow-lg transition-shadow">
-                        {letter} = {number}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           )}
         </div>
