@@ -1,7 +1,7 @@
 
 {
-  "name": "True Astrotalk - Best Online Astrology Consultation",
-  "short_name": "True Astrotalk",
+  "name": "true Astrotalk - Best Online Astrology Consultation",
+  "short_name": "true Astrotalk",
   "description": "Get accurate astrology predictions from India's top astrologers",
   "start_url": "/",
   "display": "standalone",
@@ -9,14 +9,14 @@
   "theme_color": "#1877f2",
   "icons": [
     {
-      "src": "/lovable-uploads/e7ea263c-3fc3-4c24-a313-de804c9f1d3f.png",
+      "src": "/assets/images/logo.jpeg",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/jpeg"
     },
     {
-      "src": "/lovable-uploads/e7ea263c-3fc3-4c24-a313-de804c9f1d3f.png",
+      "src": "/assets/images/logo.jpeg",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/jpeg"
     }
   ]
 }

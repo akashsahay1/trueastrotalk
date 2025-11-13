@@ -13,7 +13,7 @@ const TermsOfService = () => {
           <div className="prose prose-gray max-w-none">
             <div className="mb-6">
               <p className="text-gray-700 leading-relaxed">
-                Welcome to True Astrotalk, your personal Astro consultation platform. This Agreement sets out the legally binding terms for your use of the Site, usage and membership. This Agreement may be modified by Us from time to time. The access, membership and rights of admissions are reserved.
+                Welcome to true Astrotalk, your personal Astro consultation platform. This Agreement sets out the legally binding terms for your use of the Site, usage and membership. This Agreement may be modified by Us from time to time. The access, membership and rights of admissions are reserved.
               </p>
               
               <p className="text-gray-700 leading-relaxed mt-4">
@@ -29,7 +29,7 @@ const TermsOfService = () => {
               
               <p className="text-gray-700 leading-relaxed mb-2"><strong>By registering on the Site/App you agree to:</strong></p>
               <ul className="list-disc pl-6 text-gray-700 mb-4">
-                <li className="mb-2">Provide current, complete, and accurate information as prompted by the Site/App. Creating a user profile with True Astrotalk involves providing specific information, including your phone number/email for OTP (One-Time Password) verification, which is required to ensure the security and validity of the registration process. Additionally, you may provide your first name, last name, date and time of birth (DOB), birth place etc. Please note that providing your date of birth is optional during the registration process, but may be needed while communicating with Astrologers to compile and calculate horoscope information.</li>
+                <li className="mb-2">Provide current, complete, and accurate information as prompted by the Site/App. Creating a user profile with true Astrotalk involves providing specific information, including your phone number/email for OTP (One-Time Password) verification, which is required to ensure the security and validity of the registration process. Additionally, you may provide your first name, last name, date and time of birth (DOB), birth place etc. Please note that providing your date of birth is optional during the registration process, but may be needed while communicating with Astrologers to compile and calculate horoscope information.</li>
                 <li>Maintain and update the provided information as required, ensuring that it remains current and accurate.</li>
               </ul>
             </section>
@@ -207,12 +207,12 @@ const TermsOfService = () => {
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">Privacy Policy</h2>
               
               <p className="text-gray-700 leading-relaxed mb-4">
-                True Astrotalk ("we", "our", "True Astrotalk"), operated by Naamre Services(OPC) Pvt. Ltd., is committed to safeguarding the privacy of its users, including both astrologers and clients, whether registered or not. This Privacy Policy outlines how we collect, use, store, and disclose your information in compliance with applicable data protection laws.
+                true Astrotalk ("we", "our", "true Astrotalk"), operated by Naamre Services(OPC) Pvt. Ltd., is committed to safeguarding the privacy of its users, including both astrologers and clients, whether registered or not. This Privacy Policy outlines how we collect, use, store, and disclose your information in compliance with applicable data protection laws.
               </p>
 
               <h3 className="text-xl font-semibold text-gray-900 mb-3">User Consent</h3>
               <p className="text-gray-700 leading-relaxed mb-4">
-                By accessing or using the True Astrotalk platform, you consent to this Privacy Policy. Continued use of the platform indicates your unconditional consent to our practices regarding your personal data. By using this website, you also consent to receive communications from us via WhatsApp and other communication channels.
+                By accessing or using the true Astrotalk platform, you consent to this Privacy Policy. Continued use of the platform indicates your unconditional consent to our practices regarding your personal data. By using this website, you also consent to receive communications from us via WhatsApp and other communication channels.
               </p>
 
               <h3 className="text-xl font-semibold text-gray-900 mb-3">Information We Collect</h3>
@@ -236,7 +236,7 @@ const TermsOfService = () => {
 
               <h3 className="text-xl font-semibold text-gray-900 mb-3">Data Sharing and Disclosure</h3>
               <p className="text-gray-700 leading-relaxed mb-4">
-                True Astrotalk does not sell or rent your personal data to third parties. However, we may share your data under the following circumstances:
+                true Astrotalk does not sell or rent your personal data to third parties. However, we may share your data under the following circumstances:
               </p>
               <ul className="list-disc pl-6 text-gray-700 mb-4">
                 <li className="mb-1"><strong>Service Providers:</strong> With trusted third-party vendors who assist with business operations, such as payment processors and hosting services.</li>
@@ -261,7 +261,7 @@ const TermsOfService = () => {
 
               <h3 className="text-xl font-semibold text-gray-900 mb-3">Camera, Voice and Microphone Access</h3>
               <p className="text-gray-700 leading-relaxed mb-4">
-                True Astrotalk requires microphone, camera access solely to enable audio, video interactions for voice and video inputs. This access is used only during active sessions and is not stored or shared.
+                true Astrotalk requires microphone, camera access solely to enable audio, video interactions for voice and video inputs. This access is used only during active sessions and is not stored or shared.
               </p>
 
               <h3 className="text-xl font-semibold text-gray-900 mb-3">Cookies and Tracking Technologies</h3>
@@ -271,7 +271,7 @@ const TermsOfService = () => {
 
               <h3 className="text-xl font-semibold text-gray-900 mb-3">Children's Privacy</h3>
               <p className="text-gray-700 leading-relaxed mb-4">
-                True Astrotalk services are intended for users aged 18 and above. We do not knowingly collect personal information from minors. If we learn that we have collected data from a child under 18, we will take steps to delete such information promptly.
+                true Astrotalk services are intended for users aged 18 and above. We do not knowingly collect personal information from minors. If we learn that we have collected data from a child under 18, we will take steps to delete such information promptly.
               </p>
 
               <h3 className="text-xl font-semibold text-gray-900 mb-3">Changes to This Privacy Policy</h3>

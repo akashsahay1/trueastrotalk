@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button";
 const AboutAstrology = () => {
   const categories = [
     {
-      title: "True Astrotalk About",
-      description: "True Astrotalk is a leading platform for authentic astrological consultations and predictions.",
-      content: "True Astrotalk provides genuine astrological guidance with experienced astrologers who have years of practice in Vedic astrology, numerology, and other occult sciences. Our platform connects you with verified astrologers who can help you understand your life path, career prospects, relationship compatibility, and spiritual growth.",
+      title: "true Astrotalk About",
+      description: "true Astrotalk is a leading platform for authentic astrological consultations and predictions.",
+      content: "true Astrotalk provides genuine astrological guidance with experienced astrologers who have years of practice in Vedic astrology, numerology, and other occult sciences. Our platform connects you with verified astrologers who can help you understand your life path, career prospects, relationship compatibility, and spiritual growth.",
       link: "/about/trueastrotalk"
     },
     {

@@ -13,14 +13,14 @@ const PrivacyPolicy = () => {
           <div className="prose prose-gray max-w-none">
             <div className="mb-6">
               <p className="text-gray-700 leading-relaxed">
-                True Astrotalk ("we", "our", "True Astrotalk"), operated by Naamre Services(OPC) Pvt. Ltd., is committed to safeguarding the privacy of its users, including both astrologers and clients, whether registered or not. This Privacy Policy outlines how we collect, use, store, and disclose your information in compliance with applicable data protection laws.
+                true Astrotalk ("we", "our", "true Astrotalk"), operated by Naamre Services(OPC) Pvt. Ltd., is committed to safeguarding the privacy of its users, including both astrologers and clients, whether registered or not. This Privacy Policy outlines how we collect, use, store, and disclose your information in compliance with applicable data protection laws.
               </p>
             </div>
 
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">User Consent</h2>
               <p className="text-gray-700 leading-relaxed">
-                By accessing or using the True Astrotalk platform, you consent to this Privacy Policy. Continued use of the platform indicates your unconditional consent to our practices regarding your personal data. By using this website, you also consent to receive communications from us via WhatsApp and other communication channels.
+                By accessing or using the true Astrotalk platform, you consent to this Privacy Policy. Continued use of the platform indicates your unconditional consent to our practices regarding your personal data. By using this website, you also consent to receive communications from us via WhatsApp and other communication channels.
               </p>
             </section>
 
@@ -52,7 +52,7 @@ const PrivacyPolicy = () => {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">Data Sharing and Disclosure</h2>
               <p className="text-gray-700 leading-relaxed mb-4">
-                True Astrotalk does not sell or rent your personal data to third parties. However, we may share your data under the following circumstances:
+                true Astrotalk does not sell or rent your personal data to third parties. However, we may share your data under the following circumstances:
               </p>
               <ul className="list-disc pl-6 text-gray-700 space-y-2">
                 <li><strong>Service Providers:</strong> With trusted third-party vendors who assist with business operations, such as payment processors and hosting services.</li>
@@ -88,7 +88,7 @@ const PrivacyPolicy = () => {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">Camera, Voice and Microphone Access</h2>
               <p className="text-gray-700 leading-relaxed">
-                True Astrotalk requires microphone, camera access solely to enable audio, video interactions for voice and video inputs. This access is used only during active sessions and is not stored or shared.
+                true Astrotalk requires microphone, camera access solely to enable audio, video interactions for voice and video inputs. This access is used only during active sessions and is not stored or shared.
               </p>
             </section>
 
@@ -102,7 +102,7 @@ const PrivacyPolicy = () => {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">Children's Privacy</h2>
               <p className="text-gray-700 leading-relaxed">
-                True Astrotalk services are intended for users aged 18 and above. We do not knowingly collect personal information from minors. If we learn that we have collected data from a child under 18, we will take steps to delete such information promptly.
+                true Astrotalk services are intended for users aged 18 and above. We do not knowingly collect personal information from minors. If we learn that we have collected data from a child under 18, we will take steps to delete such information promptly.
               </p>
             </section>
 

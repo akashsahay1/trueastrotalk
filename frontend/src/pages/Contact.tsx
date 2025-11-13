@@ -86,14 +86,14 @@ const Contact: React.FC = () => {
                 allowFullScreen
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
-                title="True Astrotalk Location"
+                title="true Astrotalk Location"
               ></iframe>
             </div>
           </div>
 
           {/* Additional Information */}
           <div className="p-6 bg-primary/5 rounded-lg">
-            <h2 className="text-2xl font-semibold mb-4 text-center">Why Choose True Astrotalk?</h2>
+            <h2 className="text-2xl font-semibold mb-4 text-center">Why Choose true Astrotalk?</h2>
             <div className="grid md:grid-cols-3 gap-6 mt-6">
               <div className="text-center">
                 <div className="text-3xl font-bold text-primary mb-2">24/7</div>

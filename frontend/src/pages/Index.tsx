@@ -15,10 +15,12 @@ import astrologerImage from "@/assets/images/astrologer.jpeg";
 
 const Index: React.FC = () => {
   console.log("Index component rendering...");
-  
+
   // Initialize state at the top level
   const [currentCalculatorSlide, setCurrentCalculatorSlide] = React.useState(0);
   const [lifePathApi, setLifePathApi] = React.useState<any>(null);
+  const [nakshatraApi, setNakshatraApi] = React.useState<any>(null);
+  const [calculatorApi, setCalculatorApi] = React.useState<any>(null);
 
   // Calculator Cards
   const calculatorCards = [
@@ -118,13 +120,35 @@ const Index: React.FC = () => {
   // Auto-slide functionality for Life Path Numbers - every 2 seconds
   React.useEffect(() => {
     if (!lifePathApi) return;
-    
+
     const interval = setInterval(() => {
       lifePathApi?.scrollNext();
     }, 2000);
 
     return () => clearInterval(interval);
   }, [lifePathApi]);
+
+  // Auto-slide functionality for Nakshatras - every 4 seconds (slower)
+  React.useEffect(() => {
+    if (!nakshatraApi) return;
+
+    const interval = setInterval(() => {
+      nakshatraApi?.scrollNext();
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [nakshatraApi]);
+
+  // Auto-slide functionality for Free Astrology Tools - every 5 seconds
+  React.useEffect(() => {
+    if (!calculatorApi) return;
+
+    const interval = setInterval(() => {
+      calculatorApi?.scrollNext();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [calculatorApi]);
 
   // Life Path Numbers Data (1-31)
   const lifePathNumbers = Array.from({ length: 31 }, (_, i) => {
@@ -138,7 +162,7 @@ const Index: React.FC = () => {
       "The Diplomat", "The Idealist", "The Abundance", "The Spiritual", "The Expression",
       "The Master Teacher"
     ];
-    
+
     const descriptions = [
       "Represents leadership, independence, and new beginnings",
       "Symbolizes harmony, cooperation, and balance in relationships",
@@ -200,33 +224,33 @@ const Index: React.FC = () => {
 
   // Nakshatras Data (27 Nakshatras)
   const nakshatras = [
-    { name: "Ashwini", symbol: "🐎", lord: "Ketu", deity: "Ashwini Kumars", nature: "Divine", element: "Earth" },
-    { name: "Bharani", symbol: "🌺", lord: "Venus", deity: "Yama", nature: "Human", element: "Earth" },
-    { name: "Krittika", symbol: "🔥", lord: "Sun", deity: "Agni", nature: "Demon", element: "Fire" },
-    { name: "Rohini", symbol: "🌹", lord: "Moon", deity: "Brahma", nature: "Human", element: "Earth" },
-    { name: "Mrigashira", symbol: "🦌", lord: "Mars", deity: "Soma", nature: "Divine", element: "Earth" },
-    { name: "Ardra", symbol: "💎", lord: "Rahu", deity: "Rudra", nature: "Human", element: "Water" },
-    { name: "Punarvasu", symbol: "🏹", lord: "Jupiter", deity: "Aditi", nature: "Divine", element: "Water" },
-    { name: "Pushya", symbol: "🌸", lord: "Saturn", deity: "Brihaspati", nature: "Divine", element: "Water" },
-    { name: "Ashlesha", symbol: "🐍", lord: "Mercury", deity: "Nagas", nature: "Demon", element: "Water" },
-    { name: "Magha", symbol: "👑", lord: "Ketu", deity: "Pitrs", nature: "Demon", element: "Water" },
-    { name: "Purva Phalguni", symbol: "🛏️", lord: "Venus", deity: "Bhaga", nature: "Human", element: "Water" },
-    { name: "Uttara Phalguni", symbol: "🌞", lord: "Sun", deity: "Aryaman", nature: "Human", element: "Fire" },
-    { name: "Hasta", symbol: "✋", lord: "Moon", deity: "Savitar", nature: "Divine", element: "Fire" },
-    { name: "Chitra", symbol: "💍", lord: "Mars", deity: "Vishvakarma", nature: "Demon", element: "Fire" },
-    { name: "Swati", symbol: "🌿", lord: "Rahu", deity: "Vayu", nature: "Divine", element: "Fire" },
-    { name: "Vishakha", symbol: "🏛️", lord: "Jupiter", deity: "Indra-Agni", nature: "Demon", element: "Fire" },
-    { name: "Anuradha", symbol: "🎯", lord: "Saturn", deity: "Mitra", nature: "Divine", element: "Fire" },
-    { name: "Jyeshtha", symbol: "💫", lord: "Mercury", deity: "Indra", nature: "Demon", element: "Air" },
-    { name: "Mula", symbol: "🌱", lord: "Ketu", deity: "Nirriti", nature: "Demon", element: "Air" },
-    { name: "Purva Ashadha", symbol: "🌊", lord: "Venus", deity: "Apas", nature: "Human", element: "Air" },
-    { name: "Uttara Ashadha", symbol: "🏔️", lord: "Sun", deity: "Vishvadevas", nature: "Human", element: "Air" },
-    { name: "Shravana", symbol: "👂", lord: "Moon", deity: "Vishnu", nature: "Divine", element: "Air" },
-    { name: "Dhanishta", symbol: "🥁", lord: "Mars", deity: "Vasus", nature: "Demon", element: "Air" },
-    { name: "Shatabhisha", symbol: "⭕", lord: "Rahu", deity: "Varuna", nature: "Demon", element: "Air" },
-    { name: "Purva Bhadrapada", symbol: "⚡", lord: "Jupiter", deity: "Aja Ekapada", nature: "Human", element: "Air" },
-    { name: "Uttara Bhadrapada", symbol: "🐍", lord: "Saturn", deity: "Ahir Budhnya", nature: "Human", element: "Air" },
-    { name: "Revati", symbol: "🐠", lord: "Mercury", deity: "Pushan", nature: "Divine", element: "Air" }
+    { name: "Ashwini", symbol: "🐎", lord: "Ketu", deity: "Ashwini Kumars", nature: "Divine", element: "Earth", path: "/about/ashwini" },
+    { name: "Bharani", symbol: "🌺", lord: "Venus", deity: "Yama", nature: "Human", element: "Earth", path: "/about/bharani" },
+    { name: "Krittika", symbol: "🔥", lord: "Sun", deity: "Agni", nature: "Demon", element: "Fire", path: "/about/krittika" },
+    { name: "Rohini", symbol: "🌹", lord: "Moon", deity: "Brahma", nature: "Human", element: "Earth", path: "/about/rohini" },
+    { name: "Mrigashira", symbol: "🦌", lord: "Mars", deity: "Soma", nature: "Divine", element: "Earth", path: "/about/mrigashira" },
+    { name: "Ardra", symbol: "💎", lord: "Rahu", deity: "Rudra", nature: "Human", element: "Water", path: "/about/ardra" },
+    { name: "Punarvasu", symbol: "🏹", lord: "Jupiter", deity: "Aditi", nature: "Divine", element: "Water", path: "/about/punarvasu" },
+    { name: "Pushya", symbol: "🌸", lord: "Saturn", deity: "Brihaspati", nature: "Divine", element: "Water", path: "/about/pushya" },
+    { name: "Ashlesha", symbol: "🐍", lord: "Mercury", deity: "Nagas", nature: "Demon", element: "Water", path: "/about/ashlesha" },
+    { name: "Magha", symbol: "👑", lord: "Ketu", deity: "Pitrs", nature: "Demon", element: "Water", path: "/about/magha" },
+    { name: "Purva Phalguni", symbol: "🛏️", lord: "Venus", deity: "Bhaga", nature: "Human", element: "Water", path: "/about/purva-phalguni" },
+    { name: "Uttara Phalguni", symbol: "🌞", lord: "Sun", deity: "Aryaman", nature: "Human", element: "Fire", path: "/about/uttara-phalguni" },
+    { name: "Hasta", symbol: "✋", lord: "Moon", deity: "Savitar", nature: "Divine", element: "Fire", path: "/about/hasta" },
+    { name: "Chitra", symbol: "💍", lord: "Mars", deity: "Vishvakarma", nature: "Demon", element: "Fire", path: "/about/chitra" },
+    { name: "Swati", symbol: "🌿", lord: "Rahu", deity: "Vayu", nature: "Divine", element: "Fire", path: "/about/swati" },
+    { name: "Vishakha", symbol: "🏛️", lord: "Jupiter", deity: "Indra-Agni", nature: "Demon", element: "Fire", path: "/about/vishakha" },
+    { name: "Anuradha", symbol: "🎯", lord: "Saturn", deity: "Mitra", nature: "Divine", element: "Fire", path: "/about/anuradha" },
+    { name: "Jyeshtha", symbol: "💫", lord: "Mercury", deity: "Indra", nature: "Demon", element: "Air", path: "/about/jyeshtha" },
+    { name: "Mula", symbol: "🌱", lord: "Ketu", deity: "Nirriti", nature: "Demon", element: "Air", path: "/about/mula" },
+    { name: "Purva Ashadha", symbol: "🌊", lord: "Venus", deity: "Apas", nature: "Human", element: "Air", path: "/about/purva-ashadha" },
+    { name: "Uttara Ashadha", symbol: "🏔️", lord: "Sun", deity: "Vishvadevas", nature: "Human", element: "Air", path: "/about/uttara-ashadha" },
+    { name: "Shravana", symbol: "👂", lord: "Moon", deity: "Vishnu", nature: "Divine", element: "Air", path: "/about/shravana" },
+    { name: "Dhanishta", symbol: "🥁", lord: "Mars", deity: "Vasus", nature: "Demon", element: "Air", path: "/about/dhanishta" },
+    { name: "Shatabhisha", symbol: "⭕", lord: "Rahu", deity: "Varuna", nature: "Demon", element: "Air", path: "/about/shatabhisha" },
+    { name: "Purva Bhadrapada", symbol: "⚡", lord: "Jupiter", deity: "Aja Ekapada", nature: "Human", element: "Air", path: "/about/purva-bhadrapada" },
+    { name: "Uttara Bhadrapada", symbol: "🐍", lord: "Saturn", deity: "Ahir Budhnya", nature: "Human", element: "Air", path: "/about/uttara-bhadrapada" },
+    { name: "Revati", symbol: "🐠", lord: "Mercury", deity: "Pushan", nature: "Divine", element: "Air", path: "/about/revati" }
   ];
 
   // Services Data
@@ -272,9 +296,9 @@ const Index: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       {/* Hero Section - Call With Astrologer */}
-      <section className="relative min-h-screen bg-gradient-to-br from-yellow-50 via-amber-50 to-yellow-100 overflow-hidden">
+      <section className="relative bg-gradient-to-br from-yellow-50 via-amber-50 to-yellow-100 overflow-hidden">
         <div className="container mx-auto px-4 py-20">
           <div className="relative max-w-6xl mx-auto">
 
@@ -368,6 +392,7 @@ const Index: React.FC = () => {
                         src={astrologerImage}
                         alt="Expert Astrologer"
                         className="w-full h-full rounded-full object-cover"
+                        style={{ objectPosition: 'top' }}
                       />
                     </div>
                   </div>
@@ -463,10 +488,6 @@ const Index: React.FC = () => {
             <p className="text-gray-600 text-lg">Discover the hidden meanings behind life path numbers and unlock the secrets of numerology, karma, and spirituality.</p>
           </div>
 
-          <div className="mb-6 flex items-center justify-between">
-            <p className="text-gray-600">Showing 31 of 31 numbers</p>
-          </div>
-
           <Carousel
             opts={{
               align: "start",
@@ -487,7 +508,7 @@ const Index: React.FC = () => {
                         </Badge>
 
                         {/* Heart Icon */}
-                        <button 
+                        <button
                           className="absolute top-4 right-4 text-white hover:text-red-500 transition-colors z-10"
                           onClick={(e) => e.preventDefault()}
                         >
@@ -515,10 +536,10 @@ const Index: React.FC = () => {
 
                         {/* Footer Metadata */}
                         <div className="flex items-center justify-between text-xs text-gray-400 pt-4 border-t border-slate-700">
-                          <div className="flex items-center gap-1">
+                          {/* <div className="flex items-center gap-1">
                             <Eye className="w-4 h-4" />
                             <span>{item.views}</span>
-                          </div>
+                          </div> */}
                           <div className="flex items-center gap-1">
                             <Clock className="w-4 h-4" />
                             <span>{item.date}</span>
@@ -543,7 +564,7 @@ const Index: React.FC = () => {
             <h2 className="text-3xl font-bold mb-4 text-foreground">Read All Zodiac Sign's Horoscopes</h2>
             <p className="text-muted-foreground">Discover your daily, weekly, and monthly predictions</p>
           </div>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {zodiacSigns.map((sign, index) => (
               <Link key={index} to={`/horoscope/${sign.name.toLowerCase()}`}>
@@ -572,28 +593,41 @@ const Index: React.FC = () => {
               Discover the 27 lunar mansions and their significance in Vedic astrology
             </Link>
           </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-9 gap-4">
-            {nakshatras.map((nakshatra, index) => (
-              <Link key={index} to={index === 0 ? "/about/ashwini" : "#"}>
-                <Card className="hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer">
-                  <CardContent className="p-4 text-center">
-                    <div className="text-3xl mb-2">{nakshatra.symbol}</div>
-                    <h3 className="font-bold text-primary text-sm mb-1">{nakshatra.name}</h3>
-                    <p className="text-xs text-muted-foreground mb-1">Lord: {nakshatra.lord}</p>
-                    <Badge variant="outline" className="text-xs">{nakshatra.nature}</Badge>
-                    {index === 0 && (
-                      <div className="mt-2">
-                        <Button size="sm" variant="outline" className="text-xs">
-                          Learn More
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+
+          <Carousel
+            opts={{
+              align: "start",
+              loop: true,
+            }}
+            className="w-full"
+            setApi={setNakshatraApi}
+          >
+            <CarouselContent className="-ml-4">
+              {nakshatras.map((nakshatra, index) => (
+                <CarouselItem key={index} className="pl-4 md:basis-1/3 lg:basis-1/5">
+                  <Link to={nakshatra.path}>
+                    <Card className="text-center p-4 hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border border-gray-200 hover:border-primary">
+                      <CardContent className="p-4">
+                        <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full flex items-center justify-center">
+                          <span className="text-2xl">{nakshatra.symbol}</span>
+                        </div>
+                        <h3 className="font-semibold text-primary mb-1">{nakshatra.name}</h3>
+                        <p className="text-sm text-muted-foreground mb-1">Lord: {nakshatra.lord}</p>
+                        <p className="text-xs text-muted-foreground">{nakshatra.nature}</p>
+                        <div className="mt-3">
+                          <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                            Learn More
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="left-0 -translate-x-12" />
+            <CarouselNext className="right-0 translate-x-12" />
+          </Carousel>
         </div>
       </section>
 
@@ -611,7 +645,7 @@ const Index: React.FC = () => {
               Perfect for beginners who want to understand the ancient science of astrology.
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="bg-black rounded-lg overflow-hidden">
               <div className="relative">
@@ -685,7 +719,7 @@ const Index: React.FC = () => {
               Specialized astrologers available for different branches of astrology
             </p>
           </div>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="bg-gray-800 rounded-lg p-6 text-center hover:bg-gray-700 transition-colors">
               <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center mx-auto mb-4">
@@ -763,19 +797,19 @@ const Index: React.FC = () => {
               Select the perfect consultation package for your needs
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Voice Call Package */}
             <div className="bg-gray-800 rounded-lg p-8 relative">
               <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Phone className="w-8 h-8 text-white" />
               </div>
-              
+
               <h3 className="text-xl font-bold text-white text-center mb-4">Voice Call Consultation</h3>
               <p className="text-gray-300 text-center mb-6">
                 Direct voice conversation with certified astrologers for immediate guidance
               </p>
-              
+
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Duration:</span>
@@ -783,7 +817,7 @@ const Index: React.FC = () => {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Price:</span>
-                  <span className="text-yellow-400 font-bold">₹199/min</span>
+                  <span className="text-yellow-400 font-bold">₹8/min</span>
                 </div>
               </div>
 
@@ -806,10 +840,10 @@ const Index: React.FC = () => {
                 </div>
               </div>
 
-              <Button className="w-full bg-gray-700 hover:bg-gray-600 text-white">
+              {/* <Button className="w-full bg-gray-700 hover:bg-gray-600 text-white">
                 <Clock className="w-4 h-4 mr-2" />
                 Book Now
-              </Button>
+              </Button> */}
             </div>
 
             {/* Video Call Package - Most Popular */}
@@ -819,16 +853,16 @@ const Index: React.FC = () => {
                   Most Popular
                 </span>
               </div>
-              
+
               <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Video className="w-8 h-8 text-white" />
               </div>
-              
+
               <h3 className="text-xl font-bold text-white text-center mb-4">Video Call Session</h3>
               <p className="text-gray-300 text-center mb-6">
                 Face-to-face consultation with detailed chart analysis and visual explanations
               </p>
-              
+
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Duration:</span>
@@ -836,7 +870,7 @@ const Index: React.FC = () => {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Price:</span>
-                  <span className="text-yellow-400 font-bold">₹299/min</span>
+                  <span className="text-yellow-400 font-bold">₹12/min</span>
                 </div>
               </div>
 
@@ -859,10 +893,10 @@ const Index: React.FC = () => {
                 </div>
               </div>
 
-              <Button className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold">
+              {/* <Button className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold">
                 <Clock className="w-4 h-4 mr-2" />
                 Book Now
-              </Button>
+              </Button> */}
             </div>
 
             {/* Chat Package */}
@@ -870,12 +904,12 @@ const Index: React.FC = () => {
               <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <MessageCircle className="w-8 h-8 text-white" />
               </div>
-              
+
               <h3 className="text-xl font-bold text-white text-center mb-4">Chat Consultation</h3>
               <p className="text-gray-300 text-center mb-6">
                 Written consultation perfect for detailed questions and documented advice
               </p>
-              
+
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Duration:</span>
@@ -883,7 +917,7 @@ const Index: React.FC = () => {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Price:</span>
-                  <span className="text-yellow-400 font-bold">₹149/min</span>
+                  <span className="text-yellow-400 font-bold">₹3/min</span>
                 </div>
               </div>
 
@@ -906,10 +940,10 @@ const Index: React.FC = () => {
                 </div>
               </div>
 
-              <Button className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold">
+              {/* <Button className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold">
                 <Clock className="w-4 h-4 mr-2" />
                 Book Now
-              </Button>
+              </Button> */}
             </div>
           </div>
         </div>
@@ -922,13 +956,14 @@ const Index: React.FC = () => {
             <h2 className="text-3xl font-bold mb-4">Free Astrology Tools</h2>
             <p className="text-gray-300">Get instant predictions and calculations with our free tools</p>
           </div>
-          
-          <Carousel 
-            className="w-full" 
+
+          <Carousel
+            className="w-full"
             opts={{
               align: "start",
               loop: true,
             }}
+            setApi={setCalculatorApi}
           >
             <CarouselContent className="-ml-2 md:-ml-4">
               {calculatorCards.map((card, index) => (
@@ -937,10 +972,10 @@ const Index: React.FC = () => {
                     <div className="flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4 mx-auto">
                       <card.icon className="w-8 h-8" />
                     </div>
-                    
+
                     <h3 className="text-xl font-bold text-center mb-3">{card.title}</h3>
                     <p className="text-gray-300 text-center text-sm mb-4">{card.description}</p>
-                    
+
                     <div className="space-y-2 mb-6">
                       {card.features.map((feature, idx) => (
                         <div key={idx} className="flex items-center text-sm">
@@ -949,7 +984,7 @@ const Index: React.FC = () => {
                         </div>
                       ))}
                     </div>
-                    
+
                     <div className="text-center">
                       <div className="text-2xl font-bold text-green-400 mb-2">{card.price}</div>
                       <div className="text-sm text-gray-400 mb-4">
@@ -978,7 +1013,7 @@ const Index: React.FC = () => {
             <h2 className="text-3xl font-bold mb-4 text-foreground">Services We Offer</h2>
             <p className="text-muted-foreground">Comprehensive astrological solutions for all aspects of life</p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {services.map((service, index) => (
               <Card key={index} className={`${service.color} border-2 hover:shadow-lg transition-all duration-300`}>
@@ -989,7 +1024,7 @@ const Index: React.FC = () => {
                     </div>
                     <h3 className="font-bold text-xl">{service.category}</h3>
                   </div>
-                  
+
                   <ul className="space-y-2 mb-6">
                     {service.services.map((item, idx) => (
                       <li key={idx} className="flex items-center text-sm">
@@ -998,8 +1033,8 @@ const Index: React.FC = () => {
                       </li>
                     ))}
                   </ul>
-                  
-                  <div className="space-y-2">
+
+                  {/* <div className="space-y-2">
                     <Button className="w-full bg-orange-500 hover:bg-orange-600">
                       <MessageCircle className="mr-2 h-4 w-4" />
                       Chat Now
@@ -1008,7 +1043,7 @@ const Index: React.FC = () => {
                       <Phone className="mr-2 h-4 w-4" />
                       Call Now
                     </Button>
-                  </div>
+                  </div> */}
                 </CardContent>
               </Card>
             ))}
@@ -1019,14 +1054,10 @@ const Index: React.FC = () => {
       {/* Statistics Section */}
       <section className="py-16 bg-gray-900 text-white">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="text-4xl font-bold text-orange-500 mb-2">50+</div>
+              <div className="text-4xl font-bold text-orange-500 mb-2">250+</div>
               <div className="text-sm">Certified Astrologers</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-green-500 mb-2">25,000+</div>
-              <div className="text-sm">Happy Consultations</div>
             </div>
             <div className="text-center">
               <div className="text-4xl font-bold text-blue-500 mb-2">4.8⭐</div>
@@ -1047,7 +1078,7 @@ const Index: React.FC = () => {
             <h2 className="text-3xl font-bold mb-4">Why Choose Our Professional Service?</h2>
             <p className="text-gray-600">Experience the difference with our expert astrologers</p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="text-center">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1076,6 +1107,120 @@ const Index: React.FC = () => {
               </div>
               <h3 className="font-semibold mb-2">24/7 Support</h3>
               <p className="text-sm text-gray-600">Round the clock assistance available</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* About Section */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="space-y-12">
+            {/* Main Heading */}
+            <div className="text-center">
+              <h2 className="text-4xl font-bold mb-6 text-gray-900">🌟 Astrology by true Astrotalk</h2>
+            </div>
+
+            {/* Introduction */}
+            <div className="space-y-4 text-gray-700 leading-relaxed">
+              <p>
+                At true Astrotalk, we believe that astrology is not merely a science of prediction — it is a sacred pathway to self-realization and cosmic harmony. Rooted in the profound wisdom of ancient Vedic astrology, our philosophy transcends the boundaries of conventional forecasts. We explore how celestial rhythms, planetary alignments, and divine cosmic energies influence every dimension of human existence — shaping your destiny, emotions, and evolution.
+              </p>
+              <p>
+                Every soul carries a distinct celestial signature, and through astrology, we decode that unique imprint. Your Kundli (birth chart) is more than a diagram of planets — it is your cosmic DNA, revealing your innate strengths, karmic patterns, and life's hidden possibilities. It is your divine compass, guiding you toward a life that resonates with your higher self and true purpose.
+              </p>
+              <p>
+                At true Astrotalk, we merge timeless Vedic knowledge with contemporary insight to deliver astrology that is not just predictive but transformative. Our goal is to empower you with authentic, meaningful, and actionable guidance — whether you're seeking direction in love, career, finance, health, education, or spirituality.
+              </p>
+            </div>
+
+            {/* Beyond Predictions Section */}
+            <div className="border-t pt-12">
+              <h3 className="text-3xl font-bold mb-6 text-gray-900">🔮 Beyond Predictions — The True Meaning of Astrology</h3>
+              <div className="space-y-4 text-gray-700 leading-relaxed">
+                <p>
+                  Astrology is often misunderstood as mere fortune-telling, but at true Astrotalk, we go far beyond simple astrology predictions. We view astrology as a divine science of awareness, a key to understanding one's personality, purpose, and potential.
+                </p>
+                <p>
+                  Every celestial body in your horoscope holds a profound symbolic influence — the Moon governs your emotions and intuition, Mars drives your courage and ambition, while Venus defines love, beauty, and connection. When you understand how these cosmic energies shape your life, you gain the power to make enlightened choices, overcome challenges gracefully, and harness the right opportunities at the right time.
+                </p>
+                <p className="font-semibold text-gray-900">Our astrology readings are deeply personalized and address your specific life questions, such as:</p>
+                <ul className="list-none space-y-2 ml-4">
+                  <li>💞 When is the most auspicious time to begin a relationship or get married?</li>
+                  <li>💼 How can you elevate your career, attract prosperity, or expand your business?</li>
+                  <li>🌿 Can astrology reveal remedies for ongoing health or emotional challenges?</li>
+                </ul>
+                <p>
+                  At true Astrotalk, every consultation is a journey of insight and empowerment — guiding you through turning points, transitions, and transformations with clarity and confidence.
+                </p>
+              </div>
+            </div>
+
+            {/* Empowerment Section */}
+            <div className="border-t pt-12">
+              <h3 className="text-3xl font-bold mb-6 text-gray-900">🌠 Empowerment Through Celestial Wisdom</h3>
+              <div className="space-y-4 text-gray-700 leading-relaxed">
+                <p>
+                  We believe that true empowerment begins with understanding yourself through the wisdom of the stars. Our mission at true Astrotalk is to make astrology accessible, authentic, and enlightening for everyone.
+                </p>
+                <p>
+                  Through our blogs, masterclasses, videos, and one-on-one consultations, we simplify the sacred art of astrology and turn curiosity into deep cosmic understanding.
+                </p>
+                <blockquote className="border-l-4 border-purple-500 pl-6 py-2 italic text-lg text-gray-800 bg-purple-50 rounded-r-lg my-6">
+                  "Astrology is not about predicting the future — it's about using the wisdom of the cosmos to create a brighter, more harmonious present."
+                </blockquote>
+                <p>
+                  As a modern, trusted astrology platform, true Astrotalk doesn't just interpret planetary movements — we teach you how to live in alignment with them. We empower you to manifest success, peace, and balance by understanding the celestial energies influencing your life.
+                </p>
+              </div>
+            </div>
+
+            {/* Why Choose true Astrotalk Section */}
+            <div className="border-t pt-12">
+              <h3 className="text-3xl font-bold mb-6 text-gray-900">🌌 Why Choose true Astrotalk?</h3>
+              <div className="space-y-4 text-gray-700 leading-relaxed">
+                <p>
+                  As one of the most trusted and spiritually rooted astrology platforms in India, true Astrotalk stands apart for its authenticity, accuracy, and integrity. Here's what makes us your ideal cosmic guide:
+                </p>
+                <div className="space-y-6 mt-6">
+                  <div>
+                    <h4 className="font-bold text-lg text-gray-900 mb-2">✨ Authenticity and Precision:</h4>
+                    <p>We seamlessly blend ancient Vedic astrology with modern analytical insights, ensuring each reading is both spiritually deep and practically relevant.</p>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-lg text-gray-900 mb-2">🌕 Experienced Astrologers:</h4>
+                    <p>Our team comprises highly skilled, compassionate, and certified astrologers who bring decades of expertise to every reading.</p>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-lg text-gray-900 mb-2">🌿 Holistic Guidance:</h4>
+                    <p>We believe life is interconnected — that's why our readings encompass career, love, health, wealth, education, and personal growth for complete balance.</p>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-lg text-gray-900 mb-2">🪶 Personalized Consultations:</h4>
+                    <p>Every session is tailored to your unique Kundli and life circumstances, ensuring you receive accurate, insightful, and transformative advice.</p>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-lg text-gray-900 mb-2">💫 Easy Accessibility:</h4>
+                    <p>With online consultations, instant reports, and 24x7 availability, true Astrotalk brings authentic astrology guidance to your fingertips.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Closing Section */}
+            <div className="border-t pt-12">
+              <h3 className="text-3xl font-bold mb-6 text-gray-900">🌞 Discover the Power of Astrology with true Astrotalk</h3>
+              <div className="space-y-4 text-gray-700 leading-relaxed">
+                <p>
+                  Astrology is not just about knowing what lies ahead — it's about understanding who you truly are and why you're here. At true Astrotalk, we invite you to embark on a journey of cosmic awareness, confidence, and inner transformation.
+                </p>
+                <p>
+                  Whether you seek clarity in one area of life or wish to explore your broader destiny, our expert astrologers illuminate your path with precision, compassion, and spiritual wisdom.
+                </p>
+                <p className="font-semibold text-lg text-purple-700 mt-6">
+                  Let the celestial forces guide you toward harmony, fulfillment, and success. Choose true Astrotalk — where ancient wisdom meets modern consciousness, and every reading becomes a gateway to self-discovery, balance, and enlightenment.
+                </p>
+              </div>
             </div>
           </div>
         </div>

@@ -18,15 +18,15 @@ const TrueAstrotalk = () => {
           </Link>
           
           <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl p-8 text-white mb-8">
-            <h1 className="text-4xl font-bold mb-4">True Astrotalk About</h1>
+            <h1 className="text-4xl font-bold mb-4">true Astrotalk About</h1>
             <p className="text-xl opacity-90">Your trusted platform for authentic astrological guidance</p>
           </div>
           
           <div className="space-y-8">
             <section>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">What is True Astrotalk?</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">What is true Astrotalk?</h2>
               <p className="text-gray-700 leading-relaxed">
-                True Astrotalk is India's leading online astrology platform that connects you with experienced and verified astrologers. 
+                true Astrotalk is India's leading online astrology platform that connects you with experienced and verified astrologers. 
                 We provide authentic astrological consultations through phone calls, chat, and video calls, making spiritual guidance 
                 accessible to everyone, anywhere, anytime.
               </p>
@@ -42,7 +42,7 @@ const TrueAstrotalk = () => {
             </section>
             
             <section>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Why Choose True Astrotalk?</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Why Choose true Astrotalk?</h2>
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="bg-blue-50 p-6 rounded-lg">
                   <h3 className="font-bold text-blue-900 mb-2">Verified Astrologers</h3>

@@ -61,7 +61,7 @@ const Header = () => {
 
   const aboutItems = [
     { name: "About Astrology", path: "/about-astrology" },
-    { name: "True Astrotalk", path: "/about/trueastrotalk" },
+    { name: "true Astrotalk", path: "/about/trueastrotalk" },
     { name: "Kundali", path: "/about/kundali" },
     { name: "Palmistry", path: "/about/palmistry" },
     { name: "Life Coach", path: "/about/lifecoach" },

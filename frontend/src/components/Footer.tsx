@@ -10,7 +10,7 @@ const Footer = () => {
             <div className="logo">
               <img
                 src={logoImage}
-                alt="True Astrotalk Logo"
+                alt="true Astrotalk Logo"
                 className="h-12 w-auto mb-4"
               />
             </div>
@@ -51,7 +51,7 @@ const Footer = () => {
                 Near- DAV Nageswar Public School, Tetri, Chandaghasi, Ranchi-834010
               </p>
               <p className="text-sm">
-                📞 <a href="tel:+919835635299" className="hover:text-primary">+91-9835635299</a>
+                📞 <a href="tel:+919234066099" className="hover:text-primary">+91-9234066099</a>
               </p>
               <p className="text-sm">
                 ✉️ <a href="mailto:info@trueastrotalk.com" className="hover:text-primary">info@trueastrotalk.com</a>
