@@ -88,15 +88,15 @@ class CSRFProtection {
   
   static setTokenCookie(response: NextResponse): NextResponse {
     const token = this.generateToken();
-    
+
     response.cookies.set(this.TOKEN_COOKIE, token, {
-      httpOnly: true,
+      httpOnly: false, // Must be false so client-side JS can read it for CSRF header
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       path: '/',
       maxAge: 60 * 60 * 24, // 24 hours
     });
-    
+
     response.headers.set(this.TOKEN_HEADER, token);
     return response;
   }

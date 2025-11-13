@@ -45,12 +45,26 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
   useEffect(() => {
     if (isOpen) {
       fetchMediaFiles();
+      // Fetch CSRF token if not already available
+      fetchCSRFToken();
     }
   }, [isOpen]);
 
   useEffect(() => {
     setSelectedFile(selectedImage || null);
   }, [selectedImage]);
+
+  const fetchCSRFToken = async () => {
+    try {
+      const response = await fetch('/api/csrf');
+      const data = await response.json();
+      if (data.success && data.csrfToken) {
+        localStorage.setItem('csrf-token', data.csrfToken);
+      }
+    } catch (error) {
+      console.error('Error fetching CSRF token:', error);
+    }
+  };
 
   // Filter files based on search query
   const filteredFiles = useMemo(() => {
@@ -83,7 +97,7 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
 
     // Convert FileList to Array
     const fileArray = Array.from(files);
-    
+
     // Validate all files
     const invalidFiles = fileArray.filter(file => !file.type.startsWith('image/'));
     if (invalidFiles.length > 0) {
@@ -98,6 +112,28 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
       errorMessages.updateFailed(`${oversizedFiles.length} file(s) exceed 10MB limit`);
       event.target.value = '';
       return;
+    }
+
+    // Ensure we have a CSRF token before uploading
+    let csrfToken = getCSRFToken();
+    if (!csrfToken) {
+      try {
+        const csrfResponse = await fetch('/api/csrf');
+        const csrfData = await csrfResponse.json();
+        if (csrfData.success && csrfData.csrfToken) {
+          localStorage.setItem('csrf-token', csrfData.csrfToken);
+          csrfToken = csrfData.csrfToken;
+        } else {
+          errorMessages.updateFailed('Failed to get security token. Please refresh the page.');
+          event.target.value = '';
+          return;
+        }
+      } catch (error) {
+        console.error('Error fetching CSRF token:', error);
+        errorMessages.updateFailed('Failed to get security token. Please refresh the page.');
+        event.target.value = '';
+        return;
+      }
     }
 
     setUploading(true);
@@ -155,7 +191,6 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
           xhr.open('POST', '/api/admin/media/upload');
 
           // Add CSRF token to request headers
-          const csrfToken = getCSRFToken();
           if (csrfToken) {
             xhr.setRequestHeader('x-csrf-token', csrfToken);
           }

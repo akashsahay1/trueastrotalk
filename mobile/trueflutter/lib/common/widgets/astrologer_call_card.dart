@@ -17,9 +17,6 @@ class AstrologerCallCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print("Hi");
-    print(astrologer.verificationStatus);
-    print("Hiii");
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
       decoration: BoxDecoration(
@@ -58,204 +55,204 @@ class AstrologerCallCard extends StatelessWidget {
                         child: _buildAstrologerProfileImage(),
                       ),
                     ),
-                      const SizedBox(height: 12),
-                      // Rating with stars
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: List.generate(
-                          5,
-                          (index) => Icon(
-                            Icons.star,
-                            size: 16,
-                            color: index < astrologer.rating.round()
-                                ? Colors.amber
-                                : Colors.grey.shade300,
-                          ),
+                    const SizedBox(height: 12),
+                    // Rating with stars
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: List.generate(
+                        5,
+                        (index) => Icon(
+                          Icons.star,
+                          size: 16,
+                          color: index < astrologer.rating.round()
+                              ? Colors.amber
+                              : Colors.grey.shade300,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      // Orders count
+                    ),
+                    const SizedBox(height: 4),
+                    // Orders count
+                    Text(
+                      '${astrologer.totalConsultations} sessions',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 20),
+                // Middle section: Astrologer details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Name with verification badge - name is tappable
+                      Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: onTap,
+                              child: Text(
+                                astrologer.fullName,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                          // Show badge for all astrologers - blue if verified, grey if not
+                          Container(
+                            margin: const EdgeInsets.only(left: 8),
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color:
+                                  astrologer.verificationStatus ==
+                                      VerificationStatus.verified
+                                  ? Colors.blue
+                                  : Colors.grey,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      // Skills (no icon)
                       Text(
-                        '${astrologer.totalConsultations} sessions',
+                        _truncateTextWithComma(astrologer.skillsText),
                         style: TextStyle(
                           color: Colors.grey.shade600,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ],
-                  ),
-                  const SizedBox(width: 20),
-                  // Middle section: Astrologer details
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Name with verification badge - name is tappable
-                        Row(
-                          children: [
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: onTap,
-                                child: Text(
-                                  astrologer.fullName,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black,
+                      const SizedBox(height: 4),
+                      // Languages and Experience on left, Call button on right (positioned between Experience and Price)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Languages (no icon)
+                                Text(
+                                  _truncateTextWithComma(
+                                    astrologer.languagesText,
+                                  ),
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w400,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                            ),
-                            // Show badge for all astrologers - blue if verified, grey if not
-                            Container(
-                              margin: const EdgeInsets.only(left: 8),
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: astrologer.verificationStatus == VerificationStatus.verified
-                                    ? Colors.blue
-                                    : Colors.grey,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.check,
-                                color: Colors.white,
-                                size: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        // Skills (no icon)
-                        Text(
-                          _truncateTextWithComma(astrologer.skillsText),
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        // Languages and Experience on left, Call button on right (positioned between Experience and Price)
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Languages (no icon)
-                                  Text(
-                                    _truncateTextWithComma(
-                                      astrologer.languagesText,
-                                    ),
-                                    style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w400,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  // Experience (no icon)
-                                  Text(
-                                    'Exp- ${astrologer.experienceYears} Years',
-                                    style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w400,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            // Call button positioned between Experience and Price
-                            Container(
-                              margin: const EdgeInsets.only(top: 15),
-                              width: 90,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: astrologer.isOnline
-                                      ? AppColors.primary
-                                      : Colors.grey.shade400,
-                                  width: 1,
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(10),
-                                  onTap: astrologer.isOnline
-                                      ? onStartCall
-                                      : null,
-                                  child: Container(
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      'Call',
-                                      style: TextStyle(
-                                        color: astrologer.isOnline
-                                            ? AppColors.primary
-                                            : Colors.grey.shade400,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        // Price
-                        RichText(
-                          text: TextSpan(
-                            children: [
-                              const TextSpan(
-                                text: '₹',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                              TextSpan(
-                                text: astrologer.callRate.toInt() == 0
-                                    ? "FREE"
-                                    : "${astrologer.callRate.toInt()}",
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                              if (astrologer.callRate.toInt() != 0)
-                                const TextSpan(
-                                  text: '/min',
+                                const SizedBox(height: 4),
+                                // Experience (no icon)
+                                Text(
+                                  'Exp- ${astrologer.experienceYears} Years',
                                   style: TextStyle(
+                                    color: Colors.grey.shade600,
                                     fontSize: 14,
-                                    fontWeight: FontWeight.normal,
-                                    color: Colors.grey,
+                                    fontWeight: FontWeight.w400,
                                   ),
                                 ),
-                            ],
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 12),
+                          // Call button positioned between Experience and Price
+                          Container(
+                            margin: const EdgeInsets.only(top: 15),
+                            width: 90,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: astrologer.isOnline
+                                    ? AppColors.primary
+                                    : Colors.grey.shade400,
+                                width: 1,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(10),
+                                onTap: astrologer.isOnline ? onStartCall : null,
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    'Call',
+                                    style: TextStyle(
+                                      color: astrologer.isOnline
+                                          ? AppColors.primary
+                                          : Colors.grey.shade400,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      // Price
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            const TextSpan(
+                              text: '₹',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            TextSpan(
+                              text: astrologer.callRate.toInt() == 0
+                                  ? "FREE"
+                                  : "${astrologer.callRate.toInt()}",
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            if (astrologer.callRate.toInt() != 0)
+                              const TextSpan(
+                                text: '/min',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.normal,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ],
-          ),
+                ),
+              ],
+            ),
+          ],
         ),
+      ),
     );
   }
 
