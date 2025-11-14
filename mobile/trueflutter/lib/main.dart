@@ -12,7 +12,7 @@ import 'screens/welcome.dart';
 import 'screens/auth/unified_auth_screen.dart';
 import 'screens/auth/signup_completion_screen.dart';
 import 'screens/otp_verification.dart';
-import 'screens/signup.dart'; // Keep for astrologer signup only
+import 'screens/signup.dart';
 import 'screens/forgot_password_screen.dart';
 import 'screens/home.dart';
 import 'screens/orders_list.dart';
