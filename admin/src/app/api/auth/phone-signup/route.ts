@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
         phone: user.phone_number,
       },
       JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '90d' }
     );
 
     const refreshToken = jwt.sign(
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
         userType: user.user_type,
       },
       JWT_REFRESH_SECRET,
-      { expiresIn: '30d' }
+      { expiresIn: '180d' }
     );
 
     // Prepare user response

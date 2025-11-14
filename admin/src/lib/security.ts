@@ -82,11 +82,11 @@ export class PasswordSecurity {
  */
 export class JWTSecurity {
   /**
-   * Generate access token (short-lived)
+   * Generate access token (long-lived for better UX)
    */
   static generateAccessToken(payload: Record<string, unknown>): string {
     return jwt.sign(payload, JWT_SECRET!, {
-      expiresIn: '24h',
+      expiresIn: '90d', // 90 days - users stay logged in
       algorithm: 'HS256',
       issuer: 'trueastrotalk-api',
       audience: 'trueastrotalk-app'
@@ -98,7 +98,7 @@ export class JWTSecurity {
    */
   static generateRefreshToken(payload: Record<string, unknown>): string {
     return jwt.sign(payload, JWT_REFRESH_SECRET!, {
-      expiresIn: '30d',
+      expiresIn: '180d', // 180 days - 6 months
       algorithm: 'HS256',
       issuer: 'trueastrotalk-api',
       audience: 'trueastrotalk-app'

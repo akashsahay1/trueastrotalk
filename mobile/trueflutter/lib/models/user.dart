@@ -273,7 +273,7 @@ class User {
         pendingPayouts: _parseDouble(json['pending_payouts']),
         lastPayoutAt: json['last_payout_at'] != null ? DateTime.tryParse(json['last_payout_at'].toString()) : null,
 
-        // Bank details
+        // Bank details - from flat fields (as returned by API)
         accountHolderName: json['account_holder_name']?.toString(),
         accountNumber: json['account_number']?.toString(),
         bankName: json['bank_name']?.toString(),
@@ -535,6 +535,27 @@ class User {
 
   // For customers
   bool get canBookConsultations => isCustomer && isActive && isEmailVerified;
+
+  // Check if astrologer profile is complete
+  bool get isProfileComplete {
+    if (isCustomer) {
+      // For customers, profile is complete if basic details exist
+      return name.isNotEmpty && (phone != null || email != null);
+    } else if (isAstrologer) {
+      // For astrologers, check if all required professional fields are filled
+      return name.isNotEmpty &&
+          (phone != null || email != null) &&
+          bio != null && bio!.isNotEmpty &&
+          (experienceYears != null && experienceYears! > 0) &&
+          languages != null && languages!.isNotEmpty &&
+          skills != null && skills!.isNotEmpty &&
+          ((chatRate != null && chatRate! > 0) ||
+           (callRate != null && callRate! > 0) ||
+           (videoRate != null && videoRate! > 0));
+    }
+    // For other roles (admin, manager)
+    return name.isNotEmpty && (phone != null || email != null);
+  }
 
   String get displayRole {
     switch (role) {

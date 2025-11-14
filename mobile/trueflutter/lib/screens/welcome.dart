@@ -70,14 +70,30 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
       final user = await _authService.signInWithGoogle();
 
       if (mounted) {
-        // Navigate based on user role
+        // Navigate based on user role and profile completion
         if (user.isCustomer) {
           Navigator.pushReplacementNamed(context, '/customer/home');
         } else if (user.isAstrologer) {
-          if (user.isActive && user.isEmailVerified) {
-            Navigator.pushReplacementNamed(context, '/astrologer/dashboard');
+          // Check if astrologer profile is complete
+          if (user.isProfileComplete) {
+            // Profile complete - go to dashboard or pending based on verification
+            if (user.isActive && user.isEmailVerified) {
+              Navigator.pushReplacementNamed(context, '/astrologer/dashboard');
+            } else {
+              Navigator.pushReplacementNamed(context, '/astrologer/pending');
+            }
           } else {
-            Navigator.pushReplacementNamed(context, '/astrologer/pending');
+            // Profile incomplete - go to profile completion
+            Navigator.pushReplacementNamed(
+              context,
+              '/signup-completion',
+              arguments: {
+                'identifier': user.email ?? user.phone ?? '',
+                'auth_type': 'google',
+                'user_type': 'astrologer',
+                'existing_user': true,
+              },
+            );
           }
         }
       }
@@ -127,17 +143,23 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            children: [
-              Expanded(
-                flex: 3,
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom,
+              ),
+              child: IntrinsicHeight(
+                child: Column(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
                       // App Logo with subtle animation
                       Container(
                         width: 100,
@@ -367,8 +389,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                     ),
                   ),
                 ),
+                    ),
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
         ),
       ),

@@ -207,8 +207,9 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Validate astrologer_id format
-    if (!ObjectId.isValid(astrologer_id as string)) {
+    // Validate astrologer_id format (accept both ObjectId and custom user_id format)
+    const astrologerIdStr = astrologer_id as string;
+    if (!astrologerIdStr || typeof astrologerIdStr !== 'string' || astrologerIdStr.trim().length === 0) {
       return NextResponse.json({
         success: false,
         error: 'INVALID_ASTROLOGER_ID',

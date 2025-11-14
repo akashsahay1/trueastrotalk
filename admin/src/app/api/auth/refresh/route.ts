@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
         data: {
           access_token: newAccessToken,
           refresh_token: newRefreshToken,
-          expires_in: 3600, // 1 hour
+          expires_in: 7776000, // 90 days in seconds
           user: {
             id: user.user_id,
             full_name: user.full_name,
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 60 * 60 * 1000, // 1 hour
+        maxAge: 90 * 24 * 60 * 60 * 1000, // 90 days
         path: '/'
       });
 
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        maxAge: 180 * 24 * 60 * 60 * 1000, // 180 days
         path: '/'
       });
 

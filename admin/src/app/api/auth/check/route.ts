@@ -30,7 +30,15 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Auth check error:', error);
+    // Only log unexpected errors, not expired tokens (which are normal)
+    if (error && typeof error === 'object' && 'code' in error) {
+      const err = error as { code?: string };
+      if (err.code !== 'ERR_JWT_EXPIRED') {
+        console.error('Auth check error:', error);
+      }
+    } else {
+      console.error('Auth check error:', error);
+    }
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }
 }

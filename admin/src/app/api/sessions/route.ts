@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import DatabaseService from '@/lib/database';
 import { ObjectId } from 'mongodb';
 import { jwtVerify } from 'jose';
+import NotificationService from '@/lib/notifications';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
@@ -452,6 +453,28 @@ export async function PATCH(request: NextRequest) {
           { upsert: true }
         );
 
+        // Send notifications to both customer and astrologer about the payment
+        try {
+          // Notify customer about debit
+          await NotificationService.sendSessionPaymentDebitNotification(
+            session.user_id as string,
+            sessionType,
+            totalAmount,
+            durationMinutes
+          );
+
+          // Notify astrologer about credit
+          await NotificationService.sendSessionPaymentCreditNotification(
+            session.astrologer_id as string,
+            sessionType,
+            astrologerTotalShare,
+            durationMinutes
+          );
+        } catch (notificationError) {
+          console.error('Failed to send payment notifications:', notificationError);
+          // Don't fail the request if notifications fail
+        }
+
       }
     }
 
@@ -460,6 +483,7 @@ export async function PATCH(request: NextRequest) {
       $set: {
         duration_minutes: durationMinutes,
         total_amount: totalAmount,
+        status: 'completed',
         billing_updated_at: new Date()
       }
     };

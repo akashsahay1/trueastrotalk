@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withSecurity, SecurityPresets } from '@/lib/api-security';
 import DatabaseService from '@/lib/database';
+import { access } from 'fs/promises';
+import path from 'path';
 
 // GET - Fetch all media files with filtering options
 async function handleGET(request: NextRequest) {
@@ -28,6 +30,24 @@ async function handleGET(request: NextRequest) {
       .limit(limit)
       .toArray();
 
+    // Check each file to see if physical file exists
+    const filesWithStatus = await Promise.all(
+      files.map(async (file) => {
+        let fileExists = true;
+        try {
+          const filePath = path.join(process.cwd(), 'public', file.file_path);
+          await access(filePath);
+        } catch {
+          fileExists = false;
+        }
+        return {
+          ...file,
+          file_exists: fileExists,
+          is_orphaned: !fileExists
+        };
+      })
+    );
+
     const totalFiles = await mediaCollection.countDocuments(query);
 
     // Get file type statistics for dashboard
@@ -53,10 +73,12 @@ async function handleGET(request: NextRequest) {
       }
     ]).toArray();
 
+    // Count orphaned files
+    const orphanedCount = filesWithStatus.filter(f => f.is_orphaned).length;
 
     return NextResponse.json({
       success: true,
-      files,
+      files: filesWithStatus,
       pagination: {
         total: totalFiles,
         page,
@@ -65,7 +87,8 @@ async function handleGET(request: NextRequest) {
       },
       statistics: {
         file_types: fileTypeStats,
-        sources: sourceStats
+        sources: sourceStats,
+        orphaned_count: orphanedCount
       }
     });
 

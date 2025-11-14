@@ -330,11 +330,8 @@ function AddUserPageContent() {
       customErrors.email_address = 'Email address is required';
     }
 
-    // Password validation based on user type and auth type
-    if (formData.user_type === 'astrologer' || 
-        formData.user_type === 'administrator' || 
-        formData.user_type === 'manager' ||
-        (formData.user_type === 'customer' && formData.auth_type === 'email')) {
+    // Password validation - ONLY for admin and manager
+    if (formData.user_type === 'administrator' || formData.user_type === 'manager') {
       if (!formData.password || formData.password.length < 6) {
         customErrors.password = 'Password is required (minimum 6 characters)';
       }
@@ -635,26 +632,26 @@ function AddUserPageContent() {
                           )}
                         </div>
 
-                        {/* Password */}
-                        <div className="col-md-6 mb-4">
-                          <label className="label">
-                            Password 
-                            {(isAstrologer || isAdmin || isManager || (isCustomer && formData.auth_type === 'email')) && 
+                        {/* Password - Only for Admin and Manager */}
+                        {(isAdmin || isManager) && (
+                          <div className="col-md-6 mb-4">
+                            <label className="label">
+                              Password
                               <span className="text-danger"> *</span>
-                            }
-                          </label>
-                          <input 
-                            type="password" 
-                            className={`form-control ${fieldErrors.password ? 'is-invalid' : ''}`}
-                            name="password" 
-                            value={formData.password} 
-                            onChange={handleInputChange} 
-                            required={isAstrologer || isAdmin || isManager || (isCustomer && formData.auth_type === 'email')}
-                          />
-                          {fieldErrors.password && (
-                            <div className="invalid-feedback">{fieldErrors.password}</div>
-                          )}
-                        </div>
+                            </label>
+                            <input
+                              type="password"
+                              className={`form-control ${fieldErrors.password ? 'is-invalid' : ''}`}
+                              name="password"
+                              value={formData.password}
+                              onChange={handleInputChange}
+                              required
+                            />
+                            {fieldErrors.password && (
+                              <div className="invalid-feedback">{fieldErrors.password}</div>
+                            )}
+                          </div>
+                        )}
 
                         {/* Auth Type - Only for Customers */}
                         {isCustomer && (

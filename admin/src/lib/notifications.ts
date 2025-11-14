@@ -311,10 +311,10 @@ export class NotificationService {
   static async storeNotification(target: NotificationTarget, notification: NotificationData): Promise<void> {
     try {
       const notificationsCollection = await DatabaseService.getCollection('notifications');
-      
+
       const notificationDoc = {
         _id: new ObjectId(),
-        user_id: new ObjectId(target.userId),
+        user_id: target.userId, // Use custom user_id string, not ObjectId
         user_type: target.userType,
         type: notification.type,
         title: notification.title,
@@ -345,7 +345,7 @@ export class NotificationService {
     try {
       const usersCollection = await DatabaseService.getCollection('users');
       const user = await usersCollection.findOne(
-        { _id: new ObjectId(userId) },
+        { user_id: userId }, // Use custom user_id field
         { projection: { notification_preferences: 1 } }
       );
 
@@ -383,7 +383,7 @@ export class NotificationService {
       const notificationsCollection = await DatabaseService.getCollection('notifications');
       await notificationsCollection.updateMany(
         {
-          user_id: new ObjectId(userId),
+          user_id: userId, // Use custom user_id string
           type: type,
           delivery_status: 'pending'
         },
@@ -579,8 +579,8 @@ export class NotificationService {
    */
   static async sendChatMessageNotification(senderId: string, receiverId: string, message: string): Promise<void> {
     const usersCollection = await DatabaseService.getCollection('users');
-    const receiver = await usersCollection.findOne({ _id: new ObjectId(receiverId) });
-    const sender = await usersCollection.findOne({ _id: new ObjectId(senderId) });
+    const receiver = await usersCollection.findOne({ user_id: receiverId });
+    const sender = await usersCollection.findOne({ user_id: senderId });
     
     if (receiver && sender) {
       await this.sendToUser(
@@ -604,7 +604,7 @@ export class NotificationService {
 
   static async sendPaymentSuccessNotification(userId: string, amount: number, transactionId: string): Promise<void> {
     const usersCollection = await DatabaseService.getCollection('users');
-    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+    const user = await usersCollection.findOne({ user_id: userId });
     
     if (user) {
       await this.sendToUser(
@@ -627,8 +627,8 @@ export class NotificationService {
 
   static async sendOrderPlacedNotification(userId: string, orderNumber: string, totalAmount: number): Promise<void> {
     const usersCollection = await DatabaseService.getCollection('users');
-    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
-    
+    const user = await usersCollection.findOne({ user_id: userId });
+
     if (user) {
       await this.sendToUser(
         {
@@ -643,6 +643,80 @@ export class NotificationService {
           body: `Your order ${orderNumber} for ₹${totalAmount} has been placed successfully.`,
           data: { orderNumber, totalAmount },
           priority: NotificationPriority.NORMAL
+        }
+      );
+    }
+  }
+
+  /**
+   * Send notification for session payment debit (customer)
+   */
+  static async sendSessionPaymentDebitNotification(
+    userId: string,
+    sessionType: string,
+    amount: number,
+    durationMinutes: number
+  ): Promise<void> {
+    const usersCollection = await DatabaseService.getCollection('users');
+    const user = await usersCollection.findOne({ user_id: userId });
+
+    if (user) {
+      await this.sendToUser(
+        {
+          userId,
+          userType: user.user_type,
+          fcmToken: user.fcm_token,
+          email: user.email_address
+        },
+        {
+          type: NotificationType.PAYMENT_SUCCESS,
+          title: 'Payment Debited',
+          body: `₹${amount.toFixed(2)} debited for ${sessionType} session (${durationMinutes} mins)`,
+          data: {
+            sessionType,
+            amount,
+            durationMinutes,
+            transactionType: 'debit'
+          },
+          priority: NotificationPriority.HIGH,
+          channels: [NotificationChannel.PUSH, NotificationChannel.IN_APP]
+        }
+      );
+    }
+  }
+
+  /**
+   * Send notification for session payment credit (astrologer)
+   */
+  static async sendSessionPaymentCreditNotification(
+    userId: string,
+    sessionType: string,
+    amount: number,
+    durationMinutes: number
+  ): Promise<void> {
+    const usersCollection = await DatabaseService.getCollection('users');
+    const user = await usersCollection.findOne({ user_id: userId });
+
+    if (user) {
+      await this.sendToUser(
+        {
+          userId,
+          userType: user.user_type,
+          fcmToken: user.fcm_token,
+          email: user.email_address
+        },
+        {
+          type: NotificationType.PAYMENT_SUCCESS,
+          title: 'Payment Received',
+          body: `₹${amount.toFixed(2)} earned from ${sessionType} session (${durationMinutes} mins)`,
+          data: {
+            sessionType,
+            amount,
+            durationMinutes,
+            transactionType: 'credit'
+          },
+          priority: NotificationPriority.HIGH,
+          channels: [NotificationChannel.PUSH, NotificationChannel.IN_APP]
         }
       );
     }

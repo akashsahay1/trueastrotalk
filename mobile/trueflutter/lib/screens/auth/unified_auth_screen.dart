@@ -202,11 +202,31 @@ class _UnifiedAuthScreenState extends State<UnifiedAuthScreen>
       debugPrint('✅ Google Sign-In successful, user: ${user.email}');
 
       if (mounted) {
-        // Navigate based on user role
+        // Navigate based on user role and profile completion
         if (user.isCustomer) {
           Navigator.pushReplacementNamed(context, '/customer/home');
         } else if (user.isAstrologer) {
-          Navigator.pushReplacementNamed(context, '/astrologer/dashboard');
+          // Check if astrologer profile is complete
+          if (user.isProfileComplete) {
+            // Profile complete - go to dashboard or pending based on verification
+            if (user.isActive && user.isEmailVerified) {
+              Navigator.pushReplacementNamed(context, '/astrologer/dashboard');
+            } else {
+              Navigator.pushReplacementNamed(context, '/astrologer/pending');
+            }
+          } else {
+            // Profile incomplete - go to profile completion
+            Navigator.pushReplacementNamed(
+              context,
+              '/signup-completion',
+              arguments: {
+                'identifier': user.email ?? user.phone ?? '',
+                'auth_type': 'google',
+                'user_type': 'astrologer',
+                'existing_user': true,
+              },
+            );
+          }
         } else {
           Navigator.pushReplacementNamed(context, '/home');
         }

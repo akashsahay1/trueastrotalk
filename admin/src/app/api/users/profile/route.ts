@@ -17,6 +17,25 @@ function getBaseUrl(request: NextRequest): string {
 }
 
 
+// Helper function to resolve media ID to full URL
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function resolveMediaUrl(mediaId: string | null | undefined, mediaCollection: any, baseUrl: string): Promise<string | null> {
+  if (!mediaId || !mediaId.startsWith('media_')) {
+    return mediaId || null;
+  }
+
+  try {
+    const mediaFile = await mediaCollection.findOne({ media_id: mediaId });
+    if (!mediaFile || !mediaFile.file_path) {
+      return null;
+    }
+    return `${baseUrl}${mediaFile.file_path}`;
+  } catch (error) {
+    console.error(`Error resolving media ID ${mediaId}:`, error);
+    return null;
+  }
+}
+
 // Helper function to resolve profile image to full URL
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function resolveProfileImage(user: Record<string, unknown>, mediaCollection: any, baseUrl: string): Promise<string | null> {
@@ -151,11 +170,12 @@ export async function GET(request: NextRequest) {
 
     // Get base URL for image resolution
     const baseUrl = getBaseUrl(request);
-    
+
     // Resolve profile image to full URL
     const profileImageUrl = await resolveProfileImage(dbUser, mediaCollection, baseUrl);
-    
 
+    // Resolve PAN card image to full URL
+    const panCardUrl = await resolveMediaUrl(dbUser.pan_card_id as string, mediaCollection, baseUrl);
 
     return NextResponse.json({
       success: true,
@@ -198,7 +218,17 @@ export async function GET(request: NextRequest) {
           total_earnings: dbUser.total_earnings || 0,
           rating: dbUser.rating || 0,
           total_reviews: dbUser.total_reviews || 0,
-          approval_status: dbUser.approval_status || 'pending'
+          approval_status: dbUser.approval_status || 'pending',
+
+          // Bank details
+          account_holder_name: dbUser.bank_details?.account_holder_name,
+          account_number: dbUser.bank_details?.account_number,
+          bank_name: dbUser.bank_details?.bank_name,
+          ifsc_code: dbUser.bank_details?.ifsc_code,
+
+          // PAN card
+          pan_card_url: panCardUrl,
+          pan_card_id: dbUser.pan_card_id
         })
       }
     });
@@ -450,6 +480,8 @@ export async function PUT(request: NextRequest) {
     const mediaCollection2 = await DatabaseService.getCollection('media');
     const profileImageUrl = await resolveProfileImage(updatedUser, mediaCollection2, baseUrl);
 
+    // Resolve PAN card image to full URL
+    const panCardUrlUpdated = await resolveMediaUrl(updatedUser.pan_card_id as string, mediaCollection2, baseUrl);
 
     return NextResponse.json({
       success: true,
@@ -493,7 +525,17 @@ export async function PUT(request: NextRequest) {
         total_reviews: updatedUser!.total_reviews || 0,
         education: updatedUser!.education || '',
         experience: updatedUser!.experience || '',
-        upi_id: updatedUser!.upi_id || ''
+        upi_id: updatedUser!.upi_id || '',
+
+        // Bank details
+        account_holder_name: updatedUser!.bank_details?.account_holder_name,
+        account_number: updatedUser!.bank_details?.account_number,
+        bank_name: updatedUser!.bank_details?.bank_name,
+        ifsc_code: updatedUser!.bank_details?.ifsc_code,
+
+        // PAN card
+        pan_card_url: panCardUrlUpdated,
+        pan_card_id: updatedUser!.pan_card_id
       }
     });
 

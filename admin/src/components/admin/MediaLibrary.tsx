@@ -16,6 +16,8 @@ interface MediaFile {
   mime_type: string;
   created_at: string;
   uploaded_at?: string; // backward compatibility
+  file_exists?: boolean; // Whether physical file exists on disk
+  is_orphaned?: boolean; // Whether this is an orphaned record (file missing)
 }
 
 interface MediaLibraryProps {
@@ -250,7 +252,9 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
         headers,
       });
 
-      if (response.ok) {
+      const data = await response.json();
+
+      if (response.ok && data.success) {
         fetchMediaFiles();
         // If the deleted file was selected, clear selection
         const deletedFile = mediaFiles.find(f => f._id === fileId);
@@ -265,7 +269,8 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
         }
         successMessages.deleted('File');
       } else {
-        errorMessages.deleteFailed('file');
+        console.error('Delete failed:', data);
+        errorMessages.deleteFailed(`file: ${data.message || data.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error deleting file:', error);
@@ -489,21 +494,32 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
                           style={{ cursor: 'pointer' }}
                           onClick={() => handleFileClick(file)}
                         >
-                          <div 
+                          <div
                             className="card-img-top d-flex align-items-center justify-content-center"
                             style={{ height: '120px', overflow: 'hidden', backgroundColor: '#f8f9fa', position: 'relative' }}
                           >
-                            <Image
-                              src={file.file_path}
-                              alt={file.original_name}
-                              style={{ objectFit: 'cover' }}
-                              fill
-                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 16vw"
-                            />
+                            {file.is_orphaned ? (
+                              <div className="d-flex flex-column align-items-center justify-content-center" style={{ height: '100%', color: '#dc3545' }}>
+                                <i className="fas fa-file-image fa-3x mb-2" style={{ opacity: 0.3 }}></i>
+                                <span className="badge bg-danger">File Missing</span>
+                              </div>
+                            ) : (
+                              <Image
+                                src={file.file_path}
+                                alt={file.original_name}
+                                style={{ objectFit: 'cover' }}
+                                fill
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 16vw"
+                                unoptimized={file.is_orphaned}
+                              />
+                            )}
                           </div>
                           <div className="card-body p-2">
                             <h6 className="card-title text-truncate mb-1 small" title={file.original_name}>
                               {file.original_name}
+                              {file.is_orphaned && (
+                                <span className="badge bg-danger ms-1" style={{ fontSize: '0.6rem' }}>Orphaned</span>
+                              )}
                             </h6>
                             <small className="text-muted d-block">
                               {formatFileSize(file.file_size)}
@@ -544,22 +560,30 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
                               />
                             </td>
                             <td>
-                              <div style={{ width: '60px', height: '40px', position: 'relative', overflow: 'hidden', borderRadius: '4px' }}>
-                                <Image
-                                  src={file.file_path}
-                                  alt={file.original_name}
-                                  style={{ objectFit: 'cover' }}
-                                  fill
-                                  sizes="60px"
-                                />
+                              <div style={{ width: '60px', height: '40px', position: 'relative', overflow: 'hidden', borderRadius: '4px', backgroundColor: '#f8f9fa' }} className="d-flex align-items-center justify-content-center">
+                                {file.is_orphaned ? (
+                                  <i className="fas fa-file-image text-danger" style={{ opacity: 0.5 }}></i>
+                                ) : (
+                                  <Image
+                                    src={file.file_path}
+                                    alt={file.original_name}
+                                    style={{ objectFit: 'cover' }}
+                                    fill
+                                    sizes="60px"
+                                    unoptimized={file.is_orphaned}
+                                  />
+                                )}
                               </div>
                             </td>
                             <td>
-                              <div 
+                              <div
                                 style={{ cursor: 'pointer' }}
                                 onClick={() => handleFileClick(file)}
                               >
                                 <strong>{file.original_name}</strong>
+                                {file.is_orphaned && (
+                                  <span className="badge bg-danger ms-2" style={{ fontSize: '0.65rem' }}>Orphaned</span>
+                                )}
                                 <br />
                                 <small className="text-muted">{file.file_name || file.filename}</small>
                               </div>

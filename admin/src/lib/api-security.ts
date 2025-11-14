@@ -69,21 +69,34 @@ class CSRFProtection {
   static async validateToken(request: NextRequest): Promise<boolean> {
     const headerToken = request.headers.get(this.TOKEN_HEADER);
     const cookieToken = request.cookies.get(this.TOKEN_COOKIE)?.value;
-    
+
     if (!headerToken || !cookieToken) {
+      console.log('[CSRF] Token missing - header:', !!headerToken, 'cookie:', !!cookieToken);
       return false;
     }
-    
-    // Constant-time comparison to prevent timing attacks
-    const isValid = crypto.timingSafeEqual(
-      Buffer.from(headerToken),
-      Buffer.from(cookieToken)
-    );
-    
-    if (!isValid) {
+
+    // Check if tokens have same length (required for timingSafeEqual)
+    if (headerToken.length !== cookieToken.length) {
+      console.log('[CSRF] Token length mismatch - header:', headerToken.length, 'cookie:', cookieToken.length);
+      return false;
     }
-    
-    return isValid;
+
+    try {
+      // Constant-time comparison to prevent timing attacks
+      const isValid = crypto.timingSafeEqual(
+        Buffer.from(headerToken),
+        Buffer.from(cookieToken)
+      );
+
+      if (!isValid) {
+        console.log('[CSRF] Token comparison failed');
+      }
+
+      return isValid;
+    } catch (error) {
+      console.error('[CSRF] Validation error:', error);
+      return false;
+    }
   }
   
   static setTokenCookie(response: NextResponse): NextResponse {

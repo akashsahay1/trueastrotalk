@@ -9,6 +9,29 @@ import {
 } from '@/lib/otp';
 import { JWTSecurity } from '@/lib/security';
 
+// Helper function to resolve media ID to full URL
+async function resolveMediaUrl(mediaId: string | null | undefined, request: NextRequest): Promise<string | null> {
+  if (!mediaId || !mediaId.startsWith('media_')) {
+    return mediaId || null;
+  }
+
+  try {
+    const mediaCollection = await DatabaseService.getCollection('media');
+    const mediaFile = await mediaCollection.findOne({ media_id: mediaId });
+
+    if (!mediaFile || !mediaFile.file_path) {
+      return null;
+    }
+
+    const host = request.headers.get('host');
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+    return `${protocol}://${host}${mediaFile.file_path}`;
+  } catch (error) {
+    console.error(`Error resolving media ID ${mediaId}:`, error);
+    return null;
+  }
+}
+
 /**
  * Unified OTP Verification Endpoint
  *
@@ -144,7 +167,7 @@ export async function POST(request: NextRequest) {
     // Check if this is a fully registered user or just an OTP verification record
     const isFullyRegistered = !!(
       otpRecord.full_name &&
-      otpRecord.role &&
+      (otpRecord.user_type || otpRecord.role) &&
       (otpRecord.email_verified || otpRecord.phone_verified)
     );
 
@@ -194,15 +217,88 @@ export async function POST(request: NextRequest) {
         session_id: tokenPayload.session_id,
       });
 
-      // Prepare user object (exclude sensitive fields)
-      const { otp_code: _otp_code, otp_expiry: _otp_expiry, otp_attempts: _otp_attempts, ...userWithoutOTP } = user;
+      // Resolve media IDs to full URLs
+      const profileImageUrl = await resolveMediaUrl(user.profile_image_id as string, request);
+      const panCardUrl = await resolveMediaUrl(user.pan_card_id as string, request);
+
+      // Prepare comprehensive user response with all fields
+      const userResponse = {
+        id: user.user_id || user._id.toString(),
+        user_id: user.user_id,
+        full_name: user.full_name,
+        email_address: user.email_address,
+        phone_number: user.phone_number,
+        user_type: user.user_type || user.role,
+        auth_type: user.auth_type,
+        account_status: user.account_status,
+        verification_status: user.verification_status,
+        phone_verified: user.phone_verified,
+        email_verified: user.email_verified,
+        is_online: user.is_online,
+        wallet_balance: user.wallet_balance || 0,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
+        verified_at: user.verified_at,
+        verified_by: user.verified_by,
+        rejection_reason: user.rejection_reason,
+
+        // Birth/personal details
+        date_of_birth: user.date_of_birth,
+        time_of_birth: user.time_of_birth || user.birth_time,
+        place_of_birth: user.place_of_birth || user.birth_place,
+        gender: user.gender,
+        address: user.address,
+        city: user.city,
+        state: user.state,
+        country: user.country,
+        zip: user.zip,
+
+        // Astrologer-specific fields
+        bio: user.bio,
+        profile_picture: profileImageUrl,
+        profile_image_id: user.profile_image_id,
+        profile_image_url: profileImageUrl,
+        experience_years: user.experience_years,
+        languages: user.languages,
+        skills: user.skills,
+        qualifications: user.qualifications,
+        certifications: user.certifications,
+
+        // Consultation rates
+        chat_rate: user.chat_rate,
+        call_rate: user.call_rate,
+        video_rate: user.video_rate,
+
+        // Professional details
+        education: user.education,
+        experience: user.experience,
+
+        // Payment details
+        upi_id: user.upi_id,
+        total_earnings: user.total_earnings,
+        pending_payouts: user.pending_payouts,
+        last_payout_at: user.last_payout_at,
+
+        // Bank details
+        account_holder_name: user.bank_details?.account_holder_name,
+        account_number: user.bank_details?.account_number,
+        bank_name: user.bank_details?.bank_name,
+        ifsc_code: user.bank_details?.ifsc_code,
+        pan_card_url: panCardUrl,
+        pan_card_id: user.pan_card_id,
+
+        // Rating and reviews
+        rating: user.rating,
+        total_reviews: user.total_reviews,
+        total_consultations: user.total_consultations,
+      };
 
       return NextResponse.json({
         success: true,
         message: 'OTP verified successfully - Login complete',
         user_exists: true,
         requires_signup: false,
-        user: userWithoutOTP,
+        user: userResponse,
         access_token: accessToken,
         refresh_token: refreshToken,
         auth_type: authType,

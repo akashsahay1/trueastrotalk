@@ -672,7 +672,7 @@ export async function POST(request: NextRequest) {
         user: responseUser,
         access_token: accessToken,
         refresh_token: refreshToken,
-        expires_in: 3600, // 1 hour
+        expires_in: 7776000, // 90 days in seconds
         next_steps: user_type === 'astrologer' 
           ? ['Complete profile verification', 'Upload required documents', 'Wait for admin approval']
           : ['Verify your email address', 'Complete your profile', 'Start exploring astrologers']

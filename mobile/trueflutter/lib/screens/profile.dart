@@ -9,7 +9,6 @@ import '../services/auth/auth_service.dart';
 import '../services/service_locator.dart';
 import '../models/enums.dart';
 import '../config/config.dart';
-import '../common/utils/error_handler.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -52,14 +51,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _bankNameController = TextEditingController();
   final _ifscController = TextEditingController();
 
-  // Password change controllers
-  final _currentPasswordController = TextEditingController();
-  final _newPasswordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
-  bool _showChangePassword = false;
-  bool _obscureCurrentPassword = true;
-  bool _obscureNewPassword = true;
-  bool _obscureConfirmPassword = true;
 
   app_user.User? _currentUser;
   DateTime? _selectedBirthDate;
@@ -119,11 +110,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _accountNumberController.dispose();
     _bankNameController.dispose();
     _ifscController.dispose();
-    
-    // Dispose password controllers
-    _currentPasswordController.dispose();
-    _newPasswordController.dispose();
-    _confirmPasswordController.dispose();
+
     super.dispose();
   }
 
@@ -437,64 +424,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return const TimeOfDay(hour: 12, minute: 0);
   }
 
-  Future<void> _changePassword() async {
-    // Validate password fields
-    final currentPassword = _currentPasswordController.text.trim();
-    final newPassword = _newPasswordController.text.trim();
-    final confirmPassword = _confirmPasswordController.text.trim();
-
-    if (currentPassword.isEmpty) {
-      _showErrorSnackBar('Please enter your current password');
-      return;
-    }
-
-    if (newPassword.isEmpty) {
-      _showErrorSnackBar('Please enter a new password');
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      _showErrorSnackBar('Password must be at least 6 characters');
-      return;
-    }
-
-    if (newPassword != confirmPassword) {
-      _showErrorSnackBar('Passwords do not match');
-      return;
-    }
-
-    if (currentPassword == newPassword) {
-      _showErrorSnackBar('New password must be different from current password');
-      return;
-    }
-
-    setState(() => _isUpdating = true);
-
-    try {
-      // Call API to change password
-      await _authService.changePassword(
-        currentPassword: currentPassword,
-        newPassword: newPassword,
-      );
-
-      // Clear password fields
-      _currentPasswordController.clear();
-      _newPasswordController.clear();
-      _confirmPasswordController.clear();
-      
-      // Hide password section
-      setState(() {
-        _showChangePassword = false;
-      });
-
-      _showSuccessSnackBar('Password changed successfully!');
-    } catch (e) {
-      final error = ErrorHandler.handleError(e);
-      _showErrorSnackBar(error.userMessage);
-    } finally {
-      setState(() => _isUpdating = false);
-    }
-  }
 
   Future<void> _updateProfile() async {
     if (!_formKey.currentState!.validate()) {
@@ -918,156 +847,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ],
                     ),
-
-                    // Password Change Section - Only for email auth users
-                    if (_currentUser?.authType == AuthType.email) ...[
-                      const SizedBox(height: 20),
-                      _buildSectionCard(
-                        title: 'Security',
-                        icon: Icons.lock,
-                        children: [
-                          if (!_showChangePassword) ...[
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: () {
-                                  setState(() {
-                                    _showChangePassword = true;
-                                  });
-                                },
-                                icon: Icon(Icons.key, color: AppColors.primary),
-                                label: Text(
-                                  'Change Password',
-                                  style: AppTextStyles.buttonLarge.copyWith(color: AppColors.primary),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  side: BorderSide(color: AppColors.primary),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ] else ...[
-                            // Current Password
-                            _buildTextField(
-                              controller: _currentPasswordController,
-                              label: 'Current Password',
-                              icon: Icons.lock_outline,
-                              obscureText: _obscureCurrentPassword,
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscureCurrentPassword ? Icons.visibility_off : Icons.visibility,
-                                  color: AppColors.textSecondaryLight,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _obscureCurrentPassword = !_obscureCurrentPassword;
-                                  });
-                                },
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            
-                            // New Password
-                            _buildTextField(
-                              controller: _newPasswordController,
-                              label: 'New Password',
-                              icon: Icons.lock,
-                              obscureText: _obscureNewPassword,
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscureNewPassword ? Icons.visibility_off : Icons.visibility,
-                                  color: AppColors.textSecondaryLight,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _obscureNewPassword = !_obscureNewPassword;
-                                  });
-                                },
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            
-                            // Confirm Password
-                            _buildTextField(
-                              controller: _confirmPasswordController,
-                              label: 'Confirm New Password',
-                              icon: Icons.lock,
-                              obscureText: _obscureConfirmPassword,
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
-                                  color: AppColors.textSecondaryLight,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _obscureConfirmPassword = !_obscureConfirmPassword;
-                                  });
-                                },
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            
-                            // Action Buttons
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _showChangePassword = false;
-                                        _currentPasswordController.clear();
-                                        _newPasswordController.clear();
-                                        _confirmPasswordController.clear();
-                                      });
-                                    },
-                                    style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(vertical: 14),
-                                      side: BorderSide(color: AppColors.grey300),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      'Cancel',
-                                      style: AppTextStyles.buttonLarge.copyWith(color: AppColors.textSecondaryLight),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: ElevatedButton(
-                                    onPressed: _isUpdating ? null : _changePassword,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.primary,
-                                      padding: const EdgeInsets.symmetric(vertical: 14),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                    child: _isUpdating 
-                                      ? SizedBox(
-                                          height: 20,
-                                          width: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
-                                          ),
-                                        )
-                                      : Text(
-                                          'Change Password',
-                                          style: AppTextStyles.buttonLarge.copyWith(color: AppColors.white),
-                                        ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-                    ],
 
                     // Birth Information Card - Only show for customers, not astrologers
                     if (_currentUser?.isCustomer == true) ...[

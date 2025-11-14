@@ -438,7 +438,7 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 60 * 60 * 1000, // 1 hour
+        maxAge: 90 * 24 * 60 * 60 * 1000, // 90 days
         path: '/'
       });
 
@@ -446,7 +446,7 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        maxAge: 180 * 24 * 60 * 60 * 1000, // 180 days
         path: '/'
       });
 
@@ -493,7 +493,7 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
           },
           access_token: accessToken,
           refresh_token: refreshToken,
-          expires_in: 3600 // 1 hour in seconds
+          expires_in: 7776000 // 90 days in seconds
         }
       });
     }

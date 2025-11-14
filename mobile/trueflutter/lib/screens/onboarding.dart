@@ -164,7 +164,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 _animationPaths[index],
                 fit: BoxFit.contain,
                 repeat: true,
-                animate: true,
+                animate: _currentPage == index, // Only animate current page
+                frameRate: FrameRate(30), // Limit frame rate to reduce buffer usage
               ),
             ),
           ),
@@ -250,10 +251,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboarding_completed', true);
 
-    // Navigate to login screen
+    // Navigate to welcome screen
     // Note: Dependencies are already initialized in splash screen
     if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/login');
+      Navigator.of(context).pushReplacementNamed('/welcome');
     }
   }
 }
