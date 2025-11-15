@@ -440,7 +440,7 @@ export async function PUT(request: NextRequest) {
 
     // Update the consultation
     const updateResult = await collection.updateOne(
-      { _id: sessionId },
+      sessionQuery,
       { $set: updateData }
     );
 
