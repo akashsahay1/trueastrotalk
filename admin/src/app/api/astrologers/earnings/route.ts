@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../../lib/database';
 import {
   SecurityMiddleware,
@@ -86,7 +85,7 @@ export async function GET(request: NextRequest) {
     const [earningsSummary] = await walletTransactionsCollection.aggregate([
       {
         $match: {
-          recipient_id: new ObjectId(astrologerId),
+          recipient_user_id: astrologerId,
           transaction_type: 'credit',
           status: 'completed'
         }
@@ -107,7 +106,7 @@ export async function GET(request: NextRequest) {
     const earningsBreakdown = await walletTransactionsCollection.aggregate([
       {
         $match: {
-          recipient_id: new ObjectId(astrologerId),
+          recipient_user_id: astrologerId,
           transaction_type: 'credit',
           status: 'completed',
           created_at: { $gte: startDate }
@@ -135,7 +134,7 @@ export async function GET(request: NextRequest) {
     const earningsByService = await walletTransactionsCollection.aggregate([
       {
         $match: {
-          recipient_id: new ObjectId(astrologerId),
+          recipient_user_id: astrologerId,
           transaction_type: 'credit',
           status: 'completed',
           created_at: { $gte: startDate }
@@ -156,7 +155,7 @@ export async function GET(request: NextRequest) {
     // Get recent transactions
     const recentTransactions = await walletTransactionsCollection
       .find({
-        recipient_id: new ObjectId(astrologerId),
+        recipient_user_id: astrologerId,
         transaction_type: 'credit'
       })
       .sort({ created_at: -1 })
@@ -165,7 +164,7 @@ export async function GET(request: NextRequest) {
       .toArray();
 
     const totalTransactions = await walletTransactionsCollection.countDocuments({
-      recipient_id: new ObjectId(astrologerId),
+      recipient_user_id: astrologerId,
       transaction_type: 'credit'
     });
 
@@ -174,7 +173,7 @@ export async function GET(request: NextRequest) {
       chatSessionsCollection.aggregate([
         {
           $match: {
-            astrologer_id: new ObjectId(astrologerId),
+            astrologer_id: astrologerId,
             status: 'completed',
             created_at: { $gte: startDate }
           }
@@ -192,7 +191,7 @@ export async function GET(request: NextRequest) {
       callSessionsCollection.aggregate([
         {
           $match: {
-            astrologer_id: new ObjectId(astrologerId),
+            astrologer_id: astrologerId,
             status: 'completed',
             created_at: { $gte: startDate }
           }
