@@ -3,6 +3,8 @@ import 'package:flutter/gestures.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:google_places_flutter/google_places_flutter.dart';
+import 'package:google_places_flutter/model/prediction.dart';
 import 'dart:io';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
@@ -119,7 +121,6 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
   String? _skillsError;
   
   // Address section errors
-  String? _addressError;
   String? _cityError;
   String? _stateError;
   String? _countryError;
@@ -609,17 +610,13 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
 
   String? _validateAddressSection() {
     setState(() {
-      _addressError = null;
       _cityError = null;
       _stateError = null;
       _countryError = null;
       _zipError = null;
     });
-    
+
     if (_addressController.text.trim().isEmpty) {
-      setState(() {
-        _addressError = 'Address is required';
-      });
       _addressFocusNode.requestFocus();
       return 'Address is required';
     }
@@ -2433,7 +2430,6 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
               },
               onAddressSelected: () {
                 setState(() {
-                  _addressError = null;
                   _cityError = null;
                   _stateError = null;
                   _countryError = null;

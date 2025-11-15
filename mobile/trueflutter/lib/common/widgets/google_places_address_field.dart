@@ -71,7 +71,7 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: const BorderSide(color: AppColors.borderLight),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -114,7 +114,7 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
                 color: AppColors.white,
                 border: Border(
                   bottom: BorderSide(
-                    color: AppColors.border.withOpacity(0.5),
+                    color: AppColors.borderLight.withValues(alpha: 0.5),
                   ),
                 ),
               ),

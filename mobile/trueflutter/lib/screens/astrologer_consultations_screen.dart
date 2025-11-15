@@ -667,11 +667,11 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
         return 'No active consultations\nActive sessions will appear here';
       case ConsultationStatus.completed:
         return 'No completed consultations\nFinished sessions will appear here';
-      default:
-        return 'No consultations found\nYour consultation history will appear here';
       case ConsultationStatus.upcoming:
       case ConsultationStatus.cancelled:
         return 'No consultations found';
+      default:
+        return 'No consultations found\nYour consultation history will appear here';
     }
   }
 

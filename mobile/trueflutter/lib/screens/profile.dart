@@ -1493,45 +1493,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildTextFieldWithoutIcon({required TextEditingController controller, required String label, TextInputType? keyboardType, bool enabled = true, IconData? suffixIcon, String? Function(String?)? validator, List<TextInputFormatter>? inputFormatters, int? maxLines, String? hint}) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      enabled: enabled,
-      validator: validator,
-      inputFormatters: inputFormatters,
-      maxLines: maxLines ?? 1,
-      style: AppTextStyles.bodyMedium.copyWith(color: enabled ? AppColors.textPrimaryLight : AppColors.textSecondaryLight),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight),
-        hintText: hint ?? (!enabled && controller.text.isEmpty ? 'Not specified' : null),
-        hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight, fontStyle: FontStyle.italic),
-        suffixIcon: suffixIcon != null ? Icon(suffixIcon, color: AppColors.textSecondaryLight, size: 20) : null,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.borderLight),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.borderLight),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.error, width: 2),
-        ),
-        filled: true,
-        fillColor: enabled ? AppColors.white : AppColors.grey50,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      ),
-    );
-  }
-
-  // Multi-select field methods (copied from signup flow)
   Widget _buildMultiSelectField({required String label, required Set<String> selectedItems, required List<String> availableItems, required VoidCallback onTap}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
