@@ -214,12 +214,13 @@ export async function GET(request: NextRequest) {
         })
         .toArray();
 
-      clientsData = clients.reduce((acc, client: any) => {
-        acc[client.user_id] = {
-          name: client.full_name,
-          image: client.profile_image_url,
-          phone: client.phone_number,
-          email: client.email_address
+      clientsData = clients.reduce((acc, client) => {
+        const userId = (client as unknown as { user_id: string }).user_id;
+        acc[userId] = {
+          name: (client as unknown as { full_name?: string }).full_name,
+          image: (client as unknown as { profile_image_url?: string }).profile_image_url,
+          phone: (client as unknown as { phone_number?: string }).phone_number,
+          email: (client as unknown as { email_address?: string }).email_address
         };
         return acc;
       }, {} as Record<string, { name?: string; image?: string; phone?: string; email?: string }>);
@@ -351,11 +352,11 @@ export async function PUT(request: NextRequest) {
     );
 
     // Build query for finding consultation - support both ObjectId and string IDs
-    let sessionQuery: any;
+    let sessionQuery: { _id?: ObjectId; session_id?: string };
     if (ObjectId.isValid(consultation_id as string)) {
       sessionQuery = { _id: new ObjectId(consultation_id as string) };
     } else {
-      sessionQuery = { session_id: consultation_id };
+      sessionQuery = { session_id: consultation_id as string };
     }
 
     // Find the consultation
