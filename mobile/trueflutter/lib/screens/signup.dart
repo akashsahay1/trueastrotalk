@@ -3,14 +3,11 @@ import 'package:flutter/gestures.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:google_places_flutter/google_places_flutter.dart';
-import 'package:google_places_flutter/model/prediction.dart';
-import 'dart:convert';
 import 'dart:io';
-import 'package:http/http.dart' as http;
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 import '../common/utils/error_handler.dart';
+import '../common/widgets/google_places_address_field.dart';
 import '../services/auth/auth_service.dart';
 import '../services/service_locator.dart';
 import '../models/enums.dart';
@@ -2419,7 +2416,33 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
         child: Column(
           children: [
             const SizedBox(height: 8),
-_buildGooglePlacesField(),
+            GooglePlacesAddressField(
+              addressController: _addressController,
+              cityController: _cityController,
+              stateController: _stateController,
+              countryController: _countryController,
+              zipController: _zipController,
+              label: 'Address',
+              hint: 'Start typing your address...',
+              focusNode: _addressFocusNode,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Address is required';
+                }
+                return null;
+              },
+              onAddressSelected: () {
+                setState(() {
+                  _addressError = null;
+                  _cityError = null;
+                  _stateError = null;
+                  _countryError = null;
+                  _zipError = null;
+                });
+              },
+              restrictToCountry: true,
+              countryCode: 'in',
+            ),
             const SizedBox(height: 24),
 _buildTextField(
               controller: _cityController,
@@ -2879,320 +2902,6 @@ _buildTextField(
     );
   }
 
-  Widget _buildGooglePlacesField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              'Address',
-              style: AppTextStyles.labelLarge.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(width: 2),
-            Text(
-              '*',
-              style: AppTextStyles.labelLarge.copyWith(color: AppColors.error, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: _addressError != null 
-                ? Border.all(color: AppColors.error, width: 2)
-                : _isAddressFocused 
-                    ? Border.all(color: AppColors.primary, width: 2)
-                    : null,
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 16, offset: const Offset(0, 4))],
-          ),
-          child: Config.enableGooglePlaces && Config.googleMapsApiKey.isNotEmpty
-              ? GooglePlaceAutoCompleteTextField(
-            textEditingController: _addressController,
-            googleAPIKey: Config.googleMapsApiKey,
-            inputDecoration: InputDecoration(
-              hintText: 'Start typing to search address...',
-              hintStyle: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSecondary),
-              prefixIcon: Container(
-                padding: const EdgeInsets.all(16),
-                child: Icon(Icons.location_on_outlined, color: AppColors.primary, size: 22),
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-              filled: false,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-            ),
-            debounceTime: 400,
-            countries: const ["in"], // Restrict to India
-            isLatLngRequired: false,
-            getPlaceDetailWithLatLng: (Prediction prediction) {
-              // This callback is called during typing, so we don't want to auto-fill here
-              // Just log for debugging if needed
-              debugPrint('Place detail callback: ${prediction.description}');
-            },
-            itemClick: (Prediction prediction) {
-              _addressController.text = prediction.description ?? "";
-              // Handle place selection and auto-fill other fields only when user clicks
-              _handlePlaceSelection(prediction);
-            },
-            seperatedBuilder: const Divider(height: 1, color: AppColors.grey300),
-            containerHorizontalPadding: 16,
-            itemBuilder: (context, index, prediction) {
-              return Container(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    Icon(Icons.location_on, color: AppColors.primary, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        prediction.description ?? "",
-                        style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          )
-              : TextFormField(
-                  controller: _addressController,
-                  focusNode: _addressFocusNode,
-                  style: AppTextStyles.bodyLarge.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  onChanged: (value) {
-                    if (_addressError != null) {
-                      setState(() {
-                        _addressError = null;
-                      });
-                    }
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Enter your address',
-                    hintStyle: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSecondary),
-                    prefixIcon: Container(
-                      padding: const EdgeInsets.all(16),
-                      child: Icon(Icons.location_on_outlined, color: AppColors.primary, size: 22),
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedErrorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
-                    filled: false,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                  ),
-                ),
-        ),
-        if (_addressError != null) ...[
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(Icons.error_outline, size: 14, color: AppColors.error),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  _addressError!,
-                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.error),
-                ),
-              ),
-            ],
-          ),
-        ],
-        // "Powered by Google" branding - only show when Google Places is enabled
-        if (Config.enableGooglePlaces && Config.googleMapsApiKey.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Text(
-                'Powered by ',
-                style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
-              ),
-              Text(
-                'Google',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ],
-    );
-  }
-
-  Future<void> _handlePlaceSelection(Prediction prediction) async {
-    // Auto-fill address details based on Google Places prediction
-    if (prediction.description != null && prediction.placeId != null) {
-      // Don't set the address controller text here since it's already set in itemClick
-      
-      try {
-        // Get detailed place information from Google Places Details API
-        final details = await _getPlaceDetails(prediction.placeId!);
-        
-        if (details != null) {
-          final components = details['address_components'] as List?;
-          
-          if (components != null) {
-            String? city, state, country, postalCode;
-            
-            // Parse address components from Google Places Details API
-            for (final component in components) {
-              final types = List<String>.from(component['types'] ?? []);
-              final longName = component['long_name'] as String?;
-              
-              if (types.contains('locality') && city == null) {
-                // Primary city
-                city = longName;
-              } else if (types.contains('sublocality_level_1') && city == null) {
-                // Secondary city option
-                city = longName;
-              } else if (types.contains('administrative_area_level_1')) {
-                // State/Province
-                state = longName;
-              } else if (types.contains('country')) {
-                // Country
-                country = longName;
-              } else if (types.contains('postal_code')) {
-                // Postal/ZIP code
-                postalCode = longName;
-              }
-            }
-            
-            // Fill the form fields with parsed data
-            setState(() {
-              if (city != null && _cityController.text.isEmpty) {
-                _cityController.text = city;
-              }
-              if (state != null && _stateController.text.isEmpty) {
-                _stateController.text = state;
-              }
-              if (country != null && _countryController.text.isEmpty) {
-                _countryController.text = country;
-              }
-              if (postalCode != null && _zipController.text.isEmpty) {
-                _zipController.text = postalCode;
-              }
-              
-              // Clear errors when address is auto-filled
-              if (_addressError != null) _addressError = null;
-              if (_cityError != null) _cityError = null;
-              if (_stateError != null) _stateError = null;
-              if (_countryError != null) _countryError = null;
-              if (_zipError != null) _zipError = null;
-            });
-          }
-        }
-      } catch (e) {
-        debugPrint('Error getting place details: $e');
-        // Fall back to simple parsing if API call fails
-        _fallbackAddressParsing(prediction.description!);
-      }
-    }
-  }
-
-  Future<Map<String, dynamic>?> _getPlaceDetails(String placeId) async {
-    try {
-      final url = 'https://maps.googleapis.com/maps/api/place/details/json'
-          '?place_id=$placeId'
-          '&fields=address_components'
-          '&key=${Config.googleMapsApiKey}';
-      
-      final response = await http.get(Uri.parse(url));
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['status'] == 'OK') {
-          return data['result'];
-        }
-      }
-      return null;
-    } catch (e) {
-      debugPrint('Error fetching place details: $e');
-      return null;
-    }
-  }
-
-  void _fallbackAddressParsing(String description) {
-    // Fallback parsing logic for when API call fails
-    final addressComponents = description.split(', ');
-    
-    if (addressComponents.length >= 3) {
-      final lastComponents = addressComponents.reversed.toList();
-      
-      setState(() {
-        // Try to identify and fill the fields
-        for (int i = 0; i < lastComponents.length && i < 4; i++) {
-          final component = lastComponents[i].trim();
-          
-          // Check if it's a postal code (6 digits for India)
-          if (RegExp(r'^\d{6}$').hasMatch(component) && _zipController.text.isEmpty) {
-            _zipController.text = component;
-          }
-          // Check if it's likely a country
-          else if ((component.toLowerCase().contains('india') || component.toLowerCase() == 'in') && _countryController.text.isEmpty) {
-            _countryController.text = 'India';
-          }
-          // Fill remaining fields as state/city (reverse order: country, state, city)
-          else {
-            if (_stateController.text.isEmpty && i == 1) {
-              _stateController.text = component;
-            } else if (_cityController.text.isEmpty && i == 2) {
-              _cityController.text = component;
-            }
-          }
-        }
-        
-        // Clear errors
-        if (_addressError != null) _addressError = null;
-        if (_cityError != null) _cityError = null;
-        if (_stateError != null) _stateError = null;
-        if (_countryError != null) _countryError = null;
-        if (_zipError != null) _zipError = null;
-      });
-    }
-  }
   
   Widget _buildGenderDropdown() {
     return Column(

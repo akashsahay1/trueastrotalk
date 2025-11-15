@@ -3,6 +3,7 @@ import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:intl/intl.dart';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
+import '../common/widgets/google_places_address_field.dart';
 import '../services/service_locator.dart';
 import '../services/auth/auth_service.dart';
 
@@ -850,53 +851,13 @@ class _PhoneSignupScreenState extends State<PhoneSignupScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: TextFormField(
-                  controller: _placeOfBirthController,
-                  style: AppTextStyles.bodyLarge.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Enter your birth place',
-                    hintStyle: AppTextStyles.bodyLarge.copyWith(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.normal,
-                    ),
-                    prefixIcon: Container(
-                      padding: const EdgeInsets.all(16),
-                      child: Icon(
-                        Icons.location_on_outlined,
-                        color: AppColors.primary,
-                        size: 22,
-                      ),
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(color: AppColors.primary, width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.all(20),
-                  ),
-                ),
+              GooglePlacesAddressField(
+                addressController: _placeOfBirthController,
+                label: 'Place of Birth',
+                hint: 'Start typing your birth place...',
+                validator: null, // Optional field
+                restrictToCountry: true,
+                countryCode: 'in',
               ),
             ],
           ),

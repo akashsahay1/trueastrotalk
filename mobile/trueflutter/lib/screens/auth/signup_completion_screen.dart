@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../common/themes/app_colors.dart';
 import '../../common/themes/text_styles.dart';
+import '../../common/widgets/google_places_address_field.dart';
 import '../../services/auth/auth_service.dart';
 import '../../services/service_locator.dart';
 import '../../common/utils/error_handler.dart';
@@ -309,10 +310,13 @@ class _SignupCompletionScreenState extends State<SignupCompletionScreen> {
                 const SizedBox(height: 20),
 
                 // Place of Birth (Optional)
-                _buildTextField(
-                  controller: _placeOfBirthController,
+                GooglePlacesAddressField(
+                  addressController: _placeOfBirthController,
                   label: 'Place of Birth (Optional)',
-                  icon: Icons.location_on_outlined,
+                  hint: 'Start typing your birth place...',
+                  validator: null, // Optional field
+                  restrictToCountry: true,
+                  countryCode: 'in',
                 ),
 
                 const SizedBox(height: 32),

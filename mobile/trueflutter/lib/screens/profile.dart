@@ -5,6 +5,7 @@ import 'package:mobile/models/user.dart' as app_user;
 import 'dart:io';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
+import '../common/widgets/google_places_address_field.dart';
 import '../services/auth/auth_service.dart';
 import '../services/service_locator.dart';
 import '../models/enums.dart';
@@ -1171,17 +1172,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       title: 'Address Information',
                       icon: Icons.location_on,
                       children: [
-                        // Country and State in one row
+                        // Address field with Google Places autocomplete
+                        GooglePlacesAddressField(
+                          addressController: _addressController,
+                          cityController: _cityController,
+                          stateController: _stateController,
+                          countryController: _countryController,
+                          zipController: _zipController,
+                          label: 'Address',
+                          hint: 'Start typing your address...',
+                          maxLines: 1,
+                          validator: (value) {
+                            if (_currentUser?.isAstrologer == true && (value?.trim().isEmpty ?? true)) {
+                              return 'Address is required for astrologers';
+                            }
+                            return null;
+                          },
+                          restrictToCountry: true,
+                          countryCode: 'in',
+                        ),
+                        const SizedBox(height: 16),
+
+                        // City and State in one row
                         Row(
                           children: [
                             Expanded(
                               child: _buildTextField(
-                                controller: _countryController,
-                                label: 'Country',
-                                icon: Icons.public_outlined,
+                                controller: _cityController,
+                                label: 'City',
+                                icon: Icons.location_city_outlined,
                                 validator: (value) {
                                   if (_currentUser?.isAstrologer == true && (value?.trim().isEmpty ?? true)) {
-                                    return 'Country is required';
+                                    return 'City is required';
                                   }
                                   return null;
                                 },
@@ -1204,18 +1226,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        
-                        // City and ZIP in one row
+
+                        // Country and ZIP in one row
                         Row(
                           children: [
                             Expanded(
                               child: _buildTextField(
-                                controller: _cityController,
-                                label: 'City',
-                                icon: Icons.location_city_outlined,
+                                controller: _countryController,
+                                label: 'Country',
+                                icon: Icons.public_outlined,
                                 validator: (value) {
                                   if (_currentUser?.isAstrologer == true && (value?.trim().isEmpty ?? true)) {
-                                    return 'City is required';
+                                    return 'Country is required';
                                   }
                                   return null;
                                 },
@@ -1237,20 +1259,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        // Address field in its own row
-                        _buildTextFieldWithoutIcon(
-                          controller: _addressController,
-                          label: 'Address',
-                          maxLines: 3,
-                          validator: (value) {
-                            if (_currentUser?.isAstrologer == true && (value?.trim().isEmpty ?? true)) {
-                              return 'Address is required for astrologers';
-                            }
-                            return null;
-                          },
                         ),
                       ],
                     ),

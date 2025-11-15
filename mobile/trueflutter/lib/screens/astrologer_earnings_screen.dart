@@ -168,8 +168,9 @@ class _AstrologerEarningsScreenState extends State<AstrologerEarningsScreen> wit
       if (mounted) {
         // Store API response for analytics
         _earningsStats = _parseEarningsStats(response);
-        
-        final newTransactions = _parseTransactions(response['recent_transactions'] ?? []);
+
+        final data = response['data'] as Map<String, dynamic>? ?? response;
+        final newTransactions = _parseTransactions(data['recent_transactions'] ?? []);
         
         setState(() {
           if (_currentPage == 1) {
@@ -196,24 +197,33 @@ class _AstrologerEarningsScreenState extends State<AstrologerEarningsScreen> wit
   }
 
   EarningsStats _parseEarningsStats(Map<String, dynamic> apiData) {
-    final summary = apiData['summary'] as Map<String, dynamic>? ?? {};
-    final performance = apiData['performance'] as Map<String, dynamic>? ?? {};
+    // Extract data from API response structure
+    final data = apiData['data'] as Map<String, dynamic>? ?? apiData;
+    final summary = data['summary'] as Map<String, dynamic>? ?? {};
+    final performance = data['performance'] as Map<String, dynamic>? ?? {};
     final chatSessions = performance['chat_sessions'] as Map<String, dynamic>? ?? {};
     final callSessions = performance['call_sessions'] as Map<String, dynamic>? ?? {};
-    
+
     final totalConsultations = (chatSessions['total'] ?? 0) + (callSessions['total'] ?? 0);
-    final totalEarnings = (chatSessions['total_earnings'] ?? 0.0) + (callSessions['total_earnings'] ?? 0.0);
-    
+    final chatEarnings = (chatSessions['total_earnings'] ?? 0.0).toDouble();
+    final callEarnings = (callSessions['total_earnings'] ?? 0.0).toDouble();
+    final totalEarnings = chatEarnings + callEarnings;
+    final summaryTotalEarnings = (summary['total_earnings'] ?? 0.0).toDouble();
+    final periodEarnings = (summary['period_earnings'] ?? 0.0).toDouble();
+
+    // Use total_earnings from summary if available, otherwise calculate from sessions
+    final actualTotalEarnings = summaryTotalEarnings > 0 ? summaryTotalEarnings : totalEarnings;
+
     return EarningsStats(
-      todaysEarnings: summary['total_earnings']?.toDouble() ?? 0.0,
-      weeksEarnings: summary['period_earnings']?.toDouble() ?? 0.0,
-      monthsEarnings: summary['period_earnings']?.toDouble() ?? 0.0,
-      totalEarnings: summary['total_earnings']?.toDouble() ?? 0.0,
-      availableBalance: totalEarnings * 0.7, // 70% commission
-      pendingAmount: totalEarnings * 0.1, // Assume 10% pending
+      todaysEarnings: periodEarnings,
+      weeksEarnings: periodEarnings,
+      monthsEarnings: periodEarnings,
+      totalEarnings: actualTotalEarnings,
+      availableBalance: actualTotalEarnings * 0.7, // 70% commission
+      pendingAmount: actualTotalEarnings * 0.1, // Assume 10% pending
       totalConsultations: totalConsultations,
       completedConsultations: totalConsultations,
-      averageEarningPerConsultation: totalConsultations > 0 ? totalEarnings / totalConsultations : 0.0,
+      averageEarningPerConsultation: totalConsultations > 0 ? actualTotalEarnings / totalConsultations : 0.0,
     );
   }
 
@@ -529,21 +539,48 @@ class _AstrologerEarningsScreenState extends State<AstrologerEarningsScreen> wit
           ),
           if (showWithdrawButton) ...[
             const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _showUpiDetailsDialog,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: amount >= 1000 ? _showPayoutRequestDialog : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Request Payout'),
                   ),
                 ),
-                child: const Text('Update UPI'),
-              ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _showUpiDetailsDialog,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Update UPI'),
+                  ),
+                ),
+              ],
             ),
+            if (amount < 1000) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Minimum payout: ₹1000',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                  fontSize: 10,
+                ),
+              ),
+            ],
           ],
         ],
       ),
@@ -1000,7 +1037,7 @@ class _AstrologerEarningsScreenState extends State<AstrologerEarningsScreen> wit
 
       // Call API to update UPI details
       await _userApiService.updateAstrologerUpiDetails(token, upiId);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1012,6 +1049,142 @@ class _AstrologerEarningsScreenState extends State<AstrologerEarningsScreen> wit
     } catch (e) {
       if (mounted) {
         final appError = ErrorHandler.handleError(e, context: 'profile');
+        ErrorHandler.logError(appError);
+        ErrorHandler.showError(context, appError);
+      }
+    }
+  }
+
+  void _showPayoutRequestDialog() {
+    final TextEditingController amountController = TextEditingController();
+    final TextEditingController upiController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Request Payout'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Available Balance: ₹${_earningsStats!.availableBalance.toStringAsFixed(2)}',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.success,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: amountController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Payout Amount',
+                  hintText: 'Minimum ₹1000',
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.currency_rupee),
+                  helperText: 'Enter amount between ₹1000 and ₹${_earningsStats!.availableBalance.toStringAsFixed(0)}',
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: upiController,
+                decoration: const InputDecoration(
+                  labelText: 'UPI ID',
+                  hintText: 'yourname@upi',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.account_balance),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Note: Payouts are processed within 2-3 business days. You will receive a notification once processed.',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final amount = double.tryParse(amountController.text) ?? 0;
+              if (amount < 1000) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Minimum payout amount is ₹1000'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+              if (amount > _earningsStats!.availableBalance) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Amount exceeds available balance'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+              if (upiController.text.isEmpty || !upiController.text.contains('@')) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter a valid UPI ID'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+
+              Navigator.of(context).pop();
+              _requestPayout(amount, upiController.text);
+            },
+            child: const Text('Request'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _requestPayout(double amount, String upiId) async {
+    try {
+      final token = _authService.authToken;
+      if (token == null) {
+        throw Exception('Authentication token not found');
+      }
+
+      // Call API to request payout
+      final response = await _userApiService.requestAstrologerPayout(
+        token,
+        amount: amount,
+        withdrawalMethod: 'upi',
+        accountDetails: {'upi_id': upiId},
+      );
+
+      if (mounted) {
+        if (response['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response['message'] ?? 'Payout request submitted successfully'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+          // Reload earnings to update balance
+          _loadEarningsData();
+        } else {
+          throw Exception(response['message'] ?? 'Failed to request payout');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        final appError = ErrorHandler.handleError(e, context: 'payout');
         ErrorHandler.logError(appError);
         ErrorHandler.showError(context, appError);
       }

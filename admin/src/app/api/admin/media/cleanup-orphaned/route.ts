@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { withSecurity, SecurityPresets } from '@/lib/api-security';
 import DatabaseService from '@/lib/database';
 import { access } from 'fs/promises';
 import path from 'path';
 
 // POST - Cleanup all orphaned media records (where physical file is missing)
-async function handlePOST(request: NextRequest) {
+async function handlePOST() {
   try {
     const mediaCollection = await DatabaseService.getCollection('media');
 

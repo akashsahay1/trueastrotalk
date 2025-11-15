@@ -116,7 +116,6 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
 
   List<ConsultationItem> _allConsultations = [];
   List<ConsultationItem> _activeConsultations = [];
-  List<ConsultationItem> _upcomingConsultations = [];
   List<ConsultationItem> _completedConsultations = [];
 
   bool _isLoading = true;
@@ -127,7 +126,7 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _authService = getIt<AuthService>();
     _userApiService = getIt<UserApiService>();
     _loadConsultations();
@@ -159,12 +158,14 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
       );
 
       if (response['success'] == true) {
-        final consultations = (response['consultations'] as List<dynamic>? ?? [])
+        // API returns data under 'data' key
+        final data = response['data'] as Map<String, dynamic>? ?? response;
+        final consultations = (data['consultations'] as List<dynamic>? ?? [])
             .map((json) => ConsultationItem.fromApiJson(json as Map<String, dynamic>))
             .toList();
 
-        final pagination = response['pagination'] as Map<String, dynamic>? ?? {};
-        final statistics = response['statistics'] as Map<String, dynamic>? ?? {};
+        final pagination = data['pagination'] as Map<String, dynamic>? ?? {};
+        final statistics = data['statistics'] as Map<String, dynamic>? ?? {};
         debugPrint('Loaded ${consultations.length} consultations with stats: $statistics');
         
         setState(() {
@@ -193,10 +194,6 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
   void _filterConsultations() {
     _activeConsultations = _allConsultations
         .where((c) => c.status == ConsultationStatus.active)
-        .toList();
-
-    _upcomingConsultations = _allConsultations
-        .where((c) => c.status == ConsultationStatus.upcoming)
         .toList();
 
     _completedConsultations = _allConsultations
@@ -290,27 +287,6 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
                 ],
               ),
             ),
-            Tab(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('Upcoming'),
-                  if (_upcomingConsultations.isNotEmpty)
-                    Container(
-                      margin: const EdgeInsets.only(top: 2),
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: AppColors.warning,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '${_upcomingConsultations.length}',
-                        style: const TextStyle(fontSize: 10, color: AppColors.white),
-                      ),
-                    ),
-                ],
-              ),
-            ),
             const Tab(text: 'Completed'),
             const Tab(text: 'All'),
           ],
@@ -345,7 +321,6 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
                     controller: _tabController,
                     children: [
                       _buildConsultationsList(_activeConsultations, ConsultationStatus.active),
-                      _buildConsultationsList(_upcomingConsultations, ConsultationStatus.upcoming),
                       _buildConsultationsList(_completedConsultations, ConsultationStatus.completed),
                       _buildConsultationsList(_allConsultations, null),
                     ],
@@ -690,12 +665,13 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
     switch (status) {
       case ConsultationStatus.active:
         return 'No active consultations\nActive sessions will appear here';
-      case ConsultationStatus.upcoming:
-        return 'No upcoming consultations\nScheduled sessions will appear here';
       case ConsultationStatus.completed:
         return 'No completed consultations\nFinished sessions will appear here';
       default:
         return 'No consultations found\nYour consultation history will appear here';
+      case ConsultationStatus.upcoming:
+      case ConsultationStatus.cancelled:
+        return 'No consultations found';
     }
   }
 

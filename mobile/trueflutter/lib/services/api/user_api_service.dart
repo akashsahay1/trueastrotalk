@@ -1017,6 +1017,41 @@ class UserApiService {
     }
   }
 
+  // Request astrologer payout
+  Future<Map<String, dynamic>> requestAstrologerPayout(
+    String token, {
+    required double amount,
+    required String withdrawalMethod,
+    required Map<String, dynamic> accountDetails,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiEndpoints.astrologerEarnings,
+        data: {
+          'amount': amount,
+          'withdrawal_method': withdrawalMethod,
+          'account_details': accountDetails,
+        },
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data;
+      } else {
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'Failed to request payout',
+        };
+      }
+    } on DioException catch (e) {
+      debugPrint('❌ Payout request API error: ${e.response?.statusCode} - ${e.response?.data}');
+      return {
+        'success': false,
+        'message': _handleDioException(e),
+      };
+    }
+  }
+
   /// Update FCM token on server
   Future<Map<String, dynamic>> updateFcmToken(
     String token, {
