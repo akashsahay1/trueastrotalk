@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../../lib/database';
 import {
   SecurityMiddleware,
@@ -195,20 +196,21 @@ export async function GET(request: NextRequest) {
     // Get client details for consultations
     const clientIds = [...new Set(paginatedConsultations
       .map(c => c.client_id)
-      .filter(id => id && ObjectId.isValid(id))
+      .filter(id => id && typeof id === 'string' && id.trim().length > 0)
     )];
 
     let clientsData: Record<string, { name?: string; image?: string; phone?: string; email?: string }> = {};
     if (clientIds.length > 0) {
       const clients = await usersCollection
-        .find({ 
-          _id: { $in: clientIds.map(id => new ObjectId(id)) }
+        .find({
+          user_id: { $in: clientIds }
         })
-        .project({ 
-          full_name: 1, 
-          profile_image_url: 1, 
+        .project({
+          user_id: 1,
+          full_name: 1,
+          profile_image_url: 1,
           phone_number: 1,
-          email_address: 1 
+          email_address: 1
         })
         .toArray();
 
