@@ -214,8 +214,8 @@ export async function GET(request: NextRequest) {
         })
         .toArray();
 
-      clientsData = clients.reduce((acc, client) => {
-        acc[client._id.toString()] = {
+      clientsData = clients.reduce((acc, client: any) => {
+        acc[client.user_id] = {
           name: client.full_name,
           image: client.profile_image_url,
           phone: client.phone_number,
@@ -343,7 +343,6 @@ export async function PUT(request: NextRequest) {
     }
 
     const astrologerId = authenticatedUser.userId as string;
-    const sessionId = new ObjectId(consultation_id as string);
 
     // Determine which collection to use
     const isCallSession = session_type === 'voice_call' || session_type === 'video_call';
@@ -351,10 +350,18 @@ export async function PUT(request: NextRequest) {
       isCallSession ? 'call_sessions' : 'chat_sessions'
     );
 
+    // Build query for finding consultation - support both ObjectId and string IDs
+    let sessionQuery: any;
+    if (ObjectId.isValid(consultation_id as string)) {
+      sessionQuery = { _id: new ObjectId(consultation_id as string) };
+    } else {
+      sessionQuery = { session_id: consultation_id };
+    }
+
     // Find the consultation
     const consultation = await collection.findOne({
-      _id: sessionId,
-      astrologer_id: new ObjectId(astrologerId)
+      ...sessionQuery,
+      astrologer_id: astrologerId
     });
 
     if (!consultation) {
