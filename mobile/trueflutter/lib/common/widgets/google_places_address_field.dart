@@ -60,28 +60,25 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        GooglePlaceAutoCompleteTextField(
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.borderLight),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: GooglePlaceAutoCompleteTextField(
           textEditingController: widget.addressController,
           googleAPIKey: Config.googleMapsApiKey,
           inputDecoration: InputDecoration(
             labelText: widget.label,
             hintText: widget.hint,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            errorBorder: InputBorder.none,
+            prefixIcon: const Icon(
+              Icons.location_on,
+              color: AppColors.primary,
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.borderLight),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primary, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.error),
-            ),
-            prefixIcon: const Icon(Icons.location_on),
             suffixIcon: _isLoading
                 ? const Padding(
                     padding: EdgeInsets.all(12.0),
@@ -92,20 +89,22 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
                     ),
                   )
                 : null,
-            filled: true,
-            fillColor: widget.enabled ? AppColors.white : AppColors.background,
+            filled: false,
           ),
           debounceTime: 600,
           countries: widget.restrictToCountry ? [widget.countryCode] : null,
           isLatLngRequired: false,
-          getPlaceDetailWithLatLng: (Prediction prediction) async {
-            await _handlePlaceSelection(prediction);
+          getPlaceDetailWithLatLng: (Prediction prediction) {
+            // This is called during typing - we don't want to auto-fill here
+            debugPrint('Place detail callback: ${prediction.description}');
           },
-          itemClick: (Prediction prediction) async {
+          itemClick: (Prediction prediction) {
             widget.addressController.text = prediction.description ?? '';
             widget.addressController.selection = TextSelection.fromPosition(
               TextPosition(offset: prediction.description?.length ?? 0),
             );
+            // Handle place selection to auto-fill other fields
+            _handlePlaceSelection(prediction);
           },
           itemBuilder: (context, index, Prediction prediction) {
             return Container(
@@ -160,6 +159,7 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
           containerHorizontalPadding: 0,
           isCrossBtnShown: false,
           focusNode: widget.focusNode,
+          ),
         ),
         if (widget.validator != null)
           Builder(
@@ -192,7 +192,10 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
         ),
-        prefixIcon: const Icon(Icons.location_on),
+        prefixIcon: const Icon(
+          Icons.location_on,
+          color: AppColors.primary,
+        ),
         filled: true,
         fillColor: widget.enabled ? AppColors.white : AppColors.background,
       ),
@@ -281,39 +284,49 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
       }
     }
 
-    // Fill only empty fields to preserve user edits
-    if (widget.cityController != null && widget.cityController!.text.isEmpty && city != null) {
+    // Always fill fields when address is selected (override previous values)
+    if (widget.cityController != null && city != null) {
       widget.cityController!.text = city;
     }
-    if (widget.stateController != null && widget.stateController!.text.isEmpty && state != null) {
+    if (widget.stateController != null && state != null) {
       widget.stateController!.text = state;
     }
-    if (widget.countryController != null && widget.countryController!.text.isEmpty && country != null) {
+    if (widget.countryController != null && country != null) {
       widget.countryController!.text = country;
     }
-    if (widget.zipController != null && widget.zipController!.text.isEmpty && zip != null) {
+    if (widget.zipController != null && zip != null) {
       widget.zipController!.text = zip;
     }
 
     debugPrint('📍 Auto-filled address: City=$city, State=$state, Country=$country, ZIP=$zip');
+
+    // Trigger the callback to notify parent
+    if (mounted) {
+      widget.onAddressSelected?.call();
+    }
   }
 
   void _fallbackAddressParsing(String description) {
     // Simple fallback parsing from description string
     final parts = description.split(',').map((s) => s.trim()).toList();
 
-    if (parts.length >= 2 && widget.cityController != null && widget.cityController!.text.isEmpty) {
+    if (parts.length >= 2 && widget.cityController != null) {
       widget.cityController!.text = parts[0];
     }
 
-    if (parts.length >= 3 && widget.stateController != null && widget.stateController!.text.isEmpty) {
+    if (parts.length >= 3 && widget.stateController != null) {
       widget.stateController!.text = parts[parts.length - 2];
     }
 
-    if (parts.isNotEmpty && widget.countryController != null && widget.countryController!.text.isEmpty) {
+    if (parts.isNotEmpty && widget.countryController != null) {
       widget.countryController!.text = parts.last;
     }
 
     debugPrint('📍 Fallback address parsing from: $description');
+
+    // Trigger the callback to notify parent
+    if (mounted) {
+      widget.onAddressSelected?.call();
+    }
   }
 }

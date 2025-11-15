@@ -16,6 +16,8 @@ import 'screens/signup.dart';
 import 'screens/forgot_password_screen.dart';
 import 'screens/home.dart';
 import 'screens/orders_list.dart';
+import 'screens/consultation_details_screen.dart';
+import 'screens/astrologer_consultations_screen.dart';
 import 'services/service_locator.dart';
 import 'services/auth/auth_service.dart';
 import 'services/local/local_storage_service.dart';
@@ -176,6 +178,22 @@ class TrueAstrotalkApp extends StatelessWidget {
         // Other screens
         '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/orders': (context) => const OrdersListScreen(),
+      },
+
+      // Handle routes with arguments
+      onGenerateRoute: (settings) {
+        if (settings.name == '/consultation-details') {
+          final args = settings.arguments as Map<String, dynamic>?;
+          if (args != null && args['consultation'] is ConsultationItem) {
+            return MaterialPageRoute(
+              builder: (context) => ConsultationDetailsScreen(
+                consultation: args['consultation'] as ConsultationItem,
+                isAstrologer: args['isAstrologer'] as bool? ?? false,
+              ),
+            );
+          }
+        }
+        return null;
       },
 
       // Builder for global configurations

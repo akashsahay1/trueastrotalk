@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../../lib/database';
-import { 
-  SecurityMiddleware, 
-  InputSanitizer 
+import {
+  SecurityMiddleware,
+  InputSanitizer
 } from '../../../../lib/security';
 
 // GET - Astrologer dashboard data
@@ -43,7 +42,7 @@ export async function GET(request: NextRequest) {
 
     // Get astrologer profile
     const astrologer = await usersCollection.findOne(
-      { _id: new ObjectId(astrologerId) },
+      { user_id: astrologerId },
       {
         projection: {
           password: 0,
@@ -74,7 +73,7 @@ export async function GET(request: NextRequest) {
     const [chatStats] = await chatSessionsCollection.aggregate([
       {
         $match: {
-          astrologer_id: new ObjectId(astrologerId)
+          astrologer_id: astrologerId
         }
       },
       {
@@ -120,7 +119,7 @@ export async function GET(request: NextRequest) {
     const [callStats] = await callSessionsCollection.aggregate([
       {
         $match: {
-          astrologer_id: new ObjectId(astrologerId)
+          astrologer_id: astrologerId
         }
       },
       {
@@ -146,7 +145,7 @@ export async function GET(request: NextRequest) {
     const [earningsStats] = await walletTransactionsCollection.aggregate([
       {
         $match: {
-          recipient_id: new ObjectId(astrologerId),
+          recipient_user_id: astrologerId,
           transaction_type: 'credit',
           status: 'completed'
         }
@@ -210,7 +209,7 @@ export async function GET(request: NextRequest) {
     // Get recent reviews
     const recentReviews = await reviewsCollection
       .find({
-        astrologer_id: new ObjectId(astrologerId)
+        astrologer_id: astrologerId
       })
       .sort({ created_at: -1 })
       .limit(5)
@@ -219,7 +218,7 @@ export async function GET(request: NextRequest) {
     // Get recent chat sessions
     const recentChatSessions = await chatSessionsCollection
       .find({
-        astrologer_id: new ObjectId(astrologerId)
+        astrologer_id: astrologerId
       })
       .sort({ created_at: -1 })
       .limit(10)
@@ -229,7 +228,7 @@ export async function GET(request: NextRequest) {
     const weeklyEarnings = await walletTransactionsCollection.aggregate([
       {
         $match: {
-          recipient_id: new ObjectId(astrologerId),
+          recipient_user_id: astrologerId,
           transaction_type: 'credit',
           status: 'completed',
           created_at: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
@@ -487,9 +486,9 @@ export async function PUT(request: NextRequest) {
 
     // Update astrologer settings
     const result = await usersCollection.updateOne(
-      { 
-        _id: new ObjectId(astrologerId),
-        user_type: 'astrologer' 
+      {
+        user_id: astrologerId,
+        user_type: 'astrologer'
       },
       { $set: updateData }
     );

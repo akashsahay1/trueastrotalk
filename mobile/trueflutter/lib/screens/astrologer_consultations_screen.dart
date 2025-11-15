@@ -113,35 +113,84 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
   late TabController _tabController;
   late final AuthService _authService;
   late final UserApiService _userApiService;
+  late ScrollController _scrollController;
 
   List<ConsultationItem> _allConsultations = [];
-  List<ConsultationItem> _activeConsultations = [];
-  List<ConsultationItem> _completedConsultations = [];
+  List<ConsultationItem> _chatConsultations = [];
+  List<ConsultationItem> _audioConsultations = [];
+  List<ConsultationItem> _videoConsultations = [];
 
   bool _isLoading = true;
+  bool _isLoadingMore = false;
   String _searchQuery = '';
   int _currentPage = 1;
-  // Pagination fields will be added when infinite scrolling is implemented
+  bool _hasMore = true;
+  int _currentTabIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
+    _scrollController = ScrollController();
     _authService = getIt<AuthService>();
     _userApiService = getIt<UserApiService>();
+
+    // Listen to tab changes
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging) {
+        setState(() {
+          _currentTabIndex = _tabController.index;
+          _currentPage = 1;
+          _hasMore = true;
+        });
+        _loadConsultations();
+      }
+    });
+
+    // Listen to scroll for pagination
+    _scrollController.addListener(_onScroll);
+
     _loadConsultations();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent * 0.9) {
+      if (!_isLoadingMore && _hasMore) {
+        _loadMoreConsultations();
+      }
+    }
+  }
+
+  String? _getCurrentTypeFilter() {
+    switch (_currentTabIndex) {
+      case 0:
+        return null; // All
+      case 1:
+        return 'chat';
+      case 2:
+        return 'voice_call';
+      case 3:
+        return 'video_call';
+      default:
+        return null;
+    }
   }
 
   Future<void> _loadConsultations() async {
     setState(() {
       _isLoading = true;
+      _currentPage = 1;
       _allConsultations.clear();
+      _chatConsultations.clear();
+      _audioConsultations.clear();
+      _videoConsultations.clear();
     });
 
     try {
@@ -152,6 +201,7 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
 
       final response = await _userApiService.getAstrologerConsultations(
         token,
+        type: _getCurrentTypeFilter(),
         search: _searchQuery.isEmpty ? null : _searchQuery,
         page: _currentPage,
         limit: 20,
@@ -167,14 +217,15 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
         final pagination = data['pagination'] as Map<String, dynamic>? ?? {};
         final statistics = data['statistics'] as Map<String, dynamic>? ?? {};
         debugPrint('Loaded ${consultations.length} consultations with stats: $statistics');
-        
+
         setState(() {
           _allConsultations = consultations;
           _filterConsultations();
+          _hasMore = pagination['has_next'] == true;
         });
-        
+
         // Debug pagination info
-        debugPrint('Loaded ${consultations.length} consultations, has more: ${pagination['has_next']}');
+        debugPrint('Loaded ${consultations.length} consultations, has more: $_hasMore');
       } else {
         throw Exception(response['message'] ?? 'Failed to load consultations');
       }
@@ -191,13 +242,67 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
     });
   }
 
+  Future<void> _loadMoreConsultations() async {
+    if (_isLoadingMore || !_hasMore) return;
+
+    setState(() {
+      _isLoadingMore = true;
+      _currentPage++;
+    });
+
+    try {
+      final token = _authService.authToken;
+      if (token == null) {
+        throw Exception('Authentication token not found');
+      }
+
+      final response = await _userApiService.getAstrologerConsultations(
+        token,
+        type: _getCurrentTypeFilter(),
+        search: _searchQuery.isEmpty ? null : _searchQuery,
+        page: _currentPage,
+        limit: 20,
+      );
+
+      if (response['success'] == true) {
+        final data = response['data'] as Map<String, dynamic>? ?? response;
+        final newConsultations = (data['consultations'] as List<dynamic>? ?? [])
+            .map((json) => ConsultationItem.fromApiJson(json as Map<String, dynamic>))
+            .toList();
+
+        final pagination = data['pagination'] as Map<String, dynamic>? ?? {};
+
+        setState(() {
+          _allConsultations.addAll(newConsultations);
+          _filterConsultations();
+          _hasMore = pagination['has_next'] == true;
+        });
+
+        debugPrint('Loaded ${newConsultations.length} more consultations, total: ${_allConsultations.length}');
+      }
+    } catch (e) {
+      setState(() {
+        _currentPage--; // Revert page increment on error
+      });
+      debugPrint('Error loading more consultations: $e');
+    }
+
+    setState(() {
+      _isLoadingMore = false;
+    });
+  }
+
   void _filterConsultations() {
-    _activeConsultations = _allConsultations
-        .where((c) => c.status == ConsultationStatus.active)
+    _chatConsultations = _allConsultations
+        .where((c) => c.type == ConsultationType.chat)
         .toList();
 
-    _completedConsultations = _allConsultations
-        .where((c) => c.status == ConsultationStatus.completed)
+    _audioConsultations = _allConsultations
+        .where((c) => c.type == ConsultationType.voiceCall)
+        .toList();
+
+    _videoConsultations = _allConsultations
+        .where((c) => c.type == ConsultationType.videoCall)
         .toList();
   }
 
@@ -215,32 +320,15 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
     });
   }
 
-  void _navigateToConsultation(ConsultationItem consultation) {
-    switch (consultation.type) {
-      case ConsultationType.chat:
-        Navigator.pushNamed(context, '/chat', arguments: {
-          'sessionId': consultation.id,
-          'clientName': consultation.clientName,
-          'isAstrologer': true,
-        });
-        break;
-      case ConsultationType.voiceCall:
-        Navigator.pushNamed(context, '/call', arguments: {
-          'sessionId': consultation.id,
-          'clientName': consultation.clientName,
-          'callType': 'voice',
-          'isAstrologer': true,
-        });
-        break;
-      case ConsultationType.videoCall:
-        Navigator.pushNamed(context, '/call', arguments: {
-          'sessionId': consultation.id,
-          'clientName': consultation.clientName,
-          'callType': 'video',
-          'isAstrologer': true,
-        });
-        break;
-    }
+  void _navigateToConsultationDetails(ConsultationItem consultation) {
+    Navigator.pushNamed(
+      context,
+      '/consultation-details',
+      arguments: {
+        'consultation': consultation,
+        'isAstrologer': true,
+      },
+    );
   }
 
   // Demo data generation method removed - now using real API data
@@ -265,30 +353,11 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
           indicatorColor: AppColors.white,
           labelColor: AppColors.white,
           unselectedLabelColor: AppColors.white.withValues(alpha: 0.7),
-          tabs: [
-            Tab(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('Active'),
-                  if (_activeConsultations.isNotEmpty)
-                    Container(
-                      margin: const EdgeInsets.only(top: 2),
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: AppColors.error,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '${_activeConsultations.length}',
-                        style: const TextStyle(fontSize: 10, color: AppColors.white),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const Tab(text: 'Completed'),
-            const Tab(text: 'All'),
+          tabs: const [
+            Tab(text: 'All'),
+            Tab(text: 'Chat'),
+            Tab(text: 'Audio'),
+            Tab(text: 'Video'),
           ],
         ),
       ),
@@ -320,9 +389,10 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
                 : TabBarView(
                     controller: _tabController,
                     children: [
-                      _buildConsultationsList(_activeConsultations, ConsultationStatus.active),
-                      _buildConsultationsList(_completedConsultations, ConsultationStatus.completed),
-                      _buildConsultationsList(_allConsultations, null),
+                      _buildConsultationsList(_allConsultations),
+                      _buildConsultationsList(_chatConsultations),
+                      _buildConsultationsList(_audioConsultations),
+                      _buildConsultationsList(_videoConsultations),
                     ],
                   ),
           ),
@@ -331,20 +401,20 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
     );
   }
 
-  Widget _buildConsultationsList(List<ConsultationItem> consultations, ConsultationStatus? filterStatus) {
+  Widget _buildConsultationsList(List<ConsultationItem> consultations) {
     if (consultations.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              _getEmptyStateIcon(filterStatus),
+              Icons.assignment_outlined,
               size: 64,
               color: AppColors.textSecondary,
             ),
             const SizedBox(height: 16),
             Text(
-              _getEmptyStateMessage(filterStatus),
+              'No consultations found',
               style: AppTextStyles.bodyLarge.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -358,9 +428,19 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
     return RefreshIndicator(
       onRefresh: _loadConsultations,
       child: ListView.builder(
+        controller: _scrollController,
         padding: const EdgeInsets.all(16),
-        itemCount: consultations.length,
+        itemCount: consultations.length + (_isLoadingMore ? 1 : 0),
         itemBuilder: (context, index) {
+          if (index == consultations.length) {
+            // Loading indicator at the end
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
           return _buildConsultationCard(consultations[index]);
         },
       ),
@@ -371,9 +451,12 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _navigateToConsultationDetails(consultation),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
@@ -539,6 +622,7 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
           ],
         ),
       ),
+      ),
     );
   }
 
@@ -648,32 +732,6 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
     }
   }
 
-  IconData _getEmptyStateIcon(ConsultationStatus? status) {
-    switch (status) {
-      case ConsultationStatus.active:
-        return Icons.chat_bubble_outline;
-      case ConsultationStatus.upcoming:
-        return Icons.schedule;
-      case ConsultationStatus.completed:
-        return Icons.check_circle_outline;
-      default:
-        return Icons.list_alt;
-    }
-  }
-
-  String _getEmptyStateMessage(ConsultationStatus? status) {
-    switch (status) {
-      case ConsultationStatus.active:
-        return 'No active consultations\nActive sessions will appear here';
-      case ConsultationStatus.completed:
-        return 'No completed consultations\nFinished sessions will appear here';
-      case ConsultationStatus.upcoming:
-      case ConsultationStatus.cancelled:
-        return 'No consultations found';
-      default:
-        return 'No consultations found\nYour consultation history will appear here';
-    }
-  }
 
   String _formatDateTime(DateTime dateTime) {
     final now = DateTime.now();
@@ -735,9 +793,9 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
         // Refresh consultations to show updated status
         _currentPage = 1;
         _loadConsultations();
-        
-        // Navigate to appropriate consultation screen
-        _navigateToConsultation(consultation);
+
+        // Navigate to consultation details screen
+        _navigateToConsultationDetails(consultation);
       } else {
         throw Exception(response['message'] ?? 'Failed to join consultation');
       }
