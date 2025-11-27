@@ -1,12 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../../../lib/database';
 import '../../../../../lib/security';
-import { withSecurity, SecurityPresets } from '@/lib/api-security';
+import { withSecurity, SecurityPresets, AuthenticatedNextRequest, getRequestBody } from '@/lib/api-security';
 
-async function handlePOST(request: NextRequest) {
+async function handlePOST(request: AuthenticatedNextRequest) {
   try {
-    const body = await request.json();
+    const body = await getRequestBody<{ order_id: string }>(request);
+    if (!body) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid request body'
+      }, { status: 400 });
+    }
     const { order_id } = body;
 
     if (!order_id) {

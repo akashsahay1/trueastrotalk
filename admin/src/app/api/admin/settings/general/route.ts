@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import DatabaseService from '@/lib/database';
 
 import { jwtVerify } from 'jose';
-import { withSecurity, SecurityPresets } from '@/lib/api-security';
+import { withSecurity, SecurityPresets, AuthenticatedNextRequest, getRequestBody } from '@/lib/api-security';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
@@ -103,16 +103,16 @@ async function handleGET(request: NextRequest) {
 }
 
 // POST - Save configuration
-async function handlePOST(request: NextRequest) {
+async function handlePOST(request: AuthenticatedNextRequest) {
   try {
     // Get token from cookies (httpOnly cookie)
     const token = request.cookies.get('auth-token')?.value;
 
     if (!token) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         success: false,
         error: 'Unauthorized',
-        message: 'No authentication token provided' 
+        message: 'No authentication token provided'
       }, { status: 401 });
     }
 
@@ -121,24 +121,35 @@ async function handlePOST(request: NextRequest) {
       const result = await jwtVerify(token, JWT_SECRET);
       payload = result.payload;
     } catch {
-      return NextResponse.json({ 
+      return NextResponse.json({
         success: false,
         error: 'Invalid token',
-        message: 'Authentication token is invalid or expired' 
+        message: 'Authentication token is invalid or expired'
       }, { status: 401 });
     }
 
     // Verify user is admin
     if (payload.user_type !== 'administrator') {
-      return NextResponse.json({ 
+      return NextResponse.json({
         success: false,
         error: 'Forbidden',
-        message: 'Access denied. Admin access required.' 
+        message: 'Access denied. Admin access required.'
       }, { status: 403 });
     }
 
     // Parse request body
-    const body = await request.json();
+    const body = await getRequestBody<{
+      razorpay?: { keyId?: string; keySecret?: string; environment?: string };
+      app?: { name?: string; version?: string; minSupportedVersion?: string };
+      commission?: { defaultRate?: number; gstRate?: number; minimumPayout?: number };
+    }>(request);
+
+    if (!body) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid request body'
+      }, { status: 400 });
+    }
     
     // Validate required fields
     if (!body.razorpay?.keyId || !body.razorpay?.keySecret) {

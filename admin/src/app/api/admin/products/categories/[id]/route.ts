@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
-import { withSecurity, SecurityPresets } from '@/lib/api-security';
+import { withSecurity, SecurityPresets, AuthenticatedNextRequest, getRequestBody } from '@/lib/api-security';
 import DatabaseService from '@/lib/database';
 
 // GET - Fetch single category
@@ -56,13 +56,19 @@ async function handleGET(
 
 // PUT - Update category
 async function handlePUT(
-  request: NextRequest,
+  request: AuthenticatedNextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   const { params } = context;
   try {
     const { id } = await params;
-    const body = await request.json();
+    const body = await getRequestBody<{ name: string; description?: string; is_active?: boolean }>(request);
+    if (!body) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid request body'
+      }, { status: 400 });
+    }
     const { name, description, is_active } = body;
 
     if (!ObjectId.isValid(id)) {

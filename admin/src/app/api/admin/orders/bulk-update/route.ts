@@ -1,14 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../../../lib/database';
 import { emailService } from '../../../../../lib/email-service';
 import '../../../../../lib/security';
-import { withSecurity, SecurityPresets } from '@/lib/api-security';
+import { withSecurity, SecurityPresets, AuthenticatedNextRequest, getRequestBody } from '@/lib/api-security';
 
 // POST - Bulk update order status (admin only)
-async function handlePOST(request: NextRequest) {
+async function handlePOST(request: AuthenticatedNextRequest) {
   try {
-    const body = await request.json();
+    const body = await getRequestBody<{ order_ids: string[]; status: string }>(request);
+    if (!body) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid request body'
+      }, { status: 400 });
+    }
     const { order_ids, status } = body;
 
     if (!order_ids || !Array.isArray(order_ids) || order_ids.length === 0) {

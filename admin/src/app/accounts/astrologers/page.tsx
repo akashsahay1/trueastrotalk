@@ -375,8 +375,15 @@ export default function AstrologersPage() {
 
     setDeleting(userId);
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {};
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch(`/api/users/${userId}`, {
         method: 'DELETE',
+        headers
       });
 
       if (response.ok) {
@@ -405,8 +412,14 @@ export default function AstrologersPage() {
 
     setDeleting('bulk');
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {};
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const deletePromises = selectedUsers.map(userId =>
-        fetch(`/api/users/${userId}`, { method: 'DELETE' })
+        fetch(`/api/users/${userId}`, { method: 'DELETE', headers })
       );
 
       const results = await Promise.allSettled(deletePromises);

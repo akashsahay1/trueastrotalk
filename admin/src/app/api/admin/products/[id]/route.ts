@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
-import { withSecurity, SecurityPresets } from '@/lib/api-security';
+import { withSecurity, SecurityPresets, AuthenticatedNextRequest, getRequestBody } from '@/lib/api-security';
 import DatabaseService from '@/lib/database';
 
 // Helper function to convert relative image URLs to full URLs
@@ -86,13 +86,19 @@ async function handleGET(
 
 // PUT - Update product
 async function handlePUT(
-  request: NextRequest,
+  request: AuthenticatedNextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   const { params } = context;
   try {
     const { id } = await params;
-    const body = await request.json();
+    const body = await getRequestBody<{ name: string; description?: string; price: number; category: string; stock_quantity: number; is_active?: boolean; image_url?: string }>(request);
+    if (!body) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid request body'
+      }, { status: 400 });
+    }
     const { name, description, price, category, stock_quantity, is_active, image_url } = body;
 
     if (!ObjectId.isValid(id)) {

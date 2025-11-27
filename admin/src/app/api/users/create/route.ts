@@ -1,33 +1,57 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import DatabaseService from '@/lib/database';
 
 import crypto from 'crypto';
 import { omit } from '@/utils/omit';
 import { emailService } from '@/lib/email-service';
-import { withSecurity, SecurityPresets } from '@/lib/api-security';
+import { withSecurity, SecurityPresets, AuthenticatedNextRequest, getRequestBody } from '@/lib/api-security';
 import { generateUserId } from '@/lib/custom-id';
 
 function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
-export const POST = withSecurity(async (request: NextRequest) => {
+export const POST = withSecurity(async (request: AuthenticatedNextRequest) => {
   try {
-    const body = await request.json();
+    const body = await getRequestBody(request);
+
+    if (!body) {
+      return NextResponse.json(
+        { error: 'Invalid request body' },
+        { status: 400 }
+      );
+    }
     
     // Validate required fields
-    const { 
-      full_name, 
-      email_address, 
-      password, 
-      user_type, 
-      phone_number, 
-      gender 
+    const {
+      full_name,
+      email_address,
+      password,
+      user_type,
+      phone_number,
+      gender
     } = body;
 
-    if (!full_name || !email_address || !password || !user_type || !phone_number || !gender) {
+    // Basic validation for all user types
+    if (!full_name || !email_address || !user_type) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields (full_name, email_address, user_type)' },
+        { status: 400 }
+      );
+    }
+
+    // Password is required ONLY for admin and manager
+    if ((user_type === 'administrator' || user_type === 'manager') && !password) {
+      return NextResponse.json(
+        { error: 'Password is required for administrator and manager accounts' },
+        { status: 400 }
+      );
+    }
+
+    // Phone number and gender are required for customers and astrologers
+    if ((user_type === 'customer' || user_type === 'astrologer') && (!phone_number || !gender)) {
+      return NextResponse.json(
+        { error: 'Phone number and gender are required for customer and astrologer accounts' },
         { status: 400 }
       );
     }
@@ -43,31 +67,44 @@ export const POST = withSecurity(async (request: NextRequest) => {
 
     // Additional validation for astrologers
     if (user_type === 'astrologer') {
-      const { 
-        date_of_birth, 
-        birth_time, 
-        birth_place, 
-        address, 
-        city, 
-        state, 
-        country, 
-        zip, 
-        qualifications, 
-        skills, 
+      const {
+        address,
+        city,
+        state,
+        country,
+        zip,
         call_rate,
         chat_rate,
-        video_rate 
+        video_rate,
+        pan_card_id,
+        bank_details
       } = body;
 
-      if (!date_of_birth || !birth_time || !birth_place || !address || 
-          !city || !state || !country || !zip || 
-          !qualifications || qualifications.length === 0 ||
-          !skills || skills.length === 0 ||
-          !call_rate || 
-          !chat_rate || 
-          !video_rate) {
+      if (!address || !city || !state || !country || !zip) {
         return NextResponse.json(
-          { error: 'Missing required fields for astrologer account' },
+          { error: 'Address details are required for astrologer account' },
+          { status: 400 }
+        );
+      }
+
+      if (!call_rate || call_rate <= 0 || !chat_rate || chat_rate <= 0 || !video_rate || video_rate <= 0) {
+        return NextResponse.json(
+          { error: 'Valid rates (call, chat, video) are required for astrologer account' },
+          { status: 400 }
+        );
+      }
+
+      if (!pan_card_id) {
+        return NextResponse.json(
+          { error: 'PAN card is required for astrologer account' },
+          { status: 400 }
+        );
+      }
+
+      if (!bank_details || !bank_details.account_holder_name || !bank_details.account_number ||
+          !bank_details.bank_name || !bank_details.ifsc_code) {
+        return NextResponse.json(
+          { error: 'Bank details are required for astrologer account' },
           { status: 400 }
         );
       }
@@ -89,13 +126,13 @@ export const POST = withSecurity(async (request: NextRequest) => {
       );
     }
 
-    // Hash the password
-    const hashedPassword = hashPassword(password);
+    // Hash the password only if provided (required for admin/manager, optional for others)
+    const hashedPassword = password ? hashPassword(password) : null;
 
     // Prepare user data
     const userData = {
       user_id: generateUserId(),
-      profile_image: body.profile_image || '',
+      profile_image: body.profile_image_id || body.profile_image || '',
       full_name,
       email_address,
       password: hashedPassword,
@@ -117,18 +154,29 @@ export const POST = withSecurity(async (request: NextRequest) => {
       verification_status_message: body.verification_status_message || '',
       verified_at: body.verification_status === 'verified' ? new Date() : null,
       verified_by: body.verification_status === 'verified' ? 'admin' : null,
+      is_featured: body.is_featured || false,
+      bio: body.bio || '',
+      experience_years: body.experience_years || 0,
+      languages: body.languages || [],
       qualifications: body.qualifications || [],
       skills: body.skills || [],
+      pan_card_id: body.pan_card_id || '',
+      bank_details: body.bank_details || {
+        account_holder_name: '',
+        account_number: '',
+        bank_name: '',
+        ifsc_code: ''
+      },
       // Service rates charged to customers
-      call_rate: body.call_rate || 50,
-      chat_rate: body.chat_rate || 30,
-      video_rate: body.video_rate || 80,
+      call_rate: body.call_rate || 0,
+      chat_rate: body.chat_rate || 0,
+      video_rate: body.video_rate || 0,
       wallet_balance: 0,
-      // Commission percentage that astrologer receives
-      commission_percentage: {
-        call: 70,  // Astrologer gets 70% of call revenue
-        chat: 65,  // Astrologer gets 65% of chat revenue
-        video: 75  // Astrologer gets 75% of video revenue
+      // Commission percentage (platform takes this %)
+      commission_percentage: body.commission_percentage || {
+        call: 25,
+        chat: 25,
+        video: 25
       },
       total_sessions: 0,
       total_earnings: 0,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateCategoryId } from '@/lib/custom-id';
-import { withSecurity, SecurityPresets } from '@/lib/api-security';
+import { withSecurity, SecurityPresets, AuthenticatedNextRequest, getRequestBody } from '@/lib/api-security';
 import DatabaseService from '@/lib/database';
 
 // GET - Fetch all categories
@@ -50,9 +50,15 @@ async function handleGET(request: NextRequest) {
 }
 
 // POST - Create new category
-async function handlePOST(request: NextRequest) {
+async function handlePOST(request: AuthenticatedNextRequest) {
   try {
-    const body = await request.json();
+    const body = await getRequestBody<{ name: string; description?: string; is_active?: boolean }>(request);
+    if (!body) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid request body'
+      }, { status: 400 });
+    }
     const { name, description, is_active } = body;
 
     // Validate required fields

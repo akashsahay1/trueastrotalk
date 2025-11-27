@@ -3,7 +3,7 @@ import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../../lib/database';
 import { emailService } from '../../../../lib/email-service';
 import '../../../../lib/security';
-import { withSecurity, SecurityPresets } from '@/lib/api-security';
+import { withSecurity, SecurityPresets, AuthenticatedNextRequest, getRequestBody } from '@/lib/api-security';
 
 // Type definitions
 interface OrderItem {
@@ -299,9 +299,15 @@ async function handleGET(request: NextRequest) {
 }
 
 // PUT - Update order status (internal handler)
-async function handlePUT(request: NextRequest) {
+async function handlePUT(request: AuthenticatedNextRequest) {
   try {
-    const body = await request.json();
+    const body = await getRequestBody<{ order_id: string; status?: string; payment_status?: string; tracking_number?: string }>(request);
+    if (!body) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid request body'
+      }, { status: 400 });
+    }
     const { order_id, status, payment_status, tracking_number } = body;
 
     if (!order_id) {
@@ -421,9 +427,15 @@ async function handlePUT(request: NextRequest) {
 }
 
 // DELETE - Delete single order (internal handler)
-async function handleDELETE(request: NextRequest) {
+async function handleDELETE(request: AuthenticatedNextRequest) {
   try {
-    const body = await request.json();
+    const body = await getRequestBody<{ order_id: string }>(request);
+    if (!body) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid request body'
+      }, { status: 400 });
+    }
     const { order_id } = body;
 
     if (!order_id) {

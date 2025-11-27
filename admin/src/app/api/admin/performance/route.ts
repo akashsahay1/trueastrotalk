@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SecurityMiddleware } from '../../../../lib/security';
 import { PerformanceMonitor, performanceCache } from '../../../../lib/performance-cache';
 import DatabaseIndexManager from '../../../../lib/database-indexes';
-import { withSecurity, SecurityPresets } from '@/lib/api-security';
+import { withSecurity, SecurityPresets, AuthenticatedNextRequest, getRequestBody } from '@/lib/api-security';
 
 // GET - Performance statistics and monitoring
 async function handleGET(request: NextRequest) {
@@ -123,7 +123,7 @@ async function handleGET(request: NextRequest) {
 }
 
 // POST - Performance optimization actions
-async function handlePOST(request: NextRequest) {
+async function handlePOST(request: AuthenticatedNextRequest) {
   try {
     const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
@@ -148,7 +148,13 @@ async function handlePOST(request: NextRequest) {
       }, { status: 403 });
     }
 
-    const body = await request.json();
+    const body = await getRequestBody<{ action: string; options?: Record<string, unknown> }>(request);
+    if (!body) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid request body'
+      }, { status: 400 });
+    }
     const { action, options = {} } = body;
 
     let result;

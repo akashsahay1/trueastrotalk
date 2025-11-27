@@ -387,11 +387,17 @@ export default function PendingOrdersPage() {
       setValidatingPayment(true);
       setPaymentValidationResult(null);
       
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch('/api/admin/orders/validate-payment', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           order_id: order._id
         }),
@@ -438,12 +444,18 @@ export default function PendingOrdersPage() {
     
     try {
       setMovingToComplete(true);
-      
+
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch('/api/admin/orders', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           order_id: order._id,
           status: 'confirmed',
@@ -481,12 +493,18 @@ export default function PendingOrdersPage() {
     
     try {
       setDeletingOrderId(order._id);
-      
+
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch('/api/admin/orders', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           order_id: order._id
         }),
@@ -596,11 +614,17 @@ export default function PendingOrdersPage() {
     if (!result.isConfirmed) return;
     
     try {
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch('/api/payments/razorpay/refund', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           orderId: order._id,
           refundAmount: parseFloat(refundAmount),
@@ -661,11 +685,17 @@ export default function PendingOrdersPage() {
     try {
       setSavingEdit(true);
 
+      const csrfToken = getCSRFToken();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+      }
+
       const response = await fetch('/api/admin/orders', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           order_id: editingOrder._id,
           status: editStatus,
