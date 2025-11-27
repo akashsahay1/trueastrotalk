@@ -146,9 +146,9 @@ async function handlePUT(
     const updateData = {
       name,
       description: description || '',
-      price: parseFloat(price),
+      price,
       category,
-      stock_quantity: parseInt(stock_quantity),
+      stock_quantity,
       is_active: is_active !== undefined ? is_active : true,
       image_url: image_url || '',
       updated_at: new Date()

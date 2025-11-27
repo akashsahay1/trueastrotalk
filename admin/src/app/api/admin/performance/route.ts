@@ -171,29 +171,29 @@ async function handlePOST(request: AuthenticatedNextRequest) {
         break;
 
       case 'analyze-query':
-        if (!options.collection || !options.query) {
+        if (!options.collection || typeof options.collection !== 'string' || !options.query) {
           throw new Error('Collection and query are required for analysis');
         }
-        
+
         const analysis = await DatabaseIndexManager.analyzeQueryPerformance(
           options.collection,
-          options.query,
-          options.sort
+          options.query as Record<string, unknown>,
+          options.sort as Record<string, number> | undefined
         );
         result = { message: 'Query analysis completed', analysis };
         break;
 
       case 'optimize-collection':
-        if (!options.collection) {
+        if (!options.collection || typeof options.collection !== 'string') {
           throw new Error('Collection name is required for optimization');
         }
-        
+
         // Get collection indexes
         const indexes = await DatabaseIndexManager.getCollectionIndexes(options.collection);
-        result = { 
-          message: `Collection ${options.collection} analyzed`, 
+        result = {
+          message: `Collection ${options.collection} analyzed`,
           current_indexes: indexes.length,
-          indexes 
+          indexes
         };
         break;
 

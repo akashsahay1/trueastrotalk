@@ -7,13 +7,58 @@ import { emailService } from '@/lib/email-service';
 import { withSecurity, SecurityPresets, AuthenticatedNextRequest, getRequestBody } from '@/lib/api-security';
 import { generateUserId } from '@/lib/custom-id';
 
+interface CreateUserRequest {
+  full_name: string;
+  email_address: string;
+  password?: string;
+  user_type: string;
+  phone_number?: string;
+  gender?: string;
+  profile_image_id?: string;
+  profile_image?: string;
+  auth_type?: string;
+  date_of_birth?: string;
+  birth_time?: string;
+  birth_place?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  zip?: string;
+  account_status?: string;
+  is_online?: boolean;
+  verification_status?: string;
+  verification_status_message?: string;
+  is_featured?: boolean;
+  bio?: string;
+  experience_years?: number;
+  languages?: string[];
+  qualifications?: string[];
+  skills?: string[];
+  pan_card_id?: string;
+  bank_details?: {
+    account_holder_name: string;
+    account_number: string;
+    bank_name: string;
+    ifsc_code: string;
+  };
+  call_rate?: number;
+  chat_rate?: number;
+  video_rate?: number;
+  commission_percentage?: {
+    call: number;
+    chat: number;
+    video: number;
+  };
+}
+
 function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
 export const POST = withSecurity(async (request: AuthenticatedNextRequest) => {
   try {
-    const body = await getRequestBody(request);
+    const body = await getRequestBody<CreateUserRequest>(request);
 
     if (!body) {
       return NextResponse.json(
