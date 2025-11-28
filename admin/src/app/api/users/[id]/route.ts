@@ -401,6 +401,13 @@ export async function PUT(
     }
 
     // Send email notification if astrologer verification status changed
+    console.log('Email notification check:', {
+      verificationStatusChanged,
+      isAstrologer,
+      oldStatus: existingUser.verification_status,
+      newStatus: body.verification_status
+    });
+
     if (verificationStatusChanged && isAstrologer && body.verification_status) {
       const astrologerData = {
         ...updatedUser,
@@ -409,15 +416,19 @@ export async function PUT(
       };
 
       if (body.verification_status === 'verified' || body.verification_status === 'rejected') {
+        console.log('Sending astrologer status email to:', astrologerData.email);
         emailService.sendAstrologerStatusNotification(
           astrologerData,
           body.verification_status,
           body.verification_status_message
-        ).then(_sent => {
+        ).then(sent => {
+          console.log('Email send result:', sent);
         }).catch(error => {
           console.error('Error sending astrologer status email:', error);
         });
       }
+    } else {
+      console.log('Skipping email - conditions not met');
     }
 
     return NextResponse.json({
