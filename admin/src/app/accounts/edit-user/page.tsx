@@ -1133,8 +1133,8 @@ function EditUserContent() {
                             <div
                               className="p-3 rounded"
                               style={{
-                                border: '2px solid #dc3545',
-                                backgroundColor: '#fff5f5'
+                                border: '1px solid #e4e4e4',
+                                backgroundColor: '#f3f3f3'
                               }}
                             >
                               <h6 className="text-danger mb-3">
@@ -1167,7 +1167,7 @@ function EditUserContent() {
                                   )}
                                 </label>
                                 <textarea
-                                  className={`form-control ${fieldErrors.custom_rejection_message ? 'is-invalid' : ''}`}
+                                  className={`form-control bg-white ${fieldErrors.custom_rejection_message ? 'is-invalid' : ''}`}
                                   value={customRejectionMessage}
                                   onChange={(e) => setCustomRejectionMessage(e.target.value)}
                                   rows={3}
@@ -1181,11 +1181,6 @@ function EditUserContent() {
                                   <div className="invalid-feedback">{fieldErrors.custom_rejection_message}</div>
                                 )}
                               </div>
-
-                              <small className="text-muted">
-                                <i className="fas fa-info-circle mr-1"></i>
-                                This message will be sent to the astrologer via email notification.
-                              </small>
                             </div>
                           </div>
                         )}
