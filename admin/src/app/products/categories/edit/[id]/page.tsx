@@ -146,9 +146,7 @@ export default function EditCategoryPage() {
               <div className="row">
                 <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                   <div className="text-center">
-                    <div className="spinner-border" role="status">
-                      <span className="sr-only">Loading...</span>
-                    </div>
+                    <i className="fa fa-circle-notch fa-spin fa-2x text-primary"></i>
                     <p className="mt-2">Loading category...</p>
                   </div>
                 </div>
@@ -262,7 +260,7 @@ export default function EditCategoryPage() {
                           >
                             {saving ? (
                               <>
-                                <i className="fas fa-spinner fa-spin mr-1"></i>Updating Category...
+                                <i className="fa fa-circle-notch fa-spin mr-1"></i>Updating Category...
                               </>
                             ) : (
                               <>

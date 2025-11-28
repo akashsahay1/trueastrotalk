@@ -668,7 +668,7 @@ export default function AstrologersPage() {
                           {loading ? (
                             <tr>
                               <td colSpan={10} className="text-center">
-                                <i className="fas fa-spinner fa-spin mr-2"></i>Loading...
+                                <i className="fa fa-circle-notch fa-spin mr-2"></i>Loading...
                               </td>
                             </tr>
                           ) : users.length > 0 ? (
@@ -736,7 +736,7 @@ export default function AstrologersPage() {
                                       disabled={deleting === user._id}
                                     >
                                       {deleting === user._id ? (
-                                        <i className="fas fa-spinner fa-spin"></i>
+                                        <i className="fa fa-circle-notch fa-spin"></i>
                                       ) : (
                                         <i className="fas fa-trash"></i>
                                       )}
@@ -1053,7 +1053,7 @@ export default function AstrologersPage() {
                 >
                   {bulkUpdating ? (
                     <>
-                      <i className="fas fa-spinner fa-spin mr-1"></i>
+                      <i className="fa fa-circle-notch fa-spin mr-1"></i>
                       Updating...
                     </>
                   ) : (

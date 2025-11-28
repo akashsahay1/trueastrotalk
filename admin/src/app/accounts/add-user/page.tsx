@@ -1295,7 +1295,7 @@ function AddUserPageContent() {
                     <div className="col-12">
                       <button type="submit" className="btn btn-primary" disabled={loading}>
                         {loading ? (
-                          <><i className="fas fa-spinner fa-spin mr-2"></i>Processing...</>
+                          <><i className="fa fa-circle-notch fa-spin mr-2"></i>Processing...</>
                         ) : (
                           <>Create Account</>
                         )}
@@ -1338,7 +1338,7 @@ export default function AddUserPage() {
           <div className="dashboard-ecommerce">
             <div className="container-fluid dashboard-content">
               <div className="text-center">
-                <i className="fas fa-spinner fa-spin fa-3x text-primary"></i>
+                <i className="fa fa-circle-notch fa-spin fa-3x text-primary"></i>
                 <p className="mt-3">Loading...</p>
               </div>
             </div>

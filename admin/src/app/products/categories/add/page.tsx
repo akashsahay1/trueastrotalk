@@ -178,7 +178,7 @@ export default function AddCategoryPage() {
                   >
                     {loading ? (
                       <>
-                        <i className="fas fa-spinner fa-spin mr-1"></i>Adding Category...
+                        <i className="fa fa-circle-notch fa-spin mr-1"></i>Adding Category...
                       </>
                     ) : (
                       <>

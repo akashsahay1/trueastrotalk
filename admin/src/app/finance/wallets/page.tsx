@@ -306,7 +306,7 @@ export default function WalletsPage() {
                           {loading ? (
                             <tr>
                               <td colSpan={11} className="text-center">
-                                <i className="fas fa-spinner fa-spin mr-2"></i>Loading...
+                                <i className="fa fa-circle-notch fa-spin mr-2"></i>Loading...
                               </td>
                             </tr>
                           ) : wallets.length > 0 ? (

@@ -84,7 +84,7 @@ export function Button({
 
   const renderIcon = (position: 'left' | 'right') => {
     if (loading && position === 'left') {
-      return <i className="fas fa-spinner fa-spin mr-2"></i>;
+      return <i className="fa fa-circle-notch fa-spin mr-2"></i>;
     }
     
     if (icon && iconPosition === position && !loading) {
@@ -148,7 +148,7 @@ export function LinkButton({
 
   const renderIcon = (position: 'left' | 'right') => {
     if (loading && position === 'left') {
-      return <i className="fas fa-spinner fa-spin mr-2"></i>;
+      return <i className="fa fa-circle-notch fa-spin mr-2"></i>;
     }
     
     if (icon && iconPosition === position && !loading) {

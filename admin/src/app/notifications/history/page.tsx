@@ -203,7 +203,7 @@ export default function NotificationHistoryPage() {
                           {loading ? (
                             <tr>
                               <td colSpan={6} className="text-center">
-                                <i className="fas fa-spinner fa-spin mr-2"></i>Loading...
+                                <i className="fa fa-circle-notch fa-spin mr-2"></i>Loading...
                               </td>
                             </tr>
                           ) : notifications.length > 0 ? (

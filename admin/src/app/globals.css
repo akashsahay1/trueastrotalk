@@ -780,6 +780,11 @@ label.btn-primary:hover {
   opacity: 1;
 }
 
+/* Consistent loader spinner color */
+.fa-spin {
+  color: var(--primary-color);
+}
+
 /* Select2 Dropdown Options Custom Styling - Global override for our admin panel */
 .select2-container--default .select2-results__option--highlighted[aria-selected] {
   background-color: var(--primary-color);

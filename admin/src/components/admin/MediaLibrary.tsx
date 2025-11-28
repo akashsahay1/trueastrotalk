@@ -474,9 +474,7 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
               <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
                 {loading ? (
                   <div className="text-center py-5">
-                    <div className="spinner-border" role="status">
-                      <span className="sr-only">Loading...</span>
-                    </div>
+                    <i className="fa fa-circle-notch fa-spin fa-2x text-primary"></i>
                   </div>
                 ) : filteredFiles.length === 0 ? (
                   <div className="text-center py-5">

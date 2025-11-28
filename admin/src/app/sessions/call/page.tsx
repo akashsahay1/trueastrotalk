@@ -365,7 +365,7 @@ export default function CallSessionsPage() {
                     <div className="metric-value d-inline-block">
                       <h1 className="mb-1">
                         {statsLoading ? (
-                          <i className="fas fa-spinner fa-spin"></i>
+                          <i className="fa fa-circle-notch fa-spin"></i>
                         ) : (
                           statistics.totalCallsToday
                         )}
@@ -381,7 +381,7 @@ export default function CallSessionsPage() {
                     <div className="metric-value d-inline-block">
                       <h1 className="mb-1">
                         {statsLoading ? (
-                          <i className="fas fa-spinner fa-spin"></i>
+                          <i className="fa fa-circle-notch fa-spin"></i>
                         ) : (
                           statistics.completedCalls
                         )}
@@ -397,7 +397,7 @@ export default function CallSessionsPage() {
                     <div className="metric-value d-inline-block">
                       <h1 className="mb-1">
                         {statsLoading ? (
-                          <i className="fas fa-spinner fa-spin"></i>
+                          <i className="fa fa-circle-notch fa-spin"></i>
                         ) : (
                           statistics.ongoingCalls
                         )}
@@ -413,7 +413,7 @@ export default function CallSessionsPage() {
                     <div className="metric-value d-inline-block">
                       <h1 className="mb-1">
                         {statsLoading ? (
-                          <i className="fas fa-spinner fa-spin"></i>
+                          <i className="fa fa-circle-notch fa-spin"></i>
                         ) : (
                           statistics.avgDuration
                         )}
@@ -501,7 +501,7 @@ export default function CallSessionsPage() {
                           {loading ? (
                             <tr>
                               <td colSpan={12} className="text-center">
-                                <i className="fas fa-spinner fa-spin mr-2"></i>Loading...
+                                <i className="fa fa-circle-notch fa-spin mr-2"></i>Loading...
                               </td>
                             </tr>
                           ) : sessions.length > 0 ? (
@@ -582,7 +582,7 @@ export default function CallSessionsPage() {
                                       disabled={deleting === session._id}
                                     >
                                       {deleting === session._id ? (
-                                        <i className="fas fa-spinner fa-spin"></i>
+                                        <i className="fa fa-circle-notch fa-spin"></i>
                                       ) : (
                                         <i className="fas fa-trash"></i>
                                       )}

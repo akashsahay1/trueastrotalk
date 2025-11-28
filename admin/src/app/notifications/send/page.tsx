@@ -196,7 +196,7 @@ export default function SendNotificationPage() {
                         >
                           {sending ? (
                             <>
-                              <i className="fas fa-spinner fa-spin mr-2"></i>
+                              <i className="fa fa-circle-notch fa-spin mr-2"></i>
                               Sending...
                             </>
                           ) : (

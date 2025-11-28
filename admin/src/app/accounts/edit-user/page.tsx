@@ -642,7 +642,7 @@ function EditUserContent() {
           <div className="dashboard-ecommerce">
             <div className="container-fluid dashboard-content">
               <div className="text-center p-5">
-                <i className="fas fa-spinner fa-spin fa-3x text-primary"></i>
+                <i className="fa fa-circle-notch fa-spin fa-3x text-primary"></i>
                 <p className="mt-3">Loading user data...</p>
               </div>
             </div>
@@ -1563,7 +1563,7 @@ function EditUserContent() {
                     <div className="col-12">
                       <button type="submit" className="btn btn-primary" disabled={loading}>
                         {loading ? (
-                          <><i className="fas fa-spinner fa-spin mr-2"></i>Updating...</>
+                          <><i className="fa fa-circle-notch fa-spin mr-2"></i>Updating...</>
                         ) : (
                           <>Update Account</>
                         )}
@@ -1606,7 +1606,7 @@ export default function EditUserPage() {
           <div className="dashboard-ecommerce">
             <div className="container-fluid dashboard-content">
               <div className="text-center p-5">
-                <i className="fas fa-spinner fa-spin fa-3x text-primary"></i>
+                <i className="fa fa-circle-notch fa-spin fa-3x text-primary"></i>
                 <p className="mt-3">Loading page...</p>
               </div>
             </div>

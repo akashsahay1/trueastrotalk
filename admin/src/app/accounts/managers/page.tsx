@@ -382,7 +382,7 @@ export default function ManagersPage() {
                           {loading ? (
                             <tr>
                               <td colSpan={10} className="text-center">
-                                <i className="fas fa-spinner fa-spin mr-2"></i>Loading...
+                                <i className="fa fa-circle-notch fa-spin mr-2"></i>Loading...
                               </td>
                             </tr>
                           ) : users.length > 0 ? (
@@ -455,7 +455,7 @@ export default function ManagersPage() {
                                       disabled={deleting === user._id}
                                     >
                                       {deleting === user._id ? (
-                                        <i className="fas fa-spinner fa-spin"></i>
+                                        <i className="fa fa-circle-notch fa-spin"></i>
                                       ) : (
                                         <i className="fas fa-trash"></i>
                                       )}

@@ -114,7 +114,7 @@ export default function CallSessionDetailPage() {
           <div className="dashboard-ecommerce">
             <div className="container-fluid dashboard-content">
               <div className="text-center">
-                <i className="fas fa-spinner fa-spin fa-2x"></i>
+                <i className="fa fa-circle-notch fa-spin fa-2x"></i>
                 <p>Loading session details...</p>
               </div>
             </div>

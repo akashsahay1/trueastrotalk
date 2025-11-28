@@ -364,7 +364,7 @@ function TransactionsContent() {
                           {loading ? (
                             <tr>
                               <td colSpan={9} className="text-center">
-                                <i className="fas fa-spinner fa-spin mr-2"></i>Loading...
+                                <i className="fa fa-circle-notch fa-spin mr-2"></i>Loading...
                               </td>
                             </tr>
                           ) : transactions.length > 0 ? (
@@ -804,7 +804,7 @@ export default function TransactionsPage() {
               <div className="row">
                 <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                   <div className="text-center p-5">
-                    <i className="fas fa-spinner fa-spin fa-3x text-primary"></i>
+                    <i className="fa fa-circle-notch fa-spin fa-3x text-primary"></i>
                     <p className="mt-3">Loading transactions...</p>
                   </div>
                 </div>

@@ -77,9 +77,7 @@ export default function HomePage() {
   if (checkingAuth) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
-        <div className="spinner-border" role="status">
-          <span className="sr-only">Loading...</span>
-        </div>
+        <i className="fa fa-circle-notch fa-spin fa-2x text-primary"></i>
       </div>
     );
   }

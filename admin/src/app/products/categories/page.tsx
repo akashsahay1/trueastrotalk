@@ -188,9 +188,7 @@ export default function CategoriesPage() {
                     <h2 className="pageheader-title">Product Categories</h2>
                   </div>
                   <div className="text-center">
-                    <div className="spinner-border" role="status">
-                      <span className="sr-only">Loading...</span>
-                    </div>
+                    <i className="fa fa-circle-notch fa-spin fa-2x text-primary"></i>
                   </div>
                 </div>
               </div>
@@ -244,7 +242,7 @@ export default function CategoriesPage() {
                     disabled={bulkLoading}
                   >
                     {bulkLoading ? (
-                      <><i className="fas fa-spinner fa-spin mr-1"></i>Deleting...</>
+                      <><i className="fa fa-circle-notch fa-spin mr-1"></i>Deleting...</>
                     ) : (
                       <><i className="fas fa-trash mr-1"></i>Delete Selected ({selectedCategories.length})</>
                     )}

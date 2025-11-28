@@ -713,9 +713,7 @@ export default function CompleteOrdersPage() {
 
                     {loading ? (
                       <div className="text-center py-4">
-                        <div className="spinner-border text-primary" role="status">
-                          <span className="sr-only">Loading...</span>
-                        </div>
+                        <i className="fa fa-circle-notch fa-spin fa-2x text-primary"></i>
                         <p className="mt-2">Loading orders...</p>
                       </div>
                     ) : (
@@ -825,7 +823,7 @@ export default function CompleteOrdersPage() {
                                           disabled={refundingOrderId === order._id}
                                         >
                                           {refundingOrderId === order._id ? (
-                                            <i className="fas fa-spinner fa-spin"></i>
+                                            <i className="fa fa-circle-notch fa-spin"></i>
                                           ) : (
                                             <i className="fas fa-undo"></i>
                                           )}
@@ -1143,7 +1141,7 @@ export default function CompleteOrdersPage() {
                       >
                         {bulkUpdating ? (
                           <>
-                            <i className="fas fa-spinner fa-spin mr-2"></i>
+                            <i className="fa fa-circle-notch fa-spin mr-2"></i>
                             Updating...
                           </>
                         ) : (
@@ -1209,7 +1207,7 @@ export default function CompleteOrdersPage() {
                       >
                         {exporting ? (
                           <>
-                            <i className="fas fa-spinner fa-spin mr-2"></i>
+                            <i className="fa fa-circle-notch fa-spin mr-2"></i>
                             Exporting...
                           </>
                         ) : (
@@ -1487,7 +1485,7 @@ export default function CompleteOrdersPage() {
                       >
                         {savingEdit ? (
                           <>
-                            <i className="fas fa-spinner fa-spin mr-2"></i>
+                            <i className="fa fa-circle-notch fa-spin mr-2"></i>
                             Saving...
                           </>
                         ) : (

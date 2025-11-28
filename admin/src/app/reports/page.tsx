@@ -217,9 +217,7 @@ export default function ReportsPage() {
               </div>
               
               <div className="text-center mt-5">
-                <div className="spinner-border text-primary" role="status">
-                  <span className="sr-only">Loading...</span>
-                </div>
+                <i className="fa fa-circle-notch fa-spin fa-2x text-primary"></i>
                 <p className="mt-2">Loading reports data...</p>
               </div>
             </div>
@@ -701,7 +699,7 @@ export default function ReportsPage() {
                   >
                     {logsLoading ? (
                       <>
-                        <span className="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>
+                        <i className="fa fa-circle-notch fa-spin mr-1"></i>
                         Loading...
                       </>
                     ) : (
@@ -719,9 +717,7 @@ export default function ReportsPage() {
               <div className="card-body p-0">
                 {logsLoading ? (
                   <div className="text-center p-4">
-                    <div className="spinner-border text-primary" role="status">
-                      <span className="sr-only">Loading logs...</span>
-                    </div>
+                    <i className="fa fa-circle-notch fa-spin fa-2x text-primary"></i>
                     <p className="mt-2">Loading detailed error logs...</p>
                   </div>
                 ) : detailedLogs.length > 0 ? (
@@ -863,7 +859,7 @@ export default function ReportsPage() {
           >
             {loading ? (
               <>
-                <span className="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+                <i className="fa fa-circle-notch fa-spin mr-2"></i>
                 Refreshing...
               </>
             ) : (

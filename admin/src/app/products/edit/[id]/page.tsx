@@ -368,9 +368,7 @@ export default function EditProductPage() {
               <div className="row">
                 <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
                   <div className="text-center">
-                    <div className="spinner-border" role="status">
-                      <span className="sr-only">Loading...</span>
-                    </div>
+                    <i className="fa fa-circle-notch fa-spin fa-2x text-primary"></i>
                     <p className="mt-2">Loading product...</p>
                   </div>
                 </div>
@@ -1164,7 +1162,7 @@ export default function EditProductPage() {
                           >
                             {saving ? (
                               <>
-                                <i className="fas fa-spinner fa-spin mr-1"></i>Updating Product...
+                                <i className="fa fa-circle-notch fa-spin mr-1"></i>Updating Product...
                               </>
                             ) : (
                               <>

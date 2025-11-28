@@ -777,7 +777,7 @@ export default function AddProductPage() {
                           >
                             {loading ? (
                               <>
-                                <i className="fas fa-spinner fa-spin mr-1"></i>Adding Product...
+                                <i className="fa fa-circle-notch fa-spin mr-1"></i>Adding Product...
                               </>
                             ) : (
                               <>

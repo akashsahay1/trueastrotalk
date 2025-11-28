@@ -132,7 +132,7 @@ export default function DataTable<T extends TableDataItem>({
         {loading ? (
           <tr>
             <td colSpan={columns.length + (selectable ? 1 : 0) + (actions.length > 0 ? 1 : 0)} className="text-center py-4">
-              <i className="fas fa-spinner fa-spin mr-2"></i>
+              <i className="fa fa-circle-notch fa-spin mr-2"></i>
               Loading...
             </td>
           </tr>

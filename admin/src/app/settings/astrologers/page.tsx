@@ -263,9 +263,7 @@ export default function AstrologerOptionsPage() {
                     <h2 className="pageheader-title">Astrologer Settings</h2>
                   </div>
                   <div className="text-center">
-                    <div className="spinner-border" role="status">
-                      <span className="sr-only">Loading...</span>
-                    </div>
+                    <i className="fa fa-circle-notch fa-spin fa-2x text-primary"></i>
                   </div>
                 </div>
               </div>

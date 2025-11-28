@@ -38,7 +38,7 @@ class EmailService {
   // Common email footer
   private getEmailFooter(): string {
     return `
-      <div style="display: inline-block; width: 100%; text-align: center; padding: 25px 30px; background: #ffffff; border-top: 1px solid #eaeaea;">
+      <div style="display: inline-block; width: 100%; text-align: center; padding: 40px 30px; background: #ffffff; border-top: 1px solid #eaeaea;">
         <p style="color: #000000; font-size: 12px; margin: 0;">
           © ${new Date().getFullYear()} True Astrotalk. All rights reserved.
         </p>

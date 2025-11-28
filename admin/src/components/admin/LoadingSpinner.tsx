@@ -15,9 +15,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 }) => {
   const spinnerContent = (
     <div className="text-center">
-      <div className="spinner-border" role="status">
-        <span className="sr-only">Loading...</span>
-      </div>
+      <i className="fa fa-circle-notch fa-spin fa-2x"></i>
       {message && <p className="mt-3">{message}</p>}
     </div>
   );
