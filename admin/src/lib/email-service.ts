@@ -28,10 +28,9 @@ class EmailService {
   // Common email header with logo
   private getEmailHeader(): string {
     return `
-      <div style="text-align: center; padding: 25px 20px; background: #ffffff; border-bottom: 2px solid #FE0000;">
-        <img src="${this.logoUrl}" alt="True Astrotalk" style="height: 60px; width: auto; margin-bottom: 10px;" />
-        <h1 style="color: #000000; margin: 0; font-size: 22px; font-weight: bold;">True Astrotalk</h1>
-        <p style="color: #000000; margin: 8px 0 0 0; font-size: 13px; font-style: italic;">Truth in the stars, clarity in your life</p>
+      <div style="display: inline-block; width: 100%; text-align: center; padding: 25px 30px; background: #ffffff; border-bottom: 1px solid #eaeaea;">
+        <img src="${this.logoUrl}" alt="True Astrotalk" style="height: 60px; width: auto; margin-right: 10px; display: inline-block; vertical-align: middle;" />
+        <h1 style="color: #fe0000; margin: 0; font-size: 22px; font-weight: bold; display: inline-block; vertical-align: middle;">True Astrotalk</h1>
       </div>
     `;
   }
@@ -39,7 +38,7 @@ class EmailService {
   // Common email footer
   private getEmailFooter(): string {
     return `
-      <div style="text-align: center; padding: 20px; background: #f8f8f8; border-top: 1px solid #e0e0e0;">
+      <div style="display: inline-block; width: 100%; text-align: center; padding: 25px 30px; background: #ffffff; border-top: 1px solid #eaeaea;">
         <p style="color: #000000; font-size: 12px; margin: 0;">
           © ${new Date().getFullYear()} True Astrotalk. All rights reserved.
         </p>
@@ -92,8 +91,8 @@ class EmailService {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>New User Registration</title>
         </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #000000; margin: 0; padding: 0; background: #f4f4f4;">
-          <div style="max-width: 600px; margin: 30px auto 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #000000; margin: 0; padding: 0; background: #f4f4f4; text-align: center;">
+          <div style="display: inline-block; max-width: 600px; margin: 60px auto 60px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: left;">
             ${this.getEmailHeader()}
 
             <div style="padding: 30px;">
@@ -156,8 +155,8 @@ class EmailService {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Welcome to True Astrotalk</title>
         </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #000000; margin: 0; padding: 0; background: #f4f4f4;">
-          <div style="max-width: 600px; margin: 30px auto 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #000000; margin: 0; padding: 0; background: #f4f4f4; text-align: center;">
+          <div style="display: inline-block; max-width: 600px; margin: 60px auto 60px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: left;">
             ${this.getEmailHeader()}
 
             <div style="padding: 30px;">
@@ -237,18 +236,18 @@ class EmailService {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Application Status Update</title>
         </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #000000; margin: 0; padding: 0; background: #f4f4f4;">
-          <div style="max-width: 600px; margin: 30px auto 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #000000; margin: 0; padding: 0; background: #f4f4f4; text-align: center;">
+          <div style="display: inline-block; max-width: 600px; margin: 60px auto 60px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: left;">
             ${this.getEmailHeader()}
 
             <div style="padding: 30px;">
-              <div style="background: ${isVerified ? '#f0fff0' : '#fff8f8'}; border: 1px solid ${isVerified ? '#00aa00' : '#FE0000'}; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+              <div style="background: ${isVerified ? '#f0f0f0' : '#fff8f8'}; border: 1px solid ${isVerified ? '#00aa00' : '#FE0000'}; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
                 <h2 style="margin: 0 0 10px 0; color: #000000;">${isVerified ? 'Application Approved' : 'Application Requires Attention'}</h2>
                 <p style="margin: 0; color: #000000;">Hello ${astrologer.name},</p>
                 <p style="margin: 10px 0 0 0; color: #000000;">${isVerified ?
-                  'We are pleased to inform you that your astrologer application has been approved! Welcome to the True Astrotalk family.' :
-                  'After careful review, we regret to inform you that your astrologer application requires additional review or has been declined.'
-                }</p>
+          'We are pleased to inform you that your astrologer application has been approved! Welcome to the True Astrotalk family.' :
+          'After careful review, we regret to inform you that your astrologer application requires additional review or has been declined.'
+        }</p>
               </div>
 
               ${!isVerified && reason ? `
@@ -258,17 +257,17 @@ class EmailService {
               </div>
               ` : ''}
 
-              <div style="background: #f8f8f8; padding: 20px; border-radius: 8px;">
+              <div style="display: inline-block; width: 100%;">
                 <h3 style="margin: 0 0 15px 0; color: #000000;">${isVerified ? 'Next Steps' : 'What You Can Do'}</h3>
                 ${isVerified ? `
-                <div style="padding: 10px 0; border-left: 3px solid #FE0000; padding-left: 15px; margin-bottom: 10px;">
-                  <strong>Login to the App:</strong> Open the True Astrotalk mobile app and login with your credentials to complete your profile.
+                <div style="background: #f8f8f8; padding: 20px; border-radius: 8px; border-left: 3px solid #FE0000; margin-bottom: 10px;">
+                  <strong style="display: inline-block; width: 100%; margin: 0 0 10px 0;">Login to the App</strong> Open app and login with your credentials to complete your profile.
                 </div>
-                <div style="padding: 10px 0; border-left: 3px solid #FE0000; padding-left: 15px; margin-bottom: 10px;">
-                  <strong>Complete Your Profile:</strong> Add your expertise, experience, and availability details in the app.
+                <div style="background: #f8f8f8; padding: 20px; border-radius: 8px; border-left: 3px solid #FE0000; margin-bottom: 10px;">
+                  <strong style="display: inline-block; width: 100%; margin: 0 0 10px 0;">Complete Your Profile</strong> Add your expertise, experience, availability details.
                 </div>
-                <div style="padding: 10px 0; border-left: 3px solid #FE0000; padding-left: 15px;">
-                  <strong>Start Accepting Consultations:</strong> You can now receive and accept consultation requests from clients through the app.
+                <div style="background: #f8f8f8; padding: 20px; border-radius: 8px; border-left: 3px solid #FE0000;">
+                  <strong style="display: inline-block; width: 100%; margin: 0 0 10px 0;">Start Accepting Consultations</strong> You can now receive and accept consultation requests from clients through the app.
                 </div>
                 ` : `
                 <div style="padding: 10px 0; border-left: 3px solid #FE0000; padding-left: 15px; margin-bottom: 10px;">
@@ -282,9 +281,9 @@ class EmailService {
 
               <div style="text-align: center; margin: 25px 0; padding: 20px; background: #f8f8f8; border-radius: 8px;">
                 ${isVerified ?
-                  `<p style="margin: 0; font-size: 16px; color: #000000; font-weight: bold;">Please login to the True Astrotalk mobile app to get started!</p>` :
-                  `<p style="margin: 0; font-size: 16px; color: #000000;">If you have any questions, please contact our support team.</p>`
-                }
+          `<p style="margin: 0; font-size: 16px; color: #000000; font-weight: bold;">Please login to the True Astrotalk mobile app to get started!</p>` :
+          `<p style="margin: 0; font-size: 16px; color: #000000;">If you have any questions, please contact our support team.</p>`
+        }
               </div>
             </div>
 
@@ -369,8 +368,8 @@ class EmailService {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Reset Your Password</title>
         </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #000000; margin: 0; padding: 0; background: #f4f4f4;">
-          <div style="max-width: 600px; margin: 30px auto 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #000000; margin: 0; padding: 0; background: #f4f4f4; text-align: center;">
+          <div style="display: inline-block; max-width: 600px; margin: 60px auto 60px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: left;">
             ${this.getEmailHeader()}
 
             <div style="padding: 30px;">
@@ -476,8 +475,8 @@ class EmailService {
             <meta charset="utf-8">
             <title>Order Status Update - ${orderData.orderNumber}</title>
           </head>
-          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #000000; margin: 0; padding: 0; background: #f4f4f4;">
-            <div style="max-width: 600px; margin: 30px auto 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #000000; margin: 0; padding: 0; background: #f4f4f4; text-align: center;">
+            <div style="display: inline-block; max-width: 600px; margin: 60px auto 60px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: left;">
               ${this.getEmailHeader()}
 
               <div style="padding: 30px;">
@@ -568,8 +567,8 @@ class EmailService {
             <meta charset="utf-8">
             <title>Admin: Order Status Changed - ${orderData.orderNumber}</title>
           </head>
-          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #000000; margin: 0; padding: 0; background: #f4f4f4;">
-            <div style="max-width: 600px; margin: 30px auto 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #000000; margin: 0; padding: 0; background: #f4f4f4; text-align: center;">
+            <div style="display: inline-block; max-width: 600px; margin: 60px auto 60px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: left;">
               ${this.getEmailHeader()}
 
               <div style="padding: 30px;">
@@ -671,8 +670,8 @@ class EmailService {
             <meta charset="utf-8">
             <title>Bulk Order Status Update Completed</title>
           </head>
-          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #000000; margin: 0; padding: 0; background: #f4f4f4;">
-            <div style="max-width: 600px; margin: 30px auto 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #000000; margin: 0; padding: 0; background: #f4f4f4; text-align: center;">
+            <div style="display: inline-block; max-width: 600px; margin: 60px auto 60px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: left;">
               ${this.getEmailHeader()}
 
               <div style="padding: 30px;">
