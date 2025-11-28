@@ -241,7 +241,7 @@ class EmailService {
             ${this.getEmailHeader()}
 
             <div style="padding: 30px;">
-              <div style="background: ${isVerified ? '#f0f0f0' : '#fff8f8'}; border: 1px solid ${isVerified ? '#00aa00' : '#FE0000'}; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+              <div style="background: ${isVerified ? '#f0f0f0' : '#fff8f8'}; border: 1px solid ${isVerified ? '#f0f0f0' : '#f0f0f0'}; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
                 <h2 style="margin: 0 0 10px 0; color: #000000;">${isVerified ? 'Application Approved' : 'Application Requires Attention'}</h2>
                 <p style="margin: 0; color: #000000;">Hello ${astrologer.name},</p>
                 <p style="margin: 10px 0 0 0; color: #000000;">${isVerified ?
