@@ -4,7 +4,7 @@ import Header from '@/components/admin/Header';
 import Sidebar from '@/components/admin/Sidebar';
 import MediaLibrary from '@/components/admin/MediaLibrary';
 import { useEffect, useState, Suspense, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 // Removed unused import clearValidationErrors
@@ -60,7 +60,6 @@ interface FormData {
 }
 
 function EditUserContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const userId = searchParams?.get('id');
 
