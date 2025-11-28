@@ -40,9 +40,18 @@ class EmailService {
       };
 
       const _result = await sgMail.send(msg);
+      console.log('Email sent successfully to:', emailData.to);
       return true;
-    } catch (error) {
-      console.error('Error sending email via SendGrid:', error);
+    } catch (error: unknown) {
+      console.error('Error sending email via SendGrid:');
+      // Log detailed error information from SendGrid
+      if (error && typeof error === 'object' && 'response' in error) {
+        const sgError = error as { code?: number; response?: { body?: unknown; headers?: unknown } };
+        console.error('Status Code:', sgError.code);
+        console.error('Response Body:', JSON.stringify(sgError.response?.body, null, 2));
+      } else {
+        console.error('Error details:', error);
+      }
       return false;
     }
   }
