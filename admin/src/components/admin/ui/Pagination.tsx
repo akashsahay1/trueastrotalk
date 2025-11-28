@@ -36,34 +36,34 @@ export function Pagination({
   const getPageNumbers = () => {
     const delta = 2; // Number of pages to show on each side of current page
     const pages: (number | string)[] = [];
-    
+
     // Always show first page
     pages.push(1);
-    
+
     // Calculate range around current page
     const startPage = Math.max(2, currentPage - delta);
     const endPage = Math.min(totalPages - 1, currentPage + delta);
-    
+
     // Add ellipsis after first page if needed
     if (startPage > 2) {
       pages.push('...');
     }
-    
+
     // Add pages around current page
     for (let i = startPage; i <= endPage; i++) {
       pages.push(i);
     }
-    
+
     // Add ellipsis before last page if needed
     if (endPage < totalPages - 1) {
       pages.push('...');
     }
-    
+
     // Always show last page (if not already included)
     if (totalPages > 1) {
       pages.push(totalPages);
     }
-    
+
     return pages;
   };
 
@@ -81,8 +81,8 @@ export function Pagination({
     <div className={`d-flex flex-column justify-content-center align-items-center ${className}`}>
       <style jsx>{`
         .page-link:hover:not(.disabled) {
-          background-color: #007bff !important;
-          border-color: #007bff !important;
+          background-color: #FE0000 !important;
+          border-color: #d30000ff !important;
           color: #fff !important;
         }
         .page-item.disabled .page-link:hover {
@@ -91,7 +91,7 @@ export function Pagination({
           color: initial !important;
         }
       `}</style>
-      
+
       <nav>
         <ul className="pagination mb-0">
           {/* First Button */}
@@ -125,11 +125,9 @@ export function Pagination({
           {pageNumbers.map((page, index) => (
             <li
               key={index}
-              className={`page-item ${
-                page === currentPage ? 'active' : ''
-              } ${
-                typeof page === 'string' || loading ? 'disabled' : ''
-              }`}
+              className={`page-item ${page === currentPage ? 'active' : ''
+                } ${typeof page === 'string' || loading ? 'disabled' : ''
+                }`}
             >
               {typeof page === 'string' ? (
                 <span className="page-link">{page}</span>
@@ -242,13 +240,13 @@ export function SimplePagination({
             Previous
           </button>
         </li>
-        
+
         <li className="page-item active">
           <span className="page-link">
             Page {currentPage} of {totalPages}
           </span>
         </li>
-        
+
         <li className={`page-item ${currentPage >= totalPages || loading ? 'disabled' : ''}`}>
           <button
             type="button"

@@ -52,6 +52,7 @@ async function handleGET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
     const active = searchParams.get('active');
+    const search = searchParams.get('search');
     const limit = parseInt(searchParams.get('limit') || '50');
     const page = parseInt(searchParams.get('page') || '1');
     const skip = (page - 1) * limit;
@@ -62,6 +63,14 @@ async function handleGET(request: NextRequest) {
     const query: Record<string, unknown> = {};
     if (category) query.category = category;
     if (active !== null && active !== undefined) query.is_active = active === 'true';
+
+    // Add search filter for product name and description
+    if (search && search.trim() !== '') {
+      query.$or = [
+        { name: { $regex: search.trim(), $options: 'i' } },
+        { description: { $regex: search.trim(), $options: 'i' } }
+      ];
+    }
 
     // Get products with pagination
     const products = await productsCollection.find(query)

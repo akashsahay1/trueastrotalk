@@ -25,6 +25,16 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Prevent multiple submissions
+    if (loading) return;
+
+    // Frontend validation
+    if (!email || !password) {
+      setError('Please enter both email and password');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
@@ -43,7 +53,9 @@ export default function LoginPage() {
         // Redirect to dashboard on successful login
         router.push('/dashboard');
       } else {
-        setError(data.error || 'Login failed');
+        // Convert technical error codes to user-friendly messages
+        const errorMessage = getErrorMessage(data.error, data.message);
+        setError(errorMessage);
       }
     } catch (error) {
       setError('An error occurred. Please try again.');
@@ -51,6 +63,20 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to convert error codes to user-friendly messages
+  const getErrorMessage = (errorCode: string, fallbackMessage: string) => {
+    const errorMessages: Record<string, string> = {
+      'MISSING_IDENTIFIER': 'Please enter your email address',
+      'MISSING_PASSWORD': 'Please enter your password',
+      'INVALID_CREDENTIALS': 'Invalid email or password',
+      'INVALID_EMAIL_FORMAT': 'Please enter a valid email address',
+      'ACCOUNT_LOCKED': 'Account temporarily locked. Please try again later',
+      'USER_NOT_FOUND': 'Invalid email or password',
+    };
+
+    return errorMessages[errorCode] || fallbackMessage || 'Login failed';
   };
 
   return (
@@ -146,7 +172,13 @@ export default function LoginPage() {
                 className="btn btn-danger btn-lg btn-block"
                 disabled={loading}
               >
-                {loading ? 'Signing in...' : 'Sign in'}
+                {loading ? (
+                  <>
+                    <i className="fa fa-circle-notch fa-spin"></i> Signing in...
+                  </>
+                ) : (
+                  'Sign in'
+                )}
               </button>
             </form>
           </div>

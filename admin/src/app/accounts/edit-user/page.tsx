@@ -67,7 +67,7 @@ function EditUserContent() {
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
   const [error, setError] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
   const [defaultCommission, setDefaultCommission] = useState(25);
 
   const [formData, setFormData] = useState<FormData>({
@@ -120,7 +120,7 @@ function EditUserContent() {
   const [panCardPreview, setPanCardPreview] = useState('');
   const [showProfileImageLibrary, setShowProfileImageLibrary] = useState(false);
   const [showPanCardLibrary, setShowPanCardLibrary] = useState(false);
-  
+
   // Astrologer options state
   const [availableSkills, setAvailableSkills] = useState<string[]>([]);
   const [availableLanguages, setAvailableLanguages] = useState<string[]>([]);
@@ -134,7 +134,7 @@ function EditUserContent() {
     try {
       const response = await fetch('/api/admin/settings/general');
       const data = await response.json();
-      
+
       if (response.ok && data.config?.commission?.defaultRate) {
         const defaultRate = data.config.commission.defaultRate;
         setDefaultCommission(defaultRate);
@@ -148,7 +148,7 @@ function EditUserContent() {
     try {
       const response = await fetch('/api/astrologer-options/active');
       const data = await response.json();
-      
+
       if (response.ok && data.success) {
         setAvailableSkills(data.data.skills || []);
         setAvailableLanguages(data.data.languages || []);
@@ -246,7 +246,7 @@ function EditUserContent() {
         if (user.profile_image) {
           setImagePreview(user.profile_image);
         }
-        
+
         if (user.pan_card_image) {
           setPanCardPreview(user.pan_card_image);
         }
@@ -287,10 +287,10 @@ function EditUserContent() {
       // Access jQuery through window object
       const windowWithJQuery = window as typeof window & { $?: unknown };
       if (!windowWithJQuery.$ || typeof windowWithJQuery.$ !== 'function') return;
-      
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const $ = windowWithJQuery.$ as any;
-      
+
       // Initialize select2 for skills
       const skillsSelect = $('#skills-select');
       if (skillsSelect.length && !skillsSelect.hasClass('select2-hidden-accessible')) {
@@ -408,7 +408,7 @@ function EditUserContent() {
   };
 
   const validateUserForm = () => {
-    const customErrors: {[key: string]: string} = {};
+    const customErrors: { [key: string]: string } = {};
 
     // Basic validations for all user types
     if (!formData.full_name.trim()) {
@@ -478,12 +478,12 @@ function EditUserContent() {
       if (formData.video_rate <= 0) {
         customErrors.video_rate = 'Video rate must be greater than 0';
       }
-      
+
       // PAN Card validation
       if (!formData.pan_card_id || formData.pan_card_id.trim() === '') {
         customErrors.pan_card = 'PAN card upload is required for astrologers';
       }
-      
+
       // Bank details validation
       if (!formData.bank_details.account_holder_name.trim()) {
         customErrors.account_holder_name = 'Account holder name is required';
@@ -499,7 +499,7 @@ function EditUserContent() {
       } else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.bank_details.ifsc_code.trim())) {
         customErrors.ifsc_code = 'Please enter a valid IFSC code (e.g., SBIN0123456)';
       }
-      
+
       // Account number validation (basic check for numeric and length)
       const accountNumber = formData.bank_details.account_number.trim();
       if (accountNumber && (!/^\d+$/.test(accountNumber) || accountNumber.length < 9 || accountNumber.length > 18)) {
@@ -551,17 +551,6 @@ function EditUserContent() {
       if (response.ok) {
         closeSweetAlert();
         await successMessages.updated('User');
-
-        let redirectPath = '/accounts/customers';
-        if (formData.user_type === 'administrator') {
-          redirectPath = '/accounts/admins';
-        } else if (formData.user_type === 'manager') {
-          redirectPath = '/accounts/managers';
-        } else if (formData.user_type === 'astrologer') {
-          redirectPath = '/accounts/astrologers';
-        }
-
-        router.push(redirectPath);
       } else {
         closeSweetAlert();
         errorMessages.updateFailed(`user: ${data.error || 'Unknown error occurred'}`);
@@ -658,7 +647,7 @@ function EditUserContent() {
             <form onSubmit={handleSubmit}>
               <div className="row">
                 <div className="col-xl-8 col-lg-8 col-md-12 col-sm-12 col-12">
-                  
+
                   {/* Basic Information Card - Always Visible */}
                   <div className="card mb-4">
                     <h5 className="card-header">Basic Information</h5>
@@ -689,7 +678,7 @@ function EditUserContent() {
                                     >×</button>
                                   </>
                                 ) : (
-                                  <div 
+                                  <div
                                     className="rounded-circle bg-light d-flex align-items-center justify-content-center"
                                     style={{ width: '80px', height: '80px', cursor: 'pointer', border: '2px dashed #dee2e6' }}
                                     onClick={() => setShowProfileImageLibrary(true)}
@@ -709,11 +698,11 @@ function EditUserContent() {
                         {/* User Type */}
                         <div className="col-md-6 mb-4">
                           <label className="label">User Type <span className="text-danger">*</span></label>
-                          <select 
-                            className="custom-select" 
-                            name="user_type" 
-                            value={formData.user_type} 
-                            onChange={handleInputChange} 
+                          <select
+                            className="custom-select"
+                            name="user_type"
+                            value={formData.user_type}
+                            onChange={handleInputChange}
                             required
                           >
                             <option value="customer">Customer</option>
@@ -726,13 +715,13 @@ function EditUserContent() {
                         {/* Full Name */}
                         <div className="col-md-6 mb-4">
                           <label className="label">Full Name <span className="text-danger">*</span></label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             className={`form-control ${fieldErrors.full_name ? 'is-invalid' : ''}`}
-                            name="full_name" 
-                            value={formData.full_name} 
-                            onChange={handleInputChange} 
-                            required 
+                            name="full_name"
+                            value={formData.full_name}
+                            onChange={handleInputChange}
+                            required
                           />
                           {fieldErrors.full_name && (
                             <div className="invalid-feedback">{fieldErrors.full_name}</div>
@@ -742,13 +731,13 @@ function EditUserContent() {
                         {/* Email Address */}
                         <div className="col-md-6 mb-4">
                           <label className="label">Email Address <span className="text-danger">*</span></label>
-                          <input 
-                            type="email" 
+                          <input
+                            type="email"
                             className={`form-control ${fieldErrors.email_address ? 'is-invalid' : ''}`}
-                            name="email_address" 
-                            value={formData.email_address} 
-                            onChange={handleInputChange} 
-                            required 
+                            name="email_address"
+                            value={formData.email_address}
+                            onChange={handleInputChange}
+                            required
                           />
                           {fieldErrors.email_address && (
                             <div className="invalid-feedback">{fieldErrors.email_address}</div>
@@ -760,11 +749,11 @@ function EditUserContent() {
                           <label className="label">
                             Password (Leave empty to keep current)
                           </label>
-                          <input 
-                            type="password" 
+                          <input
+                            type="password"
                             className={`form-control ${fieldErrors.password ? 'is-invalid' : ''}`}
-                            name="password" 
-                            value={formData.password} 
+                            name="password"
+                            value={formData.password}
                             onChange={handleInputChange}
                             placeholder="Enter new password or leave empty"
                           />
@@ -776,11 +765,11 @@ function EditUserContent() {
                         {/* Phone Number */}
                         <div className="col-md-6 mb-4">
                           <label className="label">Phone Number</label>
-                          <input 
-                            type="tel" 
+                          <input
+                            type="tel"
                             className="form-control"
-                            name="phone_number" 
-                            value={formData.phone_number} 
+                            name="phone_number"
+                            value={formData.phone_number}
                             onChange={handleInputChange}
                           />
                         </div>
@@ -788,10 +777,10 @@ function EditUserContent() {
                         {/* Gender */}
                         <div className="col-md-6 mb-4">
                           <label className="label">Gender</label>
-                          <select 
-                            className="custom-select" 
-                            name="gender" 
-                            value={formData.gender} 
+                          <select
+                            className="custom-select"
+                            name="gender"
+                            value={formData.gender}
                             onChange={handleInputChange}
                           >
                             <option value="male">Male</option>
@@ -804,10 +793,10 @@ function EditUserContent() {
                         {isCustomer && (
                           <div className="col-md-6 mb-4">
                             <label className="label">Authentication Type</label>
-                            <select 
-                              className="custom-select" 
-                              name="auth_type" 
-                              value={formData.auth_type} 
+                            <select
+                              className="custom-select"
+                              name="auth_type"
+                              value={formData.auth_type}
                               onChange={handleInputChange}
                             >
                               <option value="email">Email</option>
@@ -847,12 +836,12 @@ function EditUserContent() {
 
                         <div className="col-md-4 mb-4">
                           <label className="label">Birth Time <span className="text-danger">*</span></label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             className={`form-control ${fieldErrors.birth_time ? 'is-invalid' : ''}`}
-                            name="birth_time" 
-                            value={formData.birth_time} 
-                            onChange={handleInputChange} 
+                            name="birth_time"
+                            value={formData.birth_time}
+                            onChange={handleInputChange}
                             placeholder="07:30 AM"
                           />
                           {fieldErrors.birth_time && (
@@ -862,11 +851,11 @@ function EditUserContent() {
 
                         <div className="col-md-4 mb-4">
                           <label className="label">Birth Place <span className="text-danger">*</span></label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             className={`form-control ${fieldErrors.birth_place ? 'is-invalid' : ''}`}
-                            name="birth_place" 
-                            value={formData.birth_place} 
+                            name="birth_place"
+                            value={formData.birth_place}
                             onChange={handleInputChange}
                           />
                           {fieldErrors.birth_place && (
@@ -876,7 +865,7 @@ function EditUserContent() {
 
                         <div className="col-md-12 mb-4">
                           <label className="label">Address <span className="text-danger">*</span></label>
-                          <textarea 
+                          <textarea
                             className={`form-control ${fieldErrors.address ? 'is-invalid' : ''}`}
                             name="address"
                             value={formData.address}
@@ -890,8 +879,8 @@ function EditUserContent() {
 
                         <div className="col-md-3 mb-4">
                           <label className="label">Country <span className="text-danger">*</span></label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             className={`form-control ${fieldErrors.country ? 'is-invalid' : ''}`}
                             name="country"
                             value={formData.country}
@@ -904,8 +893,8 @@ function EditUserContent() {
 
                         <div className="col-md-3 mb-4">
                           <label className="label">State <span className="text-danger">*</span></label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             className={`form-control ${fieldErrors.state ? 'is-invalid' : ''}`}
                             name="state"
                             value={formData.state}
@@ -918,8 +907,8 @@ function EditUserContent() {
 
                         <div className="col-md-3 mb-4">
                           <label className="label">City <span className="text-danger">*</span></label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             className={`form-control ${fieldErrors.city ? 'is-invalid' : ''}`}
                             name="city"
                             value={formData.city}
@@ -932,8 +921,8 @@ function EditUserContent() {
 
                         <div className="col-md-3 mb-4">
                           <label className="label">ZIP Code <span className="text-danger">*</span></label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             className={`form-control ${fieldErrors.zip ? 'is-invalid' : ''}`}
                             name="zip"
                             value={formData.zip}
@@ -946,10 +935,10 @@ function EditUserContent() {
 
                         <div className="col-md-6 mb-4">
                           <label className="label">Account Status</label>
-                          <select 
-                            className="custom-select" 
-                            name="account_status" 
-                            value={formData.account_status} 
+                          <select
+                            className="custom-select"
+                            name="account_status"
+                            value={formData.account_status}
                             onChange={handleInputChange}
                           >
                             <option value="active">Active</option>
@@ -968,7 +957,7 @@ function EditUserContent() {
                       <div className="row">
                         <div className="col-md-12 mb-4">
                           <label className="label">Address <span className="text-danger">*</span></label>
-                          <textarea 
+                          <textarea
                             className={`form-control ${fieldErrors.address ? 'is-invalid' : ''}`}
                             name="address"
                             value={formData.address}
@@ -982,8 +971,8 @@ function EditUserContent() {
 
                         <div className="col-md-3 mb-4">
                           <label className="label">Country <span className="text-danger">*</span></label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             className={`form-control ${fieldErrors.country ? 'is-invalid' : ''}`}
                             name="country"
                             value={formData.country}
@@ -996,8 +985,8 @@ function EditUserContent() {
 
                         <div className="col-md-3 mb-4">
                           <label className="label">State <span className="text-danger">*</span></label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             className={`form-control ${fieldErrors.state ? 'is-invalid' : ''}`}
                             name="state"
                             value={formData.state}
@@ -1010,8 +999,8 @@ function EditUserContent() {
 
                         <div className="col-md-3 mb-4">
                           <label className="label">City <span className="text-danger">*</span></label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             className={`form-control ${fieldErrors.city ? 'is-invalid' : ''}`}
                             name="city"
                             value={formData.city}
@@ -1024,8 +1013,8 @@ function EditUserContent() {
 
                         <div className="col-md-3 mb-4">
                           <label className="label">ZIP Code <span className="text-danger">*</span></label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             className={`form-control ${fieldErrors.zip ? 'is-invalid' : ''}`}
                             name="zip"
                             value={formData.zip}
@@ -1038,10 +1027,10 @@ function EditUserContent() {
 
                         <div className="col-md-6 mb-4">
                           <label className="label">Account Status</label>
-                          <select 
-                            className="custom-select" 
-                            name="account_status" 
-                            value={formData.account_status} 
+                          <select
+                            className="custom-select"
+                            name="account_status"
+                            value={formData.account_status}
                             onChange={handleInputChange}
                           >
                             <option value="active">Active</option>
@@ -1052,7 +1041,7 @@ function EditUserContent() {
 
                         <div className="col-md-6 mb-4">
                           <label className="label">Verification Status</label>
-                          <select 
+                          <select
                             className="custom-select"
                             name="verification_status"
                             value={formData.verification_status}
@@ -1066,9 +1055,9 @@ function EditUserContent() {
 
                         <div className="col-md-12 mb-4">
                           <div className="form-check">
-                            <input 
-                              className="form-check-input" 
-                              type="checkbox" 
+                            <input
+                              className="form-check-input"
+                              type="checkbox"
                               id="is_featured"
                               name="is_featured"
                               checked={formData.is_featured}
@@ -1083,7 +1072,7 @@ function EditUserContent() {
                         {/* Bio */}
                         <div className="col-md-12 mb-4">
                           <label className="label">Bio</label>
-                          <textarea 
+                          <textarea
                             className="form-control"
                             name="bio"
                             value={formData.bio}
@@ -1097,8 +1086,8 @@ function EditUserContent() {
                         {/* Experience Years & Skills Row */}
                         <div className="col-6 mb-4">
                           <label className="label">Experience Years</label>
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             className="form-control"
                             name="experience_years"
                             value={formData.experience_years}
@@ -1111,9 +1100,9 @@ function EditUserContent() {
 
                         <div className="col-6 mb-4">
                           <label className="label">Skills</label>
-                          <select 
-                            className="form-control select2-multiple" 
-                            multiple 
+                          <select
+                            className="form-control select2-multiple"
+                            multiple
                             id="skills-select"
                             value={formData.skills}
                             onChange={(e) => {
@@ -1133,9 +1122,9 @@ function EditUserContent() {
                         {/* Languages & Qualifications Row */}
                         <div className="col-6 mb-4">
                           <label className="label">Languages</label>
-                          <select 
-                            className="form-control select2-multiple" 
-                            multiple 
+                          <select
+                            className="form-control select2-multiple"
+                            multiple
                             id="languages-select"
                             value={formData.languages}
                             onChange={(e) => {
@@ -1155,8 +1144,8 @@ function EditUserContent() {
                         <div className="col-6 mb-4">
                           <label className="label">Qualifications</label>
                           <div className="qualifications-tag-input">
-                            <div 
-                              className="select2-selection select2-selection--multiple form-control" 
+                            <div
+                              className="select2-selection select2-selection--multiple form-control"
                               onClick={(e) => {
                                 const input = e.currentTarget.querySelector('input');
                                 if (input) input.focus();
@@ -1176,8 +1165,8 @@ function EditUserContent() {
                             >
                               {formData.qualifications.map((qual, index) => (
                                 <span key={index} className="select2-selection__choice" style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
-                                  <span 
-                                    className="select2-selection__choice__remove" 
+                                  <span
+                                    className="select2-selection__choice__remove"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       removeQualification(index);
@@ -1188,12 +1177,12 @@ function EditUserContent() {
                                   {qual}
                                 </span>
                               ))}
-                              <input 
-                                type="text" 
+                              <input
+                                type="text"
                                 className="select2-search__field"
-                                value={qualificationInput} 
-                                onChange={(e) => setQualificationInput(e.target.value)} 
-                                placeholder={formData.qualifications.length === 0 ? "Add qualifications..." : ""} 
+                                value={qualificationInput}
+                                onChange={(e) => setQualificationInput(e.target.value)}
+                                placeholder={formData.qualifications.length === 0 ? "Add qualifications..." : ""}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') {
                                     e.preventDefault();
@@ -1242,12 +1231,12 @@ function EditUserContent() {
                                 </button>
                               </div>
                             ) : (
-                              <div 
+                              <div
                                 className="bg-light d-flex align-items-center justify-content-center"
-                                style={{ 
-                                  width: '100%', 
-                                  height: '200px', 
-                                  cursor: 'pointer', 
+                                style={{
+                                  width: '100%',
+                                  height: '200px',
+                                  cursor: 'pointer',
                                   border: '2px dashed #dee2e6',
                                   borderRadius: '8px'
                                 }}
@@ -1279,8 +1268,8 @@ function EditUserContent() {
                       <div className="row">
                         <div className="col-md-6 mb-4">
                           <label className="label">Account Holder Name <span className="text-danger">*</span></label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             className={`form-control ${fieldErrors.account_holder_name ? 'is-invalid' : ''}`}
                             name="bank_details.account_holder_name"
                             value={formData.bank_details.account_holder_name}
@@ -1294,8 +1283,8 @@ function EditUserContent() {
 
                         <div className="col-md-6 mb-4">
                           <label className="label">Account Number <span className="text-danger">*</span></label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             className={`form-control ${fieldErrors.account_number ? 'is-invalid' : ''}`}
                             name="bank_details.account_number"
                             value={formData.bank_details.account_number}
@@ -1309,8 +1298,8 @@ function EditUserContent() {
 
                         <div className="col-md-6 mb-4">
                           <label className="label">Bank Name <span className="text-danger">*</span></label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             className={`form-control ${fieldErrors.bank_name ? 'is-invalid' : ''}`}
                             name="bank_details.bank_name"
                             value={formData.bank_details.bank_name}
@@ -1324,8 +1313,8 @@ function EditUserContent() {
 
                         <div className="col-md-6 mb-4">
                           <label className="label">IFSC Code <span className="text-danger">*</span></label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             className={`form-control ${fieldErrors.ifsc_code ? 'is-invalid' : ''}`}
                             name="bank_details.ifsc_code"
                             value={formData.bank_details.ifsc_code}
@@ -1349,8 +1338,8 @@ function EditUserContent() {
                       <div className="row">
                         <div className="col-md-4 mb-4">
                           <label className="label">Call Rate (₹/min) <span className="text-danger">*</span></label>
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             className={`form-control ${fieldErrors.call_rate ? 'is-invalid' : ''}`}
                             name="call_rate"
                             value={formData.call_rate}
@@ -1364,8 +1353,8 @@ function EditUserContent() {
 
                         <div className="col-md-4 mb-4">
                           <label className="label">Chat Rate (₹/min) <span className="text-danger">*</span></label>
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             className={`form-control ${fieldErrors.chat_rate ? 'is-invalid' : ''}`}
                             name="chat_rate"
                             value={formData.chat_rate}
@@ -1379,8 +1368,8 @@ function EditUserContent() {
 
                         <div className="col-md-4 mb-4">
                           <label className="label">Video Rate (₹/min) <span className="text-danger">*</span></label>
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             className={`form-control ${fieldErrors.video_rate ? 'is-invalid' : ''}`}
                             name="video_rate"
                             value={formData.video_rate}
@@ -1394,8 +1383,8 @@ function EditUserContent() {
 
                         <div className="col-md-4 mb-4">
                           <label className="label">Call Commission (%)</label>
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             className="form-control"
                             name="commission_percentage.call"
                             value={formData.commission_percentage.call}
@@ -1408,8 +1397,8 @@ function EditUserContent() {
 
                         <div className="col-md-4 mb-4">
                           <label className="label">Chat Commission (%)</label>
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             className="form-control"
                             name="commission_percentage.chat"
                             value={formData.commission_percentage.chat}
@@ -1422,8 +1411,8 @@ function EditUserContent() {
 
                         <div className="col-md-4 mb-4">
                           <label className="label">Video Commission (%)</label>
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             className="form-control"
                             name="commission_percentage.video"
                             value={formData.commission_percentage.video}
@@ -1447,9 +1436,6 @@ function EditUserContent() {
                           <>Update Account</>
                         )}
                       </button>
-                      <Link href="/accounts/customers" className="btn btn-secondary ml-2">
-                        Cancel
-                      </Link>
                     </div>
                   </div>
 
@@ -1464,7 +1450,7 @@ function EditUserContent() {
               onSelect={handleProfileImageSelect}
               selectedImage={imagePreview}
             />
-            
+
             <MediaLibrary
               isOpen={showPanCardLibrary}
               onClose={() => setShowPanCardLibrary(false)}
