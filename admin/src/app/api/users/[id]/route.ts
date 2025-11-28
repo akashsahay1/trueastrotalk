@@ -220,6 +220,17 @@ export async function PUT(
           { status: 400 }
         );
       }
+
+      // Validate rejection reason is provided when rejecting an astrologer
+      if (body.verification_status === 'rejected') {
+        const rejectionMessage = body.verification_status_message;
+        if (!rejectionMessage || (typeof rejectionMessage === 'string' && rejectionMessage.trim() === '')) {
+          return NextResponse.json(
+            { error: 'Rejection reason is required when rejecting an astrologer account' },
+            { status: 400 }
+          );
+        }
+      }
     }
 
         const usersCollection = await DatabaseService.getCollection('users');

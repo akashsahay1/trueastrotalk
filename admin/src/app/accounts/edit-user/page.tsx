@@ -12,6 +12,17 @@ import { successMessages, errorMessages, showLoadingAlert, closeSweetAlert } fro
 import AirDatePickerComponent from '@/components/admin/AirDatePickerComponent';
 import { getCSRFToken } from '@/lib/csrf';
 
+// Predefined rejection reasons for astrologer verification
+const REJECTION_REASONS = [
+  'Incomplete profile information',
+  'Invalid or unclear profile photo',
+  'Invalid or missing PAN card document',
+  'Insufficient experience details',
+  'Qualifications not verifiable',
+  'Bank details incomplete or invalid',
+  'Other (please specify below)'
+];
+
 interface FormData {
   user_id: string;
   profile_image_id: string;
@@ -124,6 +135,10 @@ function EditUserContent() {
   const [availableSkills, setAvailableSkills] = useState<string[]>([]);
   const [availableLanguages, setAvailableLanguages] = useState<string[]>([]);
   const [qualificationInput, setQualificationInput] = useState('');
+
+  // Rejection reason state
+  const [selectedRejectionReason, setSelectedRejectionReason] = useState<string>('');
+  const [customRejectionMessage, setCustomRejectionMessage] = useState<string>('');
 
   // Define user type booleans for conditional rendering
   const isAstrologer = formData.user_type === 'astrologer';
@@ -248,6 +263,30 @@ function EditUserContent() {
 
         if (user.pan_card_image) {
           setPanCardPreview(user.pan_card_image);
+        }
+
+        // Parse existing rejection reason if user is rejected
+        if (user.verification_status === 'rejected' && user.verification_status_message) {
+          const existingMessage = user.verification_status_message;
+          // Check if the message matches any predefined reason
+          const matchedReason = REJECTION_REASONS.find(reason =>
+            existingMessage === reason || existingMessage.startsWith(reason)
+          );
+
+          if (matchedReason && matchedReason !== 'Other (please specify below)') {
+            setSelectedRejectionReason(matchedReason);
+            // Check if there's additional custom text after the predefined reason
+            if (existingMessage.length > matchedReason.length) {
+              const additionalText = existingMessage.substring(matchedReason.length).replace(/^[\s\-:]+/, '').trim();
+              if (additionalText) {
+                setCustomRejectionMessage(additionalText);
+              }
+            }
+          } else {
+            // It's a custom message, set as "Other"
+            setSelectedRejectionReason('Other (please specify below)');
+            setCustomRejectionMessage(existingMessage);
+          }
         }
       } else {
         setError(data.error || 'Failed to fetch user data');
@@ -504,6 +543,16 @@ function EditUserContent() {
       if (accountNumber && (!/^\d+$/.test(accountNumber) || accountNumber.length < 9 || accountNumber.length > 18)) {
         customErrors.account_number = 'Please enter a valid account number (9-18 digits)';
       }
+
+      // Rejection reason validation
+      if (formData.verification_status === 'rejected') {
+        if (!selectedRejectionReason) {
+          customErrors.rejection_reason = 'Please select a rejection reason';
+        }
+        if (selectedRejectionReason === 'Other (please specify below)' && !customRejectionMessage.trim()) {
+          customErrors.custom_rejection_message = 'Please provide the rejection reason';
+        }
+      }
     }
 
     if (Object.keys(customErrors).length > 0) {
@@ -539,10 +588,29 @@ function EditUserContent() {
         headers['x-csrf-token'] = csrfToken;
       }
 
+      // Prepare submission data with combined rejection message
+      const submissionData = { ...formData };
+
+      // Combine rejection reason into verification_status_message for astrologers
+      if (formData.user_type === 'astrologer' && formData.verification_status === 'rejected') {
+        if (selectedRejectionReason === 'Other (please specify below)') {
+          submissionData.verification_status_message = customRejectionMessage.trim();
+        } else if (customRejectionMessage.trim()) {
+          // Predefined reason + additional details
+          submissionData.verification_status_message = `${selectedRejectionReason} - ${customRejectionMessage.trim()}`;
+        } else {
+          // Just the predefined reason
+          submissionData.verification_status_message = selectedRejectionReason;
+        }
+      } else if (formData.verification_status !== 'rejected') {
+        // Clear the message if not rejected
+        submissionData.verification_status_message = '';
+      }
+
       const response = await fetch(`/api/users/${userId}`, {
         method: 'PUT',
         headers,
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submissionData),
       });
 
       const data = await response.json();
@@ -1044,13 +1112,83 @@ function EditUserContent() {
                             className="custom-select"
                             name="verification_status"
                             value={formData.verification_status}
-                            onChange={handleInputChange}
+                            onChange={(e) => {
+                              handleInputChange(e);
+                              // Clear rejection reason when status changes away from rejected
+                              if (e.target.value !== 'rejected') {
+                                setSelectedRejectionReason('');
+                                setCustomRejectionMessage('');
+                              }
+                            }}
                           >
                             <option value="pending">Pending</option>
                             <option value="verified">Verified</option>
                             <option value="rejected">Rejected</option>
                           </select>
                         </div>
+
+                        {/* Rejection Reason Section - Only visible when status is 'rejected' */}
+                        {formData.verification_status === 'rejected' && (
+                          <div className="col-md-12 mb-4">
+                            <div
+                              className="p-3 rounded"
+                              style={{
+                                border: '2px solid #dc3545',
+                                backgroundColor: '#fff5f5'
+                              }}
+                            >
+                              <h6 className="text-danger mb-3">
+                                <i className="fas fa-exclamation-triangle mr-2"></i>
+                                Rejection Reason (Required)
+                              </h6>
+
+                              <div className="mb-3">
+                                <label className="label">Select Reason <span className="text-danger">*</span></label>
+                                <select
+                                  className={`custom-select ${fieldErrors.rejection_reason ? 'is-invalid' : ''}`}
+                                  value={selectedRejectionReason}
+                                  onChange={(e) => setSelectedRejectionReason(e.target.value)}
+                                >
+                                  <option value="">-- Select a reason --</option>
+                                  {REJECTION_REASONS.map((reason) => (
+                                    <option key={reason} value={reason}>{reason}</option>
+                                  ))}
+                                </select>
+                                {fieldErrors.rejection_reason && (
+                                  <div className="invalid-feedback">{fieldErrors.rejection_reason}</div>
+                                )}
+                              </div>
+
+                              <div className="mb-3">
+                                <label className="label">
+                                  Additional Details
+                                  {selectedRejectionReason === 'Other (please specify below)' && (
+                                    <span className="text-danger"> *</span>
+                                  )}
+                                </label>
+                                <textarea
+                                  className={`form-control ${fieldErrors.custom_rejection_message ? 'is-invalid' : ''}`}
+                                  value={customRejectionMessage}
+                                  onChange={(e) => setCustomRejectionMessage(e.target.value)}
+                                  rows={3}
+                                  placeholder={
+                                    selectedRejectionReason === 'Other (please specify below)'
+                                      ? 'Please provide the rejection reason...'
+                                      : 'Add any additional details or instructions for the astrologer (optional)...'
+                                  }
+                                />
+                                {fieldErrors.custom_rejection_message && (
+                                  <div className="invalid-feedback">{fieldErrors.custom_rejection_message}</div>
+                                )}
+                              </div>
+
+                              <small className="text-muted">
+                                <i className="fas fa-info-circle mr-1"></i>
+                                This message will be sent to the astrologer via email notification.
+                              </small>
+                            </div>
+                          </div>
+                        )}
 
                         <div className="col-md-12 mb-4">
                           <div className="form-check">
