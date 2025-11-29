@@ -96,8 +96,8 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
           await client.connect();
           const db = client.db(DB_NAME);
           
-          // Get session details
-          const session = await db.collection('chat_sessions').findOne({ _id: new ObjectId(sessionId) });
+          // Get session details from unified sessions collection
+          const session = await db.collection('sessions').findOne({ _id: new ObjectId(sessionId), session_type: 'chat' });
           if (!session) {
             socket.emit('message_error', { error: 'Session not found' });
             await client.close();
@@ -145,8 +145,8 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
             mongoUpdate.$set = updateData;
           }
 
-          await db.collection('chat_sessions').updateOne(
-            { _id: new ObjectId(sessionId) },
+          await db.collection('sessions').updateOne(
+            { _id: new ObjectId(sessionId), session_type: 'chat' },
             mongoUpdate
           );
 
@@ -186,8 +186,11 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
           await client.connect();
           const db = client.db(DB_NAME);
           
-          // Get call session
-          const session = await db.collection('call_sessions').findOne({ _id: new ObjectId(sessionId) });
+          // Get call session from unified sessions collection
+          const session = await db.collection('sessions').findOne({
+            _id: new ObjectId(sessionId),
+            session_type: { $in: ['voice_call', 'video_call'] }
+          });
           if (!session) {
             socket.emit('call_error', { error: 'Call session not found' });
             await client.close();
@@ -195,7 +198,7 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
           }
 
           // Update call status to ringing
-          await db.collection('call_sessions').updateOne(
+          await db.collection('sessions').updateOne(
             { _id: new ObjectId(sessionId) },
             { $set: { status: 'ringing', updated_at: new Date() } }
           );
@@ -247,10 +250,10 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
           await client.connect();
           const db = client.db(DB_NAME);
           
-          await db.collection('call_sessions').updateOne(
+          await db.collection('sessions').updateOne(
             { _id: new ObjectId(sessionId) },
-            { 
-              $set: { 
+            {
+              $set: {
                 status: 'active',
                 start_time: new Date(),
                 updated_at: new Date()
@@ -290,7 +293,7 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
           await client.connect();
           const db = client.db(DB_NAME);
           
-          await db.collection('call_sessions').updateOne(
+          await db.collection('sessions').updateOne(
             { _id: new ObjectId(sessionId) },
             { $set: { status: 'rejected', updated_at: new Date() } }
           );
@@ -331,13 +334,13 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
             await client.connect();
             const db = client.db(DB_NAME);
             
-            const session = await db.collection('call_sessions').findOne({ _id: new ObjectId(sessionId) });
+            const session = await db.collection('sessions').findOne({ _id: new ObjectId(sessionId) });
             const totalAmount = durationMinutes * (session?.rate_per_minute || 0);
 
-            await db.collection('call_sessions').updateOne(
+            await db.collection('sessions').updateOne(
               { _id: new ObjectId(sessionId) },
-              { 
-                $set: { 
+              {
+                $set: {
                   status: 'completed',
                   end_time: endTime,
                   duration_minutes: durationMinutes,

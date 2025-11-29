@@ -326,9 +326,10 @@ async function handleSendMessage(socket: Socket, io: ServerIO, data: MessageData
     
     const { client, db } = await getDbConnection();
     
-    // Get session details
-    const session = await db.collection('chat_sessions').findOne({ 
-      _id: new ObjectId(sessionId) 
+    // Get session details from unified sessions collection
+    const session = await db.collection('sessions').findOne({
+      _id: new ObjectId(sessionId),
+      session_type: 'chat'
     });
     
     if (!session) {
@@ -369,9 +370,9 @@ async function handleSendMessage(socket: Socket, io: ServerIO, data: MessageData
     
     const result = await db.collection('chat_messages').insertOne(message);
     
-    // Update session
-    await db.collection('chat_sessions').updateOne(
-      { _id: new ObjectId(sessionId) },
+    // Update session in unified sessions collection
+    await db.collection('sessions').updateOne(
+      { _id: new ObjectId(sessionId), session_type: 'chat' },
       {
         $set: {
           last_message: content || `[${messageType}]`,
@@ -449,10 +450,10 @@ async function handleMarkMessagesRead(socket: Socket, io: ServerIO, data: Messag
       { $set: { [updateField]: true } }
     );
     
-    // Reset unread count
+    // Reset unread count in unified sessions collection
     const unreadField = userType === 'user' ? 'user_unread_count' : 'astrologer_unread_count';
-    await db.collection('chat_sessions').updateOne(
-      { _id: new ObjectId(sessionId) },
+    await db.collection('sessions').updateOne(
+      { _id: new ObjectId(sessionId), session_type: 'chat' },
       { $set: { [unreadField]: 0 } }
     );
     
@@ -545,25 +546,47 @@ async function handleInitiateCall(socket: Socket, io: ServerIO, data: CallData) 
 
     // Debug logging for name resolution
     
-    // Create call session in database
+    // Create call session in unified sessions collection
+    const sessionType = callType === 'video' ? 'video_call' : 'voice_call';
     const callSession = {
       _id: new ObjectId(sessionId),
+      session_id: sessionId,
+      session_type: sessionType,
       user_id: callerType === 'user' ? callerId : targetUserId,
       astrologer_id: callerType === 'astrologer' ? callerId : targetUserId,
+      status: 'ringing',
+      rate_per_minute: callerType === 'astrologer'
+        ? (callType === 'video' ? caller.video_rate : caller.call_rate)
+        : (callType === 'video' ? target.video_rate : target.call_rate),
+
+      // Call metadata
       caller_id: callerId,
       caller_type: callerType,
-      caller_name: caller.full_name, // Add caller name to session
-      target_name: target.full_name, // Add target name to session
-      call_type: callType as 'voice' | 'video',
-      status: 'ringing',
-      rate_per_minute: callerType === 'astrologer' 
-        ? (callType === 'video' ? caller.video_rate : caller.call_rate) 
-        : (callType === 'video' ? target.video_rate : target.call_rate),
+      caller_name: caller.full_name,
+      target_name: target.full_name,
+
+      // Timing
+      start_time: null,
+      end_time: null,
+      duration_minutes: 0,
+      total_amount: 0,
+
+      // Chat fields (null for calls)
+      last_message: null,
+      last_message_time: null,
+      user_unread_count: 0,
+      astrologer_unread_count: 0,
+
+      // Call-specific
+      call_quality_rating: null,
+      connection_id: null,
+
+      billing_updated_at: null,
       created_at: new Date(),
       updated_at: new Date()
     };
-    
-    await db.collection('call_sessions').insertOne(callSession);
+
+    await db.collection('sessions').insertOne(callSession);
     await client.close();
     
     // Store active call
@@ -617,12 +640,12 @@ async function handleAnswerCall(socket: Socket, io: ServerIO, data: CallData) {
       return;
     }
     
-    // Update call status
+    // Update call status in unified sessions collection
     const { client, db } = await getDbConnection();
-    await db.collection('call_sessions').updateOne(
+    await db.collection('sessions').updateOne(
       { _id: new ObjectId(sessionId) },
-      { 
-        $set: { 
+      {
+        $set: {
           status: 'active',
           start_time: new Date(),
           answered_by: userId,
@@ -661,12 +684,12 @@ async function handleRejectCall(socket: Socket, io: ServerIO, data: CallData) {
       return;
     }
     
-    // Update call status
+    // Update call status in unified sessions collection
     const { client, db } = await getDbConnection();
-    await db.collection('call_sessions').updateOne(
+    await db.collection('sessions').updateOne(
       { _id: new ObjectId(sessionId) },
-      { 
-        $set: { 
+      {
+        $set: {
           status: 'rejected',
           rejection_reason: reason,
           updated_at: new Date()
@@ -712,16 +735,16 @@ async function handleEndCall(socket: Socket, io: ServerIO, data: CallData) {
       const durationMs = endTime.getTime() - call.startTime.getTime();
       const durationMinutes = Math.ceil(durationMs / (1000 * 60));
       
-      const session = await db.collection('call_sessions').findOne({ 
-        _id: new ObjectId(sessionId) 
+      const session = await db.collection('sessions').findOne({
+        _id: new ObjectId(sessionId)
       });
-      
+
       const totalAmount = durationMinutes * (session?.rate_per_minute || 0);
-      
-      await db.collection('call_sessions').updateOne(
+
+      await db.collection('sessions').updateOne(
         { _id: new ObjectId(sessionId) },
-        { 
-          $set: { 
+        {
+          $set: {
             status: 'completed',
             end_time: endTime,
             duration_minutes: durationMinutes,
@@ -758,10 +781,10 @@ async function handleEndCall(socket: Socket, io: ServerIO, data: CallData) {
       }
     } else {
       // Call was not answered or was cancelled
-      await db.collection('call_sessions').updateOne(
+      await db.collection('sessions').updateOne(
         { _id: new ObjectId(sessionId) },
-        { 
-          $set: { 
+        {
+          $set: {
             status: 'ended',
             end_time: new Date(),
             updated_at: new Date()

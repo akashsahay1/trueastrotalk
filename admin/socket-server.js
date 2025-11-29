@@ -231,9 +231,10 @@ async function handleSendMessage(socket, data) {
     
     const { client, db } = await getDbConnection();
     
-    // Get session details
-    const session = await db.collection('chat_sessions').findOne({ 
-      _id: new ObjectId(sessionId) 
+    // Get session details from unified sessions collection
+    const session = await db.collection('sessions').findOne({
+      _id: new ObjectId(sessionId),
+      session_type: 'chat'
     });
     
     if (!session) {
@@ -274,16 +275,16 @@ async function handleSendMessage(socket, data) {
     
     const result = await db.collection('chat_messages').insertOne(message);
     
-    // Update session
-    await db.collection('chat_sessions').updateOne(
-      { _id: new ObjectId(sessionId) },
+    // Update session in unified sessions collection
+    await db.collection('sessions').updateOne(
+      { _id: new ObjectId(sessionId), session_type: 'chat' },
       {
         $set: {
           last_message: content || `[${messageType}]`,
           last_message_time: new Date(),
           updated_at: new Date()
         },
-        $inc: senderType === 'user' 
+        $inc: senderType === 'user'
           ? { astrologer_unread_count: 1 }
           : { user_unread_count: 1 }
       }
@@ -356,10 +357,10 @@ async function handleMarkMessagesRead(socket, data) {
       { $set: { [updateField]: true } }
     );
     
-    // Reset unread count
+    // Reset unread count in unified sessions collection
     const unreadField = userType === 'user' ? 'user_unread_count' : 'astrologer_unread_count';
-    await db.collection('chat_sessions').updateOne(
-      { _id: new ObjectId(sessionId) },
+    await db.collection('sessions').updateOne(
+      { _id: new ObjectId(sessionId), session_type: 'chat' },
       { $set: { [unreadField]: 0 } }
     );
     
@@ -404,55 +405,86 @@ async function handleInitiateCall(socket, data) {
     
     const { client, db } = await getDbConnection();
     
-    // Check if a call session already exists for this sessionId to prevent duplicates
-    const existingSession = await db.collection('call_sessions').findOne({ 
+    // Check if a call session already exists in unified sessions collection
+    const sessionType = callType === 'video' ? 'video_call' : 'voice_call';
+    const existingSession = await db.collection('sessions').findOne({
       session_id: sessionId,
-      call_status: { $in: ['initiated', 'ringing', 'answered'] }
+      session_type: sessionType,
+      status: { $in: ['pending', 'ringing', 'active'] }
     });
-    
+
     if (existingSession) {
       console.log(`ℹ️ Call session already exists for ${sessionId}, returning existing call`);
       const existingCallId = existingSession._id.toString();
-      
+
       // Just confirm to caller without creating duplicate
       socket.emit('call_initiated', {
         callId: existingCallId,
         sessionId,
         status: 'initiated'
       });
-      
+
       await client.close();
       return;
     }
-    
-    // Get caller name from database if not provided in data
+
+    // Get caller and receiver details from database
     let resolvedCallerName = callerName;
+    const caller = await db.collection('users').findOne({ user_id: callerId });
+    const receiver = await db.collection('users').findOne({ user_id: receiverId });
+
     if (!resolvedCallerName || resolvedCallerName === 'Unknown') {
-      console.log('🔍 Resolving caller name from database...');
-      // Use user_id field for both astrologers and users instead of _id
-      const caller = await db.collection('users').findOne({ 
-        user_id: callerId 
-      });
       resolvedCallerName = caller?.full_name || caller?.name || 'Unknown Caller';
       console.log(`📞 Resolved caller name: "${resolvedCallerName}"`);
     }
-    
-    // Create call session record
+
+    // Determine user_id and astrologer_id based on caller type
+    const userId = callerType === 'customer' ? callerId : receiverId;
+    const astrologerId = callerType === 'astrologer' ? callerId : receiverId;
+
+    // Get rate from astrologer
+    const astrologer = callerType === 'astrologer' ? caller : receiver;
+    const ratePerMinute = callType === 'video'
+      ? (astrologer?.video_call_rate || astrologer?.call_rate || 15)
+      : (astrologer?.call_rate || 10);
+
+    // Create session in unified sessions collection with proper structure
     const callSession = {
       session_id: sessionId,
+      session_type: sessionType, // 'voice_call' or 'video_call'
+      user_id: userId,
+      astrologer_id: astrologerId,
+      status: 'pending', // pending -> ringing -> active -> completed
+      rate_per_minute: ratePerMinute,
+
+      // Call metadata
       caller_id: callerId,
       caller_name: resolvedCallerName,
       caller_type: callerType,
       receiver_id: receiverId,
-      receiver_type: 'astrologer',
-      call_type: callType,
-      call_status: 'initiated',
-      start_time: new Date(),
+
+      // Timing
+      start_time: null,
+      end_time: null,
+      duration_minutes: 0,
+      total_amount: 0,
+
+      // Chat fields (null for calls)
+      last_message: null,
+      last_message_time: null,
+      user_unread_count: 0,
+      astrologer_unread_count: 0,
+
+      // Call-specific
+      call_quality_rating: null,
+      connection_id: null,
+
+      billing_updated_at: null,
       created_at: new Date(),
       updated_at: new Date()
     };
-    
-    const result = await db.collection('call_sessions').insertOne(callSession);
+
+    const result = await db.collection('sessions').insertOne(callSession);
     const callId = result.insertedId.toString();
     
     await client.close();
@@ -518,20 +550,20 @@ async function handleAnswerCall(socket, data) {
     callInfo.answerTime = new Date();
     activeCalls.set(callId, callInfo);
     
-    // Update database
+    // Update database - unified sessions collection
     const { client, db } = await getDbConnection();
-    await db.collection('call_sessions').updateOne(
+    await db.collection('sessions').updateOne(
       { _id: new ObjectId(callId) },
-      { 
-        $set: { 
-          call_status: 'answered', 
-          answer_time: new Date(),
+      {
+        $set: {
+          status: 'active',
+          start_time: new Date(),
           updated_at: new Date()
-        } 
+        }
       }
     );
     await client.close();
-    
+
     // Notify caller
     io.to(`user_${callInfo.callerId}`).emit('call_answered', {
       callId,
@@ -567,23 +599,23 @@ async function handleRejectCall(socket, data) {
       return;
     }
     
-    // Update database
+    // Update database - unified sessions collection
     const { client, db } = await getDbConnection();
-    await db.collection('call_sessions').updateOne(
+    await db.collection('sessions').updateOne(
       { _id: new ObjectId(callId) },
-      { 
-        $set: { 
-          call_status: 'rejected', 
+      {
+        $set: {
+          status: 'rejected',
           end_time: new Date(),
           updated_at: new Date()
-        } 
+        }
       }
     );
     await client.close();
-    
+
     // Remove from active calls
     activeCalls.delete(callId);
-    
+
     // Notify caller
     io.to(`user_${callInfo.callerId}`).emit('call_rejected', {
       callId,
@@ -591,7 +623,7 @@ async function handleRejectCall(socket, data) {
       rejecterId,
       status: 'rejected'
     });
-    
+
     console.log(`❌ Call rejected: ${callId} by ${rejecterId}`);
   } catch (error) {
     console.error('❌ Reject call error:', error);
@@ -611,41 +643,25 @@ async function handleEndCall(socket, data) {
       // Calculate call duration
       const duration = new Date() - new Date(callInfo.startTime);
       const durationMinutes = Math.ceil(duration / 60000); // Convert to minutes, round up
-      
-      // Update database
+
+      // Update database - unified sessions collection
       const { client, db } = await getDbConnection();
-      
-      // Update call_sessions collection
-      await db.collection('call_sessions').updateOne(
+
+      // Update session to completed status
+      await db.collection('sessions').updateOne(
         { _id: new ObjectId(callId) },
-        { 
-          $set: { 
-            call_status: 'ended', 
+        {
+          $set: {
+            status: 'completed',
             end_time: new Date(),
-            duration_seconds: Math.floor(duration / 1000),
+            duration_minutes: durationMinutes,
             ended_by: enderId,
             updated_at: new Date()
-          } 
+          }
         }
       );
-      
-      // Update sessions collection to mark as completed
-      if (sessionId) {
-        await db.collection('sessions').updateOne(
-          { session_id: sessionId },
-          { 
-            $set: { 
-              status: 'completed',
-              end_time: new Date(),
-              duration_minutes: durationMinutes,
-              duration_seconds: Math.floor(duration / 1000),
-              updated_at: new Date()
-            } 
-          }
-        );
-        console.log(`✅ Session ${sessionId} marked as completed`);
-      }
-      
+      console.log(`✅ Session ${callId} marked as completed`);
+
       await client.close();
       
       // Notify other participant
