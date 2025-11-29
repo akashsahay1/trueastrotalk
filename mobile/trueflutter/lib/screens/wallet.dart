@@ -271,18 +271,23 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   Widget _buildQuickActions() {
+    final isCustomer = _currentUser?.isCustomer == true;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Expanded(
-            child: _buildActionButton(
-              icon: Icons.add,
-              label: 'Add Money',
-              onTap: _showRechargeDialog,
+          // Only show Add Money for customers (astrologers earn money, they don't add it)
+          if (isCustomer) ...[
+            Expanded(
+              child: _buildActionButton(
+                icon: Icons.add,
+                label: 'Add Money',
+                onTap: _showRechargeDialog,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
+            const SizedBox(width: 12),
+          ],
           Expanded(
             child: _buildActionButton(
               icon: Icons.history,
