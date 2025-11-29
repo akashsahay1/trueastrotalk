@@ -599,19 +599,21 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
               });
             },
           ),
-          ListTile(
-            leading: const Icon(Icons.shopping_bag),
-            title: const Text('My Orders', style: TextStyle(fontSize: 14.0)),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const OrdersListScreen(),
-                ),
-              );
-            },
-          ),
+          // Only show My Orders for customers (not astrologers)
+          if (_currentUser?.isCustomer == true)
+            ListTile(
+              leading: const Icon(Icons.shopping_bag),
+              title: const Text('My Orders', style: TextStyle(fontSize: 14.0)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const OrdersListScreen(),
+                  ),
+                );
+              },
+            ),
           ListTile(
             leading: const Icon(Icons.history),
             title: const Text('History', style: TextStyle(fontSize: 14.0)),
