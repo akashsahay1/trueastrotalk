@@ -149,9 +149,12 @@ export async function POST(request: NextRequest) {
         });
 
       case 'get_active_calls':
-        const callSessionsCollection = await DatabaseService.getCollection('call_sessions');
-        const activeCalls = await callSessionsCollection
-          .find({ status: { $in: ['ringing', 'active'] } })
+        const sessionsCollection = await DatabaseService.getCollection('sessions');
+        const activeCalls = await sessionsCollection
+          .find({
+            session_type: { $in: ['voice_call', 'video_call'] },
+            status: { $in: ['ringing', 'active'] }
+          })
           .toArray();
 
                 return NextResponse.json({

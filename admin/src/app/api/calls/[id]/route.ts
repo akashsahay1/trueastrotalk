@@ -23,11 +23,14 @@ export async function GET(
       }, { status: 400 });
     }
 
-    const callSessionsCollection = await DatabaseService.getCollection('call_sessions');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
     const usersCollection = await DatabaseService.getCollection('users');
 
-    // Get call session
-    const session = await callSessionsCollection.findOne({ _id: new ObjectId(sessionId) });
+    // Get call session (voice_call or video_call)
+    const session = await sessionsCollection.findOne({
+      _id: new ObjectId(sessionId),
+      session_type: { $in: ['voice_call', 'video_call'] }
+    });
 
     if (!session) {
       return NextResponse.json({
@@ -134,10 +137,13 @@ export async function PUT(
       }, { status: 400 });
     }
 
-    const callSessionsCollection = await DatabaseService.getCollection('call_sessions');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
 
-    // Get session
-    const session = await callSessionsCollection.findOne({ _id: new ObjectId(sessionId) });
+    // Get session (voice_call or video_call)
+    const session = await sessionsCollection.findOne({
+      _id: new ObjectId(sessionId),
+      session_type: { $in: ['voice_call', 'video_call'] }
+    });
 
     if (!session) {
       return NextResponse.json({
@@ -290,8 +296,8 @@ export async function PUT(
     }
 
     // Update session
-    await callSessionsCollection.updateOne(
-      { _id: new ObjectId(sessionId) },
+    await sessionsCollection.updateOne(
+      { _id: new ObjectId(sessionId), session_type: { $in: ['voice_call', 'video_call'] } },
       { $set: updateData }
     );
     const sessionResponse: Record<string, unknown> = {

@@ -51,8 +51,7 @@ export async function GET(request: NextRequest) {
 
     // Get collections
     const walletTransactionsCollection = await DatabaseService.getCollection('transactions');
-    const chatSessionsCollection = await DatabaseService.getCollection('chat_sessions');
-    const callSessionsCollection = await DatabaseService.getCollection('call_sessions');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
 
     // Calculate date ranges based on period
     const now = new Date();
@@ -170,10 +169,11 @@ export async function GET(request: NextRequest) {
 
     // Get session statistics for correlation
     const [chatStats, callStats] = await Promise.all([
-      chatSessionsCollection.aggregate([
+      sessionsCollection.aggregate([
         {
           $match: {
             astrologer_id: astrologerId,
+            session_type: 'chat',
             status: 'completed',
             created_at: { $gte: startDate }
           }
@@ -188,10 +188,11 @@ export async function GET(request: NextRequest) {
           }
         }
       ]).toArray(),
-      callSessionsCollection.aggregate([
+      sessionsCollection.aggregate([
         {
           $match: {
             astrologer_id: astrologerId,
+            session_type: { $in: ['voice_call', 'video_call'] },
             status: 'completed',
             created_at: { $gte: startDate }
           }

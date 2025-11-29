@@ -26,12 +26,12 @@ export async function GET(
       }, { status: 400 });
     }
 
-    const chatSessionsCollection = await DatabaseService.getCollection('chat_sessions');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
     const chatMessagesCollection = await DatabaseService.getCollection('chat_messages');
     const usersCollection = await DatabaseService.getCollection('users');
 
-    // Get chat session
-    const session = await chatSessionsCollection.findOne({ _id: new ObjectId(sessionId) });
+    // Get chat session from unified sessions collection
+    const session = await sessionsCollection.findOne({ _id: new ObjectId(sessionId), session_type: 'chat' });
 
     if (!session) {
       return NextResponse.json({
@@ -93,10 +93,10 @@ export async function GET(
 
       // Update unread count in session
       const unreadCountField = userType === 'user' ? 'user_unread_count' : 'astrologer_unread_count';
-      await chatSessionsCollection.updateOne(
-        { _id: new ObjectId(sessionId) },
-        { 
-          $set: { 
+      await sessionsCollection.updateOne(
+        { _id: new ObjectId(sessionId), session_type: 'chat' },
+        {
+          $set: {
             [unreadCountField]: 0,
             updated_at: new Date()
           }
@@ -195,11 +195,11 @@ export async function PUT(
       }, { status: 400 });
     }
 
-    const chatSessionsCollection = await DatabaseService.getCollection('chat_sessions');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
     const chatMessagesCollection = await DatabaseService.getCollection('chat_messages');
 
     // Get session
-    const session = await chatSessionsCollection.findOne({ _id: new ObjectId(sessionId) });
+    const session = await sessionsCollection.findOne({ _id: new ObjectId(sessionId), session_type: 'chat' });
 
     if (!session) {
       return NextResponse.json({
@@ -303,8 +303,8 @@ export async function PUT(
     }
 
     // Update session
-    await chatSessionsCollection.updateOne(
-      { _id: new ObjectId(sessionId) },
+    await sessionsCollection.updateOne(
+      { _id: new ObjectId(sessionId), session_type: 'chat' },
       { $set: updateData }
     );
 
@@ -327,10 +327,10 @@ export async function PUT(
       await chatMessagesCollection.insertOne(messageData);
 
       // Update session with last message info
-      await chatSessionsCollection.updateOne(
-        { _id: new ObjectId(sessionId) },
-        { 
-          $set: { 
+      await sessionsCollection.updateOne(
+        { _id: new ObjectId(sessionId), session_type: 'chat' },
+        {
+          $set: {
             last_message: systemMessage,
             last_message_time: new Date()
           }

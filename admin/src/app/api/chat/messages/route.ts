@@ -78,10 +78,10 @@ export async function POST(request: NextRequest) {
 
 
     const chatMessagesCollection = await DatabaseService.getCollection('chat_messages');
-    const chatSessionsCollection = await DatabaseService.getCollection('chat_sessions');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
 
     // Verify session exists and is active
-    const session = await chatSessionsCollection.findOne({ _id: new ObjectId(session_id as string) });
+    const session = await sessionsCollection.findOne({ _id: new ObjectId(session_id as string), session_type: 'chat' });
 
     if (!session) {
       return NextResponse.json({
@@ -161,8 +161,8 @@ export async function POST(request: NextRequest) {
       updateOperation.$inc = $inc;
     }
     
-    await chatSessionsCollection.updateOne(
-      { _id: new ObjectId(session_id as string) },
+    await sessionsCollection.updateOne(
+      { _id: new ObjectId(session_id as string), session_type: 'chat' },
       updateOperation
     );
 
@@ -212,7 +212,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const chatMessagesCollection = await DatabaseService.getCollection('chat_messages');
-    const chatSessionsCollection = await DatabaseService.getCollection('chat_sessions');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
 
     // Convert message IDs to ObjectIds
     const messageObjectIds = message_ids
@@ -260,11 +260,11 @@ export async function PUT(request: NextRequest) {
       });
 
       const unreadCountField = user_type === 'user' ? 'user_unread_count' : 'astrologer_unread_count';
-      
-      await chatSessionsCollection.updateOne(
-        { _id: new ObjectId(sessionId as string) },
-        { 
-          $set: { 
+
+      await sessionsCollection.updateOne(
+        { _id: new ObjectId(sessionId as string), session_type: 'chat' },
+        {
+          $set: {
             [unreadCountField]: unreadCount,
             updated_at: new Date()
           }
@@ -309,11 +309,11 @@ export async function GET(request: NextRequest) {
     }
 
     const chatMessagesCollection = await DatabaseService.getCollection('chat_messages');
-    const chatSessionsCollection = await DatabaseService.getCollection('chat_sessions');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
 
     // Verify user has access to this session
     if (userId && userType) {
-      const session = await chatSessionsCollection.findOne({ _id: new ObjectId(sessionId) });
+      const session = await sessionsCollection.findOne({ _id: new ObjectId(sessionId), session_type: 'chat' });
       
       if (!session) {
           return NextResponse.json({

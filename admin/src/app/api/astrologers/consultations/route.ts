@@ -89,8 +89,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get collections
-    const chatSessionsCollection = await DatabaseService.getCollection('chat_sessions');
-    const callSessionsCollection = await DatabaseService.getCollection('call_sessions');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
     const usersCollection = await DatabaseService.getCollection('users');
 
     // Helper function to build consultation object
@@ -139,13 +138,13 @@ export async function GET(request: NextRequest) {
 
     if (!type || type === 'chat') {
       // Fetch chat sessions
-      const chatMatch = { ...baseMatch };
-      const chatSessions = await chatSessionsCollection
+      const chatMatch = { ...baseMatch, session_type: 'chat' };
+      const chatSessions = await sessionsCollection
         .find(chatMatch)
         .sort({ created_at: -1 })
         .toArray();
 
-      const chatConsultations = chatSessions.map(session => 
+      const chatConsultations = chatSessions.map(session =>
         buildConsultation(session, 'chat')
       );
       consultations = consultations.concat(chatConsultations);
@@ -153,20 +152,22 @@ export async function GET(request: NextRequest) {
 
     if (!type || type === 'voice_call' || type === 'video_call') {
       // Fetch call sessions
-      const callMatch = { ...baseMatch };
+      const callMatch: Record<string, unknown> = { ...baseMatch };
       if (type === 'voice_call') {
-        callMatch.call_type = 'voice';
+        callMatch.session_type = 'voice_call';
       } else if (type === 'video_call') {
-        callMatch.call_type = 'video';
+        callMatch.session_type = 'video_call';
+      } else {
+        callMatch.session_type = { $in: ['voice_call', 'video_call'] };
       }
 
-      const callSessions = await callSessionsCollection
+      const callSessions = await sessionsCollection
         .find(callMatch)
         .sort({ created_at: -1 })
         .toArray();
 
       const callConsultations = callSessions.map(session => {
-        const callType = session.call_type === 'video' ? 'video_call' : 'voice_call';
+        const callType = session.session_type === 'video_call' ? 'video_call' : 'voice_call';
         return buildConsultation(session, callType);
       });
       consultations = consultations.concat(callConsultations);
@@ -345,22 +346,29 @@ export async function PUT(request: NextRequest) {
 
     const astrologerId = authenticatedUser.userId as string;
 
-    // Determine which collection to use
-    const isCallSession = session_type === 'voice_call' || session_type === 'video_call';
-    const collection = await DatabaseService.getCollection(
-      isCallSession ? 'call_sessions' : 'chat_sessions'
-    );
+    // Use unified sessions collection
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
+
+    // Determine session_type filter
+    let sessionTypeFilter: string | { $in: string[] };
+    if (session_type === 'voice_call' || session_type === 'video_call') {
+      sessionTypeFilter = session_type as string;
+    } else if (session_type === 'chat') {
+      sessionTypeFilter = 'chat';
+    } else {
+      sessionTypeFilter = { $in: ['chat', 'voice_call', 'video_call'] };
+    }
 
     // Build query for finding consultation - support both ObjectId and string IDs
-    let sessionQuery: { _id?: ObjectId; session_id?: string };
+    let sessionQuery: Record<string, unknown>;
     if (ObjectId.isValid(consultation_id as string)) {
-      sessionQuery = { _id: new ObjectId(consultation_id as string) };
+      sessionQuery = { _id: new ObjectId(consultation_id as string), session_type: sessionTypeFilter };
     } else {
-      sessionQuery = { session_id: consultation_id as string };
+      sessionQuery = { session_id: consultation_id as string, session_type: sessionTypeFilter };
     }
 
     // Find the consultation
-    const consultation = await collection.findOne({
+    const consultation = await sessionsCollection.findOne({
       ...sessionQuery,
       astrologer_id: astrologerId
     });
@@ -439,7 +447,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update the consultation
-    const updateResult = await collection.updateOne(
+    const updateResult = await sessionsCollection.updateOne(
       sessionQuery,
       { $set: updateData }
     );

@@ -35,8 +35,7 @@ export async function GET(request: NextRequest) {
 
     // Get collections
     const usersCollection = await DatabaseService.getCollection('users');
-    const chatSessionsCollection = await DatabaseService.getCollection('chat_sessions');
-    const callSessionsCollection = await DatabaseService.getCollection('call_sessions');
+    const sessionsCollection = await DatabaseService.getCollection('sessions');
     const walletTransactionsCollection = await DatabaseService.getCollection('transactions');
     const reviewsCollection = await DatabaseService.getCollection('reviews');
 
@@ -70,10 +69,11 @@ export async function GET(request: NextRequest) {
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
     // Optimized single aggregation for chat sessions
-    const [chatStats] = await chatSessionsCollection.aggregate([
+    const [chatStats] = await sessionsCollection.aggregate([
       {
         $match: {
-          astrologer_id: astrologerId
+          astrologer_id: astrologerId,
+          session_type: 'chat'
         }
       },
       {
@@ -116,10 +116,11 @@ export async function GET(request: NextRequest) {
     const avgSessionDuration = chatStats.avgDuration[0]?.avgDuration || 0;
 
     // Optimized single aggregation for call sessions
-    const [callStats] = await callSessionsCollection.aggregate([
+    const [callStats] = await sessionsCollection.aggregate([
       {
         $match: {
-          astrologer_id: astrologerId
+          astrologer_id: astrologerId,
+          session_type: { $in: ['voice_call', 'video_call'] }
         }
       },
       {
@@ -216,9 +217,10 @@ export async function GET(request: NextRequest) {
       .toArray();
 
     // Get recent chat sessions
-    const recentChatSessions = await chatSessionsCollection
+    const recentChatSessions = await sessionsCollection
       .find({
-        astrologer_id: astrologerId
+        astrologer_id: astrologerId,
+        session_type: 'chat'
       })
       .sort({ created_at: -1 })
       .limit(10)
