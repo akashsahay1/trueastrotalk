@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import DatabaseService from '@/lib/database';
-import { ObjectId } from 'mongodb';
 import { jwtVerify } from 'jose';
+import { InputSanitizer } from '@/lib/security';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
@@ -11,11 +11,19 @@ export async function PATCH(request: NextRequest) {
   try {
     // Parse request body
     const body = await request.json();
-    const { fcmToken } = body;
+    const sanitizedBody = InputSanitizer.sanitizeMongoQuery(body);
+    const { fcmToken } = sanitizedBody;
 
-    if (!fcmToken) {
-      return NextResponse.json({ 
-        error: 'Missing required field: fcmToken' 
+    if (!fcmToken || typeof fcmToken !== 'string') {
+      return NextResponse.json({
+        error: 'Missing required field: fcmToken'
+      }, { status: 400 });
+    }
+
+    // Validate FCM token format (basic validation)
+    if (fcmToken.length < 100 || fcmToken.length > 500) {
+      return NextResponse.json({
+        error: 'Invalid FCM token format'
       }, { status: 400 });
     }
 
@@ -51,7 +59,7 @@ export async function PATCH(request: NextRequest) {
     };
 
     const result = await usersCollection.updateOne(
-      { _id: new ObjectId(userId) },
+      { user_id: userId },
       updateQuery
     );
     if (result.matchedCount === 0) {

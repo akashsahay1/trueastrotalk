@@ -160,20 +160,19 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                      // App Logo with subtle animation
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(70),
-                          boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.2), blurRadius: 24, offset: const Offset(0, 8))],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(70),
-                          child: Image.asset('assets/images/logo.png', width: 50, height: 50, fit: BoxFit.contain),
-                        ),
-                      ),
+                            // App Logo with subtle animation
+                            Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(70),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(70),
+                                child: Image.asset('assets/images/logo.png', width: 50, height: 50, fit: BoxFit.contain),
+                              ),
+                            ),
 
                       const SizedBox(height: 32),
 

@@ -1,10 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import DatabaseService from '@/lib/database';
 import { ObjectId } from 'mongodb';
-import crypto from 'crypto';
 import { omit } from '@/utils/omit';
 import { cleanupUserFiles } from '@/lib/file-cleanup';
 import { emailService } from '@/lib/email-service';
+import { PasswordSecurity, SecurityMiddleware } from '@/lib/security';
+
+/**
+ * Log verification status change to audit log
+ */
+async function logVerificationAudit(
+  userId: string,
+  userName: string,
+  previousStatus: string,
+  newStatus: string,
+  adminId: string,
+  adminName: string,
+  reason?: string
+): Promise<void> {
+  try {
+    const auditCollection = await DatabaseService.getCollection('audit_logs');
+    await auditCollection.insertOne({
+      action: 'VERIFICATION_STATUS_CHANGE',
+      entity_type: 'user',
+      entity_id: userId,
+      entity_name: userName,
+      previous_value: previousStatus,
+      new_value: newStatus,
+      reason: reason || null,
+      performed_by_id: adminId,
+      performed_by_name: adminName,
+      performed_by_type: 'administrator',
+      ip_address: null, // Can be added from request headers if needed
+      created_at: new Date(),
+    });
+    console.log(`📝 Audit: ${adminName} changed verification status of ${userName} from ${previousStatus} to ${newStatus}`);
+  } catch (error) {
+    console.error('Failed to log verification audit:', error);
+    // Don't throw - audit logging failure shouldn't block the operation
+  }
+}
 
 // Helper function to get base URL for images
 function getBaseUrl(request: NextRequest): string {
@@ -53,10 +88,6 @@ async function resolveProfileImage(user: Record<string, unknown>, mediaCollectio
   
   // No profile image - return null to indicate no image uploaded
   return null;
-}
-
-function hashPassword(password: string): string {
-  return crypto.createHash('sha256').update(password).digest('hex');
 }
 
 export async function GET(
@@ -341,7 +372,7 @@ export async function PUT(
 
     // Only update password if provided
     if (body.password && body.password.trim() !== '') {
-      updateData.password = hashPassword(body.password);
+      updateData.password = await PasswordSecurity.hashPassword(body.password);
     }
 
     // Check if verification status changed for astrologers
@@ -398,6 +429,37 @@ export async function PUT(
       } catch (error) {
         console.error('Error resolving PAN card media file:', error);
       }
+    }
+
+    // Log audit trail for verification status changes
+    if (verificationStatusChanged && body.verification_status) {
+      // Try to get admin info from auth header
+      let adminId = 'unknown';
+      let adminName = 'Unknown Admin';
+
+      try {
+        const authenticatedUser = await SecurityMiddleware.authenticateRequest(request) as {
+          userId?: string;
+          user_id?: string;
+          _id?: { toString(): string };
+          full_name?: string;
+          name?: string;
+        };
+        adminId = authenticatedUser.userId || authenticatedUser.user_id || authenticatedUser._id?.toString() || 'unknown';
+        adminName = authenticatedUser.full_name || authenticatedUser.name || 'Admin';
+      } catch {
+        // If auth fails, use defaults - don't block the operation
+      }
+
+      await logVerificationAudit(
+        existingUser.user_id || id,
+        existingUser.full_name || 'Unknown User',
+        existingUser.verification_status || 'unknown',
+        body.verification_status,
+        adminId,
+        adminName,
+        body.verification_status === 'rejected' ? body.verification_status_message : undefined
+      );
     }
 
     // Send email notification if astrologer verification status changed

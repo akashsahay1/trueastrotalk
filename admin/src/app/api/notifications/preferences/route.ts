@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../../lib/database';
 import { 
   SecurityMiddleware, 
@@ -26,15 +25,15 @@ export async function GET(request: NextRequest) {
     const userId = authenticatedUser.userId;
     const usersCollection = await DatabaseService.getCollection('users');
 
-    // Get user's notification preferences
+    // Get user's notification preferences using custom user_id
     const user = await usersCollection.findOne(
-      { _id: new ObjectId(userId as string) },
-      { 
-        projection: { 
+      { user_id: userId as string },
+      {
+        projection: {
           notification_preferences: 1,
           fcm_token: 1,
           email_address: 1
-        } 
+        }
       }
     );
 
@@ -154,9 +153,9 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Update user's notification preferences
+    // Update user's notification preferences using custom user_id
     const result = await usersCollection.updateOne(
-      { _id: new ObjectId(userId as string) },
+      { user_id: userId as string },
       {
         $set: {
           notification_preferences: updatePreferences,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import DatabaseService from '@/lib/database';
 import { formatPhoneNumber, isValidPhoneNumber } from '@/lib/otp';
 import { generateUserId } from '@/lib/custom-id';
+import { InputSanitizer } from '@/lib/security';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -10,15 +11,14 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secre
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const {
-      phone_number,
-      full_name,
-      user_type,
-      date_of_birth,
-      time_of_birth,
-      place_of_birth,
-      gender,
-    } = body;
+    const sanitizedBody = InputSanitizer.sanitizeMongoQuery(body);
+    const phone_number = sanitizedBody.phone_number as string | undefined;
+    const full_name = sanitizedBody.full_name as string | undefined;
+    const user_type = sanitizedBody.user_type as string | undefined;
+    const date_of_birth = sanitizedBody.date_of_birth as string | undefined;
+    const time_of_birth = sanitizedBody.time_of_birth as string | undefined;
+    const place_of_birth = sanitizedBody.place_of_birth as string | undefined;
+    const gender = sanitizedBody.gender as string | undefined;
 
 
     // Validate required fields

@@ -155,7 +155,7 @@ flutter_native_splash:
   # Logo image
   image: "assets/images/splash_logo.png"
   image_dark: "assets/images/splash_logo.png"
-  branding: "assets/images/splash_logo.png"
+  branding: "assets/images/splash_branding_image.png"
 
   # Android 12+ splash configuration
   android_12:

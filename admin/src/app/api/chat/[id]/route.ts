@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import DatabaseService from '@/lib/database';
 import { ObjectId } from 'mongodb';
+import { NotificationService } from '@/lib/notifications';
 
 // GET - Get chat session details with messages
 export async function GET(
@@ -265,7 +266,7 @@ export async function PUT(
             message: 'Can only end active sessions'
           }, { status: 400 });
         }
-        
+
         const endTime = new Date();
         const durationMs = endTime.getTime() - session.start_time.getTime();
         const durationMinutes = Math.ceil(durationMs / (1000 * 60)); // Round up to next minute
@@ -276,6 +277,21 @@ export async function PUT(
         updateData.duration_minutes = durationMinutes;
         updateData.total_amount = Math.round(totalAmount * 100) / 100; // Round to 2 decimal places
         systemMessage = `Chat session ended. Duration: ${durationMinutes} minutes. Total: ₹${updateData.total_amount}`;
+
+        // Send session end notifications to both parties
+        try {
+          await NotificationService.sendSessionEndedNotification(
+            session.user_id,
+            session.astrologer_id,
+            'chat',
+            durationMinutes,
+            updateData.total_amount as number,
+            sessionId
+          );
+        } catch (notifError) {
+          console.error('Failed to send session end notifications:', notifError);
+          // Don't fail the request if notification fails
+        }
         break;
 
       default:

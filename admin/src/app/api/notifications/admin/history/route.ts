@@ -1,8 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import DatabaseService from '@/lib/database';
+import { SecurityMiddleware } from '@/lib/security';
 
 export async function GET(request: NextRequest) {
   try {
+    // Authenticate user (only admins can view notification history)
+    let authenticatedUser;
+    try {
+      authenticatedUser = await SecurityMiddleware.authenticateRequest(request);
+    } catch {
+      return NextResponse.json({
+        success: false,
+        error: 'AUTHENTICATION_REQUIRED',
+        message: 'Valid authentication token is required'
+      }, { status: 401 });
+    }
+
+    // Only administrators can view notification history
+    if (authenticatedUser.user_type !== 'administrator') {
+      return NextResponse.json({
+        success: false,
+        error: 'ACCESS_DENIED',
+        message: 'Only administrators can access notification history'
+      }, { status: 403 });
+    }
+
     const url = new URL(request.url);
     const page = parseInt(url.searchParams.get('page') || '1');
     const limit = parseInt(url.searchParams.get('limit') || '50');

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import DatabaseService from '@/lib/database';
 import { emailService } from '@/lib/email-service';
+import { InputSanitizer } from '@/lib/security';
 import {
   generateOTP,
   getOTPExpiry,
@@ -46,11 +47,14 @@ async function sendOTPEmail(email: string, otp: string): Promise<boolean> {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { identifier, auth_type, phone_number } = body; // Support both new and legacy formats
+    const sanitizedBody = InputSanitizer.sanitizeMongoQuery(body);
+    const identifier = sanitizedBody.identifier as string | undefined;
+    const auth_type = sanitizedBody.auth_type as string | undefined;
+    const phone_number = sanitizedBody.phone_number as string | undefined;
 
     // Determine auth type and identifier
     let authType = auth_type;
-    let userIdentifier = identifier || phone_number;
+    let userIdentifier: string | undefined = identifier || phone_number;
 
     // Legacy support: if only phone_number is provided, assume phone auth
     if (!identifier && phone_number) {
@@ -72,7 +76,7 @@ export async function POST(request: NextRequest) {
     }
 
     const usersCollection = await DatabaseService.getCollection('users');
-    let formattedIdentifier = userIdentifier;
+    let formattedIdentifier: string = userIdentifier;
     let queryField: string;
     let otpSent = false;
 

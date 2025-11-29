@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import DatabaseService from '@/lib/database';
 
-import crypto from 'crypto';
 import { omit } from '@/utils/omit';
 import { emailService } from '@/lib/email-service';
 import { withSecurity, SecurityPresets, AuthenticatedNextRequest, getRequestBody } from '@/lib/api-security';
 import { generateUserId } from '@/lib/custom-id';
+import { PasswordSecurity } from '@/lib/security';
 
 interface CreateUserRequest {
   full_name: string;
@@ -50,10 +50,6 @@ interface CreateUserRequest {
     chat: number;
     video: number;
   };
-}
-
-function hashPassword(password: string): string {
-  return crypto.createHash('sha256').update(password).digest('hex');
 }
 
 export const POST = withSecurity(async (request: AuthenticatedNextRequest) => {
@@ -172,7 +168,7 @@ export const POST = withSecurity(async (request: AuthenticatedNextRequest) => {
     }
 
     // Hash the password only if provided (required for admin/manager, optional for others)
-    const hashedPassword = password ? hashPassword(password) : null;
+    const hashedPassword = password ? await PasswordSecurity.hashPassword(password) : null;
 
     // Prepare user data
     const userData = {

@@ -174,7 +174,11 @@ async function handleDELETE(request: NextRequest) {
     }
 
     const usersCollection = await DatabaseService.getCollection('users');
-    const result = await usersCollection.deleteOne({ _id: new ObjectId(userId) });
+    // Try to delete by custom user_id first, fallback to _id for backwards compatibility
+    let result = await usersCollection.deleteOne({ user_id: userId });
+    if (result.deletedCount === 0 && ObjectId.isValid(userId)) {
+      result = await usersCollection.deleteOne({ _id: new ObjectId(userId) });
+    }
 
 
     if (result.deletedCount === 0) {

@@ -17,9 +17,9 @@ function getBaseUrl(request: NextRequest): string {
 }
 
 
-// Helper function to resolve media ID to full URL
+// Helper function to resolve media ID to full URL (kept for non-sensitive media)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function resolveMediaUrl(mediaId: string | null | undefined, mediaCollection: any, baseUrl: string): Promise<string | null> {
+async function _resolveMediaUrl(mediaId: string | null | undefined, mediaCollection: any, baseUrl: string): Promise<string | null> {
   if (!mediaId || !mediaId.startsWith('media_')) {
     return mediaId || null;
   }
@@ -174,8 +174,10 @@ export async function GET(request: NextRequest) {
     // Resolve profile image to full URL
     const profileImageUrl = await resolveProfileImage(dbUser, mediaCollection, baseUrl);
 
-    // Resolve PAN card image to full URL
-    const panCardUrl = await resolveMediaUrl(dbUser.pan_card_id as string, mediaCollection, baseUrl);
+    // Resolve PAN card image to secure URL (requires authentication to access)
+    const panCardUrl = dbUser.pan_card_id
+      ? `${baseUrl}/api/media/secure?id=${dbUser.pan_card_id}`
+      : null;
 
     return NextResponse.json({
       success: true,
@@ -263,21 +265,28 @@ export async function PUT(request: NextRequest) {
     const contentType = request.headers.get('content-type');
     let updateData: Record<string, unknown> = {};
     let profileImageFile: File | null = null;
+    let panCardImageFile: File | null = null;
 
     // Handle both JSON and FormData with input sanitization
     if (contentType?.includes('multipart/form-data')) {
       // Handle form data with potential file upload
       const formData = await request.formData();
-      
+
       // Extract profile image file if present
       const imageFile = formData.get('profile_image') as File;
       if (imageFile && imageFile.size > 0) {
         profileImageFile = imageFile;
       }
-      
+
+      // Extract PAN card image file if present
+      const panCardFile = formData.get('pan_card_image') as File;
+      if (panCardFile && panCardFile.size > 0) {
+        panCardImageFile = panCardFile;
+      }
+
       // Extract and sanitize other form fields
       for (const [key, value] of formData.entries()) {
-        if (key !== 'profile_image' && typeof value === 'string') {
+        if (key !== 'profile_image' && key !== 'pan_card_image' && typeof value === 'string') {
           updateData[key] = InputSanitizer.sanitizeString(value);
         }
       }
@@ -415,6 +424,105 @@ export async function PUT(request: NextRequest) {
       updateData.profile_image = imageUrl;
     }
 
+    // Handle PAN card image upload if present
+    let panCardUrl: string | null = null;
+    if (panCardImageFile && panCardImageFile.size > 0) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+      const fileExtension = panCardImageFile.name.toLowerCase().split('.').pop();
+      const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'];
+
+      const isValidMimeType = allowedTypes.includes(panCardImageFile.type.toLowerCase());
+      const isValidExtension = fileExtension && allowedExtensions.includes(fileExtension);
+
+      if (!isValidMimeType && !isValidExtension) {
+        return NextResponse.json({
+          success: false,
+          error: 'Invalid PAN card file type. Only JPEG, PNG, WebP, and HEIC are allowed.'
+        }, { status: 400 });
+      }
+
+      // Validate file size (10MB max)
+      const maxSize = 10 * 1024 * 1024;
+      if (panCardImageFile.size > maxSize) {
+        return NextResponse.json({
+          success: false,
+          error: 'PAN card file too large. Maximum size is 10MB.'
+        }, { status: 400 });
+      }
+
+      // Generate file path for PAN card
+      const now = new Date();
+      const year = now.getFullYear().toString();
+      const month = (now.getMonth() + 1).toString().padStart(2, '0');
+      const timestamp = Date.now();
+      const extension = path.extname(panCardImageFile.name);
+      const filename = `pan-${timestamp}${extension}`;
+
+      // Create upload directory
+      const uploadDir = path.join(process.cwd(), 'public', 'uploads', year, month);
+      if (!existsSync(uploadDir)) {
+        await mkdir(uploadDir, { recursive: true });
+      }
+
+      // Save PAN card file
+      const filepath = path.join(uploadDir, filename);
+      const bytes = await panCardImageFile.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      await writeFile(filepath, buffer);
+
+      panCardUrl = `/uploads/${year}/${month}/${filename}`;
+
+      // Generate media_id for PAN card
+      const panMediaId = `media_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Add PAN card to media library
+      const mediaCollection = await DatabaseService.getCollection('media');
+      await mediaCollection.insertOne({
+        media_id: panMediaId,
+        filename: filename,
+        original_name: panCardImageFile.name,
+        file_path: panCardUrl,
+        file_size: panCardImageFile.size,
+        mime_type: panCardImageFile.type,
+        file_type: 'pan_card',
+        uploaded_by: user.userId as string,
+        associated_record: user.userId as string,
+        is_external: false,
+        uploaded_at: new Date(),
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+
+      // Update user's pan_card_id
+      updateData.pan_card_id = panMediaId;
+
+      // Trigger re-verification for astrologers when PAN card is updated
+      if (existingUser.user_type === 'astrologer' && existingUser.pan_card_id !== panMediaId) {
+        updateData.verification_status = 'pending';
+        updateData.verified_at = null;
+        updateData.verified_by = null;
+        console.log(`🔄 PAN card updated for astrologer ${user.userId} - triggering re-verification`);
+      }
+
+      // Clean up old PAN card image if exists
+      if (existingUser.pan_card_id) {
+        try {
+          const oldMediaFile = await mediaCollection.findOne({ media_id: existingUser.pan_card_id });
+          if (oldMediaFile && oldMediaFile.file_path) {
+            await deleteFile(oldMediaFile.file_path as string, {
+              deleteFromFilesystem: true,
+              logActivity: true
+            });
+            // Optionally delete old media record
+            await mediaCollection.deleteOne({ media_id: existingUser.pan_card_id });
+          }
+        } catch (error) {
+          console.error('Error cleaning up old PAN card:', error);
+        }
+      }
+    }
+
     // Add updated timestamp
     updateData.updated_at = new Date();
 
@@ -480,8 +588,10 @@ export async function PUT(request: NextRequest) {
     const mediaCollection2 = await DatabaseService.getCollection('media');
     const profileImageUrl = await resolveProfileImage(updatedUser, mediaCollection2, baseUrl);
 
-    // Resolve PAN card image to full URL
-    const panCardUrlUpdated = await resolveMediaUrl(updatedUser.pan_card_id as string, mediaCollection2, baseUrl);
+    // Resolve PAN card image to secure URL (requires authentication to access)
+    const panCardUrlUpdated = updatedUser.pan_card_id
+      ? `${baseUrl}/api/media/secure?id=${updatedUser.pan_card_id}`
+      : null;
 
     return NextResponse.json({
       success: true,

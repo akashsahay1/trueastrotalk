@@ -11,6 +11,7 @@ enum CallState {
   ringing,
   connecting,
   connected,
+  reconnecting,  // Added for reconnection support
   ended,
   rejected,
   failed
@@ -56,6 +57,16 @@ class WebRTCService extends ChangeNotifier {
   
   // Pending offer queue for race condition handling
   Map<String, dynamic>? _pendingOffer;
+
+  // Reconnection support
+  int _reconnectAttempts = 0;
+  static const int _maxReconnectAttempts = 3;
+  static const Duration _reconnectDelay = Duration(seconds: 2);
+  Timer? _reconnectTimer;
+  bool _isReconnecting = false;
+
+  // Callback for reconnection events
+  Function(bool isReconnecting, int attempt)? onReconnectionStateChanged;
 
   // Stream controllers
   final StreamController<CallState> _callStateController = 
@@ -659,20 +670,34 @@ class WebRTCService extends ChangeNotifier {
 
       _peerConnection!.onConnectionState = (RTCPeerConnectionState state) {
         debugPrint('🔗 Connection state: $state');
-        
+
         switch (state) {
           case RTCPeerConnectionState.RTCPeerConnectionStateConnected:
+            // Reset reconnect attempts on successful connection
+            _reconnectAttempts = 0;
+            _isReconnecting = false;
+            onReconnectionStateChanged?.call(false, 0);
             if (_callState != CallState.connected) {
               _updateCallState(CallState.connected);
             }
             break;
           case RTCPeerConnectionState.RTCPeerConnectionStateFailed:
-            _updateCallState(CallState.failed);
-            _cleanup();
+            // Attempt reconnection before giving up
+            if (_reconnectAttempts < _maxReconnectAttempts) {
+              _attemptReconnection();
+            } else {
+              _updateCallState(CallState.failed);
+              _cleanup();
+            }
             break;
           case RTCPeerConnectionState.RTCPeerConnectionStateDisconnected:
-            _updateCallState(CallState.ended);
-            _cleanup();
+            // Attempt reconnection on disconnection
+            if (_callState == CallState.connected && _reconnectAttempts < _maxReconnectAttempts) {
+              _attemptReconnection();
+            } else if (_reconnectAttempts >= _maxReconnectAttempts) {
+              _updateCallState(CallState.ended);
+              _cleanup();
+            }
             break;
           default:
             break;
@@ -1029,9 +1054,83 @@ class WebRTCService extends ChangeNotifier {
     }
   }
 
+  /// Attempt to reconnect after connection failure
+  Future<void> _attemptReconnection() async {
+    if (_isReconnecting) {
+      debugPrint('🔄 Already reconnecting, skipping...');
+      return;
+    }
+
+    _isReconnecting = true;
+    _reconnectAttempts++;
+    debugPrint('🔄 Attempting reconnection (attempt $_reconnectAttempts of $_maxReconnectAttempts)');
+
+    // Update UI state
+    _updateCallState(CallState.reconnecting);
+    onReconnectionStateChanged?.call(true, _reconnectAttempts);
+
+    // Wait before attempting reconnection
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(_reconnectDelay, () async {
+      try {
+        // Close existing peer connection without full cleanup
+        if (_peerConnection != null) {
+          await _peerConnection!.close();
+          _peerConnection = null;
+        }
+
+        // Recreate peer connection
+        await _createPeerConnection();
+
+        // Re-add local stream if exists
+        if (_localStream != null && _peerConnection != null) {
+          _peerConnection!.addStream(_localStream!);
+        }
+
+        // If we're the initiator, create and send new offer
+        if (_isInitiator) {
+          await _createAndSendOffer();
+        } else {
+          // Signal to remote peer that we're ready for reconnection
+          _socketService.emit('reconnection_ready', {
+            'sessionId': _currentSessionId,
+            'userId': _remoteUserId,
+          });
+        }
+
+        debugPrint('✅ Reconnection attempt $_reconnectAttempts initiated');
+      } catch (e) {
+        debugPrint('❌ Reconnection attempt $_reconnectAttempts failed: $e');
+        _isReconnecting = false;
+
+        // Try again if we haven't exceeded max attempts
+        if (_reconnectAttempts < _maxReconnectAttempts) {
+          _attemptReconnection();
+        } else {
+          _updateCallState(CallState.failed);
+          onReconnectionStateChanged?.call(false, _reconnectAttempts);
+          await _cleanup();
+        }
+      }
+    });
+  }
+
+  /// Cancel ongoing reconnection attempts
+  void cancelReconnection() {
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+    _isReconnecting = false;
+    _reconnectAttempts = 0;
+    onReconnectionStateChanged?.call(false, 0);
+    debugPrint('🛑 Reconnection cancelled');
+  }
+
   /// Cleanup WebRTC resources
   Future<void> _cleanup() async {
     try {
+      // Cancel any ongoing reconnection
+      cancelReconnection();
+
       // Stop local stream
       if (_localStream != null) {
         _localStream!.getTracks().forEach((track) => track.stop());
@@ -1058,7 +1157,7 @@ class WebRTCService extends ChangeNotifier {
       _isMuted = false;
       _isCameraOn = true;
       _isSpeakerOn = false;
-      
+
       // Clean up duration tracking
       _durationTimer?.cancel();
       _durationTimer = null;

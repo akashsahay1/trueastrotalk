@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import DatabaseService from '@/lib/database';
+import { InputSanitizer } from '@/lib/security';
 import {
   generateOTP,
   getOTPExpiry,
@@ -14,7 +15,8 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { phone_number } = body;
+    const sanitizedBody = InputSanitizer.sanitizeMongoQuery(body);
+    const phone_number = sanitizedBody.phone_number as string | undefined;
 
 
     // Validate phone number

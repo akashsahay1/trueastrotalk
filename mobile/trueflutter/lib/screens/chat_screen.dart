@@ -4,10 +4,12 @@ import '../common/themes/text_styles.dart';
 import '../common/constants/dimensions.dart';
 import '../common/utils/error_handler.dart';
 import '../models/chat.dart';
+import '../models/call.dart';
 import '../services/chat/chat_service.dart';
 import '../services/socket/socket_service.dart';
 import '../services/billing/billing_service.dart';
 import '../services/wallet/wallet_service.dart';
+import '../services/call/call_service.dart';
 import 'active_call_screen.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -771,19 +773,42 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   void _startCall() async {
     try {
-      // Prepare call data for the ActiveCallScreen
+      // Show loading indicator
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
+
+      // Create a NEW call session via CallService instead of reusing chat session ID
+      final callService = CallService.instance;
+      final callSession = await callService.startCallSession(
+        widget.chatSession.astrologer.id,
+        CallType.voice,
+      );
+
+      // Dismiss loading indicator
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // Prepare call data with the NEW call session ID
       final callData = {
-        'session_id': widget.chatSession.id,
+        'session_id': callSession.id, // Use the NEW call session ID
         'astrologer_id': widget.chatSession.astrologer.id,
         'astrologer_name': widget.chatSession.astrologer.fullName,
         'astrologer_image': widget.chatSession.astrologer.profileImage,
         'customer_id': widget.chatSession.user.id,
         'customer_name': widget.chatSession.user.name,
         'call_type': 'voice',
-        'rate_per_minute': widget.chatSession.ratePerMinute,
-        'created_at': DateTime.now().toIso8601String(),
+        'rate_per_minute': callSession.ratePerMinute,
+        'created_at': callSession.createdAt.toIso8601String(),
       };
-      
+
       // Navigate to the active call screen
       if (mounted) {
         final result = await Navigator.of(context).push(
@@ -794,13 +819,18 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
             ),
           ),
         );
-        
+
         // Handle call completion if needed
         if (result != null) {
           debugPrint('Call completed with result: $result');
         }
       }
     } catch (e) {
+      // Dismiss loading indicator if still showing
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+
       debugPrint('Error starting voice call: $e');
       if (mounted) {
         final appError = ErrorHandler.handleError(e, context: 'call');

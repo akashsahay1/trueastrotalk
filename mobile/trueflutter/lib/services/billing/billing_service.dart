@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../../models/call.dart';
 import '../../models/astrologer.dart';
@@ -7,11 +8,48 @@ import '../service_locator.dart';
 import '../local/local_storage_service.dart';
 import '../api/user_api_service.dart';
 
+/// Failed billing record for retry queue
+class FailedBillingRecord {
+  final String sessionId;
+  final String sessionType;
+  final int durationMinutes;
+  final double totalAmount;
+  final DateTime failedAt;
+  int retryCount;
+
+  FailedBillingRecord({
+    required this.sessionId,
+    required this.sessionType,
+    required this.durationMinutes,
+    required this.totalAmount,
+    required this.failedAt,
+    this.retryCount = 0,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'sessionId': sessionId,
+    'sessionType': sessionType,
+    'durationMinutes': durationMinutes,
+    'totalAmount': totalAmount,
+    'failedAt': failedAt.toIso8601String(),
+    'retryCount': retryCount,
+  };
+
+  factory FailedBillingRecord.fromJson(Map<String, dynamic> json) => FailedBillingRecord(
+    sessionId: json['sessionId'],
+    sessionType: json['sessionType'],
+    durationMinutes: json['durationMinutes'],
+    totalAmount: (json['totalAmount'] as num).toDouble(),
+    failedAt: DateTime.parse(json['failedAt']),
+    retryCount: json['retryCount'] ?? 0,
+  );
+}
+
 /// Billing service for real-time call and chat billing
 class BillingService extends ChangeNotifier {
   static BillingService? _instance;
   static BillingService get instance => _instance ??= BillingService._();
-  
+
   BillingService._();
 
   final WalletService _walletService = getIt<WalletService>();
@@ -20,6 +58,7 @@ class BillingService extends ChangeNotifier {
 
   // Active billing sessions
   Timer? _billingTimer;
+  Timer? _retryTimer;
   String? _activeSessionId;
   String? _activeSessionType; // 'call' or 'chat'
   double? _currentRate;
@@ -27,6 +66,14 @@ class BillingService extends ChangeNotifier {
   double _totalBilled = 0.0;
   int _elapsedSeconds = 0;
   bool _isLowBalance = false;
+
+  // Mutex/lock for billing updates to prevent race conditions
+  bool _isBillingInProgress = false;
+
+  // Failed billing queue for recovery
+  final List<FailedBillingRecord> _failedBillingQueue = [];
+  static const int _maxRetryAttempts = 5;
+  static const Duration _retryInterval = Duration(seconds: 30);
 
   // Billing configuration
   static const int _billingIntervalSeconds = 60; // Bill every minute
@@ -189,9 +236,17 @@ class BillingService extends ChangeNotifier {
   Future<void> _processBilling(int totalMinutes) async {
     if (_currentRate == null || _activeSessionId == null) return;
 
+    // Prevent concurrent billing updates (race condition protection)
+    if (_isBillingInProgress) {
+      debugPrint('⏳ Billing already in progress, skipping...');
+      return;
+    }
+
+    _isBillingInProgress = true;
+
     try {
       final amountForThisMinute = _currentRate!;
-      
+
       // Check if wallet has sufficient balance
       if (_walletService.currentBalance < amountForThisMinute) {
         debugPrint('❌ Insufficient balance during call, ending session');
@@ -203,17 +258,143 @@ class BillingService extends ChangeNotifier {
       try {
         await _sendBillingUpdate(totalMinutes, _totalBilled + amountForThisMinute);
         _totalBilled += amountForThisMinute;
-        
+
         // Refresh local wallet balance after server deduction
         await _walletService.refreshBalance();
         debugPrint('💰 Billed ₹$amountForThisMinute (Total: ₹$_totalBilled)');
       } catch (e) {
         debugPrint('❌ Failed to process billing update: $e');
-        await _handleInsufficientBalance();
+        // Queue the failed billing for retry instead of ending session
+        _queueFailedBilling(
+          sessionId: _activeSessionId!,
+          sessionType: _activeSessionType!,
+          durationMinutes: totalMinutes,
+          totalAmount: _totalBilled + amountForThisMinute,
+        );
+        // Still update local total to keep UI consistent
+        _totalBilled += amountForThisMinute;
       }
     } catch (e) {
       debugPrint('❌ Error processing billing: $e');
+    } finally {
+      _isBillingInProgress = false;
     }
+  }
+
+  /// Queue a failed billing record for retry
+  void _queueFailedBilling({
+    required String sessionId,
+    required String sessionType,
+    required int durationMinutes,
+    required double totalAmount,
+  }) {
+    final record = FailedBillingRecord(
+      sessionId: sessionId,
+      sessionType: sessionType,
+      durationMinutes: durationMinutes,
+      totalAmount: totalAmount,
+      failedAt: DateTime.now(),
+    );
+    _failedBillingQueue.add(record);
+    debugPrint('📝 Queued failed billing for retry: ${record.toJson()}');
+
+    // Start retry timer if not already running
+    _startRetryTimer();
+
+    // Persist failed billing queue to local storage
+    _persistFailedBillingQueue();
+  }
+
+  /// Persist failed billing queue to local storage
+  Future<void> _persistFailedBillingQueue() async {
+    try {
+      final queueJson = _failedBillingQueue.map((r) => r.toJson()).toList();
+      // Use saveUserData with a special key format for billing queue
+      await _localStorage.saveUserData('__billing_queue__${jsonEncode(queueJson)}');
+    } catch (e) {
+      debugPrint('❌ Failed to persist billing queue: $e');
+    }
+  }
+
+  /// Load failed billing queue from local storage
+  Future<void> loadFailedBillingQueue() async {
+    try {
+      final userData = _localStorage.getUserData();
+      if (userData != null && userData.startsWith('__billing_queue__')) {
+        final queueString = userData.substring('__billing_queue__'.length);
+        if (queueString.isNotEmpty) {
+          try {
+            final List<dynamic> queueList = jsonDecode(queueString);
+            _failedBillingQueue.clear();
+            for (final item in queueList) {
+              _failedBillingQueue.add(FailedBillingRecord.fromJson(item));
+            }
+            debugPrint('📂 Loaded ${_failedBillingQueue.length} failed billing records from storage');
+            if (_failedBillingQueue.isNotEmpty) {
+              _startRetryTimer();
+            }
+          } catch (e) {
+            debugPrint('❌ Failed to parse billing queue: $e');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to load billing queue: $e');
+    }
+  }
+
+  /// Start the retry timer for failed billings
+  void _startRetryTimer() {
+    if (_retryTimer != null && _retryTimer!.isActive) return;
+
+    _retryTimer = Timer.periodic(_retryInterval, (_) async {
+      await _processFailedBillingQueue();
+    });
+    debugPrint('🔄 Started billing retry timer');
+  }
+
+  /// Process failed billing queue
+  Future<void> _processFailedBillingQueue() async {
+    if (_failedBillingQueue.isEmpty) {
+      _retryTimer?.cancel();
+      _retryTimer = null;
+      debugPrint('✅ Failed billing queue is empty, stopping retry timer');
+      return;
+    }
+
+    final recordsToRetry = List<FailedBillingRecord>.from(_failedBillingQueue);
+    for (final record in recordsToRetry) {
+      if (record.retryCount >= _maxRetryAttempts) {
+        debugPrint('❌ Max retries exceeded for billing: ${record.sessionId}');
+        _failedBillingQueue.remove(record);
+        // Notify about critical billing failure
+        _onBillingFailure?.call(record);
+        continue;
+      }
+
+      try {
+        final token = await _localStorage.getAuthToken();
+        if (token == null) continue;
+
+        await _userApiService.updateSessionBilling(
+          token,
+          sessionId: record.sessionId,
+          sessionType: record.sessionType,
+          durationMinutes: record.durationMinutes,
+          totalAmount: record.totalAmount,
+        );
+
+        // Success - remove from queue
+        _failedBillingQueue.remove(record);
+        debugPrint('✅ Retry successful for billing: ${record.sessionId}');
+      } catch (e) {
+        record.retryCount++;
+        debugPrint('❌ Retry ${record.retryCount} failed for billing: ${record.sessionId}');
+      }
+    }
+
+    // Persist updated queue
+    await _persistFailedBillingQueue();
   }
 
   /// Send billing update to server
@@ -281,15 +462,21 @@ class BillingService extends ChangeNotifier {
         try {
           await _sendBillingUpdate(totalMinutes, finalAmount);
           _totalBilled = finalAmount;
-          
+
           // Refresh local wallet balance after server deduction
           await _walletService.refreshBalance();
           debugPrint('💰 Final billing: ₹$finalAmount ($totalMinutes minutes)');
         } catch (e) {
           debugPrint('❌ CRITICAL: Failed to process final billing: $e');
-          debugPrint('❌ This means customer was NOT charged and astrologer will NOT be paid!');
-          // Keep local billing as-is but alert about the critical failure
-          rethrow; // Let the caller know billing failed
+          debugPrint('❌ Queuing final billing for retry recovery');
+          // Queue the failed final billing for retry instead of failing silently
+          _queueFailedBilling(
+            sessionId: _activeSessionId!,
+            sessionType: _activeSessionType!,
+            durationMinutes: totalMinutes,
+            totalAmount: finalAmount,
+          );
+          _totalBilled = finalAmount; // Keep local billing consistent
         }
       }
 
@@ -354,6 +541,7 @@ class BillingService extends ChangeNotifier {
   Function(int remainingMinutes)? _onLowBalance;
   Function()? _onInsufficientBalance;
   Function(BillingSummary summary)? _onBillingComplete;
+  Function(FailedBillingRecord record)? _onBillingFailure;
 
   /// Set callback for low balance warning
   void setLowBalanceCallback(Function(int remainingMinutes)? callback) {
@@ -370,9 +558,21 @@ class BillingService extends ChangeNotifier {
     _onBillingComplete = callback;
   }
 
+  /// Set callback for critical billing failure (after max retries)
+  void setBillingFailureCallback(Function(FailedBillingRecord record)? callback) {
+    _onBillingFailure = callback;
+  }
+
+  /// Get the number of pending failed billings
+  int get pendingFailedBillingsCount => _failedBillingQueue.length;
+
+  /// Check if there are pending failed billings
+  bool get hasPendingFailedBillings => _failedBillingQueue.isNotEmpty;
+
   @override
   void dispose() {
     _billingTimer?.cancel();
+    _retryTimer?.cancel();
     super.dispose();
   }
 }

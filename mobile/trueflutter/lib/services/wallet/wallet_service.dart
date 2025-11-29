@@ -105,15 +105,26 @@ class WalletService extends ChangeNotifier {
   }
 
   /// Deduct amount from wallet (called during chat/call)
+  /// Note: This is for LOCAL tracking only during active sessions.
+  /// The actual deduction happens server-side via billing updates.
+  /// After session ends, always call refreshBalance() to sync with server.
   Future<bool> deductAmount(double amount, String description) async {
-    // For now, just update local balance - implement API call later
+    // Local tracking - actual deduction is done server-side
+    // This keeps the UI responsive during active sessions
     if (_currentBalance >= amount) {
       _currentBalance -= amount;
       notifyListeners();
-      debugPrint('💰 Deducted ₹$amount from wallet: $description');
+      debugPrint('💰 Local balance updated: -₹$amount ($description)');
       return true;
     }
+    debugPrint('❌ Insufficient balance for deduction: need ₹$amount, have ₹$_currentBalance');
     return false;
+  }
+
+  /// Sync local balance with server (call after session ends)
+  Future<void> syncWithServer() async {
+    await refreshBalance();
+    debugPrint('🔄 Wallet synced with server: ₹$_currentBalance');
   }
 
   /// Refresh wallet balance from server
@@ -138,19 +149,29 @@ class WalletService extends ChangeNotifier {
       final token = await _localStorage.getAuthToken();
       if (token == null) return false;
 
-      await _userApiService.rechargeWallet(
+      final result = await _userApiService.rechargeWallet(
         token,
         amount: amount,
         paymentMethod: 'razorpay',
         paymentId: transactionId,
       );
 
-      _currentBalance += amount;
+      // Use server's confirmed balance instead of adding locally
+      // This prevents desync if server has different balance
+      if (result['success'] == true && result['new_balance'] != null) {
+        _currentBalance = (result['new_balance'] as num).toDouble();
+      } else {
+        // Fallback: refresh from server to get accurate balance
+        await refreshBalance();
+      }
+
       notifyListeners();
-      debugPrint('💰 Added ₹$amount to wallet');
+      debugPrint('💰 Wallet recharged. New balance: ₹$_currentBalance');
       return true;
     } catch (e) {
       debugPrint('❌ Failed to add wallet amount: $e');
+      // Refresh balance to ensure we have accurate server value
+      await refreshBalance();
       return false;
     }
   }

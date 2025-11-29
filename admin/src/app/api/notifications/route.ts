@@ -61,9 +61,9 @@ export async function GET(request: NextRequest) {
     const userId = (authenticatedUser as unknown as AuthenticatedUser).userId;
     const notificationsCollection = await DatabaseService.getCollection('notifications');
 
-    // Build query
+    // Build query using custom user_id string (not ObjectId)
     const query: Record<string, unknown> = {
-      user_id: new ObjectId(userId as string)
+      user_id: userId as string
     };
 
     if (unreadOnly) {
@@ -82,11 +82,11 @@ export async function GET(request: NextRequest) {
         .skip(skip)
         .limit(limit)
         .toArray(),
-      
+
       notificationsCollection.countDocuments(query),
-      
+
       notificationsCollection.countDocuments({
-        user_id: new ObjectId(userId as string),
+        user_id: userId as string,
         is_read: false
       })
     ]);
@@ -169,9 +169,9 @@ export async function POST(request: NextRequest) {
 
       const usersCollection = await DatabaseService.getCollection('users');
       await usersCollection.updateOne(
-        { _id: new ObjectId((authenticatedUser as unknown as AuthenticatedUser).userId) },
-        { 
-          $set: { 
+        { user_id: (authenticatedUser as unknown as AuthenticatedUser).userId },
+        {
+          $set: {
             fcm_token: fcm_token,
             fcm_token_updated_at: new Date(),
             updated_at: new Date()
@@ -321,7 +321,7 @@ export async function PUT(request: NextRequest) {
     const notificationsCollection = await DatabaseService.getCollection('notifications');
 
     const updateQuery: Record<string, unknown> = {
-      user_id: new ObjectId(userId as string),
+      user_id: userId as string,
       is_read: false
     };
 

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ObjectId } from 'mongodb';
 import crypto from 'crypto';
 import DatabaseService from '../../../../../lib/database';
 import { SecurityMiddleware, InputSanitizer } from '../../../../../lib/security';
@@ -49,20 +48,8 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Get the user's actual user_id from database (not from JWT which might contain MongoDB ObjectId)
-    const usersCollectionForUserId = await DatabaseService.getCollection('users');
-    let actualUserId = user.userId as string;
-    
-    // If the JWT userId looks like a MongoDB ObjectId, fetch the actual user_id
-    if (typeof user.userId === 'string' && user.userId.length === 24) {
-      try {
-        const userData = await usersCollectionForUserId.findOne({ _id: new ObjectId(user.userId as string) });
-        if (userData && userData.user_id) {
-          actualUserId = userData.user_id;
-        }
-      } catch {
-      }
-    }
+    // JWT payload contains the custom user_id directly
+    const actualUserId = user.userId as string;
 
     // Get transaction from unified transactions collection
     const transactionsCollection = await DatabaseService.getCollection('transactions');

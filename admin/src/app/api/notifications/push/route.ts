@@ -137,6 +137,18 @@ export async function POST(request: NextRequest) {
 // GET - Get user notifications
 export async function GET(request: NextRequest) {
   try {
+    // Authenticate user
+    let authenticatedUser;
+    try {
+      authenticatedUser = await SecurityMiddleware.authenticateRequest(request);
+    } catch {
+      return NextResponse.json({
+        success: false,
+        error: 'AUTHENTICATION_REQUIRED',
+        message: 'Valid authentication token is required'
+      }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const recipientId = searchParams.get('recipientId');
     const recipientType = searchParams.get('recipientType') || 'user';
@@ -152,6 +164,16 @@ export async function GET(request: NextRequest) {
         error: 'Missing recipient ID',
         message: 'Recipient ID is required'
       }, { status: 400 });
+    }
+
+    // Users can only view their own notifications, admins can view any
+    const userId = authenticatedUser._id || authenticatedUser.user_id;
+    if (authenticatedUser.user_type !== 'administrator' && userId?.toString() !== recipientId) {
+      return NextResponse.json({
+        success: false,
+        error: 'ACCESS_DENIED',
+        message: 'You can only view your own notifications'
+      }, { status: 403 });
     }
 
     const notificationsCollection = await DatabaseService.getCollection('notifications');
@@ -225,6 +247,18 @@ export async function GET(request: NextRequest) {
 // PUT - Mark notifications as read
 export async function PUT(request: NextRequest) {
   try {
+    // Authenticate user
+    let authenticatedUser;
+    try {
+      authenticatedUser = await SecurityMiddleware.authenticateRequest(request);
+    } catch {
+      return NextResponse.json({
+        success: false,
+        error: 'AUTHENTICATION_REQUIRED',
+        message: 'Valid authentication token is required'
+      }, { status: 401 });
+    }
+
     const body = await request.json();
     const { notification_ids, recipient_id, mark_all = false } = body;
 
@@ -234,6 +268,16 @@ export async function PUT(request: NextRequest) {
         error: 'Missing recipient ID',
         message: 'Recipient ID is required'
       }, { status: 400 });
+    }
+
+    // Users can only mark their own notifications as read, admins can modify any
+    const userId = authenticatedUser._id || authenticatedUser.user_id;
+    if (authenticatedUser.user_type !== 'administrator' && userId?.toString() !== recipient_id) {
+      return NextResponse.json({
+        success: false,
+        error: 'ACCESS_DENIED',
+        message: 'You can only modify your own notifications'
+      }, { status: 403 });
     }
 
     if (!mark_all && (!notification_ids || !Array.isArray(notification_ids))) {

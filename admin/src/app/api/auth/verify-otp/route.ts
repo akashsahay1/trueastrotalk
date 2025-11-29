@@ -7,7 +7,7 @@ import {
   MAX_OTP_ATTEMPTS,
   OTP_BYPASS_MODE,
 } from '@/lib/otp';
-import { JWTSecurity } from '@/lib/security';
+import { JWTSecurity, InputSanitizer } from '@/lib/security';
 
 // Helper function to resolve media ID to full URL
 async function resolveMediaUrl(mediaId: string | null | undefined, request: NextRequest): Promise<string | null> {
@@ -55,10 +55,14 @@ function isValidEmail(email: string): boolean {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { identifier, otp, auth_type, phone_number } = body;
+    const sanitizedBody = InputSanitizer.sanitizeMongoQuery(body);
+    const identifier = sanitizedBody.identifier as string | undefined;
+    const otp = sanitizedBody.otp as string | undefined;
+    const auth_type = sanitizedBody.auth_type as string | undefined;
+    const phone_number = sanitizedBody.phone_number as string | undefined;
 
     // Support both new (identifier) and legacy (phone_number) parameter names
-    const userIdentifier = identifier || phone_number;
+    const userIdentifier: string | undefined = identifier || phone_number;
     let authType = auth_type;
 
     // Validate inputs

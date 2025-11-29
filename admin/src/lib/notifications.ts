@@ -721,6 +721,79 @@ export class NotificationService {
       );
     }
   }
+
+  /**
+   * Send notification when a session ends to both parties
+   */
+  static async sendSessionEndedNotification(
+    customerId: string,
+    astrologerId: string,
+    sessionType: 'call' | 'chat' | 'video',
+    durationMinutes: number,
+    totalAmount: number,
+    sessionId: string
+  ): Promise<void> {
+    const usersCollection = await DatabaseService.getCollection('users');
+    const [customer, astrologer] = await Promise.all([
+      usersCollection.findOne({ user_id: customerId }),
+      usersCollection.findOne({ user_id: astrologerId })
+    ]);
+
+    const sessionTypeLabel = sessionType === 'video' ? 'Video Call' : sessionType === 'call' ? 'Voice Call' : 'Chat';
+
+    // Send notification to customer
+    if (customer) {
+      await this.sendToUser(
+        {
+          userId: customerId,
+          userType: 'customer',
+          fcmToken: customer.fcm_token,
+          email: customer.email_address
+        },
+        {
+          type: NotificationType.SESSION_ENDED,
+          title: `${sessionTypeLabel} Session Ended`,
+          body: `Your ${sessionTypeLabel.toLowerCase()} session has ended. Duration: ${durationMinutes} min. Amount charged: ₹${totalAmount.toFixed(2)}`,
+          data: {
+            sessionId,
+            sessionType,
+            durationMinutes,
+            totalAmount,
+            astrologerName: astrologer?.full_name || 'Astrologer'
+          },
+          priority: NotificationPriority.HIGH,
+          channels: [NotificationChannel.PUSH, NotificationChannel.IN_APP]
+        }
+      );
+    }
+
+    // Send notification to astrologer
+    if (astrologer) {
+      const astrologerEarnings = totalAmount * 0.8; // 80% commission
+      await this.sendToUser(
+        {
+          userId: astrologerId,
+          userType: 'astrologer',
+          fcmToken: astrologer.fcm_token,
+          email: astrologer.email_address
+        },
+        {
+          type: NotificationType.SESSION_ENDED,
+          title: `${sessionTypeLabel} Session Completed`,
+          body: `Session with ${customer?.full_name || 'Customer'} ended. Duration: ${durationMinutes} min. Earnings: ₹${astrologerEarnings.toFixed(2)}`,
+          data: {
+            sessionId,
+            sessionType,
+            durationMinutes,
+            earnings: astrologerEarnings,
+            customerName: customer?.full_name || 'Customer'
+          },
+          priority: NotificationPriority.HIGH,
+          channels: [NotificationChannel.PUSH, NotificationChannel.IN_APP]
+        }
+      );
+    }
+  }
 }
 
 export default NotificationService;
