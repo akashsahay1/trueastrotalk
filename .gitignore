@@ -287,7 +287,6 @@ server.js
 # Test files (if not needed in production)
 **/*.test.js
 **/*.spec.js
-test/
 
 # Coverage reports
 coverage/
