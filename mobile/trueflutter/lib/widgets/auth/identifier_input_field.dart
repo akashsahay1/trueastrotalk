@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../common/themes/app_colors.dart';
 import '../../common/themes/text_styles.dart';
+import '../../common/utils/validation_patterns.dart';
 
 enum IdentifierType { email, phone, unknown }
 
@@ -67,13 +68,12 @@ class _IdentifierInputFieldState extends State<IdentifierInputField> {
     }
 
     // Check if it's a phone (starts with + or contains only digits/spaces/dashes)
-    final phonePattern = RegExp(r'^[\+\d\s\-\(\)]+$');
-    if (phonePattern.hasMatch(text)) {
+    if (ValidationPatterns.isPhoneInput(text)) {
       return IdentifierType.phone;
     }
 
     // If it starts with a digit, assume phone
-    if (RegExp(r'^\d').hasMatch(text)) {
+    if (ValidationPatterns.startsWithDigit(text)) {
       return IdentifierType.phone;
     }
 
@@ -82,7 +82,7 @@ class _IdentifierInputFieldState extends State<IdentifierInputField> {
 
   String _formatPhoneNumber(String text) {
     // Remove all non-digit characters except +
-    String cleaned = text.replaceAll(RegExp(r'[^\d\+]'), '');
+    String cleaned = ValidationPatterns.cleanPhoneNumber(text);
 
     // If it starts with country code, use it as is
     if (cleaned.startsWith('+')) {
@@ -138,7 +138,7 @@ class _IdentifierInputFieldState extends State<IdentifierInputField> {
   List<TextInputFormatter> _getInputFormatters() {
     if (_currentType == IdentifierType.phone) {
       return [
-        FilteringTextInputFormatter.allow(RegExp(r'[\d\+\s\-\(\)]')),
+        FilteringTextInputFormatter.allow(ValidationPatterns.phoneInputPattern),
       ];
     }
     return [];

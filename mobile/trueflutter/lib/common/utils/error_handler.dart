@@ -274,7 +274,7 @@ class ErrorHandler {
           final error = responseData['error'] as String;
           if (error.isNotEmpty) {
             // Check if it looks like an error code (all caps with underscores)
-            if (RegExp(r'^[A-Z_]+$').hasMatch(error)) {
+            if (_isErrorCode(error)) {
               // Convert error code to user-friendly message
               return _convertErrorCodeToMessage(error);
             } else if (!error.contains('_') && error.length > 5) {
@@ -314,6 +314,18 @@ class ErrorHandler {
     }
 
     return null;
+  }
+
+  /// Check if string looks like an error code (all caps with underscores)
+  static bool _isErrorCode(String value) {
+    if (value.isEmpty) return false;
+    for (int i = 0; i < value.length; i++) {
+      final char = value[i];
+      if (!((char.codeUnitAt(0) >= 65 && char.codeUnitAt(0) <= 90) || char == '_')) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /// Convert backend error codes to user-friendly messages

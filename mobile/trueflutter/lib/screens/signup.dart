@@ -14,6 +14,7 @@ import '../services/auth/auth_service.dart';
 import '../services/service_locator.dart';
 import '../models/enums.dart';
 import '../config/config.dart';
+import '../common/utils/validation_patterns.dart';
 
 class SignupScreen extends StatefulWidget {
   final bool isAdvanced;
@@ -183,10 +184,10 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
     _passwordController.addListener(() {
       if (_passwordController.text.isNotEmpty) {
         // Check if password meets all requirements
-        final hasUpperCase = RegExp(r'[A-Z]').hasMatch(_passwordController.text);
-        final hasLowerCase = RegExp(r'[a-z]').hasMatch(_passwordController.text);
-        final hasDigit = RegExp(r'\d').hasMatch(_passwordController.text);
-        final hasSpecialChar = RegExp(r'[!@#$%^&*()_+\-=\[\]{};:"|,.<>/?]').hasMatch(_passwordController.text);
+        final hasUpperCase = ValidationPatterns.hasUppercase(_passwordController.text);
+        final hasLowerCase = ValidationPatterns.hasLowercase(_passwordController.text);
+        final hasDigit = ValidationPatterns.hasDigit(_passwordController.text);
+        final hasSpecialChar = ValidationPatterns.hasSpecialChar(_passwordController.text);
         final hasMinLength = _passwordController.text.length >= 8;
         
         final meetsAllRequirements = hasUpperCase && hasLowerCase && hasDigit && hasSpecialChar && hasMinLength;
@@ -496,28 +497,28 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
       }
       
       // Check password strength requirements
-      if (!RegExp(r'[A-Z]').hasMatch(_passwordController.text)) {
+      if (!ValidationPatterns.hasUppercase(_passwordController.text)) {
         setState(() {
           _passwordError = 'Password must contain at least one uppercase letter';
         });
         _passwordFocusNode.requestFocus();
         return 'Password must contain at least one uppercase letter';
       }
-      if (!RegExp(r'[a-z]').hasMatch(_passwordController.text)) {
+      if (!ValidationPatterns.hasLowercase(_passwordController.text)) {
         setState(() {
           _passwordError = 'Password must contain at least one lowercase letter';
         });
         _passwordFocusNode.requestFocus();
         return 'Password must contain at least one lowercase letter';
       }
-      if (!RegExp(r'\d').hasMatch(_passwordController.text)) {
+      if (!ValidationPatterns.hasDigit(_passwordController.text)) {
         setState(() {
           _passwordError = 'Password must contain at least one number';
         });
         _passwordFocusNode.requestFocus();
         return 'Password must contain at least one number';
       }
-      if (!RegExp(r'[!@#$%^&*()_+\-=\[\]{};:"|,.<>/?]').hasMatch(_passwordController.text)) {
+      if (!ValidationPatterns.hasSpecialChar(_passwordController.text)) {
         setState(() {
           _passwordError = 'Password must contain at least one special character';
         });
@@ -756,7 +757,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
     }
     
     final accountNumber = _accountNumberController.text.trim();
-    if (!RegExp(r'^\d+$').hasMatch(accountNumber) || accountNumber.length < 9 || accountNumber.length > 18) {
+    if (!ValidationPatterns.isDigitsOnly(accountNumber) || accountNumber.length < 9 || accountNumber.length > 18) {
       setState(() {
         _accountNumberError = 'Please enter a valid account number (9-18 digits)';
       });
@@ -781,7 +782,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
     }
     
     final ifscCode = _ifscCodeController.text.trim().toUpperCase();
-    if (!RegExp(r'^[A-Z]{4}0[A-Z0-9]{6}$').hasMatch(ifscCode)) {
+    if (!ValidationPatterns.isValidIfsc(ifscCode)) {
       setState(() {
         _ifscCodeError = 'Please enter a valid IFSC code (e.g., SBIN0123456)';
       });
@@ -1392,10 +1393,10 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
                       ),
                       const SizedBox(height: 6),
                       _buildPasswordRequirement('At least 8 characters', _passwordController.text.length >= 8),
-                      _buildPasswordRequirement('One uppercase letter (A-Z)', RegExp(r'[A-Z]').hasMatch(_passwordController.text)),
-                      _buildPasswordRequirement('One lowercase letter (a-z)', RegExp(r'[a-z]').hasMatch(_passwordController.text)),
-                      _buildPasswordRequirement('One number (0-9)', RegExp(r'\d').hasMatch(_passwordController.text)),
-                      _buildPasswordRequirement('One special character (!@#\$%^&*)', RegExp(r'[!@#$%^&*()_+\-=\[\]{};:"|,.<>/?]').hasMatch(_passwordController.text)),
+                      _buildPasswordRequirement('One uppercase letter (A-Z)', ValidationPatterns.hasUppercase(_passwordController.text)),
+                      _buildPasswordRequirement('One lowercase letter (a-z)', ValidationPatterns.hasLowercase(_passwordController.text)),
+                      _buildPasswordRequirement('One number (0-9)', ValidationPatterns.hasDigit(_passwordController.text)),
+                      _buildPasswordRequirement('One special character (!@#\$%^&*)', ValidationPatterns.hasSpecialChar(_passwordController.text)),
                     ],
                   ),
                 ),

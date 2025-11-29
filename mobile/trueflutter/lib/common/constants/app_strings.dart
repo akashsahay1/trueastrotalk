@@ -22,7 +22,6 @@ class AppStrings {
   static const String otpSent = 'OTP sent to your phone number';
   static const String resendOtp = 'Resend OTP';
   static const String verify = 'Verify';
-  static const String forgotPassword = 'Forgot Password?';
   static const String dontHaveAccount = "Don't have an account?";
   static const String alreadyHaveAccount = 'Already have an account?';
   static const String signUp = 'Sign Up';

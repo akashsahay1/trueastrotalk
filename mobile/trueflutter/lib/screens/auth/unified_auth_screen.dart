@@ -7,6 +7,7 @@ import '../../common/themes/text_styles.dart';
 import '../../services/auth/auth_service.dart';
 import '../../services/service_locator.dart';
 import '../../common/utils/error_handler.dart';
+import '../../common/utils/validation_patterns.dart';
 import '../../widgets/auth/identifier_input_field.dart';
 
 class UnifiedAuthScreen extends StatefulWidget {
@@ -128,7 +129,7 @@ class _UnifiedAuthScreenState extends State<UnifiedAuthScreen>
       }
     } else if (_identifierType == IdentifierType.phone) {
       // Basic phone validation - should have at least 10 digits
-      final digitsOnly = _formattedIdentifier.replaceAll(RegExp(r'[^\d]'), '');
+      final digitsOnly = ValidationPatterns.removeNonDigits(_formattedIdentifier);
       if (digitsOnly.length < 10) {
         return 'Please enter a valid phone number';
       }

@@ -6,6 +6,7 @@ import '../../common/themes/text_styles.dart';
 import '../../services/auth/auth_service.dart';
 import '../../services/service_locator.dart';
 import '../../common/utils/error_handler.dart';
+import '../../common/utils/validation_patterns.dart';
 import '../../models/user.dart';
 
 class AccountLinkingPrompt extends StatefulWidget {
@@ -96,7 +97,7 @@ class _AccountLinkingPromptState extends State<AccountLinkingPrompt>
 
     if (_linkType == 'phone') {
       // Basic phone validation
-      final digitsOnly = value.replaceAll(RegExp(r'[^\d]'), '');
+      final digitsOnly = ValidationPatterns.removeNonDigits(value);
       if (digitsOnly.length < 10) {
         return 'Please enter a valid phone number';
       }

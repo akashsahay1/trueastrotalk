@@ -18,6 +18,7 @@ import '../services/email/email_service.dart';
 import '../config/config.dart';
 import '../config/payment_config.dart';
 import '../models/user.dart' as app_user;
+import '../common/utils/validation_patterns.dart';
 import '../screens/order_success.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -450,12 +451,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           debugPrint('⚠️ Some products in cart are no longer available');
           
           // Extract product ID from error message if possible
-          final regex = RegExp(r'Product ([a-f0-9]{24})');
-          final match = regex.firstMatch(errorMessage);
-          if (match != null) {
-            final invalidProductId = match.group(1);
+          final invalidProductId = ValidationPatterns.extractProductId(errorMessage);
+          if (invalidProductId != null) {
             debugPrint('🗑️ Removing invalid product: $invalidProductId');
-            await _cartService.removeFromCart(invalidProductId!);
+            await _cartService.removeFromCart(invalidProductId);
           }
           
           throw Exception('Some items in your cart are no longer available. Please review your cart and try again.');

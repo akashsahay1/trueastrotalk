@@ -10,6 +10,7 @@ import '../services/auth/auth_service.dart';
 import '../services/service_locator.dart';
 import '../models/enums.dart';
 import '../config/config.dart';
+import '../common/utils/validation_patterns.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -534,9 +535,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         errorMessage = 'Network error. Please check your internet connection and try again.';
       } else {
         // Extract server error message if available
-        final match = RegExp(r'Exception: (.+)').firstMatch(errorString);
-        if (match != null) {
-          errorMessage = match.group(1) ?? errorMessage;
+        final extractedMessage = ValidationPatterns.extractExceptionMessage(errorString);
+        if (extractedMessage != null) {
+          errorMessage = extractedMessage;
         }
       }
 
@@ -814,7 +815,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             if (value?.trim().isEmpty ?? true) {
                               return 'Email is required';
                             }
-                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value!)) {
+                            if (!ValidationPatterns.isValidEmailSimple(value!)) {
                               return 'Please enter a valid email';
                             }
                             return null;
@@ -998,7 +999,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             label: 'Chat Rate',
                             icon: Icons.chat,
                             keyboardType: TextInputType.number,
-                            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+                            inputFormatters: [FilteringTextInputFormatter.allow(ValidationPatterns.decimalInputPattern)],
                             validator: (value) {
                               if (value?.trim().isEmpty ?? true) {
                                 return 'Chat rate is required';
@@ -1013,7 +1014,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             label: 'Call Rate',
                             icon: Icons.call,
                             keyboardType: TextInputType.number,
-                            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+                            inputFormatters: [FilteringTextInputFormatter.allow(ValidationPatterns.decimalInputPattern)],
                             validator: (value) {
                               if (value?.trim().isEmpty ?? true) {
                                 return 'Call rate is required';
@@ -1028,7 +1029,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             label: 'Video Call Rate',
                             icon: Icons.videocam,
                             keyboardType: TextInputType.number,
-                            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+                            inputFormatters: [FilteringTextInputFormatter.allow(ValidationPatterns.decimalInputPattern)],
                             validator: (value) {
                               if (value?.trim().isEmpty ?? true) {
                                 return 'Video call rate is required';
@@ -1096,13 +1097,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             icon: Icons.code,
                             inputFormatters: [
                               LengthLimitingTextInputFormatter(11),
-                              FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
+                              FilteringTextInputFormatter.allow(ValidationPatterns.alphanumericUpperPattern),
                             ],
                             validator: (value) {
                               if (value?.trim().isEmpty ?? true) {
                                 return 'IFSC code is required';
                               }
-                              if (!RegExp(r'^[A-Z]{4}0[A-Z0-9]{6}$').hasMatch(value!.toUpperCase())) {
+                              if (!ValidationPatterns.isValidIfsc(value!)) {
                                 return 'Please enter a valid IFSC code (e.g., SBIN0001234)';
                               }
                               return null;

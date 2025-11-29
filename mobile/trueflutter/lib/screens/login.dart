@@ -7,7 +7,6 @@ import '../common/themes/text_styles.dart';
 import '../services/auth/auth_service.dart';
 import '../services/service_locator.dart';
 import '../common/utils/error_handler.dart';
-import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -202,12 +201,6 @@ class _LoginScreenState extends State<LoginScreen>
     Navigator.pushNamed(context, '/astrologer-signup');
   }
 
-  void _onForgotPassword() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
-    );
-  }
 
   Widget _buildLoginIcon({
     required String imagePath,
@@ -499,23 +492,6 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       );
                     },
-                  ),
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Forgot Password
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: _onForgotPassword,
-                    child: Text(
-                      'Forgot Password?',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
                   ),
                 ),
                 

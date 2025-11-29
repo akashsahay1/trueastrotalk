@@ -13,7 +13,6 @@ import 'screens/auth/unified_auth_screen.dart';
 import 'screens/auth/signup_completion_screen.dart';
 import 'screens/otp_verification.dart';
 import 'screens/signup.dart';
-import 'screens/forgot_password_screen.dart';
 import 'screens/home.dart';
 import 'screens/orders_list.dart';
 import 'screens/consultation_details_screen.dart';
@@ -176,7 +175,6 @@ class TrueAstrotalkApp extends StatelessWidget {
         ),
 
         // Other screens
-        '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/orders': (context) => const OrdersListScreen(),
       },
 
