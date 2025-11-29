@@ -1258,7 +1258,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildQuickActionsList() {
-    final actions = [
+    final actions = <Map<String, dynamic>>[
       {
         'icon': Icons.edit,
         'title': 'Edit Profile',
@@ -1285,17 +1285,19 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           );
         },
       },
-      {
-        'icon': Icons.shopping_bag,
-        'title': 'My Orders',
-        'subtitle': 'View your order history',
-        'onTap': () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const OrdersListScreen()),
-          );
+      // Only show My Orders for customers (astrologers don't buy products)
+      if (_currentUser?.isCustomer == true)
+        {
+          'icon': Icons.shopping_bag,
+          'title': 'My Orders',
+          'subtitle': 'View your order history',
+          'onTap': () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const OrdersListScreen()),
+            );
+          },
         },
-      },
       {
         'icon': Icons.history,
         'title': 'History',
