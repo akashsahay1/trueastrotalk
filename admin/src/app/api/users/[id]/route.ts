@@ -368,6 +368,10 @@ export async function PUT(
       chat_rate: body.chat_rate || 30,
       video_rate: body.video_rate || 80,
       experience_years: body.experience_years || 0,
+      // Commission percentages
+      commission_percentage: body.commission_percentage || existingUser.commission_percentage || { call: 25, chat: 25, video: 25 },
+      // Bank details for astrologer payouts
+      bank_details: body.bank_details || existingUser.bank_details || { account_holder_name: '', account_number: '', bank_name: '', ifsc_code: '' },
       updated_at: new Date()
     };
 
