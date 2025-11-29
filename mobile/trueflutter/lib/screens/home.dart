@@ -12,7 +12,7 @@ import '../models/enums.dart';
 import '../config/config.dart';
 import '../common/widgets/astrologer_call_card.dart';
 import '../common/widgets/product_card.dart';
-import 'profile.dart';
+import 'profile/profile_screen.dart';
 import 'astrologer_details.dart';
 import 'astrologers_call.dart';
 import 'astrologers_chat.dart';
@@ -2543,28 +2543,46 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      // API call to toggle online status
       final currentStatus = _currentUser?.isOnline ?? false;
-      // await _userApiService.updateOnlineStatus(token, !currentStatus);
+      final newStatus = !currentStatus;
 
-      // Update local state
-      _currentUser = _currentUser?.copyWith(isOnline: !currentStatus);
+      // API call to toggle online status in database
+      final result = await _userApiService.updateAstrologerOnlineStatus(token, newStatus);
 
-      setState(() {
-        _isOnlineToggleLoading = false;
-      });
+      if (result['success'] == true) {
+        // Update local state
+        _currentUser = _currentUser?.copyWith(isOnline: newStatus);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _currentUser?.isOnline == true
-                  ? 'You are now online'
-                  : 'You are now offline',
+        // Also update AuthService so it persists across screen navigation
+        _authService.updateOnlineStatus(newStatus);
+
+        setState(() {
+          _isOnlineToggleLoading = false;
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                newStatus ? 'You are now online' : 'You are now offline',
+              ),
+              backgroundColor: AppColors.success,
             ),
-            backgroundColor: AppColors.success,
-          ),
-        );
+          );
+        }
+      } else {
+        setState(() {
+          _isOnlineToggleLoading = false;
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Failed to update status'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
       }
     } catch (e) {
       setState(() {
@@ -2572,9 +2590,12 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to update status: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update status: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
       }
     }
   }

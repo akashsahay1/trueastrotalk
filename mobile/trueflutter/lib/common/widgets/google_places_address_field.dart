@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_places_flutter/google_places_flutter.dart';
-import 'package:google_places_flutter/model/prediction.dart';
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../themes/app_colors.dart';
 import '../themes/text_styles.dart';
@@ -23,7 +22,7 @@ class GooglePlacesAddressField extends StatefulWidget {
   final FocusNode? focusNode;
   final VoidCallback? onAddressSelected;
   final bool restrictToCountry;
-  final String countryCode; // e.g., "in" for India
+  final String countryCode;
 
   const GooglePlacesAddressField({
     super.key,
@@ -48,183 +47,94 @@ class GooglePlacesAddressField extends StatefulWidget {
 }
 
 class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+  List<Map<String, dynamic>> _predictions = [];
   bool _isLoading = false;
+  Timer? _debounceTimer;
+  FocusNode? _internalFocusNode;
+  bool _isSelecting = false;
+
+  FocusNode get _focusNode => widget.focusNode ?? (_internalFocusNode ??= FocusNode());
 
   @override
-  Widget build(BuildContext context) {
-    // Check if Google Places is enabled and API key is available
-    if (!Config.enableGooglePlaces || Config.googleMapsApiKey.isEmpty) {
-      return _buildFallbackTextField();
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_onFocusChange);
+    widget.addressController.addListener(_onTextChanged);
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    _removeOverlay();
+    _focusNode.removeListener(_onFocusChange);
+    widget.addressController.removeListener(_onTextChanged);
+    _internalFocusNode?.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    if (!_focusNode.hasFocus) {
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (!_isSelecting) {
+          _removeOverlay();
+        }
+      });
+    }
+  }
+
+  void _onTextChanged() {
+    if (_isSelecting) return;
+
+    final text = widget.addressController.text;
+    debugPrint('📍 Address text changed: "$text" (length: ${text.length})');
+
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      _searchPlaces(text);
+    });
+  }
+
+  Future<void> _searchPlaces(String query) async {
+    if (query.length < 3 || !Config.enableGooglePlaces || Config.googleMapsApiKey.isEmpty) {
+      _removeOverlay();
+      return;
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.borderLight),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: GooglePlaceAutoCompleteTextField(
-          textEditingController: widget.addressController,
-          googleAPIKey: Config.googleMapsApiKey,
-          inputDecoration: InputDecoration(
-            labelText: widget.label,
-            hintText: widget.hint,
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            errorBorder: InputBorder.none,
-            prefixIcon: const Icon(
-              Icons.location_on,
-              color: AppColors.primary,
-            ),
-            suffixIcon: _isLoading
-                ? const Padding(
-                    padding: EdgeInsets.all(12.0),
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
-                : null,
-            filled: false,
-          ),
-          debounceTime: 600,
-          countries: widget.restrictToCountry ? [widget.countryCode] : null,
-          isLatLngRequired: false,
-          getPlaceDetailWithLatLng: (Prediction prediction) {
-            // This is called during typing - we don't want to auto-fill here
-            debugPrint('Place detail callback: ${prediction.description}');
-          },
-          itemClick: (Prediction prediction) {
-            widget.addressController.text = prediction.description ?? '';
-            widget.addressController.selection = TextSelection.fromPosition(
-              TextPosition(offset: prediction.description?.length ?? 0),
-            );
-            // Handle place selection to auto-fill other fields
-            _handlePlaceSelection(prediction);
-          },
-          itemBuilder: (context, index, Prediction prediction) {
-            return Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                border: Border(
-                  bottom: BorderSide(
-                    color: AppColors.borderLight.withValues(alpha: 0.5),
-                  ),
-                ),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.location_on,
-                    color: AppColors.primary,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          prediction.structuredFormatting?.mainText ?? '',
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (prediction.structuredFormatting?.secondaryText != null) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            prediction.structuredFormatting!.secondaryText!,
-                            style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-          seperatedBuilder: const Divider(height: 1),
-          containerHorizontalPadding: 0,
-          isCrossBtnShown: false,
-          focusNode: widget.focusNode,
-          ),
-        ),
-        if (widget.validator != null)
-          Builder(
-            builder: (context) {
-              final error = widget.validator!(widget.addressController.text);
-              if (error != null) {
-                return Padding(
-                  padding: const EdgeInsets.only(left: 12, top: 8),
-                  child: Text(
-                    error,
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.error,
-                    ),
-                  ),
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
-      ],
-    );
-  }
-
-  Widget _buildFallbackTextField() {
-    return TextFormField(
-      controller: widget.addressController,
-      decoration: InputDecoration(
-        labelText: widget.label,
-        hintText: widget.hint,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        prefixIcon: const Icon(
-          Icons.location_on,
-          color: AppColors.primary,
-        ),
-        filled: true,
-        fillColor: widget.enabled ? AppColors.white : AppColors.background,
-      ),
-      enabled: widget.enabled,
-      maxLines: widget.maxLines,
-      validator: widget.validator,
-      focusNode: widget.focusNode,
-    );
-  }
-
-  Future<void> _handlePlaceSelection(Prediction prediction) async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final placeDetails = await _getPlaceDetails(prediction.placeId ?? '');
+      String url = 'https://maps.googleapis.com/maps/api/place/autocomplete/json'
+          '?input=${Uri.encodeComponent(query)}'
+          '&key=${Config.googleMapsApiKey}';
 
-      if (placeDetails != null) {
-        _parseAndFillAddress(placeDetails);
-        widget.onAddressSelected?.call();
-      } else {
-        // Fallback parsing from description
-        _fallbackAddressParsing(prediction.description ?? '');
+      if (widget.restrictToCountry) {
+        url += '&components=country:${widget.countryCode}';
+      }
+
+      final response = await http.get(Uri.parse(url));
+      debugPrint('📍 Places API response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        debugPrint('📍 Places API status: ${data['status']}, predictions: ${data['predictions']?.length ?? 0}');
+        if (data['status'] == 'OK') {
+          if (mounted) {
+            setState(() {
+              _predictions = List<Map<String, dynamic>>.from(data['predictions']);
+            });
+            _showOverlay();
+          }
+        } else {
+          debugPrint('📍 Places API error: ${data['error_message'] ?? data['status']}');
+          _removeOverlay();
+        }
       }
     } catch (e) {
-      debugPrint('Error handling place selection: $e');
-      // Fallback parsing
-      _fallbackAddressParsing(prediction.description ?? '');
+      debugPrint('📍 Error searching places: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -232,9 +142,138 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
     }
   }
 
-  Future<Map<String, dynamic>?> _getPlaceDetails(String placeId) async {
-    if (placeId.isEmpty) return null;
+  void _showOverlay() {
+    _removeOverlay();
 
+    if (_predictions.isEmpty || !mounted) return;
+
+    final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    final size = renderBox.size;
+
+    final overlayWidth = size.width;
+
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        width: overlayWidth,
+        child: CompositedTransformFollower(
+          link: _layerLink,
+          showWhenUnlinked: false,
+          offset: const Offset(0, 4),
+          targetAnchor: Alignment.bottomLeft,
+          followerAnchor: Alignment.topLeft,
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(12),
+            color: AppColors.white,
+            child: Container(
+              constraints: const BoxConstraints(maxHeight: 180),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.borderLight),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(11),
+                child: ListView.builder(
+                  padding: EdgeInsets.zero,
+                  shrinkWrap: true,
+                  itemCount: _predictions.length,
+                  itemBuilder: (context, index) {
+                    final prediction = _predictions[index];
+                    final mainText = prediction['structured_formatting']?['main_text'] ?? '';
+                    final secondaryText = prediction['structured_formatting']?['secondary_text'] ?? '';
+
+                    return InkWell(
+                      onTap: () => _selectPrediction(prediction),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          border: index < _predictions.length - 1
+                              ? Border(
+                                  bottom: BorderSide(
+                                    color: AppColors.borderLight.withValues(alpha: 0.5),
+                                  ),
+                                )
+                              : null,
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.location_on_outlined,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    mainText,
+                                    style: AppTextStyles.bodyMedium.copyWith(
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.textPrimaryLight,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  if (secondaryText.isNotEmpty) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      secondaryText,
+                                      style: AppTextStyles.bodySmall.copyWith(
+                                        color: AppColors.textSecondaryLight,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  Future<void> _selectPrediction(Map<String, dynamic> prediction) async {
+    _isSelecting = true;
+    _removeOverlay();
+
+    final description = prediction['description'] ?? '';
+    widget.addressController.text = description;
+    widget.addressController.selection = TextSelection.fromPosition(
+      TextPosition(offset: description.length),
+    );
+
+    // Fetch place details
+    final placeId = prediction['place_id'];
+    if (placeId != null) {
+      await _fetchPlaceDetails(placeId);
+    }
+
+    _isSelecting = false;
+    _predictions = [];
+  }
+
+  Future<void> _fetchPlaceDetails(String placeId) async {
     try {
       final url = Uri.parse(
         'https://maps.googleapis.com/maps/api/place/details/json'
@@ -248,14 +287,13 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['status'] == 'OK') {
-          return data['result'];
+          _parseAndFillAddress(data['result']);
+          widget.onAddressSelected?.call();
         }
       }
     } catch (e) {
       debugPrint('Error fetching place details: $e');
     }
-
-    return null;
   }
 
   void _parseAndFillAddress(Map<String, dynamic> placeDetails) {
@@ -284,7 +322,6 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
       }
     }
 
-    // Always fill fields when address is selected (override previous values)
     if (widget.cityController != null && city != null) {
       widget.cityController!.text = city;
     }
@@ -299,34 +336,67 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
     }
 
     debugPrint('📍 Auto-filled address: City=$city, State=$state, Country=$country, ZIP=$zip');
-
-    // Trigger the callback to notify parent
-    if (mounted) {
-      widget.onAddressSelected?.call();
-    }
   }
 
-  void _fallbackAddressParsing(String description) {
-    // Simple fallback parsing from description string
-    final parts = description.split(',').map((s) => s.trim()).toList();
-
-    if (parts.length >= 2 && widget.cityController != null) {
-      widget.cityController!.text = parts[0];
-    }
-
-    if (parts.length >= 3 && widget.stateController != null) {
-      widget.stateController!.text = parts[parts.length - 2];
-    }
-
-    if (parts.isNotEmpty && widget.countryController != null) {
-      widget.countryController!.text = parts.last;
-    }
-
-    debugPrint('📍 Fallback address parsing from: $description');
-
-    // Trigger the callback to notify parent
-    if (mounted) {
-      widget.onAddressSelected?.call();
-    }
+  @override
+  Widget build(BuildContext context) {
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: TextFormField(
+        controller: widget.addressController,
+        focusNode: _focusNode,
+        enabled: widget.enabled,
+        maxLines: widget.maxLines,
+        validator: widget.validator,
+        style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimaryLight),
+        decoration: InputDecoration(
+          labelText: widget.label,
+          hintText: widget.hint,
+          labelStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight),
+          hintStyle: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.textSecondaryLight,
+            fontStyle: FontStyle.italic,
+          ),
+          prefixIcon: const Icon(
+            Icons.location_on_outlined,
+            color: AppColors.primary,
+            size: 20,
+          ),
+          suffixIcon: _isLoading
+              ? const Padding(
+                  padding: EdgeInsets.all(12.0),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.borderLight),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.borderLight),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.error, width: 2),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.error, width: 2),
+          ),
+          filled: true,
+          fillColor: widget.enabled ? AppColors.white : AppColors.grey50,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        ),
+      ),
+    );
   }
 }

@@ -674,14 +674,31 @@ class AuthService {
     await _saveAuthData(user, token);
   }
 
-  Future<app_user.User?> refreshCurrentUser() async {
+  /// Update the online status locally (used by astrologer toggle)
+  void updateOnlineStatus(bool isOnline) {
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(isOnline: isOnline);
+    }
+  }
+
+  Future<app_user.User?> refreshCurrentUser({bool preserveOnlineStatus = true}) async {
     if (_authToken == null) return null;
 
     try {
+      // Preserve the current online status before refresh
+      final currentOnlineStatus = _currentUser?.isOnline;
+
       final freshUser = await _userApiService.getCurrentUser(_authToken!);
-      _currentUser = freshUser;
-      await _saveUserData(freshUser);
-      return freshUser;
+
+      // If preserveOnlineStatus is true and we had a previous online status, keep it
+      if (preserveOnlineStatus && currentOnlineStatus != null) {
+        _currentUser = freshUser.copyWith(isOnline: currentOnlineStatus);
+      } else {
+        _currentUser = freshUser;
+      }
+
+      await _saveUserData(_currentUser!);
+      return _currentUser;
     } catch (e) {
       debugPrint('Failed to refresh user data: $e');
       return _currentUser;

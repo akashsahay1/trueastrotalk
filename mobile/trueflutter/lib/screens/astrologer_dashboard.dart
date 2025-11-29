@@ -7,7 +7,7 @@ import '../services/service_locator.dart';
 import '../models/user.dart';
 import 'astrologer_rate_management_screen.dart';
 import 'wallet.dart';
-import 'profile.dart';
+import 'profile/profile_screen.dart';
 
 /// Enhanced Astrologer Dashboard Screen
 /// 

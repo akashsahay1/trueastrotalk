@@ -342,6 +342,7 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.white,
         elevation: 0,
+        automaticallyImplyLeading: false, // This screen is a tab, no back button
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

@@ -748,16 +748,16 @@ class UserApiService {
   Future<Map<String, dynamic>> updateAstrologerOnlineStatus(String token, bool isOnline) async {
     try {
       final response = await _dio.put(
-        '/astrologers/online-status', 
-        data: {'isOnline': isOnline},
+        '/astrologers/dashboard',
+        data: {'is_online': isOnline},
         options: Options(headers: {'Authorization': 'Bearer $token'})
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && response.data['success'] == true) {
         return {
           'success': true,
           'message': response.data['message'] ?? 'Status updated successfully',
-          'isOnline': response.data['isOnline'] ?? isOnline,
+          'isOnline': isOnline,
         };
       } else {
         return {
@@ -767,11 +767,9 @@ class UserApiService {
       }
     } on DioException catch (e) {
       debugPrint('❌ Online status update error: ${e.response?.statusCode} - ${e.response?.data}');
-      // Simulate successful update for demo
       return {
-        'success': true,
-        'message': 'Status updated successfully',
-        'isOnline': isOnline,
+        'success': false,
+        'message': 'Failed to update online status',
       };
     }
   }
