@@ -174,10 +174,22 @@ export async function GET(request: NextRequest) {
     // Resolve profile image to full URL
     const profileImageUrl = await resolveProfileImage(dbUser, mediaCollection, baseUrl);
 
-    // Resolve PAN card image to secure URL (requires authentication to access)
-    const panCardUrl = dbUser.pan_card_id
-      ? `${baseUrl}/api/media/secure?id=${dbUser.pan_card_id}`
-      : null;
+    // Resolve PAN card image to direct URL for the owner
+    // Since user is already authenticated, we can return the direct URL
+    let panCardUrl: string | null = null;
+    if (dbUser.pan_card_id) {
+      try {
+        let panCardMedia = null;
+        if (dbUser.pan_card_id.startsWith('media_')) {
+          panCardMedia = await mediaCollection.findOne({ media_id: dbUser.pan_card_id });
+        }
+        if (panCardMedia && panCardMedia.file_path) {
+          panCardUrl = `${baseUrl}${panCardMedia.file_path}`;
+        }
+      } catch (error) {
+        console.error('Error resolving PAN card URL:', error);
+      }
+    }
 
     return NextResponse.json({
       success: true,
@@ -334,20 +346,28 @@ export async function PUT(request: NextRequest) {
 
     // Validate input data based on user type
     if (existingUser.user_type === 'astrologer') {
-      // Validate astrologer-specific fields
-      if (updateData.call_rate && (Number(updateData.call_rate) < 10 || Number(updateData.call_rate) > 10000)) {
+      // Validate astrologer-specific fields - minimum ₹1 for all rates
+      if (updateData.call_rate !== undefined && (Number(updateData.call_rate) < 1 || Number(updateData.call_rate) > 10000)) {
         return NextResponse.json({
           success: false,
           error: 'INVALID_CALL_RATE',
-          message: 'Call rate must be between ₹10 and ₹10,000 per minute'
+          message: 'Call rate must be between ₹1 and ₹10,000 per minute'
         }, { status: 400 });
       }
-      
-      if (updateData.chat_rate && (Number(updateData.chat_rate) < 5 || Number(updateData.chat_rate) > 5000)) {
+
+      if (updateData.chat_rate !== undefined && (Number(updateData.chat_rate) < 1 || Number(updateData.chat_rate) > 10000)) {
         return NextResponse.json({
           success: false,
           error: 'INVALID_CHAT_RATE',
-          message: 'Chat rate must be between ₹5 and ₹5,000 per minute'
+          message: 'Chat rate must be between ₹1 and ₹10,000 per minute'
+        }, { status: 400 });
+      }
+
+      if (updateData.video_rate !== undefined && (Number(updateData.video_rate) < 1 || Number(updateData.video_rate) > 10000)) {
+        return NextResponse.json({
+          success: false,
+          error: 'INVALID_VIDEO_RATE',
+          message: 'Video rate must be between ₹1 and ₹10,000 per minute'
         }, { status: 400 });
       }
 
@@ -426,6 +446,8 @@ export async function PUT(request: NextRequest) {
 
     // Handle PAN card image upload if present
     let panCardUrl: string | null = null;
+    console.log('📤 PAN card file received:', panCardImageFile ? `${panCardImageFile.name} (${panCardImageFile.size} bytes)` : 'none');
+    console.log('📤 Existing user pan_card_id:', existingUser.pan_card_id);
     if (panCardImageFile && panCardImageFile.size > 0) {
       // Validate file type
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
@@ -588,10 +610,24 @@ export async function PUT(request: NextRequest) {
     const mediaCollection2 = await DatabaseService.getCollection('media');
     const profileImageUrl = await resolveProfileImage(updatedUser, mediaCollection2, baseUrl);
 
-    // Resolve PAN card image to secure URL (requires authentication to access)
-    const panCardUrlUpdated = updatedUser.pan_card_id
-      ? `${baseUrl}/api/media/secure?id=${updatedUser.pan_card_id}`
-      : null;
+    // Resolve PAN card image to direct URL for the owner
+    let panCardUrlUpdated: string | null = null;
+    console.log('📤 Updated user pan_card_id:', updatedUser.pan_card_id);
+    if (updatedUser.pan_card_id) {
+      try {
+        let panCardMedia = null;
+        if (updatedUser.pan_card_id.startsWith('media_')) {
+          panCardMedia = await mediaCollection2.findOne({ media_id: updatedUser.pan_card_id });
+        }
+        console.log('📤 Found PAN card media:', panCardMedia ? panCardMedia.file_path : 'not found');
+        if (panCardMedia && panCardMedia.file_path) {
+          panCardUrlUpdated = `${baseUrl}${panCardMedia.file_path}`;
+        }
+      } catch (error) {
+        console.error('Error resolving PAN card URL:', error);
+      }
+    }
+    console.log('📤 Returning pan_card_url:', panCardUrlUpdated);
 
     return NextResponse.json({
       success: true,

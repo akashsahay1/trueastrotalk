@@ -317,8 +317,8 @@ export default function MediaLibrary({ isOpen, onClose, onSelect, selectedImage 
   const handleFileClick = (file: MediaFile) => {
     // Always select the file when clicked
     setSelectedFile(file.file_path);
-    // Use custom media_id if available, otherwise fallback to _id
-    setSelectedMediaId(file.media_id || file._id);
+    // Use custom media_id if available, otherwise fallback to _id (ensure it's a string)
+    setSelectedMediaId(file.media_id || file._id?.toString() || file._id);
     
     if (viewMode === 'grid') {
       // In grid view, clicking also opens sidebar for details

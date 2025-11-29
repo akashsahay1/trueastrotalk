@@ -64,7 +64,11 @@ async function handlePOST(request: NextRequest) {
     // Save file info to database
     const mediaCollection = await DatabaseService.getCollection('media');
 
+    // Generate a unique media_id
+    const mediaId = `media_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
     const fileData = {
+      media_id: mediaId,
       file_name: filename,
       original_name: file.name,
       file_path: `/uploads/${year}/${month}/${filename}`,
@@ -77,11 +81,12 @@ async function handlePOST(request: NextRequest) {
       updated_at: new Date()
     };
 
-    const result = await mediaCollection.insertOne(fileData);
+    await mediaCollection.insertOne(fileData);
     return NextResponse.json({
       success: true,
       message: 'File uploaded successfully',
-      file_id: result.insertedId,
+      file_id: mediaId, // Return media_id instead of MongoDB ObjectId
+      media_id: mediaId,
       file_path: `/uploads/${year}/${month}/${filename}`,
       filename
     }, { status: 201 });

@@ -667,6 +667,25 @@ function EditUserContent() {
       if (response.ok) {
         closeSweetAlert();
         await successMessages.updated('User');
+
+        // Update previews and form data from response
+        if (data.user) {
+          // Update profile image preview
+          if (data.user.profile_image) {
+            setImagePreview(data.user.profile_image);
+          }
+          // Update PAN card preview
+          if (data.user.pan_card_image) {
+            setPanCardPreview(data.user.pan_card_image);
+          }
+          // Update pan_card_id in form data if returned
+          if (data.user.pan_card_id) {
+            setFormData(prev => ({
+              ...prev,
+              pan_card_id: data.user.pan_card_id
+            }));
+          }
+        }
       } else {
         closeSweetAlert();
         errorMessages.updateFailed(`user: ${data.error || 'Unknown error occurred'}`);

@@ -484,10 +484,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         debugPrint('📍 Sending zip: ${_zipController.text.trim()}');
       }
       
-      debugPrint('📤 Complete update data being sent: $updateData');
-
       // Add astrologer-specific data if user is astrologer
+      debugPrint('📱 Is astrologer check: ${_currentUser?.isAstrologer}, user_type: ${_currentUser?.role}');
       if (_currentUser?.isAstrologer == true) {
+        debugPrint('📱 Adding astrologer data - call_rate: ${_callRateController.text}, chat_rate: ${_chatRateController.text}, video_rate: ${_videoRateController.text}');
         updateData.addAll({
           'bio': _bioController.text.trim(),
           'experience_years': _selectedExperience ?? 0, // Use dropdown value
@@ -504,6 +504,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'ifsc_code': _ifscController.text.trim(),
         });
       }
+
+      debugPrint('📤 Complete update data being sent: $updateData');
 
       // Update profile via API, including images if selected
       final updatedUser = await _authService.updateUserProfile(
