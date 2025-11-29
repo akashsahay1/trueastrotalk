@@ -6,6 +6,7 @@ import '../common/themes/text_styles.dart';
 import '../services/service_locator.dart';
 import '../services/auth/auth_service.dart';
 import '../config/config.dart';
+import '../models/enums.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
   const OTPVerificationScreen({super.key});
@@ -173,14 +174,17 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                 if (user.isCustomer) {
                   Navigator.pushReplacementNamed(context, '/customer/home');
                 } else if (user.isAstrologer) {
-                  // Check if astrologer profile is complete
-                  if (user.isProfileComplete) {
-                    // Profile complete - go to dashboard
-                    if (user.isActive && user.isEmailVerified) {
-                      Navigator.pushReplacementNamed(context, '/astrologer/dashboard');
-                    } else {
-                      Navigator.pushReplacementNamed(context, '/astrologer/pending');
-                    }
+                  // For verified astrologers, go directly to appropriate screen
+                  // For pending/rejected, check profile completion
+                  if (user.verificationStatus == VerificationStatus.verified) {
+                    // Verified astrologer - go to dashboard
+                    Navigator.pushReplacementNamed(context, '/astrologer/dashboard');
+                  } else if (user.verificationStatus == VerificationStatus.pending) {
+                    // Pending verification - go to pending screen
+                    Navigator.pushReplacementNamed(context, '/astrologer/pending');
+                  } else if (user.isProfileComplete) {
+                    // Profile complete but not yet verified - go to pending
+                    Navigator.pushReplacementNamed(context, '/astrologer/pending');
                   } else {
                     // Profile incomplete - go to profile completion
                     Navigator.pushReplacementNamed(

@@ -542,7 +542,12 @@ class User {
       // For customers, profile is complete if basic details exist
       return name.isNotEmpty && (phone != null || email != null);
     } else if (isAstrologer) {
-      // For astrologers, check if all required professional fields are filled
+      // If astrologer is already verified by admin, consider profile complete
+      // This allows verified astrologers to log in without re-entering details
+      if (verificationStatus == VerificationStatus.verified) {
+        return true;
+      }
+      // For new/pending astrologers, check if required professional fields are filled
       return name.isNotEmpty &&
           (phone != null || email != null) &&
           bio != null && bio!.isNotEmpty &&
