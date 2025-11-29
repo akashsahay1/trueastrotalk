@@ -362,6 +362,7 @@ export async function PUT(
       // Standardize on qualifications (not specializations) to match mobile
       qualifications: body.qualifications || [],
       skills: body.skills || [],
+      languages: body.languages || [],
       // Service rates charged to customers
       call_rate: body.call_rate || 50,
       chat_rate: body.chat_rate || 30,

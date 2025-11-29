@@ -337,9 +337,23 @@ function EditUserContent() {
           allowClear: true,
           closeOnSelect: false
         });
+
+        // Listen to Select2 change event for skills
+        skillsSelect.on('change', () => {
+          const selectedValues = skillsSelect.val() || [];
+          setFormData(prev => ({
+            ...prev,
+            skills: selectedValues as string[]
+          }));
+        });
+
+        // Set initial values if they exist
+        if (formData.skills.length > 0) {
+          skillsSelect.val(formData.skills).trigger('change.select2');
+        }
       }
 
-      // Initialize select2 for languages  
+      // Initialize select2 for languages
       const languagesSelect = $('#languages-select');
       if (languagesSelect.length && !languagesSelect.hasClass('select2-hidden-accessible')) {
         languagesSelect.select2({
@@ -347,19 +361,64 @@ function EditUserContent() {
           allowClear: true,
           closeOnSelect: false
         });
+
+        // Listen to Select2 change event for languages
+        languagesSelect.on('change', () => {
+          const selectedValues = languagesSelect.val() || [];
+          setFormData(prev => ({
+            ...prev,
+            languages: selectedValues as string[]
+          }));
+        });
+
+        // Set initial values if they exist
+        if (formData.languages.length > 0) {
+          languagesSelect.val(formData.languages).trigger('change.select2');
+        }
       }
 
       // Cleanup function
       return () => {
         if (skillsSelect.length && skillsSelect.hasClass('select2-hidden-accessible')) {
+          skillsSelect.off('change');
           skillsSelect.select2('destroy');
         }
         if (languagesSelect.length && languagesSelect.hasClass('select2-hidden-accessible')) {
+          languagesSelect.off('change');
           languagesSelect.select2('destroy');
         }
       };
     }
   }, [formData.user_type, availableSkills, availableLanguages]);
+
+  // Sync Select2 values when formData is loaded from API (after fetch completes)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && formData.user_type === 'astrologer' && !fetchLoading) {
+      const windowWithJQuery = window as typeof window & { $?: unknown };
+      if (!windowWithJQuery.$ || typeof windowWithJQuery.$ !== 'function') return;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const $ = windowWithJQuery.$ as any;
+
+      // Sync skills select2 with formData
+      const skillsSelect = $('#skills-select');
+      if (skillsSelect.length && skillsSelect.hasClass('select2-hidden-accessible')) {
+        const currentVal = skillsSelect.val() || [];
+        if (JSON.stringify(currentVal) !== JSON.stringify(formData.skills)) {
+          skillsSelect.val(formData.skills).trigger('change.select2');
+        }
+      }
+
+      // Sync languages select2 with formData
+      const languagesSelect = $('#languages-select');
+      if (languagesSelect.length && languagesSelect.hasClass('select2-hidden-accessible')) {
+        const currentVal = languagesSelect.val() || [];
+        if (JSON.stringify(currentVal) !== JSON.stringify(formData.languages)) {
+          languagesSelect.val(formData.languages).trigger('change.select2');
+        }
+      }
+    }
+  }, [fetchLoading, formData.skills, formData.languages, formData.user_type]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
