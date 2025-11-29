@@ -346,11 +346,6 @@ function EditUserContent() {
             skills: selectedValues as string[]
           }));
         });
-
-        // Set initial values if they exist
-        if (formData.skills.length > 0) {
-          skillsSelect.val(formData.skills).trigger('change.select2');
-        }
       }
 
       // Initialize select2 for languages
@@ -370,11 +365,6 @@ function EditUserContent() {
             languages: selectedValues as string[]
           }));
         });
-
-        // Set initial values if they exist
-        if (formData.languages.length > 0) {
-          languagesSelect.val(formData.languages).trigger('change.select2');
-        }
       }
 
       // Cleanup function
