@@ -52,6 +52,42 @@ function isValidEmail(email: string): boolean {
   return emailRegex.test(email);
 }
 
+// Normalize Gmail addresses by removing dots before @ and handling + aliases
+// Gmail ignores dots in the local part, so user.name@gmail.com = username@gmail.com
+function normalizeGmailAddress(email: string): string {
+  const lowerEmail = email.toLowerCase().trim();
+  const [localPart, domain] = lowerEmail.split('@');
+
+  // Only normalize for Gmail addresses
+  if (domain === 'gmail.com' || domain === 'googlemail.com') {
+    // Remove dots from local part and strip anything after +
+    const normalizedLocal = localPart.replace(/\./g, '').split('+')[0];
+    return `${normalizedLocal}@${domain}`;
+  }
+
+  return lowerEmail;
+}
+
+// Build query to find user by email, accounting for Gmail aliases
+function buildEmailQuery(email: string): object {
+  const normalized = normalizeGmailAddress(email);
+  const original = email.toLowerCase().trim();
+
+  // If it's a Gmail address, search for both normalized and original versions
+  if (normalized !== original) {
+    return {
+      $or: [
+        { email_address: original },
+        { email_address: normalized },
+        { email_aliases: original },
+        { email_aliases: normalized }
+      ]
+    };
+  }
+
+  return { email_address: original };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -109,10 +145,14 @@ export async function POST(request: NextRequest) {
 
     const usersCollection = await DatabaseService.getCollection('users');
 
-    // Find OTP record
-    const otpRecord = await usersCollection.findOne({
-      [queryField]: formattedIdentifier,
-    });
+    // Find OTP record - use Gmail-aware query for email auth
+    let otpRecordQuery: object;
+    if (authType === 'email') {
+      otpRecordQuery = buildEmailQuery(formattedIdentifier);
+    } else {
+      otpRecordQuery = { [queryField]: formattedIdentifier };
+    }
+    const otpRecord = await usersCollection.findOne(otpRecordQuery);
 
     if (!otpRecord) {
       return NextResponse.json(
@@ -143,9 +183,9 @@ export async function POST(request: NextRequest) {
       otpRecord.otp_expiry
     );
 
-    // Increment attempt count
+    // Increment attempt count - use _id for Gmail alias safety
     await usersCollection.updateOne(
-      { [queryField]: formattedIdentifier },
+      { _id: otpRecord._id },
       {
         $set: {
           otp_attempts: attempts + 1,
@@ -175,10 +215,10 @@ export async function POST(request: NextRequest) {
       (otpRecord.email_verified || otpRecord.phone_verified)
     );
 
-    // Update verification status
+    // Update verification status - use _id for Gmail alias safety
     const verificationField = authType === 'email' ? 'email_verified' : 'phone_verified';
     await usersCollection.updateOne(
-      { [queryField]: formattedIdentifier },
+      { _id: otpRecord._id },
       {
         $set: {
           [verificationField]: true,
@@ -193,9 +233,9 @@ export async function POST(request: NextRequest) {
 
     // If user is fully registered, this is a login - return user data and tokens
     if (isFullyRegistered) {
-      // Fetch updated user record
+      // Fetch updated user record - use _id for consistent lookup
       const user = await usersCollection.findOne({
-        [queryField]: formattedIdentifier,
+        _id: otpRecord._id,
       });
 
       if (!user) {
@@ -204,6 +244,15 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
+
+      // Debug: Log user data from database
+      console.log('🔍 verify-otp - User from database:');
+      console.log('   email:', user.email_address);
+      console.log('   user_type:', user.user_type);
+      console.log('   role:', user.role);
+      console.log('   full_name:', user.full_name);
+      console.log('   verification_status:', user.verification_status);
+      console.log('   account_status:', user.account_status);
 
       // Generate JWT tokens
       const tokenPayload = {

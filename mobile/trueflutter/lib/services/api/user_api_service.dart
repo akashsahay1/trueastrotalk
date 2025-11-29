@@ -1322,6 +1322,21 @@ class UserApiService {
       );
 
       if (response.statusCode == 200) {
+        // Debug: Log the raw response to understand what backend returns
+        debugPrint('🔍 verifyUnifiedOTP - Raw API Response:');
+        debugPrint('   user_exists: ${response.data['user_exists']}');
+        debugPrint('   requires_signup: ${response.data['requires_signup']}');
+        if (response.data['user'] != null) {
+          final userData = response.data['user'];
+          debugPrint('   user.user_type: ${userData['user_type']}');
+          debugPrint('   user.role: ${userData['role']}');
+          debugPrint('   user.verification_status: ${userData['verification_status']}');
+          debugPrint('   user.account_status: ${userData['account_status']}');
+          debugPrint('   user.full_name: ${userData['full_name']}');
+        } else {
+          debugPrint('   user: null (new user signup flow)');
+        }
+
         return {
           'success': true,
           'message': response.data['message'] ?? 'OTP verified successfully',

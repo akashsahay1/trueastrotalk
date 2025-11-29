@@ -19,6 +19,42 @@ function isValidEmail(email: string): boolean {
   return emailRegex.test(email);
 }
 
+// Normalize Gmail addresses by removing dots before @ and handling + aliases
+// Gmail ignores dots in the local part, so user.name@gmail.com = username@gmail.com
+function normalizeGmailAddress(email: string): string {
+  const lowerEmail = email.toLowerCase().trim();
+  const [localPart, domain] = lowerEmail.split('@');
+
+  // Only normalize for Gmail addresses
+  if (domain === 'gmail.com' || domain === 'googlemail.com') {
+    // Remove dots from local part and strip anything after +
+    const normalizedLocal = localPart.replace(/\./g, '').split('+')[0];
+    return `${normalizedLocal}@${domain}`;
+  }
+
+  return lowerEmail;
+}
+
+// Build query to find user by email, accounting for Gmail aliases
+function buildEmailQuery(email: string): object {
+  const normalized = normalizeGmailAddress(email);
+  const original = email.toLowerCase().trim();
+
+  // If it's a Gmail address, search for both normalized and original versions
+  if (normalized !== original) {
+    return {
+      $or: [
+        { email_address: original },
+        { email_address: normalized },
+        { email_aliases: original },
+        { email_aliases: normalized }
+      ]
+    };
+  }
+
+  return { email_address: original };
+}
+
 // Send OTP via email
 async function sendOTPEmail(email: string, otp: string): Promise<boolean> {
   try {
@@ -108,19 +144,28 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if already registered and verified
+    // For emails, use Gmail-aware query to handle dot aliases
     const verifiedField = authType === 'phone' ? 'phone_verified' : 'email_verified';
-    const _existingUser = await usersCollection.findOne({
-      [queryField]: formattedIdentifier,
-      [verifiedField]: true,
-    });
+    let userQuery: object;
+    if (authType === 'email') {
+      userQuery = { ...buildEmailQuery(formattedIdentifier), [verifiedField]: true };
+    } else {
+      userQuery = { [queryField]: formattedIdentifier, [verifiedField]: true };
+    }
+    const _existingUser = await usersCollection.findOne(userQuery);
 
     // For existing users, still send OTP (they might be logging in)
     // We don't block OTP sending for existing users in unified flow
 
     // Get or create OTP tracking record
-    const otpRecord = await usersCollection.findOne({
-      [queryField]: formattedIdentifier,
-    });
+    // For emails, use Gmail-aware query to find existing record
+    let otpRecordQuery: object;
+    if (authType === 'email') {
+      otpRecordQuery = buildEmailQuery(formattedIdentifier);
+    } else {
+      otpRecordQuery = { [queryField]: formattedIdentifier };
+    }
+    const otpRecord = await usersCollection.findOne(otpRecordQuery);
 
     // Check rate limiting
     if (otpRecord) {
@@ -133,8 +178,9 @@ export async function POST(request: NextRequest) {
 
         // Reset if more than 1 hour
         if (lastRequestTime && lastRequestTime < oneHourAgo) {
+          // Use _id to update the exact record found (handles Gmail aliases correctly)
           await usersCollection.updateOne(
-            { [queryField]: formattedIdentifier },
+            { _id: otpRecord._id },
             {
               $set: {
                 otp_request_count: 0,
@@ -175,11 +221,11 @@ export async function POST(request: NextRequest) {
 
     // Update or create OTP record
     if (otpRecord) {
-      // Update existing record
+      // Update existing record using _id (handles Gmail aliases correctly)
       const requestCount = (otpRecord.otp_request_count || 0) + 1;
 
       await usersCollection.updateOne(
-        { [queryField]: formattedIdentifier },
+        { _id: otpRecord._id },
         {
           $set: {
             otp_code: otp,

@@ -170,23 +170,37 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
 
               if (mounted) {
                 final user = verifyResult['user'];
+                // Debug: Log the parsed user details
+                debugPrint('🔍 OTP Verification - Parsed User:');
+                debugPrint('   user.role: ${user.role}');
+                debugPrint('   user.isCustomer: ${user.isCustomer}');
+                debugPrint('   user.isAstrologer: ${user.isAstrologer}');
+                debugPrint('   user.verificationStatus: ${user.verificationStatus}');
+                debugPrint('   user.isProfileComplete: ${user.isProfileComplete}');
+
                 // Navigate based on role and profile completion
                 if (user.isCustomer) {
+                  debugPrint('🔀 Navigating to customer home');
                   Navigator.pushReplacementNamed(context, '/customer/home');
                 } else if (user.isAstrologer) {
+                  debugPrint('🔀 User is astrologer, checking verification status...');
                   // For verified astrologers, go directly to appropriate screen
                   // For pending/rejected, check profile completion
                   if (user.verificationStatus == VerificationStatus.verified) {
                     // Verified astrologer - go to dashboard
+                    debugPrint('🔀 Astrologer is verified, navigating to dashboard');
                     Navigator.pushReplacementNamed(context, '/astrologer/dashboard');
                   } else if (user.verificationStatus == VerificationStatus.pending) {
                     // Pending verification - go to pending screen
+                    debugPrint('🔀 Astrologer is pending, navigating to pending screen');
                     Navigator.pushReplacementNamed(context, '/astrologer/pending');
                   } else if (user.isProfileComplete) {
                     // Profile complete but not yet verified - go to pending
+                    debugPrint('🔀 Astrologer profile complete, navigating to pending screen');
                     Navigator.pushReplacementNamed(context, '/astrologer/pending');
                   } else {
                     // Profile incomplete - go to profile completion
+                    debugPrint('🔀 Astrologer profile incomplete, navigating to signup-completion');
                     Navigator.pushReplacementNamed(
                       context,
                       '/signup-completion',
@@ -199,6 +213,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                     );
                   }
                 } else {
+                  debugPrint('🔀 User is neither customer nor astrologer (role: ${user.role}), navigating to generic home');
                   Navigator.pushReplacementNamed(context, '/home');
                 }
               }
