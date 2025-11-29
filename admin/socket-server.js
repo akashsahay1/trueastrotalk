@@ -439,8 +439,8 @@ async function handleInitiateCall(socket, data) {
     }
 
     // Determine user_id and astrologer_id based on caller type
-    const userId = callerType === 'customer' ? callerId : receiverId;
-    const astrologerId = callerType === 'astrologer' ? callerId : receiverId;
+    const sessionUserId = callerType === 'customer' ? callerId : receiverId;
+    const sessionAstrologerId = callerType === 'astrologer' ? callerId : receiverId;
 
     // Get rate from astrologer
     const astrologer = callerType === 'astrologer' ? caller : receiver;
@@ -452,8 +452,8 @@ async function handleInitiateCall(socket, data) {
     const callSession = {
       session_id: sessionId,
       session_type: sessionType, // 'voice_call' or 'video_call'
-      user_id: userId,
-      astrologer_id: astrologerId,
+      user_id: sessionUserId,
+      astrologer_id: sessionAstrologerId,
       status: 'pending', // pending -> ringing -> active -> completed
       rate_per_minute: ratePerMinute,
 
