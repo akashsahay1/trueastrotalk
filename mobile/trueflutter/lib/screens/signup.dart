@@ -9,6 +9,7 @@ import 'dart:io';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 import '../common/utils/error_handler.dart';
+import '../common/utils/terms_and_policies.dart';
 import '../common/widgets/google_places_address_field.dart';
 import '../services/auth/auth_service.dart';
 import '../services/service_locator.dart';
@@ -2157,7 +2158,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
                       TextSpan(
                         text: 'Terms & Policies',
                         style: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600, decoration: TextDecoration.underline),
-                        recognizer: TapGestureRecognizer()..onTap = () => _showTermsAndPoliciesDialog(),
+                        recognizer: TapGestureRecognizer()..onTap = () => TermsAndPolicies.showDialog(context),
                       ),
                       const TextSpan(text: ' of True Astro Talk'),
                     ],
@@ -2974,36 +2975,6 @@ _buildTextField(
     );
   }
 
-  Widget _buildBulletPoint(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '• ',
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.4,
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 14,
-                height: 1.4,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildPasswordRequirement(String text, bool isMet) {
     return Padding(
       padding: const EdgeInsets.only(top: 4),
@@ -3200,111 +3171,4 @@ _buildTextField(
     );
   }
 
-  // Show comprehensive Terms & Policies dialog
-  void _showTermsAndPoliciesDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: AppColors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Center(
-            child: Text(
-              'Terms & Policies',
-              style: AppTextStyles.heading4.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Terms of Service Section
-                Text(
-                  '📜 TERMS OF SERVICE',
-                  style: AppTextStyles.labelLarge.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildBulletPoint('By using True Astrotalk, you agree to these terms and conditions.'),
-                    _buildBulletPoint('Users must provide accurate and complete information during registration.'),
-                    _buildBulletPoint('You are responsible for maintaining the confidentiality of your account.'),
-                    _buildBulletPoint('Prohibited activities include: fraudulent transactions, harassment, or misuse of services.'),
-                    _buildBulletPoint('We reserve the right to suspend or terminate accounts that violate our terms.'),
-                    _buildBulletPoint('All consultations are for entertainment and guidance purposes only.'),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                
-                // Privacy Policy Section
-                Text(
-                  '🔒 PRIVACY POLICY',
-                  style: AppTextStyles.labelLarge.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildBulletPoint('We collect personal information to provide and improve our services.'),
-                    _buildBulletPoint('Your data is encrypted and stored securely on our servers.'),
-                    _buildBulletPoint('We do not sell, rent, or share your personal information with third parties.'),
-                    _buildBulletPoint('Payment information is processed through secure, PCI-compliant payment gateways.'),
-                    _buildBulletPoint('You can request data deletion or modification by contacting support.'),
-                    _buildBulletPoint('We use cookies to enhance your browsing experience.'),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                
-                // Refund Policy Section
-                Text(
-                  '💳 REFUND POLICY',
-                  style: AppTextStyles.labelLarge.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildBulletPoint('Full refunds are available within 7 working days of wallet recharge.'),
-                    _buildBulletPoint('Consultation refunds are processed only if the astrologer fails to join the session.'),
-                    _buildBulletPoint('Refund requests must be submitted through the app or by contacting support.'),
-                    _buildBulletPoint('Processing time: 5-7 business days for wallet refunds.'),
-                    _buildBulletPoint('Partial refunds may apply for interrupted sessions (pro-rated basis).'),
-                    _buildBulletPoint('No refunds for completed consultations or services already delivered.'),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-              child: Text(
-                'Close',
-                style: AppTextStyles.labelLarge.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
 }

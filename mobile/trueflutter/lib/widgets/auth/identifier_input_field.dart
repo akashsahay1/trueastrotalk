@@ -151,9 +151,10 @@ class _IdentifierInputFieldState extends State<IdentifierInputField> {
       children: [
         Text(
           'Email or Phone Number',
-          style: AppTextStyles.labelLarge.copyWith(
+          style: AppTextStyles.heading4.copyWith(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.w600,
+            letterSpacing: 0,
           ),
         ),
         const SizedBox(height: 8),

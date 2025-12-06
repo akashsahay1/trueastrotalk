@@ -127,6 +127,11 @@ flutter:
     - assets/config/
     - assets/audio/
 
+  fonts:
+    - family: Ergonomique
+      fonts:
+        - asset: assets/fonts/ergonomique-regular.otf
+
 # App Icon Configuration dart run flutter_launcher_icons
 flutter_launcher_icons:
   android: "launcher_icon"
