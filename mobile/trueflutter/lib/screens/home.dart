@@ -33,6 +33,7 @@ import '../services/notifications/notification_service.dart';
 import '../services/call/call_service.dart';
 import '../models/call.dart';
 import 'incoming_call_screen.dart';
+import 'incoming_chat_screen.dart';
 import 'active_call_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -232,7 +233,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Setup listeners for incoming calls and messages
+  // Setup listeners for incoming calls, chats, and messages
   void _setupCallListeners() {
     // Listen for incoming calls
     _socketService.on('incoming_call', (data) {
@@ -261,6 +262,80 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       _showIncomingCallDialog(data);
     });
 
+    // Listen for incoming chat requests (for astrologers)
+    _socketService.on('incoming_chat', (data) {
+      debugPrint('💬 Incoming chat request received: $data');
+      if (data is Map) {
+        _showIncomingChatDialog(Map<String, dynamic>.from(data));
+      }
+    });
+
+    // Listen for chat accepted (for customers)
+    _socketService.on('chat_accepted', (data) {
+      debugPrint('✅ Chat accepted: $data');
+      if (data is Map && mounted) {
+        final chatData = Map<String, dynamic>.from(data);
+        final sessionId = chatData['sessionId'] as String?;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Chat request accepted! Starting chat...'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // Navigate to chat screen
+        if (sessionId != null) {
+          _navigateToChatScreen(sessionId, chatData);
+        }
+      }
+    });
+
+    // Listen for chat rejected (for customers)
+    _socketService.on('chat_rejected', (data) {
+      debugPrint('❌ Chat rejected: $data');
+      if (data is Map && mounted) {
+        final reason = data['reason'] ?? 'Astrologer is busy';
+        final astrologerName = data['astrologerName'] ?? 'The astrologer';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$astrologerName declined your chat request: $reason'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    });
+
+    // Listen for chat initiated confirmation (for customers)
+    _socketService.on('chat_initiated', (data) {
+      debugPrint('💬 Chat initiated: $data');
+      if (data is Map && mounted) {
+        final status = data['status'];
+        final astrologerName = data['astrologerName'] ?? 'The astrologer';
+        if (status == 'ringing') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Waiting for $astrologerName to accept...'),
+              backgroundColor: AppColors.info,
+              duration: const Duration(seconds: 30),
+            ),
+          );
+        }
+      }
+    });
+
+    // Listen for chat errors
+    _socketService.on('chat_error', (data) {
+      debugPrint('❌ Chat error: $data');
+      if (data is Map && mounted) {
+        final error = data['error'] ?? 'Failed to start chat';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error.toString()),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    });
+
     // Listen for call status changes
     _socketService.on('call_answered', (data) {
       debugPrint('✅ Call answered: $data');
@@ -277,6 +352,46 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     _socketService.on('call_ended', (data) {
       debugPrint('📴 Call ended: $data');
     });
+  }
+
+  // Navigate to chat screen after chat is accepted
+  void _navigateToChatScreen(String sessionId, Map<String, dynamic> data) async {
+    try {
+      final chatService = getIt<ChatService>();
+      await chatService.initialize();
+
+      // Load the session
+      await chatService.loadChatSessions();
+
+      // Find the session and navigate
+      final sessions = chatService.chatSessions;
+      final session = sessions.firstWhere(
+        (s) => s.id == sessionId,
+        orElse: () => throw Exception('Session not found'),
+      );
+
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ChatScreen(chatSession: session),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to navigate to chat: $e');
+    }
+  }
+
+  // Show incoming chat request dialog for astrologers
+  void _showIncomingChatDialog(Map<String, dynamic> chatData) {
+    if (!mounted) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => IncomingChatScreen(chatData: chatData),
+        fullscreenDialog: true,
+      ),
+    );
   }
 
   // Show incoming call screen
@@ -1564,29 +1679,30 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     }
 
     try {
-      // Show loading indicator
+      // Initialize socket service if needed
+      if (!_socketService.isConnected) {
+        await _socketService.connect();
+      }
+
+      // Show waiting indicator
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Starting chat with ${astrologer.fullName}...'),
+            content: Text('Requesting chat with ${astrologer.fullName}...'),
             backgroundColor: AppColors.info,
+            duration: const Duration(seconds: 5),
           ),
         );
       }
 
-      // Start chat session
-      final chatService = getIt<ChatService>();
-      await chatService.initialize(); // Ensure chat service is initialized
-      final chatSession = await chatService.startChatSession(astrologer.id);
+      // Send chat initiation request via socket
+      // The astrologer will receive an incoming_chat event
+      // We'll receive chat_accepted or chat_rejected events (handled in _setupCallListeners)
+      _socketService.emit('initiate_chat', {
+        'astrologerId': astrologer.id,
+      });
 
-      // Navigate to chat screen
-      if (mounted) {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => ChatScreen(chatSession: chatSession),
-          ),
-        );
-      }
+      debugPrint('💬 Chat request sent to ${astrologer.fullName} (${astrologer.id})');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

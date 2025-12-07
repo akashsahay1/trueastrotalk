@@ -1152,6 +1152,40 @@ class UserApiService {
     }
   }
 
+  /// End a session and mark it as complete
+  Future<Map<String, dynamic>> endSession(
+    String token, {
+    required String sessionId,
+    required int durationMinutes,
+    required double totalAmount,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        '${ApiEndpoints.sessions}/$sessionId/end',
+        data: {
+          'durationMinutes': durationMinutes,
+          'totalAmount': totalAmount,
+          'status': 'completed',
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data;
+      } else {
+        throw Exception('Failed to end session: ${response.data['message']}');
+      }
+    } on DioException catch (e) {
+      final errorMessage = _handleDioException(e);
+      throw Exception(errorMessage);
+    }
+  }
+
   // Forgot Password - Send reset email
   Future<Map<String, dynamic>> forgotPassword(String email) async {
     try {

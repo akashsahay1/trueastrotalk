@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 import '../../models/chat.dart';
 import '../../models/user.dart';
+import '../../models/enums.dart';
 import '../../config/config.dart';
 import '../service_locator.dart';
 import '../local/local_storage_service.dart';
@@ -72,15 +73,19 @@ class SocketService extends ChangeNotifier {
       
       debugPrint('🔌 Connecting to Socket.IO server: $socketUrl');
       
+      // Determine user type based on role
+      final userType = _currentUser!.role.value == 'astrologer' ? 'astrologer' : 'user';
+      debugPrint('🔌 Socket connecting as: $userType (role: ${_currentUser!.role.value})');
+
       // Initialize socket with authentication
-      _socket = socket_io.io(socketUrl, 
+      _socket = socket_io.io(socketUrl,
         socket_io.OptionBuilder()
           .setTransports(['websocket', 'polling'])
           .enableAutoConnect()
           .setAuth({
             'token': authToken,
             'userId': _currentUser!.id,
-            'userType': 'user',
+            'userType': userType,
           })
           .build()
       );

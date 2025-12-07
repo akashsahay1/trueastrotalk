@@ -66,6 +66,7 @@ class BillingService extends ChangeNotifier {
   double _totalBilled = 0.0;
   int _elapsedSeconds = 0;
   bool _isLowBalance = false;
+  int _currentBilledMinute = 0; // Track which minute we've billed up to (for upfront billing)
 
   // Mutex/lock for billing updates to prevent race conditions
   bool _isBillingInProgress = false;
@@ -155,7 +156,7 @@ class BillingService extends ChangeNotifier {
     // Stop any existing billing session
     await stopBilling();
 
-    // Check if user has sufficient balance
+    // Check if user has sufficient balance for at least 1 minute
     if (!_walletService.hasSufficientBalanceForMinimumDuration(ratePerMinute)) {
       debugPrint('❌ Insufficient balance for billing');
       return false;
@@ -198,11 +199,24 @@ class BillingService extends ChangeNotifier {
     _totalBilled = 0.0;
     _elapsedSeconds = 0;
     _isLowBalance = false;
+    _currentBilledMinute = 0;
 
-    // Start billing timer
+    // UPFRONT BILLING: Charge first minute immediately when session starts
+    debugPrint('💰 Charging first minute upfront: ₹$ratePerMinute');
+    final firstMinuteBilled = await _processUpfrontBilling(1);
+    if (!firstMinuteBilled) {
+      debugPrint('❌ Failed to bill first minute, cannot start session');
+      _activeSessionId = null;
+      _activeSessionType = null;
+      _currentRate = null;
+      _sessionStartTime = null;
+      return false;
+    }
+
+    // Start billing timer (will charge subsequent minutes at the start of each minute)
     _startBillingTimer();
 
-    debugPrint('✅ Billing started: $ratePerMinute/min for $sessionType session');
+    debugPrint('✅ Billing started: $ratePerMinute/min for $sessionType session (first minute charged)');
     notifyListeners();
     return true;
   }
@@ -210,7 +224,7 @@ class BillingService extends ChangeNotifier {
   /// Start the billing timer
   void _startBillingTimer() {
     _billingTimer?.cancel();
-    
+
     _billingTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       if (_activeSessionId == null || _currentRate == null) {
         timer.cancel();
@@ -218,11 +232,15 @@ class BillingService extends ChangeNotifier {
       }
 
       _elapsedSeconds++;
-      
-      // Bill every minute
-      if (_elapsedSeconds % _billingIntervalSeconds == 0) {
-        final minutesPassed = _elapsedSeconds ~/ _billingIntervalSeconds;
-        await _processBilling(minutesPassed);
+
+      // UPFRONT BILLING: Bill at the START of each new minute
+      // Calculate which minute we're entering (1-indexed: minute 1 = 0-59s, minute 2 = 60-119s, etc.)
+      final currentMinute = (_elapsedSeconds ~/ _billingIntervalSeconds) + 1;
+
+      // If we've entered a new minute that hasn't been billed yet, bill for it
+      if (currentMinute > _currentBilledMinute) {
+        debugPrint('⏰ Entering minute $currentMinute, billing upfront...');
+        await _processUpfrontBilling(currentMinute);
       }
 
       // Check for low balance warning
@@ -232,14 +250,14 @@ class BillingService extends ChangeNotifier {
     });
   }
 
-  /// Process billing for completed minutes
-  Future<void> _processBilling(int totalMinutes) async {
-    if (_currentRate == null || _activeSessionId == null) return;
+  /// Process upfront billing for a specific minute (bills at the START of each minute)
+  Future<bool> _processUpfrontBilling(int minuteNumber) async {
+    if (_currentRate == null || _activeSessionId == null) return false;
 
     // Prevent concurrent billing updates (race condition protection)
     if (_isBillingInProgress) {
       debugPrint('⏳ Billing already in progress, skipping...');
-      return;
+      return false;
     }
 
     _isBillingInProgress = true;
@@ -247,35 +265,43 @@ class BillingService extends ChangeNotifier {
     try {
       final amountForThisMinute = _currentRate!;
 
-      // Check if wallet has sufficient balance
+      // Check if wallet has sufficient balance for this minute
       if (_walletService.currentBalance < amountForThisMinute) {
-        debugPrint('❌ Insufficient balance during call, ending session');
+        debugPrint('❌ Insufficient balance for minute $minuteNumber, ending session');
         await _handleInsufficientBalance();
-        return;
+        return false;
       }
+
+      // Calculate total amount billed so far (including this minute)
+      final newTotalBilled = minuteNumber * _currentRate!;
 
       // Send billing update to server - this will deduct from wallet on server
       try {
-        await _sendBillingUpdate(totalMinutes, _totalBilled + amountForThisMinute);
-        _totalBilled += amountForThisMinute;
+        await _sendBillingUpdate(minuteNumber, newTotalBilled);
+        _totalBilled = newTotalBilled;
+        _currentBilledMinute = minuteNumber;
 
         // Refresh local wallet balance after server deduction
         await _walletService.refreshBalance();
-        debugPrint('💰 Billed ₹$amountForThisMinute (Total: ₹$_totalBilled)');
+        debugPrint('💰 Billed minute $minuteNumber: ₹$amountForThisMinute (Total: ₹$_totalBilled)');
+        return true;
       } catch (e) {
-        debugPrint('❌ Failed to process billing update: $e');
+        debugPrint('❌ Failed to process billing update for minute $minuteNumber: $e');
         // Queue the failed billing for retry instead of ending session
         _queueFailedBilling(
           sessionId: _activeSessionId!,
           sessionType: _activeSessionType!,
-          durationMinutes: totalMinutes,
-          totalAmount: _totalBilled + amountForThisMinute,
+          durationMinutes: minuteNumber,
+          totalAmount: newTotalBilled,
         );
         // Still update local total to keep UI consistent
-        _totalBilled += amountForThisMinute;
+        _totalBilled = newTotalBilled;
+        _currentBilledMinute = minuteNumber;
+        return true; // Return true so session continues
       }
     } catch (e) {
-      debugPrint('❌ Error processing billing: $e');
+      debugPrint('❌ Error processing upfront billing: $e');
+      return false;
     } finally {
       _isBillingInProgress = false;
     }
@@ -453,30 +479,33 @@ class BillingService extends ChangeNotifier {
       _billingTimer?.cancel();
       _billingTimer = null;
 
-      // Process final billing for partial minute
+      // UPFRONT BILLING: No need to bill for partial minutes since we bill at the START of each minute
+      // The user has already paid for the current minute they're in
+      // We just need to send a final update to mark the session as complete
       if (_elapsedSeconds > 0 && _currentRate != null) {
-        final totalMinutes = (_elapsedSeconds / 60).ceil(); // Round up partial minutes
-        final finalAmount = totalMinutes * _currentRate!;
+        // Calculate actual minutes used (the minutes we've already billed for)
+        final billedMinutes = _currentBilledMinute;
+        final finalAmount = _totalBilled;
 
-        // Send final billing update - this will deduct from wallet on server
+        debugPrint('💰 Session ended after $_elapsedSeconds seconds');
+        debugPrint('💰 Total billed: ₹$finalAmount for $billedMinutes minutes (upfront billing)');
+
+        // Send final session update to server to mark session as complete
+        // No additional billing needed since we billed upfront
         try {
-          await _sendBillingUpdate(totalMinutes, finalAmount);
-          _totalBilled = finalAmount;
-
-          // Refresh local wallet balance after server deduction
-          await _walletService.refreshBalance();
-          debugPrint('💰 Final billing: ₹$finalAmount ($totalMinutes minutes)');
+          final token = await _localStorage.getAuthToken();
+          if (token != null) {
+            await _userApiService.endSession(
+              token,
+              sessionId: _activeSessionId!,
+              durationMinutes: billedMinutes,
+              totalAmount: finalAmount,
+            );
+            debugPrint('✅ Session marked as complete on server');
+          }
         } catch (e) {
-          debugPrint('❌ CRITICAL: Failed to process final billing: $e');
-          debugPrint('❌ Queuing final billing for retry recovery');
-          // Queue the failed final billing for retry instead of failing silently
-          _queueFailedBilling(
-            sessionId: _activeSessionId!,
-            sessionType: _activeSessionType!,
-            durationMinutes: totalMinutes,
-            totalAmount: finalAmount,
-          );
-          _totalBilled = finalAmount; // Keep local billing consistent
+          debugPrint('⚠️ Failed to mark session as complete on server: $e');
+          // This is not critical since billing was already done upfront
         }
       }
 
@@ -502,6 +531,7 @@ class BillingService extends ChangeNotifier {
       _totalBilled = 0.0;
       _elapsedSeconds = 0;
       _isLowBalance = false;
+      _currentBilledMinute = 0;
 
       notifyListeners();
     } catch (e) {
