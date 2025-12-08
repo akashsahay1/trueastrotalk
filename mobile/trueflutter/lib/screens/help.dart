@@ -14,35 +14,43 @@ class _HelpScreenState extends State<HelpScreen> {
   final List<FAQItem> _faqs = [
     FAQItem(
       question: 'How do I start a consultation?',
-      answer: 'You can start a consultation by browsing our astrologers, selecting one that matches your needs, and clicking either "Call" or "Chat" button. Make sure you have sufficient wallet balance for the consultation.',
+      answer:
+          'You can start a consultation by browsing our astrologers, selecting one that matches your needs, and clicking either "Call" or "Chat" button. Make sure you have sufficient wallet balance for the consultation.',
     ),
     FAQItem(
       question: 'How do I add money to my wallet?',
-      answer: 'Go to the Wallet section from the bottom navigation or drawer menu. Click on "Add Money" and choose from the available amounts or enter a custom amount. You can pay using various payment methods.',
+      answer:
+          'Go to the Wallet section from the bottom navigation or drawer menu. Click on "Add Money" and choose from the available amounts or enter a custom amount. You can pay using various payment methods.',
     ),
     FAQItem(
       question: 'Can I get a refund if I\'m not satisfied?',
-      answer: 'We have a satisfaction guarantee policy. If you\'re not satisfied with your consultation, please contact our support team within 24 hours and we\'ll review your case for a possible refund.',
+      answer:
+          'We have a satisfaction guarantee policy. If you\'re not satisfied with your consultation, please contact our support team within 24 hours and we\'ll review your case for a possible refund.',
     ),
     FAQItem(
       question: 'How are consultation charges calculated?',
-      answer: 'Consultation charges are calculated per minute based on the astrologer\'s rate. The timer starts when the astrologer accepts your consultation request and ends when either party disconnects.',
+      answer:
+          'Consultation charges are calculated per minute based on the astrologer\'s rate. The timer starts when the astrologer accepts your consultation request and ends when either party disconnects.',
     ),
     FAQItem(
       question: 'What if an astrologer doesn\'t respond?',
-      answer: 'If an astrologer doesn\'t respond within 2 minutes, the consultation request will be automatically cancelled and any deducted amount will be refunded to your wallet.',
+      answer:
+          'If an astrologer doesn\'t respond within 2 minutes, the consultation request will be automatically cancelled and any deducted amount will be refunded to your wallet.',
     ),
     FAQItem(
       question: 'How can I rate an astrologer?',
-      answer: 'After completing a consultation, you\'ll be prompted to rate the astrologer. You can also access your consultation history and rate astrologers from there.',
+      answer:
+          'After completing a consultation, you\'ll be prompted to rate the astrologer. You can also access your consultation history and rate astrologers from there.',
     ),
     FAQItem(
       question: 'Is my personal information safe?',
-      answer: 'Yes, we take privacy seriously. All consultations are confidential and your personal information is encrypted and securely stored. We never share your data with third parties.',
+      answer:
+          'Yes, we take privacy seriously. All consultations are confidential and your personal information is encrypted and securely stored. We never share your data with third parties.',
     ),
     FAQItem(
       question: 'Can I choose my preferred astrologer?',
-      answer: 'Absolutely! You can browse through our list of verified astrologers, view their profiles, ratings, and specializations, then choose the one that best fits your needs.',
+      answer:
+          'Absolutely! You can browse through our list of verified astrologers, view their profiles, ratings, and specializations, then choose the one that best fits your needs.',
     ),
   ];
 
@@ -50,13 +58,13 @@ class _HelpScreenState extends State<HelpScreen> {
     ContactOption(
       icon: Icons.email_outlined,
       title: 'Email Support',
-      subtitle: 'support@trueastrotalk.com',
+      subtitle: 'info@trueastrotalk.com',
       description: 'Get help via email (24-48 hours response)',
     ),
     ContactOption(
       icon: Icons.phone_outlined,
       title: 'Phone Support',
-      subtitle: '+91 9876543210',
+      subtitle: '+91 9234066099',
       description: 'Call us (Mon-Sat, 9 AM - 9 PM)',
     ),
   ];
@@ -66,9 +74,12 @@ class _HelpScreenState extends State<HelpScreen> {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 243, 245, 249),
       appBar: AppBar(
-        title: Text('Help & Support', style: AppTextStyles.heading4.copyWith(color: AppColors.white)),
+        title: Text(
+          'Help & Support',
+          style: AppTextStyles.heading4.copyWith(color: AppColors.white),
+        ),
         backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.white,
+        foregroundColor: AppColors.black,
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -92,7 +103,10 @@ class _HelpScreenState extends State<HelpScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.primary.withValues(alpha: 0.1), AppColors.primary.withValues(alpha: 0.05)],
+          colors: [
+            AppColors.primary.withValues(alpha: 0.1),
+            AppColors.primary.withValues(alpha: 0.05),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -110,7 +124,11 @@ class _HelpScreenState extends State<HelpScreen> {
                   color: AppColors.primary.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.help_outline, color: AppColors.primary, size: 24),
+                child: const Icon(
+                  Icons.help_outline,
+                  color: AppColors.primary,
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -119,12 +137,16 @@ class _HelpScreenState extends State<HelpScreen> {
                   children: [
                     Text(
                       'How can we help you?',
-                      style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimary),
+                      style: AppTextStyles.heading5.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Find answers to common questions or contact our support team',
-                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -144,7 +166,9 @@ class _HelpScreenState extends State<HelpScreen> {
         children: [
           Text(
             'Quick Actions',
-            style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.heading5.copyWith(
+              color: AppColors.textPrimary,
+            ),
           ),
           const SizedBox(height: 12),
           Row(
@@ -220,7 +244,9 @@ class _HelpScreenState extends State<HelpScreen> {
         children: [
           Text(
             'Frequently Asked Questions',
-            style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.heading5.copyWith(
+              color: AppColors.textPrimary,
+            ),
           ),
           const SizedBox(height: 16),
           Container(
@@ -271,7 +297,9 @@ class _HelpScreenState extends State<HelpScreen> {
         children: [
           Text(
             'Contact Support',
-            style: AppTextStyles.heading5.copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.heading5.copyWith(
+              color: AppColors.textPrimary,
+            ),
           ),
           const SizedBox(height: 16),
           Container(
@@ -293,7 +321,11 @@ class _HelpScreenState extends State<HelpScreen> {
                       color: AppColors.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(option.icon, color: AppColors.primary, size: 20),
+                    child: Icon(
+                      option.icon,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
                   ),
                   title: Text(
                     option.title,
@@ -357,8 +389,13 @@ class _HelpScreenState extends State<HelpScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
+        title: Text(title, style: TextStyle(color: AppColors.textPrimary)),
+        content: Text(
+          content,
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

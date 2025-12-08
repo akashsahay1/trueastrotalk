@@ -189,6 +189,11 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
       socket.on('typing_stop', (data) => handleTypingStop(socket, io, data));
       socket.on('mark_messages_read', (data) => handleMarkMessagesRead(socket, io, data));
 
+      // Chat session request handlers (similar to call flow)
+      socket.on('initiate_chat', (data) => handleInitiateChat(socket, io, data));
+      socket.on('accept_chat', (data) => handleAcceptChat(socket, io, data));
+      socket.on('reject_chat', (data) => handleRejectChat(socket, io, data));
+
       // WebRTC Call handlers
       socket.on('initiate_call', (data) => handleInitiateCall(socket, io, data));
       socket.on('answer_call', (data) => handleAnswerCall(socket, io, data));
@@ -467,6 +472,416 @@ async function handleMarkMessagesRead(socket: Socket, io: ServerIO, data: Messag
     
   } catch (error) {
     console.error('Mark messages read error:', error);
+  }
+}
+
+// Chat session initiation handler (similar to call flow)
+interface ChatRequestData {
+  astrologerId: string;
+}
+
+async function handleInitiateChat(socket: Socket, io: ServerIO, data: ChatRequestData) {
+  try {
+    const { astrologerId } = data;
+    const userId = socket.data.userId;
+    const userType = socket.data.userType;
+
+    console.log(`📱 initiate_chat received: userId=${userId}, astrologerId=${astrologerId}, userType=${userType}`);
+
+    // Only users (customers) can initiate chat
+    if (userType !== 'user') {
+      socket.emit('chat_error', { error: 'Only customers can initiate chat sessions' });
+      return;
+    }
+
+    const { client, db } = await getDbConnection();
+
+    // Get user details - try both by _id and user_id
+    let user = null;
+    if (ObjectId.isValid(userId)) {
+      user = await db.collection('users').findOne({
+        _id: new ObjectId(userId)
+      }, {
+        projection: {
+          _id: 1,
+          user_id: 1,
+          full_name: 1,
+          profile_picture: 1,
+          wallet_balance: 1
+        }
+      });
+    }
+    if (!user) {
+      user = await db.collection('users').findOne({
+        user_id: userId
+      }, {
+        projection: {
+          _id: 1,
+          user_id: 1,
+          full_name: 1,
+          profile_picture: 1,
+          wallet_balance: 1
+        }
+      });
+    }
+
+    // Get astrologer details by user_id (custom ID sent from Flutter)
+    const astrologer = await db.collection('users').findOne({
+      user_id: astrologerId,
+      user_type: 'astrologer'
+    }, {
+      projection: {
+        _id: 1,
+        user_id: 1,
+        full_name: 1,
+        profile_picture: 1,
+        chat_rate: 1,
+        is_online: 1,
+        socket_id: 1
+      }
+    });
+
+    if (!user) {
+      console.error(`❌ User not found: ${userId}`);
+      socket.emit('chat_error', { error: 'User not found' });
+      await client.close();
+      return;
+    }
+
+    if (!astrologer) {
+      console.error(`❌ Astrologer not found: ${astrologerId}`);
+      socket.emit('chat_error', { error: 'Astrologer not found' });
+      await client.close();
+      return;
+    }
+
+    if (!astrologer.is_online) {
+      socket.emit('chat_error', { error: 'Astrologer is currently offline' });
+      await client.close();
+      return;
+    }
+
+    // Check wallet balance (minimum 5 minutes worth)
+    const chatRate = astrologer.chat_rate || 30;
+    const minimumBalance = chatRate * 5;
+    if ((user.wallet_balance || 0) < minimumBalance) {
+      socket.emit('chat_error', { error: 'Insufficient wallet balance' });
+      await client.close();
+      return;
+    }
+
+    // Use consistent IDs (user_id format) for session storage
+    const sessionUserId = user.user_id || user._id.toString();
+    const sessionAstrologerId = astrologer.user_id || astrologer._id.toString();
+
+    // Check for existing active/pending session
+    const existingSession = await db.collection('sessions').findOne({
+      session_type: 'chat',
+      $or: [
+        { user_id: sessionUserId, astrologer_id: sessionAstrologerId },
+        { user_id: user._id.toString(), astrologer_id: astrologer._id.toString() }
+      ],
+      status: { $in: ['pending', 'active', 'ringing'] }
+    });
+
+    if (existingSession) {
+      socket.emit('chat_initiated', {
+        sessionId: existingSession._id.toString(),
+        status: existingSession.status,
+        message: 'Session already exists'
+      });
+      await client.close();
+      return;
+    }
+
+    // Create new chat session with 'ringing' status (waiting for astrologer to accept)
+    const sessionId = new ObjectId();
+    const chatSession = {
+      _id: sessionId,
+      session_type: 'chat',
+      user_id: sessionUserId,
+      astrologer_id: sessionAstrologerId,
+      status: 'ringing', // Similar to call - waiting for acceptance
+      rate_per_minute: chatRate,
+
+      // Timing
+      start_time: null,
+      end_time: null,
+      duration_minutes: 0,
+      total_amount: 0,
+
+      // Chat fields
+      last_message: null,
+      last_message_time: null,
+      user_unread_count: 0,
+      astrologer_unread_count: 0,
+
+      // Metadata
+      billing_updated_at: null,
+      created_at: new Date(),
+      updated_at: new Date()
+    };
+
+    await db.collection('sessions').insertOne(chatSession);
+
+    console.log(`📱 Chat request initiated: ${sessionId} from ${user.full_name} to ${astrologer.full_name}`);
+
+    // Send notification to astrologer using multiple methods for reliability
+    const incomingChatData = {
+      sessionId: sessionId.toString(),
+      userId: sessionUserId,
+      userName: user.full_name,
+      userAvatar: user.profile_picture,
+      chatRate: chatRate,
+      timestamp: new Date()
+    };
+
+    // Method 1: Try using stored socket_id if available
+    if (astrologer.socket_id) {
+      console.log(`📱 Emitting incoming_chat to socket: ${astrologer.socket_id}`);
+      io.to(astrologer.socket_id).emit('incoming_chat', incomingChatData);
+    }
+
+    // Method 2: Try using user room with MongoDB _id
+    const astrologerObjectId = astrologer._id.toString();
+    console.log(`📱 Emitting incoming_chat to room: user_${astrologerObjectId}`);
+    io.to(`user_${astrologerObjectId}`).emit('incoming_chat', incomingChatData);
+
+    // Method 3: Try using user room with custom user_id
+    if (astrologer.user_id && astrologer.user_id !== astrologerObjectId) {
+      console.log(`📱 Emitting incoming_chat to room: user_${astrologer.user_id}`);
+      io.to(`user_${astrologer.user_id}`).emit('incoming_chat', incomingChatData);
+    }
+
+    await client.close();
+
+    // Confirm to user
+    socket.emit('chat_initiated', {
+      sessionId: sessionId.toString(),
+      status: 'ringing',
+      astrologerName: astrologer.full_name,
+      astrologerAvatar: astrologer.profile_picture,
+      chatRate: chatRate
+    });
+
+  } catch (error) {
+    console.error('Initiate chat error:', error);
+    socket.emit('chat_error', { error: 'Failed to initiate chat' });
+  }
+}
+
+async function handleAcceptChat(socket: Socket, io: ServerIO, data: { sessionId: string }) {
+  try {
+    const { sessionId } = data;
+    const astrologerId = socket.data.userId;
+
+    console.log(`📱 accept_chat received: sessionId=${sessionId}, astrologerId=${astrologerId}`);
+
+    if (!sessionId) {
+      socket.emit('chat_error', { error: 'Session ID required' });
+      return;
+    }
+
+    const { client, db } = await getDbConnection();
+
+    // Get session and verify it's for this astrologer
+    const session = await db.collection('sessions').findOne({
+      _id: new ObjectId(sessionId),
+      session_type: 'chat',
+      status: 'ringing'
+    });
+
+    if (!session) {
+      socket.emit('chat_error', { error: 'Chat session not found or already processed' });
+      await client.close();
+      return;
+    }
+
+    // Find the astrologer - try both by _id and user_id
+    let astrologer = null;
+    if (ObjectId.isValid(astrologerId)) {
+      astrologer = await db.collection('users').findOne({
+        _id: new ObjectId(astrologerId),
+        user_type: 'astrologer'
+      });
+    }
+    if (!astrologer) {
+      astrologer = await db.collection('users').findOne({
+        user_id: astrologerId,
+        user_type: 'astrologer'
+      });
+    }
+
+    if (!astrologer) {
+      console.error(`❌ Astrologer not found: ${astrologerId}`);
+      socket.emit('chat_error', { error: 'Astrologer not found' });
+      await client.close();
+      return;
+    }
+
+    // Verify the astrologer is the one receiving this chat
+    const astrologerUserId = astrologer.user_id || astrologer._id.toString();
+    if (session.astrologer_id !== astrologerUserId && session.astrologer_id !== astrologer._id.toString()) {
+      console.error(`❌ Unauthorized: session.astrologer_id=${session.astrologer_id}, astrologer=${astrologerUserId}`);
+      socket.emit('chat_error', { error: 'Unauthorized to accept this chat' });
+      await client.close();
+      return;
+    }
+
+    // Update session to active
+    await db.collection('sessions').updateOne(
+      { _id: new ObjectId(sessionId) },
+      {
+        $set: {
+          status: 'active',
+          start_time: new Date(),
+          updated_at: new Date()
+        }
+      }
+    );
+
+    console.log(`✅ Chat accepted: ${sessionId} by ${astrologer.full_name}`);
+
+    // Find user to notify them
+    const user = await db.collection('users').findOne({
+      $or: [
+        { user_id: session.user_id },
+        { _id: ObjectId.isValid(session.user_id) ? new ObjectId(session.user_id) : null }
+      ]
+    });
+
+    const chatAcceptedData = {
+      sessionId,
+      astrologerId: astrologerUserId,
+      astrologerName: astrologer.full_name
+    };
+
+    // Notify user using multiple methods for reliability
+    if (user?.socket_id) {
+      io.to(user.socket_id).emit('chat_accepted', chatAcceptedData);
+    }
+    io.to(`user_${session.user_id}`).emit('chat_accepted', chatAcceptedData);
+    if (user?._id) {
+      io.to(`user_${user._id.toString()}`).emit('chat_accepted', chatAcceptedData);
+    }
+
+    await client.close();
+
+    socket.emit('chat_accepted', {
+      sessionId,
+      userId: session.user_id
+    });
+
+  } catch (error) {
+    console.error('Accept chat error:', error);
+    socket.emit('chat_error', { error: 'Failed to accept chat' });
+  }
+}
+
+async function handleRejectChat(socket: Socket, io: ServerIO, data: { sessionId: string; reason?: string }) {
+  try {
+    const { sessionId, reason = 'busy' } = data;
+    const astrologerId = socket.data.userId;
+
+    console.log(`📱 reject_chat received: sessionId=${sessionId}, astrologerId=${astrologerId}`);
+
+    if (!sessionId) {
+      socket.emit('chat_error', { error: 'Session ID required' });
+      return;
+    }
+
+    const { client, db } = await getDbConnection();
+
+    // Get session
+    const session = await db.collection('sessions').findOne({
+      _id: new ObjectId(sessionId),
+      session_type: 'chat',
+      status: 'ringing'
+    });
+
+    if (!session) {
+      socket.emit('chat_error', { error: 'Chat session not found or already processed' });
+      await client.close();
+      return;
+    }
+
+    // Find the astrologer - try both by _id and user_id
+    let astrologer = null;
+    if (ObjectId.isValid(astrologerId)) {
+      astrologer = await db.collection('users').findOne({
+        _id: new ObjectId(astrologerId),
+        user_type: 'astrologer'
+      });
+    }
+    if (!astrologer) {
+      astrologer = await db.collection('users').findOne({
+        user_id: astrologerId,
+        user_type: 'astrologer'
+      });
+    }
+
+    if (!astrologer) {
+      console.error(`❌ Astrologer not found: ${astrologerId}`);
+      socket.emit('chat_error', { error: 'Astrologer not found' });
+      await client.close();
+      return;
+    }
+
+    // Verify the astrologer is the one receiving this chat
+    const astrologerUserId = astrologer.user_id || astrologer._id.toString();
+    if (session.astrologer_id !== astrologerUserId && session.astrologer_id !== astrologer._id.toString()) {
+      socket.emit('chat_error', { error: 'Unauthorized to reject this chat' });
+      await client.close();
+      return;
+    }
+
+    // Update session to rejected
+    await db.collection('sessions').updateOne(
+      { _id: new ObjectId(sessionId) },
+      {
+        $set: {
+          status: 'rejected',
+          rejection_reason: reason,
+          updated_at: new Date()
+        }
+      }
+    );
+
+    console.log(`❌ Chat rejected: ${sessionId} by ${astrologer.full_name}, reason: ${reason}`);
+
+    // Find user to notify them
+    const user = await db.collection('users').findOne({
+      $or: [
+        { user_id: session.user_id },
+        { _id: ObjectId.isValid(session.user_id) ? new ObjectId(session.user_id) : null }
+      ]
+    });
+
+    const chatRejectedData = {
+      sessionId,
+      reason,
+      astrologerName: astrologer.full_name
+    };
+
+    // Notify user using multiple methods for reliability
+    if (user?.socket_id) {
+      io.to(user.socket_id).emit('chat_rejected', chatRejectedData);
+    }
+    io.to(`user_${session.user_id}`).emit('chat_rejected', chatRejectedData);
+    if (user?._id) {
+      io.to(`user_${user._id.toString()}`).emit('chat_rejected', chatRejectedData);
+    }
+
+    await client.close();
+
+    socket.emit('chat_rejected', {
+      sessionId,
+      success: true
+    });
+
+  } catch (error) {
+    console.error('Reject chat error:', error);
+    socket.emit('chat_error', { error: 'Failed to reject chat' });
   }
 }
 

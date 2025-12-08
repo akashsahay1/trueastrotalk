@@ -9,7 +9,7 @@ class Config {
   static const int buildNumber = 1;
 
   // Environment Mode - Change this to switch between local and production
-  static const String appMode = 'local'; // 'local' or 'production'
+  static const String appMode = 'production'; // 'local' or 'production'
 
   static bool get isDevelopment => appMode == 'local';
   static bool get isProduction => appMode == 'production';
@@ -20,7 +20,7 @@ class Config {
   static Future<String> _getLocalIP() async {
     // For development, use your Mac's actual IP address so iOS can connect
     if (isDevelopment) {
-      _cachedLocalIP = '192.168.29.220'; // Your Systems's IP for iOS to connect
+      _cachedLocalIP = '192.168.29.9'; // Your Systems's IP for iOS to connect
       return _cachedLocalIP!;
     }
 
