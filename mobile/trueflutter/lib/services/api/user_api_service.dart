@@ -223,6 +223,16 @@ class UserApiService {
       debugPrint('   - Error Message: ${e.message}');
       debugPrint('   - Request URI: ${e.requestOptions.uri}');
       debugPrint('   - Request Data: ${e.requestOptions.data}');
+
+      // Check for USER_NOT_REGISTERED error (404 response for Google sign-in)
+      if (e.response?.statusCode == 404 && e.response?.data != null) {
+        final responseData = e.response!.data;
+        if (responseData is Map && responseData['error'] == 'USER_NOT_REGISTERED') {
+          debugPrint('✅ User not registered - throwing specific exception');
+          throw Exception('USER_NOT_REGISTERED: ${responseData['message']}');
+        }
+      }
+
       // Let DioException bubble up for proper error handling
       rethrow;
     }
@@ -467,6 +477,8 @@ class UserApiService {
         'order_type': orderType ?? 'wallet',
       };
 
+      debugPrint('🔄 Creating Razorpay order: amount=$amount, receipt=$receipt');
+
       final response = await _dio.post(
         '/payments/razorpay/create-order',
         data: requestData,
@@ -474,11 +486,24 @@ class UserApiService {
       );
 
       if (response.statusCode == 200) {
+        debugPrint('✅ Razorpay order created successfully: ${response.data['data']['id']}');
         return response.data['data'];
       } else {
+        debugPrint('❌ Failed to create Razorpay order: ${response.data}');
         throw Exception('Failed to create Razorpay order: ${response.data['message']}');
       }
-    } on DioException {
+    } on DioException catch (e) {
+      debugPrint('❌ DioException creating Razorpay order:');
+      debugPrint('   Status: ${e.response?.statusCode}');
+      debugPrint('   Response: ${e.response?.data}');
+
+      // Extract user-friendly error message from response
+      final responseData = e.response?.data;
+      if (responseData is Map) {
+        final message = responseData['message'] ?? responseData['error'] ?? 'Payment service error';
+        throw Exception(message);
+      }
+
       // Let DioException bubble up for proper error handling
       rethrow;
     }

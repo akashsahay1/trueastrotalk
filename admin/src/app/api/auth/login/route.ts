@@ -9,7 +9,7 @@ import {
   // SecurityMiddleware,
   // RateLimitConfig
 } from '../../../../lib/security';
-import { ErrorHandler, ErrorCode } from '../../../../lib/error-handler';
+import { ErrorHandler, ErrorCode, AppError } from '../../../../lib/error-handler';
 import { formatPhoneNumber, isValidPhoneNumber } from '@/lib/otp';
 
 // Rate limiting for login attempts
@@ -499,8 +499,27 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
     }
 }
 
-// Export the login function directly without error handler wrapper
-// (since we have comprehensive error handling inside the function)
+// Export the login function with proper error handling
 export async function POST(request: NextRequest) {
-  return handleLogin(request);
+  try {
+    return await handleLogin(request);
+  } catch (error) {
+    console.error('Login error:', error);
+
+    // Handle AppError from ErrorHandler.createError()
+    if (error instanceof AppError) {
+      return NextResponse.json({
+        success: false,
+        error: error.code,
+        message: error.userMessage || error.message
+      }, { status: error.statusCode });
+    }
+
+    // Handle generic errors
+    return NextResponse.json({
+      success: false,
+      error: 'INTERNAL_SERVER_ERROR',
+      message: 'An unexpected error occurred during login'
+    }, { status: 500 });
+  }
 }

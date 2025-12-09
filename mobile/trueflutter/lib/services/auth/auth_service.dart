@@ -435,13 +435,17 @@ class AuthService {
     } on PlatformException catch (e) {
       debugPrint('🚨 AuthService: Platform exception: ${e.message}');
       throw Exception('Platform error during Google Sign-In: ${e.message}');
+    } on GoogleSignUpRequiredException {
+      // Rethrow GoogleSignUpRequiredException so it can be caught by the UI
+      debugPrint('🎯 AuthService: Caught and rethrowing GoogleSignUpRequiredException');
+      rethrow;
     } catch (e) {
       debugPrint('🚨 AuthService: Generic exception in signInWithGoogle: ${e.runtimeType} - $e');
-      
+
       // Check if user cancelled Google Sign-In
       final errorString = e.toString().toLowerCase();
-      if (errorString.contains('canceled') || 
-          errorString.contains('cancelled') || 
+      if (errorString.contains('canceled') ||
+          errorString.contains('cancelled') ||
           errorString.contains('aborted_by_user') ||
           errorString.contains('cancelled by user') ||
           e.toString().contains('GoogleSignInExceptionCode.canceled')) {
@@ -449,17 +453,11 @@ class AuthService {
         // Return silently without throwing an exception or showing error
         return Future.error('USER_CANCELLED');
       }
-      
-      // If it's a GoogleSignUpRequiredException, rethrow it as-is
-      if (e is GoogleSignUpRequiredException) {
-        debugPrint('🎯 AuthService: Rethrowing GoogleSignUpRequiredException');
-        rethrow;
-      }
-      
+
       // Handle Google Sign-In errors gracefully
       final appError = ErrorHandler.handleError(e, context: 'login');
-      throw Exception(appError.userMessage.isNotEmpty 
-          ? appError.userMessage 
+      throw Exception(appError.userMessage.isNotEmpty
+          ? appError.userMessage
           : 'Google Sign-In failed. Please try again.');
     }
   }

@@ -174,17 +174,29 @@ export async function POST(request: NextRequest) {
 
     if (!razorpayResponse.ok) {
       const errorData = await razorpayResponse.json().catch(() => ({}));
-      console.error('Razorpay order creation failed:', {
+      console.error('❌ Razorpay order creation failed:', {
         status: razorpayResponse.status,
+        statusText: razorpayResponse.statusText,
         error: errorData,
         amount: amountInPaise,
-        user: user.userId
+        user: user.userId,
+        keyIdPrefix: RAZORPAY_KEY_ID?.substring(0, 12) || 'not-set'
       });
-      
+
+      // Provide more specific error messages based on Razorpay response
+      let userMessage = 'Failed to create payment order. Please try again.';
+      if (razorpayResponse.status === 401) {
+        userMessage = 'Payment service authentication failed. Please contact support.';
+        console.error('❌ Razorpay authentication failed - check Key ID and Secret');
+      } else if (razorpayResponse.status === 400) {
+        userMessage = 'Invalid payment request. Please try a different amount.';
+      }
+
       return NextResponse.json({
         success: false,
         error: 'PAYMENT_ORDER_FAILED',
-        message: 'Failed to create payment order. Please try again.'
+        message: userMessage,
+        details: process.env.NODE_ENV === 'development' ? errorData : undefined
       }, { status: 500 });
     }
 
