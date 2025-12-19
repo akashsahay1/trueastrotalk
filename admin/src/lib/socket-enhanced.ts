@@ -743,11 +743,17 @@ async function handleAcceptChat(socket: Socket, io: ServerIO, data: { sessionId:
     console.log(`✅ Chat accepted: ${sessionId} by ${astrologer.full_name}`);
 
     // Find user to notify them
+    const orConditionsAccept: Array<Record<string, unknown>> = [
+      { user_id: session.user_id }
+    ];
+
+    // Only add _id condition if it's a valid ObjectId
+    if (ObjectId.isValid(session.user_id)) {
+      orConditionsAccept.push({ _id: new ObjectId(session.user_id) });
+    }
+
     const user = await db.collection('users').findOne({
-      $or: [
-        { user_id: session.user_id },
-        { _id: ObjectId.isValid(session.user_id) ? new ObjectId(session.user_id) : null }
-      ]
+      $or: orConditionsAccept
     });
 
     const chatAcceptedData = {
@@ -850,11 +856,17 @@ async function handleRejectChat(socket: Socket, io: ServerIO, data: { sessionId:
     console.log(`❌ Chat rejected: ${sessionId} by ${astrologer.full_name}, reason: ${reason}`);
 
     // Find user to notify them
+    const orConditionsReject: Array<Record<string, unknown>> = [
+      { user_id: session.user_id }
+    ];
+
+    // Only add _id condition if it's a valid ObjectId
+    if (ObjectId.isValid(session.user_id)) {
+      orConditionsReject.push({ _id: new ObjectId(session.user_id) });
+    }
+
     const user = await db.collection('users').findOne({
-      $or: [
-        { user_id: session.user_id },
-        { _id: ObjectId.isValid(session.user_id) ? new ObjectId(session.user_id) : null }
-      ]
+      $or: orConditionsReject
     });
 
     const chatRejectedData = {
