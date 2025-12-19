@@ -23,9 +23,48 @@ class PaymentConfig {
       await _loadFromServer();
     } catch (e) {
       debugPrint('Failed to load payment config from server: $e');
-      // For development fallback, you could add local config here
-      rethrow;
+
+      // Development fallback - check if we should use test keys
+      if (kDebugMode) {
+        debugPrint('⚠️  Attempting to use development fallback...');
+        try {
+          await _loadDevelopmentFallback();
+          debugPrint('✅ Using development fallback configuration');
+          return;
+        } catch (fallbackError) {
+          debugPrint('❌ Development fallback also failed: $fallbackError');
+        }
+      }
+
+      // If both server and fallback fail, rethrow the original error
+      throw Exception('Payment service unavailable. Please ensure the /app-config endpoint exists on your backend or configure development keys.');
     }
+  }
+
+  /// Development fallback configuration
+  /// WARNING: Only use this for local development testing
+  Future<void> _loadDevelopmentFallback() async {
+    debugPrint('🔧 Loading development fallback configuration...');
+
+    // Check if we have environment variables or local config
+    // You should replace these with your actual Razorpay test keys
+    // DO NOT commit real keys to version control!
+    _razorpayKeyId = const String.fromEnvironment('RAZORPAY_KEY_ID', defaultValue: '');
+    _environment = 'test';
+
+    if (_razorpayKeyId?.isEmpty ?? true) {
+      throw Exception(
+        'No development Razorpay keys configured. '
+        'Please either:\n'
+        '1. Create /app-config endpoint on your backend\n'
+        '2. Set RAZORPAY_KEY_ID environment variable\n'
+        '3. Or modify _loadDevelopmentFallback() with test keys',
+      );
+    }
+
+    debugPrint('✅ Development config loaded');
+    debugPrint('   Environment: $_environment');
+    debugPrint('   Using test keys for development');
   }
 
   /// Load payment config from server API

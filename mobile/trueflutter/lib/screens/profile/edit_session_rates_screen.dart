@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../common/themes/app_colors.dart';
 import '../../common/themes/text_styles.dart';
 import '../../common/utils/validation_patterns.dart';
+import '../../config/config.dart';
 import '../../services/auth/auth_service.dart';
 import '../../services/service_locator.dart';
 
@@ -23,6 +25,7 @@ class _EditSessionRatesScreenState extends State<EditSessionRatesScreen> {
 
   bool _isLoading = true;
   bool _isUpdating = false;
+  bool _isAstrologer = false;
 
   @override
   void initState() {
@@ -46,6 +49,7 @@ class _EditSessionRatesScreenState extends State<EditSessionRatesScreen> {
         _chatRateController.text = user.chatRate?.toString() ?? '';
         _callRateController.text = user.callRate?.toString() ?? '';
         _videoRateController.text = user.videoRate?.toString() ?? '';
+        _isAstrologer = user.isAstrologer == true;
       }
     } finally {
       setState(() {
@@ -233,37 +237,111 @@ class _EditSessionRatesScreenState extends State<EditSessionRatesScreen> {
                     ),
                     const SizedBox(height: 32),
 
-                    // Update Button
-                    SizedBox(
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: _isUpdating ? null : _updateProfile,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: AppColors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 2,
+                    // Update Button or Contact Support
+                    if (_isAstrologer)
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
                         ),
-                        child: _isUpdating
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: AppColors.primary,
+                              size: 32,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'To update your account details, please contact our support team',
+                              textAlign: TextAlign.center,
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.textPrimaryLight,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            InkWell(
+                              onTap: () async {
+                                final Uri emailUri = Uri(
+                                  scheme: 'mailto',
+                                  path: Config.supportEmail,
+                                  query: 'subject=Account Update Request',
+                                );
+                                if (await canLaunchUrl(emailUri)) {
+                                  await launchUrl(emailUri);
+                                } else {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Email: ${Config.supportEmail}'),
+                                        backgroundColor: AppColors.primary,
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                              )
-                            : const Text(
-                                'Update',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.email_outlined,
+                                      color: AppColors.white,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      Config.supportEmail,
+                                      style: AppTextStyles.bodyMedium.copyWith(
+                                        color: AppColors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      SizedBox(
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: _isUpdating ? null : _updateProfile,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: AppColors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 2,
+                          ),
+                          child: _isUpdating
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                                  ),
+                                )
+                              : const Text(
+                                  'Update',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),

@@ -824,6 +824,8 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   Future<void> _processRazorpayPayment(double amount, String token) async {
+    bool dialogClosed = false;
+
     try {
       // Get current user for payment details
       final currentUser = _authService.currentUser;
@@ -843,24 +845,45 @@ class _WalletScreenState extends State<WalletScreen> {
       }
 
       if (isSimulator) {
+        // Close loading dialog before showing mock payment
+        if (mounted && !dialogClosed) {
+          Navigator.pop(context);
+          dialogClosed = true;
+        }
         // For testing on simulator, show a mock payment dialog
         _showMockPaymentDialog(amount, token);
         return;
       }
 
-      // Initialize payment configuration
+      // Initialize payment configuration with timeout
       try {
-        await PaymentConfig.instance.initialize();
+        debugPrint('🔄 Initializing payment config...');
+        await PaymentConfig.instance.initialize().timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            throw Exception('Payment configuration timeout. Please check your internet connection.');
+          },
+        );
         debugPrint('✅ Payment config initialized successfully');
       } catch (e) {
         debugPrint('❌ Failed to initialize payment config: $e');
-        if (mounted) {
+        if (mounted && !dialogClosed) {
           Navigator.pop(context); // Close loading dialog
-          
-          // Handle payment service errors gracefully
-          final appError = ErrorHandler.handleError(e, context: 'payment');
-          ErrorHandler.logError(appError);
-          ErrorHandler.showError(context, appError);
+          dialogClosed = true;
+
+          // Show user-friendly error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Payment service unavailable: ${e.toString()}'),
+              backgroundColor: AppColors.error,
+              duration: const Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'Retry',
+                textColor: AppColors.white,
+                onPressed: () => _processRecharge(amount),
+              ),
+            ),
+          );
         }
         return;
       }
@@ -885,8 +908,9 @@ class _WalletScreenState extends State<WalletScreen> {
               paymentId: paymentId,
             );
 
-            if (mounted) {
+            if (mounted && !dialogClosed) {
               Navigator.pop(context); // Close loading dialog
+              dialogClosed = true;
 
               // Small delay to ensure transaction is committed to database
               await Future.delayed(const Duration(milliseconds: 500));
@@ -904,9 +928,10 @@ class _WalletScreenState extends State<WalletScreen> {
               }
             }
           } catch (e) {
-            if (mounted) {
+            if (mounted && !dialogClosed) {
               Navigator.pop(context); // Close loading dialog
-              
+              dialogClosed = true;
+
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Payment successful but wallet update failed: $e'),
@@ -917,9 +942,10 @@ class _WalletScreenState extends State<WalletScreen> {
           }
         },
         onError: (response) {
-          if (mounted) {
+          if (mounted && !dialogClosed) {
             Navigator.pop(context); // Close loading dialog
-            
+            dialogClosed = true;
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Payment failed: ${response.message ?? 'Unknown error'}'),
@@ -930,13 +956,21 @@ class _WalletScreenState extends State<WalletScreen> {
         },
       );
     } catch (e) {
-      if (mounted) {
+      debugPrint('❌ Payment process error: $e');
+      if (mounted && !dialogClosed) {
         Navigator.pop(context); // Close loading dialog
-        
+        dialogClosed = true;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Payment initialization failed: $e'),
             backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: AppColors.white,
+              onPressed: () => _processRecharge(amount),
+            ),
           ),
         );
       }
