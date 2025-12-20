@@ -78,7 +78,7 @@ class BillingService extends ChangeNotifier {
 
   // Billing configuration
   static const int _billingIntervalSeconds = 60; // Bill every minute
-  static const int _lowBalanceThreshold = 120; // 2 minutes warning
+  static const int _lowBalanceThreshold = 300; // 5 minutes warning
 
   // Getters
   double get totalBilled => _totalBilled;
@@ -201,11 +201,13 @@ class BillingService extends ChangeNotifier {
     _isLowBalance = false;
     _currentBilledMinute = 0;
 
-    // UPFRONT BILLING: Charge first minute immediately when session starts
-    debugPrint('💰 Charging first minute upfront: ₹$ratePerMinute');
-    final firstMinuteBilled = await _processUpfrontBilling(1);
-    if (!firstMinuteBilled) {
-      debugPrint('❌ Failed to bill first minute, cannot start session');
+    // UPFRONT BILLING: Charge 15 minutes immediately when session starts
+    const upfrontMinutes = 15;
+    final upfrontAmount = ratePerMinute * upfrontMinutes;
+    debugPrint('💰 Charging $upfrontMinutes minutes upfront: ₹$upfrontAmount');
+    final upfrontBilled = await _processUpfrontBilling(upfrontMinutes);
+    if (!upfrontBilled) {
+      debugPrint('❌ Failed to bill $upfrontMinutes minutes upfront, cannot start session');
       _activeSessionId = null;
       _activeSessionType = null;
       _currentRate = null;
@@ -216,7 +218,7 @@ class BillingService extends ChangeNotifier {
     // Start billing timer (will charge subsequent minutes at the start of each minute)
     _startBillingTimer();
 
-    debugPrint('✅ Billing started: $ratePerMinute/min for $sessionType session (first minute charged)');
+    debugPrint('✅ Billing started: $ratePerMinute/min for $sessionType session ($upfrontMinutes minutes charged upfront)');
     notifyListeners();
     return true;
   }

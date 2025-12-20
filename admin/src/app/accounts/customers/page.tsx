@@ -419,12 +419,12 @@ export default function CustomersPage() {
 
                                     ) : (
                                       <div className="avatar-xs rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mr-2">
-                                        {user.full_name.charAt(0)}
+                                        {user.full_name ? user.full_name.charAt(0).toUpperCase() : '?'}
                                       </div>
                                     )}
                                     <div>
-                                      <div className="font-weight-bold">{user.full_name}</div>
-                                      <small className="text-muted d-block d-md-none">{user.email_address}</small>
+                                      <div className="font-weight-bold">{user.full_name || 'No Name'}</div>
+                                      <small className="text-muted d-block d-md-none">{user.email_address || user.phone_number}</small>
                                     </div>
                                   </div>
                                 </td>

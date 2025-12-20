@@ -402,6 +402,25 @@ class _WalletScreenState extends State<WalletScreen> {
 
   Widget _buildTransactionItem(Transaction transaction) {
     final isCredit = transaction.type == TransactionType.credit;
+
+    // Determine status color and icon
+    Color statusColor;
+    IconData statusIcon;
+    switch (transaction.status) {
+      case TransactionStatus.completed:
+        statusColor = AppColors.success;
+        statusIcon = Icons.check_circle;
+        break;
+      case TransactionStatus.pending:
+        statusColor = Colors.orange;
+        statusIcon = Icons.pending;
+        break;
+      case TransactionStatus.failed:
+        statusColor = AppColors.error;
+        statusIcon = Icons.cancel;
+        break;
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -446,12 +465,50 @@ class _WalletScreenState extends State<WalletScreen> {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        trailing: Text(
-          '₹${transaction.amount.toStringAsFixed(2)}',
-          style: AppTextStyles.bodyMedium.copyWith(
-            color: isCredit ? AppColors.success : AppColors.error,
-            fontWeight: FontWeight.bold,
-          ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: statusColor.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    statusIcon,
+                    color: statusColor,
+                    size: 12,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    transaction.status.name.toUpperCase(),
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: statusColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '₹${transaction.amount.toStringAsFixed(2)}',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: isCredit ? AppColors.success : AppColors.error,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       ),
     );

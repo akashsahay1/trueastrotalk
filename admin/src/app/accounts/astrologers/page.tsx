@@ -103,7 +103,7 @@ function ProfileImage({ user }: ProfileImageProps) {
           flexShrink: 0
         }}
       >
-        {user.full_name.charAt(0).toUpperCase()}
+        {user.full_name ? user.full_name.charAt(0).toUpperCase() : '?'}
       </div>
     );
   }
@@ -111,7 +111,7 @@ function ProfileImage({ user }: ProfileImageProps) {
   return (
     <Image
       src={resolvedUrl}
-      alt={user.full_name}
+      alt={user.full_name || 'User'}
       className="rounded-circle mr-2"
       width={40}
       height={40}

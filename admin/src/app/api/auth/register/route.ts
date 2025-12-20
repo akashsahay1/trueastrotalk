@@ -460,7 +460,7 @@ export async function POST(request: NextRequest) {
     const userData: Record<string, unknown> = {
       _id: isUpdatingExisting && existingUserId ? existingUserId : new ObjectId(),
       user_id: isUpdatingExisting && existingUserId ? existingUserId.toString() : generateUserId(),
-      full_name: (full_name as string).trim(),
+      full_name: (full_name as string || 'Guest').trim(),
       email_address: cleanEmail || '',
       phone_number: phone_number ? InputSanitizer.sanitizePhoneNumber(phone_number as string) : '',
       user_type,

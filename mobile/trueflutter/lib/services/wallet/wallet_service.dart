@@ -49,44 +49,44 @@ class WalletService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Check if user has sufficient balance for chat (minimum 5 minutes)
+  /// Check if user has sufficient balance for chat (minimum 15 minutes)
   bool hasSufficientBalanceForChat(Astrologer astrologer) {
     final minimumRequired = calculateMinimumChatAmount(astrologer);
     return _currentBalance >= minimumRequired;
   }
 
-  /// Check if user has sufficient balance for call (minimum 5 minutes)
+  /// Check if user has sufficient balance for call (minimum 15 minutes)
   bool hasSufficientBalanceForCall(Astrologer astrologer, String callType) {
     final minimumRequired = calculateMinimumCallAmount(astrologer, callType);
     return _currentBalance >= minimumRequired;
   }
 
-  /// Calculate minimum amount required for 5 minutes of chat
+  /// Calculate minimum amount required for 15 minutes of chat
   double calculateMinimumChatAmount(Astrologer astrologer) {
-    // Chat rate is per minute, minimum 5 minutes
-    return astrologer.chatRate * 5.0;
+    // Chat rate is per minute, minimum 15 minutes
+    return astrologer.chatRate * 15.0;
   }
 
-  /// Calculate minimum amount required for 5 minutes of call
+  /// Calculate minimum amount required for 15 minutes of call
   double calculateMinimumCallAmount(Astrologer astrologer, String callType) {
-    // Use different rates for voice/video calls, minimum 5 minutes
+    // Use different rates for voice/video calls, minimum 15 minutes
     final double ratePerMinute;
     if (callType == 'video') {
       ratePerMinute = astrologer.videoRate;
     } else {
       ratePerMinute = astrologer.callRate; // voice call rate
     }
-    
-    return ratePerMinute * 5.0;
+
+    return ratePerMinute * 15.0;
   }
 
   /// Get insufficient balance message for chat
   String getInsufficientChatBalanceMessage(Astrologer astrologer) {
     final required = calculateMinimumChatAmount(astrologer);
     final shortfall = required - _currentBalance;
-    
+
     return 'Insufficient wallet balance!\n'
-           'Required: ₹${required.toStringAsFixed(2)} (for 5 min chat)\n'
+           'Required: ₹${required.toStringAsFixed(2)} (for 15 min chat)\n'
            'Current: ₹${_currentBalance.toStringAsFixed(2)}\n'
            'Add ₹${shortfall.toStringAsFixed(2)} to continue';
   }
@@ -95,11 +95,11 @@ class WalletService extends ChangeNotifier {
   String getInsufficientCallBalanceMessage(Astrologer astrologer, String callType) {
     final required = calculateMinimumCallAmount(astrologer, callType);
     final shortfall = required - _currentBalance;
-    
+
     final callTypeText = callType == 'video' ? 'video call' : 'voice call';
-    
+
     return 'Insufficient wallet balance!\n'
-           'Required: ₹${required.toStringAsFixed(2)} (for 5 min $callTypeText)\n'
+           'Required: ₹${required.toStringAsFixed(2)} (for 15 min $callTypeText)\n'
            'Current: ₹${_currentBalance.toStringAsFixed(2)}\n'
            'Add ₹${shortfall.toStringAsFixed(2)} to continue';
   }

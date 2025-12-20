@@ -193,7 +193,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showErrorSnackBar(String message) {
-    if (mounted) {
+    if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
@@ -204,7 +204,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showSuccessSnackBar(String message) {
-    if (mounted) {
+    if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),

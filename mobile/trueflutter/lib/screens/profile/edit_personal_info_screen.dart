@@ -68,6 +68,9 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
     });
 
     try {
+      final messenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
+
       final updateData = <String, dynamic>{
         'full_name': _nameController.text.trim(),
         'email_address': _emailController.text.trim(),
@@ -80,16 +83,16 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
       await _authService.updateUserProfile(updateData);
       await _authService.refreshCurrentUser();
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Personal information updated successfully!'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-        Navigator.of(context).pop(true); // Return true to indicate success
-      }
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Personal information updated successfully!'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      navigator.pop(true); // Return true to indicate success
     } catch (e) {
+      final messenger = ScaffoldMessenger.of(context);
       String errorMessage = 'Failed to update profile';
       final errorString = e.toString();
       final extractedMessage = ValidationPatterns.extractExceptionMessage(errorString);
@@ -97,14 +100,13 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
         errorMessage = extractedMessage;
       }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: AppColors.error,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -272,22 +274,23 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
                             const SizedBox(height: 16),
                             InkWell(
                               onTap: () async {
+                                final messenger = ScaffoldMessenger.of(context);
                                 final Uri emailUri = Uri(
                                   scheme: 'mailto',
                                   path: Config.supportEmail,
                                   query: 'subject=Account Update Request',
                                 );
-                                if (await canLaunchUrl(emailUri)) {
+                                final canLaunch = await canLaunchUrl(emailUri);
+                                if (canLaunch) {
                                   await launchUrl(emailUri);
                                 } else {
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Email: ${Config.supportEmail}'),
-                                        backgroundColor: AppColors.primary,
-                                      ),
-                                    );
-                                  }
+                                  if (!mounted) return;
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text('Email: ${Config.supportEmail}'),
+                                      backgroundColor: AppColors.primary,
+                                    ),
+                                  );
                                 }
                               },
                               child: Container(

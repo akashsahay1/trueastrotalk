@@ -159,13 +159,82 @@ export async function POST(request: NextRequest) {
 
     // Get or create OTP tracking record
     // For emails, use Gmail-aware query to find existing record
+    // For phone, try to find existing user regardless of verification status
+    // IMPORTANT: Prioritize customer/astrologer accounts over administrator accounts
     let otpRecordQuery: object;
     if (authType === 'email') {
       otpRecordQuery = buildEmailQuery(formattedIdentifier);
     } else {
       otpRecordQuery = { [queryField]: formattedIdentifier };
     }
-    const otpRecord = await usersCollection.findOne(otpRecordQuery);
+    console.log(`🔍 send-otp: Searching for ${authType} record with identifier: ${formattedIdentifier}`);
+
+    // For phone auth, prioritize customer/astrologer over admin
+    let otpRecord = null;
+    if (authType === 'phone') {
+      // First try to find customer or astrologer
+      otpRecord = await usersCollection.findOne({
+        ...otpRecordQuery,
+        user_type: { $in: ['customer', 'astrologer'] }
+      });
+
+      // If not found, try any user with this phone
+      if (!otpRecord) {
+        otpRecord = await usersCollection.findOne(otpRecordQuery);
+      }
+    } else {
+      otpRecord = await usersCollection.findOne(otpRecordQuery);
+    }
+
+    console.log(`🔍 send-otp: First query result: ${otpRecord ? 'FOUND' : 'NOT FOUND'}`);
+    if (otpRecord) {
+      console.log(`   - has full_name: ${!!otpRecord.full_name}`);
+      console.log(`   - has user_type: ${!!otpRecord.user_type}`);
+      console.log(`   - has role: ${!!otpRecord.role}`);
+    }
+
+    // If no exact match found for phone, try ALL possible phone number variations
+    if (!otpRecord && authType === 'phone') {
+      console.log(`🔍 send-otp: Trying alternative phone formats...`);
+
+      // Build list of all possible variations
+      const phoneVariations = [formattedIdentifier];
+      const digitsOnly = formattedIdentifier.replace(/\D/g, '');
+
+      // Add variations
+      if (digitsOnly.length === 10) {
+        phoneVariations.push(`+91${digitsOnly}`);
+        phoneVariations.push(`91${digitsOnly}`);
+        phoneVariations.push(digitsOnly);
+      } else if (digitsOnly.startsWith('91') && digitsOnly.length === 12) {
+        phoneVariations.push(`+${digitsOnly}`);
+        phoneVariations.push(digitsOnly);
+        phoneVariations.push(digitsOnly.substring(2)); // Remove 91
+      }
+
+      console.log(`   - Trying variations: ${phoneVariations.join(', ')}`);
+
+      // Search for ANY of these variations, prioritizing customer/astrologer
+      otpRecord = await usersCollection.findOne({
+        phone_number: { $in: phoneVariations },
+        user_type: { $in: ['customer', 'astrologer'] }
+      });
+
+      // If still not found, try any user type
+      if (!otpRecord) {
+        otpRecord = await usersCollection.findOne({
+          phone_number: { $in: phoneVariations }
+        });
+      }
+
+      console.log(`   - Result: ${otpRecord ? 'FOUND' : 'NOT FOUND'}`);
+      if (otpRecord) {
+        console.log(`   - Found with phone_number: ${otpRecord.phone_number}`);
+        console.log(`   - has full_name: ${!!otpRecord.full_name}`);
+        console.log(`   - has user_type: ${!!otpRecord.user_type}`);
+        console.log(`   - has role: ${!!otpRecord.role}`);
+      }
+    }
 
     // Check rate limiting
     if (otpRecord) {
@@ -201,9 +270,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate OTP
-    const otp = generateOTP();
+    // For phone auth in bypass mode, always use 0000 for easy testing
+    const otp = (OTP_BYPASS_MODE && authType === 'phone') ? '0000' : generateOTP();
     const expiry = getOTPExpiry();
     const now = new Date();
+
+    console.log(`🔑 Generated OTP for ${authType}: ${OTP_BYPASS_MODE ? otp : '****'} (bypass mode: ${OTP_BYPASS_MODE})`);
 
     // Send OTP based on auth type
     if (authType === 'phone') {
@@ -254,6 +326,7 @@ export async function POST(request: NextRequest) {
       if (authType === 'phone') {
         tempRecord.phone_number = formattedIdentifier;
         tempRecord.phone_verified = false;
+        tempRecord.full_name = 'Guest'; // Default name for phone signups
         // Placeholder email to avoid unique index conflict
         tempRecord.email_address = `${formattedIdentifier.replace(/\+/g, '')}@phone.trueastrotalk.com`;
       } else {

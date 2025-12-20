@@ -72,7 +72,7 @@ function ProfileImage({ user }: ProfileImageProps) {
   if (imageError || !resolvedUrl) {
     return (
       <div className="avatar-xs rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mr-2">
-        {user.full_name.charAt(0)}
+        {user.full_name ? user.full_name.charAt(0).toUpperCase() : '?'}
       </div>
     );
   }
@@ -80,7 +80,7 @@ function ProfileImage({ user }: ProfileImageProps) {
   return (
     <Image
       src={resolvedUrl}
-      alt={user.full_name}
+      alt={user.full_name || 'User'}
       className="rounded-circle mr-2"
       width={40}
       height={40}

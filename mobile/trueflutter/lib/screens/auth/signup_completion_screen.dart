@@ -55,6 +55,10 @@ class _SignupCompletionScreenState extends State<SignupCompletionScreen> {
       if (args['name'] != null) {
         _nameController.text = args['name'];
       }
+      // Pre-fill "Guest" for phone signups if no name provided
+      else if (_authType == 'phone' && _nameController.text.isEmpty) {
+        _nameController.text = 'Guest';
+      }
     }
   }
 

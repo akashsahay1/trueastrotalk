@@ -264,16 +264,18 @@ class _EditSessionRatesScreenState extends State<EditSessionRatesScreen> {
                             const SizedBox(height: 16),
                             InkWell(
                               onTap: () async {
+                                final messenger = ScaffoldMessenger.of(context);
                                 final Uri emailUri = Uri(
                                   scheme: 'mailto',
                                   path: Config.supportEmail,
                                   query: 'subject=Account Update Request',
                                 );
-                                if (await canLaunchUrl(emailUri)) {
+                                final canLaunch = await canLaunchUrl(emailUri);
+                                if (canLaunch) {
                                   await launchUrl(emailUri);
                                 } else {
                                   if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
+                                    messenger.showSnackBar(
                                       SnackBar(
                                         content: Text('Email: ${Config.supportEmail}'),
                                         backgroundColor: AppColors.primary,

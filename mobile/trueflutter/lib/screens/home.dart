@@ -1633,6 +1633,12 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   }
 
   void _startChatWithAstrologer(Astrologer astrologer) async {
+    // Check if user needs to update their name from "Guest"
+    if (_currentUser?.name == 'Guest') {
+      final updated = await _showUpdateNameDialog();
+      if (!updated) return; // User cancelled or didn't update
+    }
+
     // Check if astrologer is online and available for chats
     if (!astrologer.isOnline || !astrologer.isAvailable) {
       if (mounted) {
@@ -1716,6 +1722,12 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   }
 
   void _startCallWithAstrologer(Astrologer astrologer) async {
+    // Check if user needs to update their name from "Guest"
+    if (_currentUser?.name == 'Guest') {
+      final updated = await _showUpdateNameDialog();
+      if (!updated) return; // User cancelled or didn't update
+    }
+
     // Check if astrologer is online and available for calls
     if (!astrologer.isOnline || !astrologer.isAvailable) {
       if (mounted) {
@@ -1858,6 +1870,135 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   }
 
   // Show dialog to select call type (voice or video)
+  Future<bool> _showUpdateNameDialog() async {
+    final nameController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.white,
+        surfaceTintColor: AppColors.white,
+        title: Row(
+          children: [
+            Icon(Icons.person_outline, color: AppColors.primary),
+            const SizedBox(width: 8),
+            Text(
+              'Update Your Name',
+              style: AppTextStyles.heading5.copyWith(
+                color: AppColors.textPrimaryLight,
+              ),
+            ),
+          ],
+        ),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Please enter your name to continue with this session.',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.textSecondaryLight,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: nameController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: 'Your Name',
+                  hintText: 'Enter your full name',
+                  prefixIcon: Icon(Icons.person, color: AppColors.primary),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.primary, width: 2),
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Name is required';
+                  }
+                  if (value.trim().length < 2) {
+                    return 'Name must be at least 2 characters';
+                  }
+                  if (value.trim().toLowerCase() == 'guest') {
+                    return 'Please enter your actual name';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondaryLight),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) {
+                return;
+              }
+
+              final newName = nameController.text.trim();
+              final messenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(dialogContext);
+
+              try {
+                // Update name via auth service
+                await _authService.updateUserProfile({'full_name': newName});
+                await _authService.refreshCurrentUser();
+
+                // Update local user state
+                setState(() {
+                  _currentUser = _authService.currentUser;
+                });
+
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Name updated successfully to $newName'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                }
+
+                navigator.pop(true);
+              } catch (e) {
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to update name: ${e.toString()}'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.white,
+            ),
+            child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
+
+    nameController.dispose();
+    return result ?? false;
+  }
+
   Future<CallType?> _showCallTypeDialog() async {
     return showDialog<CallType>(
       context: context,

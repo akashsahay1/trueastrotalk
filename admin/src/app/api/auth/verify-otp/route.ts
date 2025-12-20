@@ -146,13 +146,59 @@ export async function POST(request: NextRequest) {
     const usersCollection = await DatabaseService.getCollection('users');
 
     // Find OTP record - use Gmail-aware query for email auth
+    // IMPORTANT: For phone auth, prioritize customer/astrologer over administrator
     let otpRecordQuery: object;
     if (authType === 'email') {
       otpRecordQuery = buildEmailQuery(formattedIdentifier);
     } else {
       otpRecordQuery = { [queryField]: formattedIdentifier };
     }
-    const otpRecord = await usersCollection.findOne(otpRecordQuery);
+
+    let otpRecord = null;
+    if (authType === 'phone') {
+      // First try to find customer or astrologer
+      otpRecord = await usersCollection.findOne({
+        ...otpRecordQuery,
+        user_type: { $in: ['customer', 'astrologer'] }
+      });
+
+      // If not found, try any user with this phone
+      if (!otpRecord) {
+        otpRecord = await usersCollection.findOne(otpRecordQuery);
+      }
+    } else {
+      otpRecord = await usersCollection.findOne(otpRecordQuery);
+    }
+
+    // If no exact match for phone, try all variations
+    if (!otpRecord && authType === 'phone') {
+      console.log(`🔍 verify-otp: No exact match, trying phone variations...`);
+      const digitsOnly = formattedIdentifier.replace(/\D/g, '');
+      const phoneVariations = [formattedIdentifier];
+
+      if (digitsOnly.length === 10) {
+        phoneVariations.push(`+91${digitsOnly}`, `91${digitsOnly}`, digitsOnly);
+      } else if (digitsOnly.startsWith('91') && digitsOnly.length === 12) {
+        phoneVariations.push(`+${digitsOnly}`, digitsOnly, digitsOnly.substring(2));
+      }
+
+      console.log(`   - Trying variations: ${phoneVariations.join(', ')}`);
+
+      // Prioritize customer/astrologer accounts
+      otpRecord = await usersCollection.findOne({
+        phone_number: { $in: phoneVariations },
+        user_type: { $in: ['customer', 'astrologer'] }
+      });
+
+      // If still not found, try any user type
+      if (!otpRecord) {
+        otpRecord = await usersCollection.findOne({
+          phone_number: { $in: phoneVariations }
+        });
+      }
+
+      console.log(`   - Result: ${otpRecord ? 'FOUND' : 'NOT FOUND'}`);
+    }
 
     if (!otpRecord) {
       return NextResponse.json(
@@ -207,13 +253,82 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // SPECIAL CASE: If using bypass OTP (0000), check if a real user exists
+    // This handles cases where send-otp created a temp record but a real user exists
+    if (OTP_BYPASS_MODE && otp === '0000') {
+      console.log('🔓 Bypass mode: Checking for existing fully registered user');
+
+      try {
+        let realUserQuery: object;
+        if (authType === 'email') {
+          const emailQuery = buildEmailQuery(formattedIdentifier);
+          realUserQuery = {
+            ...emailQuery,
+            full_name: { $exists: true, $ne: null }
+          };
+        } else {
+          realUserQuery = {
+            phone_number: formattedIdentifier,
+            full_name: { $exists: true, $ne: null }
+          };
+        }
+
+        // For phone auth, prioritize customer/astrologer
+        let realUser = null;
+        if (authType === 'phone') {
+          realUser = await usersCollection.findOne({
+            ...realUserQuery,
+            user_type: { $in: ['customer', 'astrologer'] }
+          });
+
+          if (!realUser) {
+            realUser = await usersCollection.findOne(realUserQuery);
+          }
+        } else {
+          realUser = await usersCollection.findOne(realUserQuery);
+        }
+
+        if (realUser) {
+          console.log('✅ Found existing registered user, using that instead of temp record');
+          console.log(`   - user_type: ${realUser.user_type}`);
+          // Replace otpRecord with the real user for processing below
+          otpRecord = realUser;
+        }
+      } catch (bypassError) {
+        console.error('⚠️ Error in bypass mode user lookup:', bypassError);
+        // Continue with original otpRecord if lookup fails
+      }
+    }
+
     // OTP verified successfully!
-    // Check if this is a fully registered user or just an OTP verification record
-    const isFullyRegistered = !!(
+    // For LOGIN: If user exists with phone/email, let them login (even if profile incomplete)
+    // For SIGNUP: Only new records without existing data should go to signup
+    const hasIdentifier = authType === 'phone'
+      ? !!(otpRecord.phone_number)
+      : !!(otpRecord.email_address);
+
+    const hasBasicProfile = !!(
       otpRecord.full_name &&
-      (otpRecord.user_type || otpRecord.role) &&
-      (otpRecord.email_verified || otpRecord.phone_verified)
+      (otpRecord.user_type || otpRecord.role)
     );
+
+    // Check if this is an existing user (has been registered before)
+    const hasUserId = !!(otpRecord.user_id);
+
+    // User is ONLY fully registered if they have:
+    // 1. Full name (mandatory)
+    // 2. User type or role (mandatory)
+    // 3. The identifier (phone/email)
+    const isFullyRegistered = hasIdentifier && hasBasicProfile;
+
+    console.log(`🔍 verify-otp: Checking registration status for ${authType}`);
+    console.log(`   - hasIdentifier: ${hasIdentifier}`);
+    console.log(`   - hasUserId: ${hasUserId}`);
+    console.log(`   - hasBasicProfile: ${hasBasicProfile}`);
+    console.log(`   - full_name: ${otpRecord.full_name || 'MISSING'}`);
+    console.log(`   - user_type: ${otpRecord.user_type || 'MISSING'}`);
+    console.log(`   - role: ${otpRecord.role || 'MISSING'}`);
+    console.log(`   - isFullyRegistered: ${isFullyRegistered}`);
 
     // Update verification status - use _id for Gmail alias safety
     const verificationField = authType === 'email' ? 'email_verified' : 'phone_verified';
@@ -234,7 +349,7 @@ export async function POST(request: NextRequest) {
     // If user is fully registered, this is a login - return user data and tokens
     if (isFullyRegistered) {
       // Fetch updated user record - use _id for consistent lookup
-      const user = await usersCollection.findOne({
+      let user = await usersCollection.findOne({
         _id: otpRecord._id,
       });
 
@@ -242,6 +357,35 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { success: false, error: 'User not found after verification' },
           { status: 500 }
+        );
+      }
+
+      // Ensure user has user_id (required for JWT token generation)
+      if (!user.user_id) {
+        const timestamp = Date.now();
+        const randomStr = Math.random().toString(36).substring(2, 10);
+        const userId = `user_${timestamp}_${randomStr}`;
+
+        await usersCollection.updateOne(
+          { _id: user._id },
+          {
+            $set: {
+              user_id: userId,
+              updated_at: new Date()
+            }
+          }
+        );
+
+        // Fetch updated user
+        user = await usersCollection.findOne({ _id: user._id });
+        console.log(`✅ Created user_id: ${userId}`);
+      }
+
+      // Ensure user exists
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: 'User not found after verification' },
+          { status: 404 }
         );
       }
 
@@ -254,13 +398,16 @@ export async function POST(request: NextRequest) {
       console.log('   verification_status:', user.verification_status);
       console.log('   account_status:', user.account_status);
 
-      // Generate JWT tokens
+      // Default to 'customer' if no role is set (for incomplete profiles)
+      const userType = user.user_type || user.role || 'customer';
+
+      // Generate JWT tokens with proper fallbacks
       const tokenPayload = {
         userId: user.user_id || user._id.toString(),
-        email: user.email_address,
-        full_name: user.full_name,
-        user_type: user.user_type || user.role,
-        account_status: user.account_status,
+        email: user.email_address || user.phone_number || `user_${user.user_id}@temp.com`,
+        full_name: user.full_name || 'User',
+        user_type: userType,
+        account_status: user.account_status || 'active',
         session_id: crypto.randomUUID(),
       };
 
@@ -278,10 +425,10 @@ export async function POST(request: NextRequest) {
       const userResponse = {
         id: user.user_id || user._id.toString(),
         user_id: user.user_id,
-        full_name: user.full_name,
+        full_name: user.full_name || 'User', // Fallback name if missing
         email_address: user.email_address,
         phone_number: user.phone_number,
-        user_type: user.user_type || user.role,
+        user_type: userType,
         auth_type: user.auth_type,
         account_status: user.account_status,
         verification_status: user.verification_status,
