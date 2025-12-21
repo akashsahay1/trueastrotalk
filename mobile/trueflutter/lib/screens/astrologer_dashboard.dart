@@ -60,38 +60,34 @@ class _AstrologerDashboardScreenState extends State<AstrologerDashboardScreen> {
     setState(() => _isLoading = true);
     
     try {
-      // Load user profile
-      final token = await _localStorage.getAuthToken();
-      if (token != null) {
-        try {
-          final dashboardResponse = await _userApiService.getAstrologerDashboard(token);
-          if (dashboardResponse['success']) {
-            final data = dashboardResponse['data'];
-            setState(() {
-              _walletBalance = (data['walletBalance'] ?? 0).toDouble();
-              _todaysEarnings = (data['todaysEarnings'] ?? 0).toDouble();
-              _totalEarnings = (data['totalEarnings'] ?? 0).toDouble();
-              _todaysSessions = data['todaysConsultations'] ?? 0;
-              _totalSessions = data['totalConsultations'] ?? 0;
-              _pendingSessions = data['pendingConsultations'] ?? 0;
-              _averageRating = (data['averageRating'] ?? 0).toDouble();
-              _totalReviews = data['totalReviews'] ?? 0;
-              _isOnline = data['isOnline'] ?? false;
-              
-              // Parse recent sessions
-              if (data['recentSessions'] != null) {
-                _recentSessions = List<Map<String, dynamic>>.from(data['recentSessions']);
-              }
-              
-              // Parse recent transactions
-              if (data['recentTransactions'] != null) {
-                _recentTransactions = List<Map<String, dynamic>>.from(data['recentTransactions']);
-              }
-            });
-          }
-        } catch (e) {
-          debugPrint('Dashboard data load failed: $e');
+      // Load dashboard data
+      try {
+        final dashboardResponse = await _userApiService.getAstrologerDashboard();
+        if (dashboardResponse['success'] == true) {
+          setState(() {
+            _walletBalance = (dashboardResponse['wallet_balance'] ?? 0).toDouble();
+            _todaysEarnings = (dashboardResponse['today_earnings'] ?? 0).toDouble();
+            _totalEarnings = (dashboardResponse['total_earnings'] ?? 0).toDouble();
+            _todaysSessions = dashboardResponse['today_consultations'] ?? 0;
+            _totalSessions = dashboardResponse['total_consultations'] ?? 0;
+            _pendingSessions = dashboardResponse['pending_consultations'] ?? 0;
+            _averageRating = (dashboardResponse['average_rating'] ?? 0).toDouble();
+            _totalReviews = dashboardResponse['total_reviews'] ?? 0;
+            _isOnline = dashboardResponse['is_online'] ?? false;
+
+            // Parse recent sessions
+            if (dashboardResponse['recent_sessions'] != null) {
+              _recentSessions = List<Map<String, dynamic>>.from(dashboardResponse['recent_sessions']);
+            }
+
+            // Parse recent transactions
+            if (dashboardResponse['recent_transactions'] != null) {
+              _recentTransactions = List<Map<String, dynamic>>.from(dashboardResponse['recent_transactions']);
+            }
+          });
         }
+      } catch (e) {
+        debugPrint('Dashboard data load failed: $e');
       }
       
       // Load dashboard metrics

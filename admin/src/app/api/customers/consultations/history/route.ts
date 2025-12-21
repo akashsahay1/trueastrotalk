@@ -86,13 +86,30 @@ export async function GET(request: NextRequest) {
         console.error('Error fetching astrologer details:', error);
       }
 
+      // Map session type to consultation type
+      let consultationType = 'call';
+      const sessionType = session.session_type || session.type || '';
+      if (sessionType === 'chat') {
+        consultationType = 'chat';
+      } else if (sessionType === 'video_call') {
+        consultationType = 'video';
+      } else {
+        consultationType = 'call';
+      }
+
+      // Format duration
+      const durationMinutes = session.duration_minutes || 0;
+      const durationStr = `${durationMinutes} min`;
+
       enrichedConsultations.push({
-        _id: session._id,
+        id: session._id.toString(),
+        session_id: session._id.toString(),
         astrologer_id: session.astrologer_id,
+        astrologer_user_id: session.astrologer_id,
         astrologer_name: astrologer?.full_name || 'Unknown Astrologer',
-        astrologer_image: astrologer?.profile_image,
-        type: session.session_type || session.type || 'call',
-        duration: session.duration || '0 min',
+        astrologer_image: astrologer?.profile_image_url,
+        type: consultationType,
+        duration: durationStr,
         amount: session.total_amount || session.amount || 0,
         created_at: session.created_at || session.createdAt || new Date().toISOString(),
         status: session.status || 'completed',

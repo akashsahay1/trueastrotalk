@@ -8,6 +8,7 @@ import {
 
 interface SessionData {
   _id: { toString(): string };
+  user_id?: string;
   customer_id?: { toString(): string };
   client_name?: string;
   client_image?: string;
@@ -97,7 +98,7 @@ export async function GET(request: NextRequest) {
       return {
         id: session._id.toString(),
         consultation_id: session._id.toString(),
-        client_id: session.customer_id?.toString() || '',
+        client_id: session.user_id || session.customer_id?.toString() || '',
         client_name: session.client_name || 'Unknown Client',
         client_image: session.client_image || '',
         client_phone: session.client_phone || '',
@@ -150,15 +151,17 @@ export async function GET(request: NextRequest) {
       consultations = consultations.concat(chatConsultations);
     }
 
-    if (!type || type === 'voice_call' || type === 'video_call') {
+    if (!type || type === 'voice_call' || type === 'video_call' || type === 'video' || type === 'voice' || type === 'call') {
       // Fetch call sessions
       const callMatch: Record<string, unknown> = { ...baseMatch };
-      if (type === 'voice_call') {
-        callMatch.session_type = 'voice_call';
-      } else if (type === 'video_call') {
-        callMatch.session_type = 'video_call';
+      if (type === 'voice_call' || type === 'voice') {
+        callMatch.session_type = { $in: ['voice_call', 'voice'] };
+      } else if (type === 'video_call' || type === 'video') {
+        callMatch.session_type = { $in: ['video_call', 'video'] };
+      } else if (type === 'call') {
+        callMatch.session_type = { $in: ['voice_call', 'video_call', 'video', 'voice', 'call'] };
       } else {
-        callMatch.session_type = { $in: ['voice_call', 'video_call'] };
+        callMatch.session_type = { $in: ['voice_call', 'video_call', 'video', 'voice', 'call'] };
       }
 
       const callSessions = await sessionsCollection
@@ -166,8 +169,13 @@ export async function GET(request: NextRequest) {
         .sort({ created_at: -1 })
         .toArray();
 
+      console.log('📋 Call sessions found:', callSessions.length);
+      callSessions.forEach((s: Record<string, unknown>, i: number) => {
+        console.log(`  Session ${i + 1}: user_id=${s.user_id}, type=${s.session_type}, duration=${s.duration_minutes}, amount=${s.total_amount}`);
+      });
+
       const callConsultations = callSessions.map(session => {
-        const callType = session.session_type === 'video_call' ? 'video_call' : 'voice_call';
+        const callType = (session.session_type === 'video_call' || session.session_type === 'video') ? 'video_call' : 'voice_call';
         return buildConsultation(session, callType);
       });
       consultations = consultations.concat(callConsultations);
@@ -200,6 +208,8 @@ export async function GET(request: NextRequest) {
       .filter(id => id && typeof id === 'string' && id.trim().length > 0)
     )];
 
+    console.log('📋 Client IDs to lookup:', clientIds);
+
     let clientsData: Record<string, { name?: string; image?: string; phone?: string; email?: string }> = {};
     if (clientIds.length > 0) {
       const clients = await usersCollection
@@ -215,6 +225,8 @@ export async function GET(request: NextRequest) {
         })
         .toArray();
 
+      console.log('📋 Found clients:', clients.length, clients.map((c: Record<string, unknown>) => ({ user_id: c.user_id, full_name: c.full_name })));
+
       clientsData = clients.reduce((acc, client) => {
         const userId = (client as unknown as { user_id: string }).user_id;
         acc[userId] = {
@@ -225,6 +237,8 @@ export async function GET(request: NextRequest) {
         };
         return acc;
       }, {} as Record<string, { name?: string; image?: string; phone?: string; email?: string }>);
+    } else {
+      console.log('📋 No client IDs found in consultations');
     }
 
     // Enhance consultations with client data
@@ -235,7 +249,8 @@ export async function GET(request: NextRequest) {
           ...consultation,
           client_name: clientData.name || consultation.client_name,
           client_image: clientData.image || consultation.client_image,
-          client_phone: clientData.phone || consultation.client_phone
+          client_phone: clientData.phone || consultation.client_phone,
+          client_email: clientData.email
         };
       }
       return consultation;

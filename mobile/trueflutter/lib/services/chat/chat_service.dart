@@ -31,16 +31,16 @@ class ChatService extends ChangeNotifier {
   Future<void> initialize() async {
     try {
       debugPrint('🚀 Initializing ChatService');
-      
-      // Connect to socket service
-      await _socketService.connect();
-      
+
+      // Ensure socket is connected with retry logic
+      await _socketService.ensureConnected(maxRetries: 3);
+
       // Listen to socket events
       _setupSocketListeners();
-      
+
       // Load existing chat sessions
       await loadChatSessions();
-      
+
     } catch (e) {
       debugPrint('❌ Failed to initialize ChatService: $e');
       rethrow;
@@ -141,7 +141,13 @@ class ChatService extends ChangeNotifier {
   Future<ChatSession> startChatSession(String astrologerId) async {
     try {
       debugPrint('🎯 Starting chat session with astrologer: $astrologerId');
-      
+
+      // Ensure socket is connected before starting chat
+      if (!_socketService.isConnected) {
+        debugPrint('🔌 Socket not connected, attempting to connect...');
+        await _socketService.ensureConnected(maxRetries: 3);
+      }
+
       final userId = _getCurrentUserId();
       if (userId == null) {
         throw Exception('User not logged in');
@@ -151,29 +157,29 @@ class ChatService extends ChangeNotifier {
         userId: userId,
         astrologerId: astrologerId,
       );
-      
+
       if (result['success']) {
         final session = result['session'] as ChatSession;
-        
+
         // Add to sessions list
         _chatSessions.insert(0, session);
         _activeChatSession = session;
-        
+
         // Join socket room
         await _socketService.joinChatSession(session.id);
-        
+
         // Send welcome system message
         await _socketService.sendMessage(
           session.id,
           'Chat session started with astrologer',
         );
-        
+
         notifyListeners();
         return session;
       } else {
-        throw Exception(result['error']);
+        throw Exception(result['error'] ?? 'Failed to create chat session');
       }
-      
+
     } catch (e) {
       debugPrint('❌ Failed to start chat session: $e');
       rethrow;

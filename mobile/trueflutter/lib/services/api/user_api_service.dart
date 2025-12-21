@@ -375,7 +375,9 @@ class UserApiService {
       final response = await _dio.post(ApiEndpoints.refreshToken, data: {'refresh_token': refreshToken});
 
       if (response.statusCode == 200) {
-        return response.data['token'];
+        // Backend returns { success: true, data: { access_token, refresh_token, ... } }
+        final data = response.data['data'] ?? response.data;
+        return data['access_token'] ?? data['token'] ?? '';
       } else {
         throw Exception('Token refresh failed: ${response.data['message']}');
       }
@@ -448,9 +450,9 @@ class UserApiService {
       if (type != null) {
         queryParams['type'] = type;
       }
-      
+
       final response = await _dio.get(
-        ApiEndpoints.customerConsultationsHistory, 
+        ApiEndpoints.customerConsultationsHistory,
         queryParameters: queryParams,
         options: Options(headers: {'Authorization': 'Bearer $token'})
       );
@@ -462,6 +464,91 @@ class UserApiService {
       }
     } on DioException {
       // Let DioException bubble up for proper error handling
+      rethrow;
+    }
+  }
+
+  /// Get astrologer consultation history
+  Future<Map<String, dynamic>> getAstrologerConsultations({int limit = 20, int page = 1, String? status, String? type}) async {
+    try {
+      final token = await _localStorage.getAuthToken();
+      if (token == null) {
+        throw Exception('Not authenticated');
+      }
+
+      final queryParams = <String, String>{
+        'limit': limit.toString(),
+        'page': page.toString(),
+      };
+      if (status != null) queryParams['status'] = status;
+      if (type != null) queryParams['type'] = type;
+
+      final response = await _dio.get(
+        ApiEndpoints.astrologerConsultations,
+        queryParameters: queryParams,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        // Transform to match customer history format
+        final data = response.data['data'];
+        final consultations = data['consultations'] as List<dynamic>? ?? [];
+
+        // Map astrologer consultations to customer history format
+        final mappedConsultations = consultations.map((c) {
+          // Map session type to consultation type
+          String consultationType = 'call';
+          final sessionType = c['type'] ?? c['service_type'] ?? '';
+          if (sessionType == 'chat') {
+            consultationType = 'chat';
+          } else if (sessionType == 'video_call') {
+            consultationType = 'video';
+          } else {
+            consultationType = 'call';
+          }
+
+          // Format duration
+          final durationMinutes = c['duration_minutes'] ?? 0;
+          final durationStr = '$durationMinutes min';
+
+          return <String, dynamic>{
+            'id': c['consultation_id'] ?? c['id'] ?? '',
+            'session_id': c['consultation_id'] ?? c['id'] ?? '',
+            'consultation_id': c['consultation_id'] ?? c['id'] ?? '',
+            // For history screen (uses astrologer_* fields)
+            'astrologer_id': c['client_id'] ?? '',
+            'astrologer_name': c['client_name'] ?? 'Unknown Client',
+            'astrologer_image': c['client_image'],
+            // For consultations screen (uses client_* fields)
+            'client_id': c['client_id'] ?? '',
+            'client_name': c['client_name'] ?? 'Unknown Client',
+            'client_image': c['client_image'],
+            'client_phone': c['client_phone'],
+            'client_email': c['client_email'],
+            'type': consultationType,
+            'duration': durationStr,
+            'duration_minutes': durationMinutes,
+            'amount': c['total_amount'] ?? c['amount'] ?? 0,
+            'total_amount': c['total_amount'] ?? c['amount'] ?? 0,
+            'created_at': c['created_at'] ?? c['scheduled_time'],
+            'scheduled_time': c['scheduled_time'] ?? c['created_at'],
+            'status': c['status'] ?? 'completed',
+            'rating': c['rating'],
+            'review': c['review'],
+          };
+        }).toList();
+
+        return {
+          'success': true,
+          'consultations': mappedConsultations,
+          'has_more': data['pagination']?['has_next'] ?? data['has_more'] ?? false,
+          'total_count': data['pagination']?['total_consultations'] ?? data['total'] ?? 0,
+        };
+      } else {
+        throw Exception(response.data['message'] ?? 'Failed to load consultations');
+      }
+    } on DioException catch (e) {
+      debugPrint('❌ Astrologer consultations API error: ${e.message}');
       rethrow;
     }
   }
@@ -582,6 +669,51 @@ class UserApiService {
       }
     } on DioException {
       // Let DioException bubble up for proper error handling
+      rethrow;
+    }
+  }
+
+  /// Get astrologer dashboard data including stats, earnings, and recent activity
+  Future<Map<String, dynamic>> getAstrologerDashboard() async {
+    try {
+      final token = await _localStorage.getAuthToken();
+      if (token == null) {
+        throw Exception('Not authenticated');
+      }
+
+      final response = await _dio.get(
+        ApiEndpoints.astrologerDashboard,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final data = response.data['data'];
+        debugPrint('📊 Dashboard data loaded successfully');
+
+        // Extract stats for easy access
+        final stats = data['stats'] ?? {};
+        final earnings = stats['earnings'] ?? {};
+        final chatSessions = stats['chat_sessions'] ?? {};
+        final callSessions = stats['call_sessions'] ?? {};
+
+        return {
+          'success': true,
+          'profile': data['profile'],
+          'today_consultations': (chatSessions['today'] ?? 0) + (callSessions['today'] ?? 0),
+          'total_consultations': (chatSessions['total'] ?? 0) + (callSessions['total'] ?? 0),
+          'today_earnings': (earnings['today'] ?? 0).toDouble(),
+          'total_earnings': (earnings['total'] ?? 0).toDouble(),
+          'this_week_earnings': (earnings['this_week'] ?? 0).toDouble(),
+          'this_month_earnings': (earnings['this_month'] ?? 0).toDouble(),
+          'recent_activity': data['recent_activity'],
+          'charts': data['charts'],
+          'raw_data': data, // Full response for detailed views
+        };
+      } else {
+        throw Exception(response.data['message'] ?? 'Failed to load dashboard');
+      }
+    } on DioException catch (e) {
+      debugPrint('❌ Dashboard API error: ${e.message}');
       rethrow;
     }
   }
@@ -742,33 +874,6 @@ class UserApiService {
     }
   }
 
-  // Get astrologer dashboard data
-  Future<Map<String, dynamic>> getAstrologerDashboard(String token) async {
-    try {
-      final response = await _dio.get('/astrologers/dashboard', options: Options(headers: {'Authorization': 'Bearer $token'}));
-
-      if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': response.data['data'] ?? response.data,
-        };
-      } else {
-        return {
-          'success': false,
-          'message': response.data['message'] ?? 'Failed to get astrologer dashboard',
-        };
-      }
-    } on DioException catch (e) {
-      debugPrint('❌ Dashboard API error: ${e.response?.statusCode} - ${e.response?.data}');
-      // NO DUMMY DATA - Return actual failure
-      return {
-        'success': false,
-        'message': 'Dashboard data not available',
-        'data': null
-      };
-    }
-  }
-
   // Update astrologer online status
   Future<Map<String, dynamic>> updateAstrologerOnlineStatus(String token, bool isOnline) async {
     try {
@@ -795,55 +900,6 @@ class UserApiService {
       return {
         'success': false,
         'message': 'Failed to update online status',
-      };
-    }
-  }
-
-  // Get astrologer consultations
-  Future<Map<String, dynamic>> getAstrologerConsultations(String token, {
-    String? status,
-    String? type,
-    String? search,
-    int page = 1,
-    int limit = 20,
-  }) async {
-    try {
-      final queryParams = <String, dynamic>{
-        'page': page,
-        'limit': limit,
-      };
-      if (status != null && status != 'all') queryParams['status'] = status;
-      if (type != null) queryParams['type'] = type;
-      if (search != null && search.isNotEmpty) queryParams['search'] = search;
-
-      final response = await _dio.get(
-        ApiEndpoints.astrologerConsultations,
-        queryParameters: queryParams,
-        options: Options(headers: {'Authorization': 'Bearer $token'})
-      );
-
-      if (response.statusCode == 200) {
-        final data = response.data['data'] ?? {};
-        return {
-          'success': true,
-          'consultations': data['consultations'] ?? [],
-          'statistics': data['statistics'] ?? {},
-          'pagination': data['pagination'] ?? {},
-          'filters': data['filters'] ?? {},
-        };
-      } else {
-        return {
-          'success': false,
-          'message': response.data['message'] ?? 'Failed to get consultations',
-          'consultations': [],
-        };
-      }
-    } on DioException catch (e) {
-      debugPrint('❌ Consultations API error: ${e.response?.statusCode} - ${e.response?.data}');
-      return {
-        'success': false,
-        'message': _handleDioException(e),
-        'consultations': [],
       };
     }
   }

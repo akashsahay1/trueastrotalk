@@ -10,6 +10,8 @@ import '../network/dio_client.dart';
 import '../local/local_storage_service.dart';
 import '../service_locator.dart';
 import '../socket/socket_service.dart';
+import '../call/call_service.dart';
+import '../notifications/notification_service.dart';
 import '../../config/payment_config.dart';
 import '../../common/utils/error_handler.dart';
 
@@ -515,15 +517,25 @@ class AuthService {
 
   Future<void> signOut() async {
     try {
-      // Disconnect socket first
+      // IMPORTANT: Cleanup active calls before disconnecting socket
+      // This prevents call errors and unexpected disconnections
+      try {
+        final callService = CallService.instance;
+        await callService.cleanup();
+        debugPrint('📞 Cleaned up active calls before logout');
+      } catch (e) {
+        debugPrint('Call cleanup error: $e');
+      }
+
+      // Disconnect socket after call cleanup
       try {
         final socketService = getIt<SocketService>();
-        socketService.disconnect();
-        debugPrint('🔌 Disconnecting socket');
+        await socketService.disconnect();
+        debugPrint('🔌 Disconnected socket');
       } catch (e) {
         debugPrint('Socket disconnect error: $e');
       }
-      
+
       // Sign out from Google if signed in
       try {
         await GoogleSignIn.instance.disconnect();
@@ -625,6 +637,22 @@ class AuthService {
     } catch (e) {
       debugPrint('⚠️ PaymentConfig initialization failed: $e');
       // Don't throw error - payment config is not critical for basic app functionality
+    }
+
+    // Update FCM token on server with the fresh auth token
+    try {
+      debugPrint('🔔 Updating FCM token on server...');
+      final notificationService = NotificationService();
+      final fcmToken = notificationService.fcmToken;
+      if (fcmToken != null && fcmToken.isNotEmpty) {
+        await _userApiService.updateFcmToken(token, fcmToken: fcmToken);
+        debugPrint('✅ FCM token updated successfully');
+      } else {
+        debugPrint('⚠️ No FCM token available to update');
+      }
+    } catch (e) {
+      debugPrint('⚠️ FCM token update failed: $e');
+      // Don't throw error - FCM token update is not critical
     }
   }
 

@@ -32,18 +32,21 @@ class CallService extends ChangeNotifier {
   Future<void> initialize() async {
     try {
       debugPrint('🚀 Initializing CallService');
-      
-      // Connect to socket service if not already connected
-      if (!_socketService.isConnected) {
-        await _socketService.connect();
-      }
-      
+
+      // Ensure socket is connected with retry logic
+      await _socketService.ensureConnected(maxRetries: 3);
+
       // Setup socket listeners for call events
       _setupSocketListeners();
-      
-      // Load existing call sessions
-      await loadCallSessions();
-      
+
+      // Load existing call sessions (don't fail initialization if this fails)
+      try {
+        await loadCallSessions();
+      } catch (e) {
+        debugPrint('⚠️ Failed to load call history, continuing anyway: $e');
+        _callSessions = [];
+      }
+
     } catch (e) {
       debugPrint('❌ Failed to initialize CallService: $e');
       rethrow;
@@ -198,7 +201,13 @@ class CallService extends ChangeNotifier {
   Future<CallSession> startCallSession(String astrologerId, CallType callType) async {
     try {
       debugPrint('📞 Starting ${callType.name} call with astrologer: $astrologerId');
-      
+
+      // Ensure socket is connected before starting call
+      if (!_socketService.isConnected) {
+        debugPrint('🔌 Socket not connected, attempting to connect...');
+        await _socketService.ensureConnected(maxRetries: 3);
+      }
+
       final userId = _getCurrentUserId();
       if (userId == null) {
         throw Exception('User not logged in');
@@ -209,32 +218,38 @@ class CallService extends ChangeNotifier {
         astrologerId: astrologerId,
         callType: callType == CallType.video ? 'video' : 'voice',
       );
-      
+
       if (result['success']) {
         final session = result['session'] as CallSession;
-        
+        debugPrint('📞 [CALL] Session created successfully: ${session.id}');
+
         // Add to sessions list
         _callSessions.insert(0, session);
         _activeCallSession = session;
-        
+
         // Get user name - should always be available for valid users
         final userName = _getCurrentUserName();
-        
+        debugPrint('📞 [CALL] Caller info: userId=$userId, userName=$userName');
+
         // Emit call request via socket
-        _socketService.emit('initiate_call', {
+        final socketData = {
           'sessionId': session.id,
           'callerId': userId,
           'callerName': userName,
           'callerType': 'user',
           'callType': callType.name.toLowerCase(),
-        });
-        
+        };
+        debugPrint('📞 [CALL] Emitting initiate_call via socket: $socketData');
+        debugPrint('📞 [CALL] Socket connected: ${_socketService.isConnected}');
+        _socketService.emit('initiate_call', socketData);
+        debugPrint('📞 [CALL] Socket event emitted successfully');
+
         notifyListeners();
         return session;
       } else {
-        throw Exception(result['error']);
+        throw Exception(result['error'] ?? 'Failed to create call session');
       }
-      
+
     } catch (e) {
       debugPrint('❌ Failed to start call session: $e');
       rethrow;
@@ -396,12 +411,37 @@ class CallService extends ChangeNotifier {
     }
   }
 
+  /// Cleanup all active calls - call this before logout or app close
+  Future<void> cleanup() async {
+    try {
+      debugPrint('🧹 Cleaning up CallService...');
+
+      // End any active call
+      if (_activeCallSession != null) {
+        try {
+          await endCall(_activeCallSession!.id);
+        } catch (e) {
+          debugPrint('⚠️ Error ending active call during cleanup: $e');
+        }
+      }
+
+      // Clear all state
+      _activeCallSession = null;
+      _isCallScreenActive = false;
+      _activeCallData = null;
+      _callSessions.clear();
+
+      notifyListeners();
+      debugPrint('✅ CallService cleanup completed');
+    } catch (e) {
+      debugPrint('❌ Error during CallService cleanup: $e');
+    }
+  }
+
   /// Cleanup
   @override
   void dispose() {
-    _activeCallSession = null;
-    _isCallScreenActive = false;
-    _activeCallData = null;
+    cleanup();
     super.dispose();
   }
 }

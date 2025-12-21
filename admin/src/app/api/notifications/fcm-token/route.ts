@@ -42,7 +42,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const userId = payload.user_id as string;
+    const userId = (payload.userId || payload.user_id) as string;
     if (!userId) {
       return NextResponse.json({ error: 'Invalid token payload' }, { status: 401 });
     }

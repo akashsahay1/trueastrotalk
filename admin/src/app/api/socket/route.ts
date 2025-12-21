@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
             experience_years: 1,
             rating: 1,
             call_rate: 1,
-            video_call_rate: 1,
+            video_rate: 1,
             languages: 1,
             last_seen: 1
           })
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
             experience_years: astro.experience_years,
             rating: astro.rating,
             call_rate: astro.call_rate,
-            video_call_rate: astro.video_call_rate,
+            video_rate: astro.video_rate,
             languages: astro.languages,
             last_seen: astro.last_seen
           })),

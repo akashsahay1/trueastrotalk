@@ -194,15 +194,8 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
     });
 
     try {
-      final token = _authService.authToken;
-      if (token == null) {
-        throw Exception('Authentication token not found');
-      }
-
       final response = await _userApiService.getAstrologerConsultations(
-        token,
         type: _getCurrentTypeFilter(),
-        search: _searchQuery.isEmpty ? null : _searchQuery,
         page: _currentPage,
         limit: 20,
       );
@@ -251,15 +244,8 @@ class _AstrologerConsultationsScreenState extends State<AstrologerConsultationsS
     });
 
     try {
-      final token = _authService.authToken;
-      if (token == null) {
-        throw Exception('Authentication token not found');
-      }
-
       final response = await _userApiService.getAstrologerConsultations(
-        token,
         type: _getCurrentTypeFilter(),
-        search: _searchQuery.isEmpty ? null : _searchQuery,
         page: _currentPage,
         limit: 20,
       );

@@ -336,12 +336,9 @@ class WebRTCService extends ChangeNotifier {
         await _handleOffer(pendingOfferData);
       }
 
-      // Send initiate call event
-      _socketService.emit('initiate_call', {
-        'targetUserId': targetUserId,
-        'callType': callType == CallType.video ? 'video' : 'voice',
-        'sessionId': sessionId,
-      });
+      // NOTE: initiate_call is already emitted by CallService - no need to emit again here
+      // This prevents duplicate incoming_call events on the receiver side
+      debugPrint('📞 WebRTC: Peer connection ready, waiting for call_answered event');
 
       // Move to ringing state since we have the session ID
       _updateCallState(CallState.ringing);

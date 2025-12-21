@@ -180,6 +180,19 @@ export class NotificationService {
         return false;
       }
 
+      // Check if this is a call notification (requires special handling)
+      const isCallNotification = notification.type === NotificationType.CALL_REQUEST;
+
+      // Convert data values to strings (FCM requires string values)
+      const stringifiedData: Record<string, string> = {};
+      if (notification.data) {
+        for (const [key, value] of Object.entries(notification.data)) {
+          stringifiedData[key] = typeof value === 'string' ? value : JSON.stringify(value);
+        }
+      }
+      stringifiedData['type'] = notification.type;
+      stringifiedData['userId'] = target.userId;
+
       const message: admin.messaging.Message = {
         token: target.fcmToken,
         notification: {
@@ -187,21 +200,24 @@ export class NotificationService {
           body: notification.body,
           imageUrl: notification.imageUrl
         },
-        data: {
-          type: notification.type,
-          userId: target.userId,
-          ...notification.data
-        },
+        data: stringifiedData,
         android: {
-          priority: this.getAndroidMessagePriority(notification.priority),
+          priority: isCallNotification ? 'high' : this.getAndroidMessagePriority(notification.priority),
+          ttl: isCallNotification ? 30000 : 3600000, // 30 seconds for calls, 1 hour for others
           notification: {
-            channelId: this.getNotificationChannelId(notification.type),
-            priority: this.getAndroidNotificationPriority(notification.priority),
+            channelId: isCallNotification ? 'incoming_calls' : this.getNotificationChannelId(notification.type),
+            priority: isCallNotification ? 'max' : this.getAndroidNotificationPriority(notification.priority),
             defaultSound: true,
-            defaultVibrateTimings: true
+            defaultVibrateTimings: true,
+            // For incoming calls, show as full screen intent
+            ...(isCallNotification && { visibility: 'public' as const })
           }
         },
         apns: {
+          headers: {
+            'apns-priority': isCallNotification ? '10' : '5', // 10 = immediate, 5 = normal
+            'apns-push-type': isCallNotification ? 'voip' : 'alert'
+          },
           payload: {
             aps: {
               alert: {
@@ -209,8 +225,11 @@ export class NotificationService {
                 body: notification.body
               },
               badge: 1,
-              sound: 'default',
-              category: notification.type
+              sound: isCallNotification ? 'ringtone.caf' : 'default',
+              category: notification.type,
+              'content-available': 1, // Wake up app in background
+              'mutable-content': 1, // Allow notification service extension to modify
+              ...(isCallNotification && { 'interruption-level': 'critical' })
             }
           }
         }

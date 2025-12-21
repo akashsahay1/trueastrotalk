@@ -99,6 +99,24 @@ class NotificationService {
   /// Get FCM token for push notifications
   Future<void> _getFCMToken() async {
     try {
+      // For iOS, we need to wait for APNS token first
+      if (Platform.isIOS) {
+        String? apnsToken = await _firebaseMessaging.getAPNSToken();
+        if (apnsToken == null) {
+          debugPrint('📱 Waiting for APNS token...');
+          // Wait a bit and retry - APNS token can take time to be available
+          await Future.delayed(const Duration(seconds: 2));
+          apnsToken = await _firebaseMessaging.getAPNSToken();
+        }
+
+        if (apnsToken == null) {
+          debugPrint('⚠️ APNS token not available - push notifications may not work on iOS');
+          debugPrint('⚠️ Please ensure notifications are enabled in iOS Settings');
+        } else {
+          debugPrint('📱 APNS Token obtained: ${apnsToken.substring(0, 20)}...');
+        }
+      }
+
       _fcmToken = await _firebaseMessaging.getToken();
       debugPrint('📱 FCM Token: $_fcmToken');
 
@@ -446,12 +464,4 @@ class NotificationService {
   }
 }
 
-/// Background message handler - must be a top-level function
-@pragma('vm:entry-point')
-Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  debugPrint('📱 Background message: ${message.data}');
-  
-  // Handle background messages
-  final notificationService = NotificationService();
-  notificationService.handleMessage(message, isBackground: true);
-}
+// Note: Background message handler is defined in main.dart to avoid duplicate definitions

@@ -15,6 +15,7 @@ import '../config/config.dart';
 import 'package:share_plus/share_plus.dart';
 import 'chat_screen.dart';
 import 'wallet.dart';
+import 'active_call_screen.dart';
 
 class AstrologerDetailsScreen extends StatefulWidget {
   final Astrologer? astrologer;
@@ -1343,21 +1344,56 @@ Connect now on True AstroTalk! 🌟
       return;
     }
 
-    try {
-      // Show loading indicator
+    // Load fresh wallet balance from server before checking
+    await _walletService.loadWalletBalance();
+
+    // Check wallet balance for chat
+    final hasSufficientBalance = _walletService.hasSufficientBalanceForChat(_astrologer!);
+
+    if (!hasSufficientBalance) {
+      final message = _walletService.getInsufficientChatBalanceMessage(_astrologer!);
+
+      // Show insufficient balance dialog with recharge option
+      final shouldRecharge = await _showInsufficientBalanceDialog(message);
+      if (shouldRecharge == true && mounted) {
+        // Navigate to wallet screen for recharge
+        Navigator.of(context).push(MaterialPageRoute(builder: (context) => const WalletScreen()));
+      }
+      return;
+    }
+
+    // Show loading indicator
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Starting chat with ${_astrologer!.fullName}...'),
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text('Connecting to ${_astrologer!.fullName}...'),
+            ],
+          ),
           backgroundColor: AppColors.info,
+          duration: const Duration(seconds: 10),
         ),
       );
+    }
 
-      // Start chat session
+    try {
+      // Start chat session (this now ensures socket is connected)
       final chatService = getIt<ChatService>();
       final chatSession = await chatService.startChatSession(_astrologer!.id);
 
       // Navigate to chat screen
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => ChatScreen(
@@ -1368,10 +1404,32 @@ Connect now on True AstroTalk! 🌟
       }
     } catch (e) {
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+        // Provide user-friendly error messages
+        String errorMessage = 'Failed to start chat';
+        final errorString = e.toString().toLowerCase();
+
+        if (errorString.contains('socket') || errorString.contains('connection')) {
+          errorMessage = 'Unable to connect to server. Please check your internet connection.';
+        } else if (errorString.contains('timeout')) {
+          errorMessage = 'Connection timed out. Please try again.';
+        } else if (errorString.contains('not logged in') || errorString.contains('authenticated')) {
+          errorMessage = 'Session expired. Please log in again.';
+        } else if (e.toString().isNotEmpty) {
+          errorMessage = 'Failed to start chat: ${e.toString().replaceAll('Exception: ', '')}';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to start chat: $e'),
+            content: Text(errorMessage),
             backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: () => _startChat(),
+            ),
           ),
         );
       }
@@ -1392,6 +1450,9 @@ Connect now on True AstroTalk! 🌟
     // Show call type selection dialog
     final callType = await _showCallTypeDialog();
     if (callType == null) return;
+
+    // Load fresh wallet balance from server before checking
+    await _walletService.loadWalletBalance();
 
     // Check wallet balance for selected call type
     final callTypeStr = callType == CallType.video ? 'video' : 'voice';
@@ -1440,21 +1501,42 @@ Connect now on True AstroTalk! 🌟
     }
 
     try {
-      // Defer heavy work to prevent UI freezing
-      await Future.microtask(() async {
-        final callService = getIt<CallService>();
-        await callService.initialize(); // Ensure call service is initialized
-        await callService.startCallSession(_astrologer!.id, callType);
-      });
-      
-      // Success feedback
+      // Start call session
+      final callService = getIt<CallService>();
+      await callService.initialize(); // Ensure call service is initialized
+      final callSession = await callService.startCallSession(_astrologer!.id, callType);
+
+      // Navigate to call screen
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${callType.displayName} call initiated successfully!'),
-            backgroundColor: AppColors.success,
-            duration: const Duration(seconds: 2),
+
+        // Build call data for the call screen
+        final authService = getIt<AuthService>();
+        final currentUser = authService.currentUser;
+
+        final callData = {
+          'sessionId': callSession.id,
+          'callType': callType == CallType.video ? 'video' : 'voice',
+          'ratePerMinute': callSession.ratePerMinute,
+          'isVideo': callType == CallType.video,
+          // Caller info (current user initiating the call)
+          'callerId': currentUser?.id ?? '',
+          'callerName': currentUser?.name ?? 'You',
+          'callerProfileImage': currentUser?.profilePicture,
+          // Receiver info (astrologer receiving the call)
+          'receiverId': _astrologer!.id,
+          'receiverName': _astrologer!.fullName,
+          'receiverProfileImage': _astrologer!.profileImage,
+          // Full astrologer data for display
+          'astrologer': _astrologer!.toJson(),
+        };
+
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ActiveCallScreen(
+              callData: callData,
+              isIncoming: false,
+            ),
           ),
         );
       }
@@ -1463,11 +1545,33 @@ Connect now on True AstroTalk! 🌟
       debugPrint('❌ Call initiation failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+        // Provide user-friendly error messages
+        String errorMessage = 'Failed to start call';
+        final errorString = e.toString().toLowerCase();
+
+        if (errorString.contains('socket') || errorString.contains('connection')) {
+          errorMessage = 'Unable to connect to server. Please check your internet connection.';
+        } else if (errorString.contains('timeout')) {
+          errorMessage = 'Connection timed out. Please try again.';
+        } else if (errorString.contains('not logged in') || errorString.contains('authenticated')) {
+          errorMessage = 'Session expired. Please log in again.';
+        } else if (errorString.contains('not available') || errorString.contains('offline')) {
+          errorMessage = 'Astrologer is not available right now. Please try again later.';
+        } else if (e.toString().isNotEmpty) {
+          errorMessage = 'Failed to start call: ${e.toString().replaceAll('Exception: ', '')}';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to start call: ${e.toString()}'),
+            content: Text(errorMessage),
             backgroundColor: AppColors.error,
-            duration: const Duration(seconds: 3),
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: () => _startCall(),
+            ),
           ),
         );
       }

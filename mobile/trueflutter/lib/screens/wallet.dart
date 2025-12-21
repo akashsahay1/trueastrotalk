@@ -149,18 +149,16 @@ class _WalletScreenState extends State<WalletScreen> {
       final user = _authService.currentUser;
 
       // Try to load dashboard data for earnings info
-      final dashboardResponse = await _userApiService.getAstrologerDashboard(token);
+      final dashboardResponse = await _userApiService.getAstrologerDashboard();
 
-      if (dashboardResponse['success'] == true && dashboardResponse['data'] != null) {
-        final data = dashboardResponse['data'];
-
-        // Use ONLY real data from the response
+      if (dashboardResponse['success'] == true) {
+        // Use ONLY real data from the response (fields are at top level, not nested under 'data')
         setState(() {
-          _todaysEarnings = (data['todaysEarnings'] ?? 0).toDouble();
-          _totalEarnings = (data['totalEarnings'] ?? user?.totalEarnings ?? 0).toDouble();
-          _todaysConsultations = data['todaysConsultations'] ?? 0;
-          _totalConsultations = data['totalConsultations'] ?? user?.totalConsultations ?? 0;
-          _averageRating = (data['averageRating'] ?? user?.rating ?? 0).toDouble();
+          _todaysEarnings = (dashboardResponse['today_earnings'] ?? 0).toDouble();
+          _totalEarnings = (dashboardResponse['total_earnings'] ?? user?.totalEarnings ?? 0).toDouble();
+          _todaysConsultations = dashboardResponse['today_consultations'] ?? 0;
+          _totalConsultations = dashboardResponse['total_consultations'] ?? user?.totalConsultations ?? 0;
+          _averageRating = (dashboardResponse['average_rating'] ?? user?.rating ?? 0).toDouble();
           _isLoadingEarnings = false;
         });
       } else {

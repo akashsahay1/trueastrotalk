@@ -3,6 +3,8 @@ class ConsultationHistory {
   final String astrologerId;
   final String astrologerName;
   final String? astrologerImage;
+  final String? clientPhone;
+  final String? clientEmail;
   final ConsultationType type;
   final String duration;
   final double amount;
@@ -16,6 +18,8 @@ class ConsultationHistory {
     required this.astrologerId,
     required this.astrologerName,
     this.astrologerImage,
+    this.clientPhone,
+    this.clientEmail,
     required this.type,
     required this.duration,
     required this.amount,
@@ -31,6 +35,8 @@ class ConsultationHistory {
       astrologerId: json['astrologer_user_id'] ?? json['astrologer_id'] ?? json['astrologerId']!,
       astrologerName: json['astrologer_name'] ?? json['astrologerName']!,
       astrologerImage: json['astrologer_image'] ?? json['astrologerImage'],
+      clientPhone: json['client_phone'] ?? json['clientPhone'],
+      clientEmail: json['client_email'] ?? json['clientEmail'],
       type: _parseConsultationType(json['type']!),
       duration: json['duration']!,
       amount: (json['amount']!).toDouble(),
@@ -78,6 +84,8 @@ class ConsultationHistory {
       'astrologer_id': astrologerId,
       'astrologer_name': astrologerName,
       'astrologer_image': astrologerImage,
+      'client_phone': clientPhone,
+      'client_email': clientEmail,
       'type': type.name,
       'duration': duration,
       'amount': amount,

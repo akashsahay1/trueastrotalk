@@ -30,8 +30,10 @@ import 'services/api/user_api_service.dart';
 /// Firebase background message handler - must be top-level function
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Initialize Firebase if not already initialized
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Only initialize Firebase if not already initialized (prevents duplicate-app error on Android)
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  }
   debugPrint('🔔 Handling background message: ${message.messageId}');
   // Handle the message in background
 }

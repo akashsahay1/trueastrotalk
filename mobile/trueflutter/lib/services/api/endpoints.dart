@@ -49,7 +49,7 @@ class ApiEndpoints {
   static const String sendOtp = '$auth/send-otp'; // Unified OTP endpoint for email/phone
   static const String verifyOtp = '$auth/verify-otp'; // Unified verification
   static const String linkAccount = '$auth/link-account'; // For progressive account linking
-  static const String refreshToken = '$auth/refresh-token';
+  static const String refreshToken = '$auth/refresh';
   static const String logout = '$auth/logout';
   static const String authStatus = '$auth/status';
   static const String changePassword = '$auth/change-password';
@@ -77,6 +77,7 @@ class ApiEndpoints {
   // Astrologer endpoints
   static const String astrologerProfile = '$astrologers/profile';
   static const String astrologerProfileSubmit = '$astrologers/profile/submit';
+  static const String astrologerDashboard = '$astrologers/dashboard';
   static const String astrologerOnlineStatus = '$astrologers/online-status';
   static const String astrologerWalletBalance = '$astrologers/wallet/balance';
   static const String astrologerWalletEarningsHistory = '$astrologers/wallet/earnings-history';

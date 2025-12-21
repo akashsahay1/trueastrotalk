@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
       {
         $match: {
           astrologer_id: astrologerId,
-          session_type: { $in: ['voice_call', 'video_call'] }
+          session_type: { $in: ['voice_call', 'video_call', 'video', 'voice', 'call'] }
         }
       },
       {
@@ -291,7 +291,7 @@ export async function GET(request: NextRequest) {
             today: todayChatSessions,
             active: activeChatSessions,
             completed: completedChatSessions,
-            avg_duration: avgSessionDuration[0]?.avgDuration || 0
+            avg_duration: avgSessionDuration
           },
           call_sessions: {
             total: totalCallSessions,
@@ -299,11 +299,11 @@ export async function GET(request: NextRequest) {
             active: activeCallSessions
           },
           earnings: {
-            total: totalEarnings[0]?.total || 0,
-            today: todayEarnings[0]?.total || 0,
-            this_week: thisWeekEarnings[0]?.total || 0,
-            this_month: thisMonthEarnings[0]?.total || 0,
-            last_month: lastMonthEarnings[0]?.total || 0,
+            total: totalEarnings,
+            today: todayEarnings,
+            this_week: thisWeekEarnings,
+            this_month: thisMonthEarnings,
+            last_month: lastMonthEarnings,
             monthly_change_percentage: monthlyEarningsChange
           },
           reviews: {

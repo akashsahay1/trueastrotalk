@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../../models/call.dart';
 import 'endpoints.dart';
 
@@ -76,7 +77,10 @@ class CallsApiService {
         },
       );
 
-      if (response.statusCode == 201 && response.data['success']) {
+      debugPrint('📞 Call API Response: status=${response.statusCode}, data=${response.data}');
+
+      // Handle both 200 (existing session) and 201 (new session)
+      if ((response.statusCode == 200 || response.statusCode == 201) && response.data['success'] == true) {
         final CallSession session = CallSession.fromJson(response.data['session']);
         return {
           'success': true,
@@ -85,17 +89,20 @@ class CallsApiService {
           'message': response.data['message'],
         };
       } else {
+        debugPrint('❌ Call API Error: ${response.data}');
         return {
           'success': false,
-          'error': response.data['error'] ?? 'Failed to create call session',
+          'error': response.data['error'] ?? response.data['message'] ?? 'Failed to create call session',
         };
       }
     } on DioException catch (e) {
+      debugPrint('❌ Call API DioException: ${e.message}, response: ${e.response?.data}');
       return {
         'success': false,
-        'error': _handleDioError(e),
+        'error': e.response?.data?['message'] ?? e.response?.data?['error'] ?? _handleDioError(e),
       };
     } catch (e) {
+      debugPrint('❌ Call API Unexpected error: $e');
       return {
         'success': false,
         'error': 'Unexpected error: $e',

@@ -99,11 +99,23 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
     }
   }
 
+  bool _isDisposed = false;
+
   @override
   void dispose() {
-    _otpController.dispose();
+    _isDisposed = true;
+    // Cancel timers first to prevent setState calls after dispose
     _countdownTimer?.cancel();
+    _countdownTimer = null;
     _resendTimer?.cancel();
+    _resendTimer = null;
+    // Safely dispose the controller
+    try {
+      _otpController.dispose();
+    } catch (e) {
+      // Controller may already be disposed by the framework
+      debugPrint('OTP controller dispose warning: $e');
+    }
     super.dispose();
   }
 
@@ -112,11 +124,17 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
     _remainingSeconds = 300;
 
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted || _isDisposed) {
+        timer.cancel();
+        return;
+      }
       if (_remainingSeconds > 0) {
         setState(() => _remainingSeconds--);
       } else {
         timer.cancel();
-        _showSnackBar('OTP expired. Please request a new one.', isError: true);
+        if (mounted && !_isDisposed) {
+          _showSnackBar('OTP expired. Please request a new one.', isError: true);
+        }
       }
     });
   }
@@ -124,9 +142,15 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
   void _startResendTimer() {
     _resendTimer?.cancel();
     _resendCooldown = 30;
-    setState(() => _canResend = false);
+    if (mounted && !_isDisposed) {
+      setState(() => _canResend = false);
+    }
 
     _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted || _isDisposed) {
+        timer.cancel();
+        return;
+      }
       if (_resendCooldown > 0) {
         setState(() => _resendCooldown--);
       } else {

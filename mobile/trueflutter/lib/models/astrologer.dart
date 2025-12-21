@@ -55,13 +55,13 @@ class Astrologer {
 
   factory Astrologer.fromJson(Map<String, dynamic> json) {
     return Astrologer(
-      id: json['id']!.toString(),
-      fullName: json['full_name']!.toString(),
-      emailAddress: json['email_address']!.toString(),
+      id: (json['id'] ?? json['user_id'] ?? json['_id'] ?? '').toString(),
+      fullName: (json['full_name'] ?? json['name'] ?? 'Unknown').toString(),
+      emailAddress: (json['email_address'] ?? json['email'] ?? '').toString(),
       phoneNumber: json['phone_number']?.toString(),
       profileImageId: json['profile_image_id']?.toString(),
       socialProfileImageUrl: json['social_profile_image_url']?.toString(),
-      profileImage: json['profile_image']?.toString(), // This will be the resolved URL from backend
+      profileImage: (json['profile_image'] ?? json['profile_image_url'])?.toString(),
       bio: json['bio']?.toString(),
       qualifications: _parseStringList(json['qualifications']),
       languages: _parseStringList(json['languages']),
@@ -70,16 +70,26 @@ class Astrologer {
       isOnline: _parseBool(json['is_online']),
       accountStatus: json['account_status']?.toString(),
       verificationStatus: _parseVerificationStatus(json),
-      isAvailable: _parseBool(json['is_available']),
+      isAvailable: _parseBool(json['is_available'], true), // Default to available
       rating: _parseDouble(json['rating']),
       totalReviews: _parseInt(json['total_reviews']),
       totalConsultations: _parseInt(json['total_consultations']),
       chatRate: _parseDouble(json['chat_rate']),
       callRate: _parseDouble(json['call_rate']),
       videoRate: _parseDouble(json['video_rate']),
-      createdAt: DateTime.parse(json['created_at']!.toString()),
-      updatedAt: DateTime.parse(json['updated_at']!.toString()),
+      createdAt: _parseDateTime(json['created_at']),
+      updatedAt: _parseDateTime(json['updated_at']),
     );
+  }
+
+  static DateTime _parseDateTime(dynamic value) {
+    if (value == null) return DateTime.now();
+    if (value is DateTime) return value;
+    try {
+      return DateTime.parse(value.toString());
+    } catch (e) {
+      return DateTime.now();
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -111,61 +121,63 @@ class Astrologer {
     };
   }
 
-  // Helper methods for safe type parsing
-  static double _parseDouble(dynamic value) {
-    if (value == null) throw Exception('Required double value is null');
+  // Helper methods for safe type parsing with defaults
+  static double _parseDouble(dynamic value, [double defaultValue = 0.0]) {
+    if (value == null) return defaultValue;
     if (value is double) return value;
     if (value is int) return value.toDouble();
     if (value is String) {
       final parsed = double.tryParse(value);
-      if (parsed == null) throw Exception('Invalid double value: $value');
-      return parsed;
+      return parsed ?? defaultValue;
     }
-    throw Exception('Cannot parse double from: $value');
+    return defaultValue;
   }
 
-  static int _parseInt(dynamic value) {
-    if (value == null) throw Exception('Required int value is null');
+  static int _parseInt(dynamic value, [int defaultValue = 0]) {
+    if (value == null) return defaultValue;
     if (value is int) return value;
     if (value is double) return value.toInt();
     if (value is String) {
       final parsed = int.tryParse(value);
-      if (parsed == null) throw Exception('Invalid int value: $value');
-      return parsed;
+      return parsed ?? defaultValue;
     }
-    throw Exception('Cannot parse int from: $value');
+    return defaultValue;
   }
 
-  static bool _parseBool(dynamic value) {
-    if (value == null) throw Exception('Required bool value is null');
+  static bool _parseBool(dynamic value, [bool defaultValue = false]) {
+    if (value == null) return defaultValue;
     if (value is bool) return value;
     if (value is String) {
       return value.toLowerCase() == 'true' || value == '1';
     }
     if (value is int) return value == 1;
-    throw Exception('Cannot parse bool from: $value');
+    return defaultValue;
   }
 
   static List<String> _parseStringList(dynamic value) {
-    if (value == null) throw Exception('Required string list value is null');
+    if (value == null) return [];
     if (value is List) {
-      return value.map((e) => e!.toString()).toList();
+      return value.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).toList();
     }
     if (value is String) {
       // Handle comma-separated string
-      if (value.isEmpty) throw Exception('String list cannot be empty');
+      if (value.isEmpty) return [];
       return value.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
     }
-    throw Exception('Cannot parse string list from: $value');
+    return [];
   }
 
   static VerificationStatus _parseVerificationStatus(Map<String, dynamic> json) {
-    // Parse verification_status field
+    // Parse verification_status field with fallback
     final explicitStatus = json['verification_status']?.toString();
     if (explicitStatus == null || explicitStatus.isEmpty) {
-      throw Exception('Required verification_status is missing');
+      return VerificationStatus.pending; // Default to pending
     }
-    return VerificationStatusExtension.fromString(explicitStatus);
+    try {
+      return VerificationStatusExtension.fromString(explicitStatus);
+    } catch (e) {
+      return VerificationStatus.pending;
+    }
   }
 
   // Helper getters

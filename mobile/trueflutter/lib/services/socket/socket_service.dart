@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 import '../../models/chat.dart';
@@ -29,25 +30,94 @@ class SocketService extends ChangeNotifier {
   static const int _heartbeatIntervalSeconds = 30; // Send heartbeat every 30 seconds
   
   // Stream controllers for real-time data
-  final StreamController<ChatMessage> _messageStreamController = 
+  final StreamController<ChatMessage> _messageStreamController =
       StreamController<ChatMessage>.broadcast();
-  final StreamController<ChatSession> _sessionUpdateStreamController = 
+  final StreamController<ChatSession> _sessionUpdateStreamController =
       StreamController<ChatSession>.broadcast();
-  final StreamController<bool> _connectionStreamController = 
+  final StreamController<bool> _connectionStreamController =
       StreamController<bool>.broadcast();
-  final StreamController<Map<String, dynamic>> _typingStreamController = 
+  final StreamController<Map<String, dynamic>> _typingStreamController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final StreamController<Map<String, dynamic>> _incomingCallStreamController =
       StreamController<Map<String, dynamic>>.broadcast();
 
   // Getters
   bool get isConnected => _isConnected;
   bool get isConnecting => _isConnecting;
   String? get currentChatSessionId => _currentChatSessionId;
+
+  /// Ensure socket is connected, with retry logic
+  /// Throws exception if connection fails after retries
+  Future<void> ensureConnected({int maxRetries = 3, Duration timeout = const Duration(seconds: 10)}) async {
+    if (_isConnected) return;
+
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        debugPrint('🔌 Connection attempt $attempt of $maxRetries');
+
+        if (!_isConnecting) {
+          await connect();
+        }
+
+        // Wait for connection with timeout
+        await waitForConnection(timeout: timeout);
+
+        if (_isConnected) {
+          debugPrint('✅ Socket connected on attempt $attempt');
+          return;
+        }
+      } catch (e) {
+        debugPrint('❌ Connection attempt $attempt failed: $e');
+        if (attempt == maxRetries) {
+          throw Exception('Failed to connect to server after $maxRetries attempts');
+        }
+        // Wait before retry
+        await Future.delayed(Duration(seconds: attempt));
+      }
+    }
+
+    throw Exception('Failed to establish socket connection');
+  }
+
+  /// Wait for socket connection with timeout
+  Future<void> waitForConnection({Duration timeout = const Duration(seconds: 10)}) async {
+    if (_isConnected) return;
+
+    final completer = Completer<void>();
+    Timer? timeoutTimer;
+    StreamSubscription<bool>? subscription;
+
+    timeoutTimer = Timer(timeout, () {
+      if (!completer.isCompleted) {
+        subscription?.cancel();
+        completer.completeError(TimeoutException('Socket connection timed out'));
+      }
+    });
+
+    subscription = connectionStream.listen((connected) {
+      if (connected && !completer.isCompleted) {
+        timeoutTimer?.cancel();
+        subscription?.cancel();
+        completer.complete();
+      }
+    });
+
+    // Check if already connected
+    if (_isConnected && !completer.isCompleted) {
+      timeoutTimer.cancel();
+      subscription.cancel();
+      return;
+    }
+
+    return completer.future;
+  }
   
   // Streams
   Stream<ChatMessage> get messageStream => _messageStreamController.stream;
   Stream<ChatSession> get sessionUpdateStream => _sessionUpdateStreamController.stream;
   Stream<bool> get connectionStream => _connectionStreamController.stream;
   Stream<Map<String, dynamic>> get typingStream => _typingStreamController.stream;
+  Stream<Map<String, dynamic>> get incomingCallStream => _incomingCallStreamController.stream;
 
   /// Initialize socket connection
   Future<void> connect({String? serverUrl}) async {
@@ -112,6 +182,18 @@ class SocketService extends ChangeNotifier {
       _isConnecting = false;
       _connectionStreamController.add(true);
       _startHeartbeat();
+
+      // CRITICAL: Emit authenticate event so backend joins user to their room
+      // Without this, user won't receive incoming_call or other targeted events
+      if (_currentUser != null) {
+        final userType = _currentUser!.role.value == 'astrologer' ? 'astrologer' : 'user';
+        debugPrint('🔐 Emitting authenticate event: userId=${_currentUser!.id}, userType=$userType');
+        _socket!.emit('authenticate', {
+          'userId': _currentUser!.id,
+          'userType': userType,
+        });
+      }
+
       notifyListeners();
     });
     
@@ -172,7 +254,14 @@ class SocketService extends ChangeNotifier {
     
     // WebRTC Call events
     _socket!.on('incoming_call', (data) {
-      debugPrint('📞 Incoming call: $data');
+      debugPrint('📞 [SOCKET] Incoming call received: $data');
+      try {
+        final callData = Map<String, dynamic>.from(data);
+        _incomingCallStreamController.add(callData);
+        debugPrint('📞 [SOCKET] Incoming call pushed to stream');
+      } catch (e) {
+        debugPrint('❌ [SOCKET] Error handling incoming call: $e');
+      }
     });
     
     _socket!.on('call_initiated', (data) {

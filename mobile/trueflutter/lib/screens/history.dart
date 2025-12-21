@@ -20,40 +20,67 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
   late TabController _tabController;
   late final AuthService _authService;
   late final UserApiService _userApiService;
-  
+
   List<ConsultationHistory> _allHistory = [];
   List<ConsultationHistory> _callHistory = [];
+  List<ConsultationHistory> _videoHistory = [];
+  List<ConsultationHistory> _audioHistory = [];
   List<ConsultationHistory> _chatHistory = [];
   bool _isLoading = true;
+  bool _isAstrologer = false;
+
+  // Sorting and search options
+  String _sortBy = 'date_desc'; // date_desc, date_asc, amount_desc, amount_asc
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(
-      length: 3, 
-      vsync: this, 
-      initialIndex: widget.initialTabIndex ?? 0,
-    );
     _authService = getIt<AuthService>();
     _userApiService = getIt<UserApiService>();
+    _isAstrologer = _authService.currentUser?.isAstrologer == true;
+
+    // Astrologers get 4 tabs (All, Video, Audio, Chat), Customers get 3 tabs (All, Calls, Chats)
+    _tabController = TabController(
+      length: _isAstrologer ? 4 : 3,
+      vsync: this,
+      initialIndex: widget.initialTabIndex ?? 0,
+    );
     _loadConsultationHistory();
   }
 
   Future<void> _loadConsultationHistory() async {
     try {
+      final currentUser = _authService.currentUser;
       final token = _authService.authToken;
+
       if (token == null) {
         throw Exception('No access token available');
       }
 
-      final historyData = await _userApiService.getConsultationHistory(token);
+      Map<String, dynamic> historyData;
+
+      // Call appropriate API based on user type
+      if (currentUser?.isAstrologer == true) {
+        debugPrint('📋 Loading astrologer consultations...');
+        historyData = await _userApiService.getAstrologerConsultations();
+      } else {
+        debugPrint('📋 Loading customer consultation history...');
+        historyData = await _userApiService.getConsultationHistory(token);
+      }
+
       final consultations = (historyData['consultations'] as List<dynamic>?)
           ?.map((json) => ConsultationHistory.fromJson(json))
           .toList() ?? [];
 
+      debugPrint('📋 Loaded ${consultations.length} consultations');
+
       setState(() {
         _allHistory = consultations;
-        _callHistory = consultations.where((c) => c.type == ConsultationType.call).toList();
+        _callHistory = consultations.where((c) => c.type == ConsultationType.call || c.type == ConsultationType.video).toList();
+        _videoHistory = consultations.where((c) => c.type == ConsultationType.video).toList();
+        _audioHistory = consultations.where((c) => c.type == ConsultationType.call).toList();
         _chatHistory = consultations.where((c) => c.type == ConsultationType.chat).toList();
         _isLoading = false;
       });
@@ -68,6 +95,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -80,26 +108,137 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.white,
         elevation: 0,
+        actions: [
+          // Search button
+          IconButton(
+            icon: const Icon(Icons.search, color: AppColors.white),
+            tooltip: 'Search',
+            onPressed: () => _showSearchDialog(),
+          ),
+          // Sort button
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.sort, color: AppColors.white),
+            tooltip: 'Sort',
+            onSelected: (value) {
+              setState(() {
+                _sortBy = value;
+              });
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'date_desc',
+                child: Row(
+                  children: [
+                    Icon(Icons.arrow_downward, size: 18, color: _sortBy == 'date_desc' ? AppColors.primary : null),
+                    const SizedBox(width: 8),
+                    const Text('Newest First'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'date_asc',
+                child: Row(
+                  children: [
+                    Icon(Icons.arrow_upward, size: 18, color: _sortBy == 'date_asc' ? AppColors.primary : null),
+                    const SizedBox(width: 8),
+                    const Text('Oldest First'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'amount_desc',
+                child: Row(
+                  children: [
+                    Icon(Icons.attach_money, size: 18, color: _sortBy == 'amount_desc' ? AppColors.primary : null),
+                    const SizedBox(width: 8),
+                    const Text('Highest Amount'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'amount_asc',
+                child: Row(
+                  children: [
+                    Icon(Icons.money_off, size: 18, color: _sortBy == 'amount_asc' ? AppColors.primary : null),
+                    const SizedBox(width: 8),
+                    const Text('Lowest Amount'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: AppColors.white,
           labelColor: AppColors.white,
           unselectedLabelColor: AppColors.white.withValues(alpha: 0.7),
-          tabs: const [
-            Tab(text: 'All'),
-            Tab(text: 'Calls'),
-            Tab(text: 'Chats'),
-          ],
+          isScrollable: _isAstrologer, // Scrollable for 4 tabs
+          tabs: _isAstrologer
+              ? const [
+                  Tab(text: 'All'),
+                  Tab(text: 'Video'),
+                  Tab(text: 'Audio'),
+                  Tab(text: 'Chat'),
+                ]
+              : const [
+                  Tab(text: 'All'),
+                  Tab(text: 'Calls'),
+                  Tab(text: 'Chats'),
+                ],
         ),
       ),
-      body: _isLoading 
+      body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
+          : Column(
               children: [
-                _buildAllHistory(),
-                _buildHistory(_callHistory, 'No call consultations yet'),
-                _buildHistory(_chatHistory, 'No chat consultations yet'),
+                // Search filter indicator
+                if (_searchQuery.isNotEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.search, size: 16, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Searching: "$_searchQuery"',
+                            style: AppTextStyles.bodySmall.copyWith(color: AppColors.primary),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _searchQuery = '';
+                              _searchController.clear();
+                            });
+                          },
+                          child: const Icon(Icons.close, size: 18, color: AppColors.primary),
+                        ),
+                      ],
+                    ),
+                  ),
+                // Tab content
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: _isAstrologer
+                        ? [
+                            _buildAllHistory(),
+                            _buildHistory(_videoHistory, 'No video consultations yet'),
+                            _buildHistory(_audioHistory, 'No audio consultations yet'),
+                            _buildHistory(_chatHistory, 'No chat consultations yet'),
+                          ]
+                        : [
+                            _buildAllHistory(),
+                            _buildHistory(_callHistory, 'No call consultations yet'),
+                            _buildHistory(_chatHistory, 'No chat consultations yet'),
+                          ],
+                  ),
+                ),
               ],
             ),
     );
@@ -107,21 +246,55 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
 
   Widget _buildAllHistory() {
     final allHistory = List<ConsultationHistory>.from(_allHistory);
-    allHistory.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    
+    _sortList(allHistory);
     return _buildHistory(allHistory, 'No consultations yet');
   }
 
+  void _sortList(List<ConsultationHistory> list) {
+    switch (_sortBy) {
+      case 'date_desc':
+        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+      case 'date_asc':
+        list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        break;
+      case 'amount_desc':
+        list.sort((a, b) => b.amount.compareTo(a.amount));
+        break;
+      case 'amount_asc':
+        list.sort((a, b) => a.amount.compareTo(b.amount));
+        break;
+    }
+  }
+
   Widget _buildHistory(List<ConsultationHistory> history, String emptyMessage) {
-    if (history.isEmpty) {
+    // Apply search filter
+    var filteredHistory = history;
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      filteredHistory = history.where((c) {
+        return c.astrologerName.toLowerCase().contains(query) ||
+               (c.clientPhone?.toLowerCase().contains(query) ?? false) ||
+               (c.clientEmail?.toLowerCase().contains(query) ?? false);
+      }).toList();
+    }
+
+    if (filteredHistory.isEmpty) {
+      if (_searchQuery.isNotEmpty) {
+        return _buildEmptyState('No results for "$_searchQuery"');
+      }
       return _buildEmptyState(emptyMessage);
     }
 
+    // Apply sorting to a copy
+    final sortedHistory = List<ConsultationHistory>.from(filteredHistory);
+    _sortList(sortedHistory);
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: history.length,
+      itemCount: sortedHistory.length,
       itemBuilder: (context, index) {
-        final consultation = history[index];
+        final consultation = sortedHistory[index];
         return _buildHistoryCard(consultation);
       },
     );
@@ -163,14 +336,12 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: consultation.type == ConsultationType.call
-                        ? AppColors.primary.withValues(alpha: 0.1)
-                        : AppColors.success.withValues(alpha: 0.1),
+                    color: _getConsultationColor(consultation.type).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    consultation.type == ConsultationType.call ? Icons.call : Icons.chat,
-                    color: consultation.type == ConsultationType.call ? AppColors.primary : AppColors.success,
+                    _getConsultationIcon(consultation.type),
+                    color: _getConsultationColor(consultation.type),
                     size: 20,
                   ),
                 ),
@@ -267,20 +438,23 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                       child: const Text('View Details'),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _consultAgain(consultation),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: AppColors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                  // Only show "Consult Again" for customers, not astrologers
+                  if (_authService.currentUser?.isAstrologer != true) ...[
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => _consultAgain(consultation),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: AppColors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
+                        child: const Text('Consult Again'),
                       ),
-                      child: const Text('Consult Again'),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ],
@@ -345,20 +519,326 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
   }
 
   void _viewDetails(ConsultationHistory consultation) {
-    // Navigate to consultation details
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Viewing details for ${consultation.astrologerName}')),
+    // Show consultation details in a bottom sheet
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => _buildDetailsBottomSheet(consultation),
     );
+  }
+
+  Widget _buildDetailsBottomSheet(ConsultationHistory consultation) {
+    final isAstrologer = _authService.currentUser?.isAstrologer == true;
+    final platformCommission = consultation.amount * 0.20; // 20% platform fee
+    final astrologerEarnings = consultation.amount * 0.80; // 80% to astrologer
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _getConsultationColor(consultation.type).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _getConsultationIcon(consultation.type),
+                  color: _getConsultationColor(consultation.type),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Consultation Details',
+                      style: AppTextStyles.heading5,
+                    ),
+                    Text(
+                      consultation.type.name.toUpperCase(),
+                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          const Divider(),
+          const SizedBox(height: 16),
+
+          // Show different labels based on user type
+          _buildDetailRow(
+            isAstrologer ? 'Client' : 'Astrologer',
+            consultation.astrologerName,
+          ),
+          _buildDetailRow('Duration', consultation.duration),
+          _buildDetailRow('Date', _formatDate(consultation.createdAt)),
+          _buildDetailRow('Status', consultation.status.name.toUpperCase()),
+
+          const SizedBox(height: 8),
+          const Divider(),
+          const SizedBox(height: 8),
+
+          // Payment breakdown
+          Text(
+            'Payment Details',
+            style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          _buildDetailRow('Total Amount', '₹${consultation.amount.toStringAsFixed(0)}'),
+          _buildDetailRow('Platform Fee (20%)', '₹${platformCommission.toStringAsFixed(0)}'),
+          if (isAstrologer) ...[
+            _buildDetailRow(
+              'Your Earnings (80%)',
+              '₹${astrologerEarnings.toStringAsFixed(0)}',
+              valueColor: AppColors.success,
+            ),
+          ] else ...[
+            _buildDetailRow(
+              'Astrologer Received',
+              '₹${astrologerEarnings.toStringAsFixed(0)}',
+            ),
+          ],
+
+          if (consultation.rating != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Text(
+                  'Your Rating: ',
+                  style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                ),
+                Row(
+                  children: List.generate(5, (index) {
+                    return Icon(
+                      index < consultation.rating!.floor() ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                      size: 20,
+                    );
+                  }),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  consultation.rating!.toStringAsFixed(1),
+                  style: AppTextStyles.bodyMedium,
+                ),
+              ],
+            ),
+          ],
+
+          if (consultation.review != null && consultation.review!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              'Your Review',
+              style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              consultation.review!,
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+            ),
+          ],
+
+          const SizedBox(height: 24),
+
+          // Action button - only show "Consult Again" for customers
+          if (!isAstrologer) ...[
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _consultAgain(consultation);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Consult Again'),
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, {Color? valueColor}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+          ),
+          Text(
+            value,
+            style: AppTextStyles.bodyMedium.copyWith(
+              fontWeight: FontWeight.w600,
+              color: valueColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getConsultationIcon(ConsultationType type) {
+    switch (type) {
+      case ConsultationType.call:
+        return Icons.call;
+      case ConsultationType.video:
+        return Icons.videocam;
+      case ConsultationType.chat:
+        return Icons.chat;
+    }
+  }
+
+  Color _getConsultationColor(ConsultationType type) {
+    switch (type) {
+      case ConsultationType.call:
+        return AppColors.primary;
+      case ConsultationType.video:
+        return Colors.purple;
+      case ConsultationType.chat:
+        return AppColors.success;
+    }
   }
 
   void _consultAgain(ConsultationHistory consultation) {
     // Navigate to astrologer details page
+    if (consultation.astrologerId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Astrologer information not available')),
+      );
+      return;
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => AstrologerDetailsScreen(
           astrologerId: consultation.astrologerId,
         ),
+      ),
+    );
+  }
+
+  void _showSearchDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.search, color: AppColors.primary),
+            const SizedBox(width: 8),
+            const Text('Search Consultations'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _searchController,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: _isAstrologer
+                    ? 'Search by client name, phone, or email'
+                    : 'Search by astrologer name',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchQuery = '';
+                          });
+                          Navigator.pop(context);
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onChanged: (value) {
+                // Update UI in dialog
+                (context as Element).markNeedsBuild();
+              },
+            ),
+            if (_searchQuery.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Text(
+                    'Current filter: ',
+                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                  ),
+                  Chip(
+                    label: Text(_searchQuery),
+                    onDeleted: () {
+                      _searchController.clear();
+                      setState(() {
+                        _searchQuery = '';
+                      });
+                      Navigator.pop(context);
+                    },
+                    deleteIcon: const Icon(Icons.close, size: 16),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _searchController.clear();
+              setState(() {
+                _searchQuery = '';
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Clear'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _searchQuery = _searchController.text.trim();
+              });
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.white,
+            ),
+            child: const Text('Search'),
+          ),
+        ],
       ),
     );
   }

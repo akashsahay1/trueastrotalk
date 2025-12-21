@@ -257,6 +257,15 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         debugPrint('   - callerId: "$callerId"');
         debugPrint('   - sessionId: "$sessionId"');
         debugPrint('   - callType: "$callType"');
+
+        // CRITICAL: Filter out incoming calls where we are the caller
+        // This prevents the caller from seeing their own incoming call
+        final currentUserId = _currentUser?.id;
+        debugPrint('📞 Current user ID: $currentUserId');
+        if (callerId != null && callerId == currentUserId) {
+          debugPrint('📞 Ignoring incoming_call - we are the caller');
+          return;
+        }
       }
 
       _showIncomingCallDialog(data);
@@ -410,18 +419,36 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   Future<void> _loadAstrologerDashboard() async {
     debugPrint('📱 Loading astrologer dashboard...');
 
-    // Set data from current user (no API call needed since /astrologers/profile doesn't exist yet)
-    setState(() {
-      _totalConsultations = _currentUser?.totalConsultations ?? 0;
-      _totalEarnings = _currentUser?.totalEarnings ?? 0.0;
-      _todaysConsultations = 0;
-      _todaysEarnings = 0.0;
-      _isLoadingDashboard = false;
-    });
+    try {
+      final result = await _userApiService.getAstrologerDashboard();
 
-    debugPrint(
-      '📱 Dashboard loaded with user data (API endpoint not yet implemented)',
-    );
+      if (result['success'] == true) {
+        setState(() {
+          _todaysConsultations = result['today_consultations'] ?? 0;
+          _totalConsultations = result['total_consultations'] ?? 0;
+          _todaysEarnings = (result['today_earnings'] ?? 0.0).toDouble();
+          _totalEarnings = (result['total_earnings'] ?? 0.0).toDouble();
+          _isLoadingDashboard = false;
+        });
+
+        debugPrint('📱 Dashboard loaded: $_todaysConsultations today, $_totalConsultations total, ₹$_todaysEarnings today, ₹$_totalEarnings total');
+      } else {
+        debugPrint('⚠️ Dashboard API returned success=false');
+        setState(() {
+          _isLoadingDashboard = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to load dashboard: $e');
+      // Fall back to user data if API fails
+      setState(() {
+        _totalConsultations = _currentUser?.totalConsultations ?? 0;
+        _totalEarnings = _currentUser?.totalEarnings ?? 0.0;
+        _todaysConsultations = 0;
+        _todaysEarnings = 0.0;
+        _isLoadingDashboard = false;
+      });
+    }
   }
 
   Future<void> _loadFeaturedAstrologers() async {
@@ -1797,27 +1824,19 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
         throw Exception('User not authenticated. Please log in again.');
       }
 
-      // Generate session ID for this call
-      final sessionId = 'call-${DateTime.now().millisecondsSinceEpoch}';
-
       // Debug log the caller information
       debugPrint('📞 Initiating call with caller info:');
       debugPrint('   - userId: ${_currentUser!.id}');
       debugPrint('   - callerName: "${_currentUser!.name}"');
       debugPrint('   - astrologerId: ${astrologer.id}');
+      debugPrint('   - callType: ${callType.name}');
 
-      // Initiate call via Socket.IO only (WebRTC will be handled in ActiveCallScreen)
-      _socketService.emit('initiate_call', {
-        'callType': callType == CallType.video ? 'video' : 'voice',
-        'sessionId': sessionId,
-        'astrologerId': astrologer.id,
-        'userId': _currentUser!.id,
-        'callerName': _currentUser!.name,
-        'callerType': 'customer',
-      });
+      // Create call session via REST API and emit socket event through CallService
+      // This ensures proper backend session creation and notification delivery
+      final session = await _callService.startCallSession(astrologer.id, callType);
 
       debugPrint(
-        '📞 Call initiated with ${astrologer.fullName}, sessionId: $sessionId',
+        '📞 Call session created with ${astrologer.fullName}, sessionId: ${session.id}',
       );
 
       if (mounted) {
@@ -1825,15 +1844,15 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           MaterialPageRoute(
             builder: (context) => ActiveCallScreen(
               callData: {
-                'sessionId': sessionId,
-                'callId': sessionId,
+                'sessionId': session.id,
+                'callId': session.id,
                 'callType': callType == CallType.video ? 'video' : 'voice',
                 'receiverId': astrologer.id,
                 'receiverName': astrologer.fullName,
                 'receiverProfileImage': astrologer.profileImage,
                 'callerId': _currentUser?.id,
-                'callerName': _currentUser?.name ?? 'You', // Better fallback
-                'astrologer': astrologer.toJson(), // Pass full astrologer data
+                'callerName': _currentUser?.name ?? 'You',
+                'astrologer': astrologer.toJson(),
               },
               isIncoming: false,
             ),
