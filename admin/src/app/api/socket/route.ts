@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
           _id: new ObjectId(),
           type: 'incoming_call',
           recipient_id: receiver_id,
-          recipient_type: caller_type === 'user' ? 'astrologer' : 'user',
+          recipient_type: caller_type === 'customer' ? 'astrologer' : 'customer',
           title: 'Incoming Call',
           message: `You have an incoming ${(data as Record<string, unknown>).call_type || 'voice'} call`,
           data: {

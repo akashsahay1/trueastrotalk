@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
@@ -32,11 +33,12 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _messageFocusNode = FocusNode();
-  
+
   late AnimationController _typingAnimationController;
   bool _isTyping = false;
   bool _otherUserTyping = false;
   List<ChatMessage> _messages = [];
+  StreamSubscription<Map<String, dynamic>>? _chatEndedSubscription;
   
   @override
   void initState() {
@@ -53,6 +55,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _chatEndedSubscription?.cancel();
     _typingAnimationController.dispose();
     _messageController.dispose();
     _scrollController.dispose();
@@ -64,8 +67,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   Future<void> _initializeChat() async {
     try {
-      // Join the chat session
-      await _chatService.joinChatSession(widget.chatSession.id);
+      // Join the chat session (pass the session in case it's not in local list)
+      await _chatService.joinChatSession(widget.chatSession.id, session: widget.chatSession);
       
       // Load messages
       _messages = _chatService.getMessagesForSession(widget.chatSession.id);
@@ -114,6 +117,54 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     
     // Listen to chat service updates
     _chatService.addListener(_onChatServiceUpdate);
+
+    // Listen for chat ended event (when astrologer or other party ends the chat)
+    _chatEndedSubscription = _socketService.chatEndedStream.listen((data) {
+      final sessionId = data['sessionId']?.toString();
+      if (sessionId == widget.chatSession.id && mounted) {
+        _handleChatEndedByOther(data);
+      }
+    });
+  }
+
+  void _handleChatEndedByOther(Map<String, dynamic> data) {
+    debugPrint('🔚 Chat ended by other party: $data');
+
+    // Stop billing
+    _billingService.stopBilling();
+
+    // Show dialog with session summary
+    final durationMinutes = data['durationMinutes'] ?? 0;
+    final totalAmount = data['totalAmount'] ?? 0;
+
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: const Text('Chat Ended'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('This chat session has ended.'),
+              const SizedBox(height: 16),
+              Text('Duration: $durationMinutes minutes'),
+              Text('Total: ₹$totalAmount'),
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
+                Navigator.pop(context); // Go back from chat screen
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   void _onChatServiceUpdate() {
@@ -165,8 +216,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       final success = await _billingService.startChatBilling(
         sessionId: widget.chatSession.id,
         astrologer: widget.chatSession.astrologer,
+        userId: widget.chatSession.user.id,
       );
-      
+
       if (!success) {
         _handleInsufficientBalance();
       }

@@ -7,7 +7,8 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
-    const userType = searchParams.get('userType') || 'user'; // 'user' or 'astrologer'
+    // Use 'customer' as default - 'user' or 'astrologer' also accepted for backward compatibility
+    const userType = searchParams.get('userType') || 'customer';
     const status = searchParams.get('status');
     const limit = parseInt(searchParams.get('limit') || '20');
     const page = parseInt(searchParams.get('page') || '1');
@@ -28,7 +29,8 @@ export async function GET(request: NextRequest) {
     const query: Record<string, unknown> = {
       session_type: { $in: ['voice_call', 'video_call'] } // Only get call sessions from unified collection
     };
-    if (userType === 'user') {
+    const isCustomer = userType === 'customer';
+    if (isCustomer) {
       query.user_id = userId;
     } else {
       query.astrologer_id = userId;

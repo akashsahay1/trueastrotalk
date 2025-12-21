@@ -317,9 +317,13 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
     _socketService.on('chat_initiated', (data) {
       debugPrint('💬 Chat initiated: $data');
       if (data is Map && mounted) {
-        final status = data['status'];
-        final astrologerName = data['astrologerName'] ?? 'The astrologer';
-        if (status == 'ringing') {
+        final chatData = Map<String, dynamic>.from(data);
+        final status = chatData['status'];
+        final sessionId = chatData['sessionId'] as String?;
+        final astrologerName = chatData['astrologerName'] ?? 'The astrologer';
+
+        if (status == 'ringing' || status == 'pending') {
+          // New chat request - waiting for astrologer to accept
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Waiting for $astrologerName to accept...'),
@@ -327,6 +331,17 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
               duration: const Duration(seconds: 30),
             ),
           );
+        } else if (status == 'active' && sessionId != null) {
+          // Session already exists and is active - navigate directly to chat
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Resuming existing chat session...'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+          _navigateToChatScreen(sessionId, chatData);
         }
       }
     });
@@ -366,6 +381,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   // Navigate to chat screen after chat is accepted
   void _navigateToChatScreen(String sessionId, Map<String, dynamic> data) async {
     try {
+      debugPrint('💬 Navigating to chat: sessionId=$sessionId');
       final chatService = getIt<ChatService>();
       await chatService.initialize();
 
@@ -374,9 +390,14 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
 
       // Find the session and navigate
       final sessions = chatService.chatSessions;
+      debugPrint('💬 Loaded ${sessions.length} sessions, looking for: $sessionId');
+      for (final s in sessions) {
+        debugPrint('💬   Session: id=${s.id}, status=${s.status}');
+      }
+
       final session = sessions.firstWhere(
         (s) => s.id == sessionId,
-        orElse: () => throw Exception('Session not found'),
+        orElse: () => throw Exception('Session not found: $sessionId'),
       );
 
       if (mounted) {

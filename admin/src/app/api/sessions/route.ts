@@ -270,11 +270,12 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Verify user is either a customer or astrologer (only they can update billing)
-    if (payload.user_type !== 'customer' && payload.user_type !== 'astrologer') {
-      return NextResponse.json({ 
+    const userType = payload.user_type;
+    if (userType !== 'customer' && userType !== 'astrologer') {
+      return NextResponse.json({
         success: false,
         error: 'Forbidden',
-        message: 'Access denied. Valid user account required.' 
+        message: 'Access denied. Valid user account required.'
       }, { status: 403 });
     }
 
@@ -294,30 +295,51 @@ export async function PATCH(request: NextRequest) {
     const usersCollection = await DatabaseService.getCollection('users');
 
     // Get the session to find the user_id (customer who should be charged)
-    const session = await sessionsCollection.findOne({ 
-      session_id: sessionId, 
-      session_type: sessionType 
-    });
+    // Try to find by _id first (mobile app sends _id), then by session_id
+    let session = null;
+
+    // Try finding by _id (ObjectId)
+    try {
+      const { ObjectId } = await import('mongodb');
+      if (ObjectId.isValid(sessionId)) {
+        session = await sessionsCollection.findOne({
+          _id: new ObjectId(sessionId),
+          session_type: sessionType
+        });
+      }
+    } catch (_e) {
+      // Not a valid ObjectId, try session_id
+    }
+
+    // If not found by _id, try session_id field
+    if (!session) {
+      session = await sessionsCollection.findOne({
+        session_id: sessionId,
+        session_type: sessionType
+      });
+    }
 
     if (!session) {
-      // Show available sessions to help debug
-      const _availableSessions = await sessionsCollection.find(
-        { session_id: sessionId }, // Search by just session_id to see if it exists with different type
-        { projection: { session_id: 1, session_type: 1, status: 1 } }
-      ).toArray();
+      console.log(`❌ [BILLING] Session not found: ${sessionId} with type ${sessionType}`);
       return NextResponse.json({
         success: false,
-        error: `Session not found: ${sessionId} with type ${sessionType}` 
+        error: `Session not found: ${sessionId} with type ${sessionType}`
       }, { status: 404 });
     }
 
-    // Only allow the customer (user) to update their own session billing
+    // Get user ID from JWT payload (handle both field naming conventions)
+    const requestUserId = (payload.userId || payload.user_id) as string;
+    console.log(`💰 [BILLING] Found session: ${session._id}, user_id: ${session.user_id}, request userId: ${requestUserId}`);
+
+    // Only allow the customer to update their own session billing
     // or allow astrologers to update sessions where they are the provider
-    if (payload.user_type === 'customer' && session.user_id !== payload.userId) {
-      return NextResponse.json({ 
+    const isCustomer = userType === 'customer';
+    if (isCustomer && session.user_id !== requestUserId) {
+      console.log(`❌ [BILLING] Access denied: session.user_id=${session.user_id} !== requestUserId=${requestUserId}`);
+      return NextResponse.json({
         success: false,
         error: 'Forbidden',
-        message: 'You can only update your own sessions' 
+        message: 'You can only update your own sessions'
       }, { status: 403 });
     }
 
@@ -478,7 +500,7 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    // Update session billing information
+    // Update session billing information using _id for consistency
     const updateQuery = {
       $set: {
         duration_minutes: durationMinutes,
@@ -489,9 +511,10 @@ export async function PATCH(request: NextRequest) {
     };
 
     await sessionsCollection.updateOne(
-      { session_id: sessionId, session_type: sessionType },
+      { _id: session._id },
       updateQuery
     );
+    console.log(`✅ [BILLING] Session updated: ${session._id}`);
     return NextResponse.json({
       success: true,
       message: 'Session billing updated successfully',

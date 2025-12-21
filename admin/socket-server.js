@@ -267,7 +267,7 @@ async function handleSendMessage(socket, data) {
       content: content || '',
       image_url: imageUrl,
       voice_url: voiceUrl,
-      read_by_user: senderType === 'user',
+      read_by_user: senderType === 'customer',
       read_by_astrologer: senderType === 'astrologer',
       timestamp: new Date(),
       created_at: new Date()
@@ -284,7 +284,7 @@ async function handleSendMessage(socket, data) {
           last_message_time: new Date(),
           updated_at: new Date()
         },
-        $inc: senderType === 'user'
+        $inc: senderType === 'customer'
           ? { astrologer_unread_count: 1 }
           : { user_unread_count: 1 }
       }
@@ -302,7 +302,7 @@ async function handleSendMessage(socket, data) {
     io.to(`chat_${sessionId}`).emit('new_message', formattedMessage);
     
     // Also send to user rooms for notifications
-    const receiverId = senderType === 'user' ? session.astrologer_id : session.user_id;
+    const receiverId = senderType === 'customer' ? session.astrologer_id : session.user_id;
     io.to(`user_${receiverId}`).emit('message_notification', {
       sessionId,
       message: formattedMessage
@@ -348,7 +348,7 @@ async function handleMarkMessagesRead(socket, data) {
     const { client, db } = await getDbConnection();
     
     // Update read status
-    const updateField = userType === 'user' ? 'read_by_user' : 'read_by_astrologer';
+    const updateField = userType === 'customer' ? 'read_by_user' : 'read_by_astrologer';
     await db.collection('chat_messages').updateMany(
       { 
         _id: { $in: messageIds.map(id => new ObjectId(id)) },
@@ -358,7 +358,7 @@ async function handleMarkMessagesRead(socket, data) {
     );
     
     // Reset unread count in unified sessions collection
-    const unreadField = userType === 'user' ? 'user_unread_count' : 'astrologer_unread_count';
+    const unreadField = userType === 'customer' ? 'user_unread_count' : 'astrologer_unread_count';
     await db.collection('sessions').updateOne(
       { _id: new ObjectId(sessionId), session_type: 'chat' },
       { $set: { [unreadField]: 0 } }

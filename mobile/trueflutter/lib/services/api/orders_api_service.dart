@@ -12,7 +12,7 @@ class OrdersApiService {
   // Get user's orders
   Future<Map<String, dynamic>> getOrders({
     required String userId,
-    String userType = 'user',
+    String userType = 'customer',
     String? status,
     int limit = 20,
     int page = 1,

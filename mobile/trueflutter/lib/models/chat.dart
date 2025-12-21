@@ -70,7 +70,7 @@ class ChatSession {
 
   factory ChatSession.fromJson(Map<String, dynamic> json) {
     return ChatSession(
-      id: json['id']?.toString() ?? '',
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? json['session_id']?.toString() ?? '',
       user: User.fromJson(json['user'] ?? {}),
       astrologer: Astrologer.fromJson(json['astrologer'] ?? {}),
       status: _parseChatStatus(json['status']),
@@ -214,7 +214,7 @@ class ChatMessage {
       chatSessionId: json['chat_session_id']?.toString() ?? '',
       senderId: json['sender_id']?.toString() ?? '',
       senderName: json['sender_name']?.toString() ?? '',
-      senderType: json['sender_type']?.toString() ?? 'user',
+      senderType: json['sender_type']?.toString() ?? 'customer',
       type: _parseMessageType(json['type']),
       content: json['content']?.toString() ?? '',
       imageUrl: json['image_url']?.toString(),
@@ -260,7 +260,7 @@ class ChatMessage {
   String get formattedDate => DateFormat('dd MMM yyyy').format(timestamp);
   String get formattedDateTime => DateFormat('dd MMM yyyy, HH:mm').format(timestamp);
   
-  bool get isFromUser => senderType.toLowerCase() == 'user';
+  bool get isFromUser => senderType.toLowerCase() == 'customer';
   bool get isFromAstrologer => senderType.toLowerCase() == 'astrologer';
   bool get isSystemMessage => type == MessageType.system;
   bool get hasImage => imageUrl != null && imageUrl!.isNotEmpty;

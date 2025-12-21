@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../../models/chat.dart';
+import '../../models/enums.dart';
 import '../api/chat_api_service.dart';
 import '../auth/auth_service.dart';
 import '../socket/socket_service.dart';
@@ -53,11 +54,60 @@ class ChatService extends ChangeNotifier {
     _socketService.messageStream.listen((message) {
       _handleNewMessage(message);
     });
-    
+
     // Listen for session updates
     _socketService.sessionUpdateStream.listen((session) {
       _handleSessionUpdate(session);
     });
+
+    // Listen for incoming chat requests (for astrologers)
+    _socketService.incomingChatStream.listen((data) {
+      _handleIncomingChat(data);
+    });
+
+    // Listen for chat accepted (for customers)
+    _socketService.chatAcceptedStream.listen((data) {
+      _handleChatAccepted(data);
+    });
+
+    // Listen for chat rejected (for customers)
+    _socketService.chatRejectedStream.listen((data) {
+      _handleChatRejected(data);
+    });
+  }
+
+  /// Handle incoming chat request (for astrologers)
+  void _handleIncomingChat(Map<String, dynamic> data) {
+    debugPrint('💬 Handling incoming chat: $data');
+    // This will be handled by the notification service to show incoming chat UI
+    notifyListeners();
+  }
+
+  /// Handle chat accepted (for customers)
+  void _handleChatAccepted(Map<String, dynamic> data) {
+    debugPrint('✅ Chat accepted: $data');
+    final sessionId = data['sessionId']?.toString();
+    if (sessionId != null && _activeChatSession?.id == sessionId) {
+      // Update session status if needed
+      notifyListeners();
+    }
+  }
+
+  /// Handle chat rejected (for customers)
+  void _handleChatRejected(Map<String, dynamic> data) {
+    debugPrint('❌ Chat rejected: $data');
+    final sessionId = data['sessionId']?.toString();
+    if (sessionId != null) {
+      // Update session status
+      final index = _chatSessions.indexWhere((s) => s.id == sessionId);
+      if (index != -1) {
+        // Session was rejected, remove from active
+        if (_activeChatSession?.id == sessionId) {
+          _activeChatSession = null;
+        }
+      }
+      notifyListeners();
+    }
   }
 
   /// Handle new incoming message
@@ -116,9 +166,12 @@ class ChatService extends ChangeNotifier {
         return;
       }
 
+      // Use actual user role instead of hardcoded value
+      final authService = getIt<AuthService>();
+      final userType = authService.currentUser?.role.value ?? 'customer';
       final result = await _chatApiService.getChatSessions(
         userId: userId,
-        userType: 'user',
+        userType: userType,
       );
       
       if (result['success']) {
@@ -138,6 +191,7 @@ class ChatService extends ChangeNotifier {
   }
 
   /// Start a new chat session with an astrologer
+  /// This initiates a chat request that the astrologer must accept
   Future<ChatSession> startChatSession(String astrologerId) async {
     try {
       debugPrint('🎯 Starting chat session with astrologer: $astrologerId');
@@ -153,6 +207,7 @@ class ChatService extends ChangeNotifier {
         throw Exception('User not logged in');
       }
 
+      // First, create the session via API (validates wallet balance, astrologer availability, etc.)
       final result = await _chatApiService.createChatSession(
         userId: userId,
         astrologerId: astrologerId,
@@ -160,19 +215,17 @@ class ChatService extends ChangeNotifier {
 
       if (result['success']) {
         final session = result['session'] as ChatSession;
+        debugPrint('💬 [CHAT] Session created successfully: ${session.id}');
 
         // Add to sessions list
         _chatSessions.insert(0, session);
         _activeChatSession = session;
 
-        // Join socket room
-        await _socketService.joinChatSession(session.id);
-
-        // Send welcome system message
-        await _socketService.sendMessage(
-          session.id,
-          'Chat session started with astrologer',
-        );
+        // Emit initiate_chat via socket to notify astrologer (like calls do)
+        debugPrint('💬 [CHAT] Emitting initiate_chat via socket');
+        debugPrint('💬 [CHAT] Socket connected: ${_socketService.isConnected}');
+        await _socketService.initiateChatSession(astrologerId);
+        debugPrint('💬 [CHAT] Socket event emitted successfully');
 
         notifyListeners();
         return session;
@@ -203,28 +256,37 @@ class ChatService extends ChangeNotifier {
   }
 
   /// Join a chat session (set as active and join socket room)
-  Future<void> joinChatSession(String sessionId) async {
+  Future<void> joinChatSession(String sessionId, {ChatSession? session}) async {
     try {
       debugPrint('🏠 Joining chat session: $sessionId');
-      
-      // Find the session
-      final session = _chatSessions.firstWhere(
-        (s) => s.id == sessionId,
-        orElse: () => throw Exception('Chat session not found'),
-      );
-      
-      _activeChatSession = session;
-      
+
+      // Try to find the session in local list, or use provided session
+      ChatSession? foundSession;
+      try {
+        foundSession = _chatSessions.firstWhere((s) => s.id == sessionId);
+      } catch (_) {
+        // Not found in local list
+        foundSession = session;
+      }
+
+      if (foundSession != null) {
+        _activeChatSession = foundSession;
+        // Add to local list if not already there
+        if (!_chatSessions.any((s) => s.id == sessionId)) {
+          _chatSessions.insert(0, foundSession);
+        }
+      }
+
       // Join socket room
       await _socketService.joinChatSession(sessionId);
-      
+
       // Load messages for this session if not already loaded
       if (!_messagesBySession.containsKey(sessionId)) {
         await loadMessagesForSession(sessionId);
       }
-      
+
       notifyListeners();
-      
+
     } catch (e) {
       debugPrint('❌ Failed to join chat session: $e');
       rethrow;
@@ -251,24 +313,59 @@ class ChatService extends ChangeNotifier {
   Future<void> endChatSession(String sessionId) async {
     try {
       debugPrint('🔚 Ending chat session: $sessionId');
-      
+
       // End via socket
       await _socketService.endChatSession(sessionId);
-      
+
       // Update local session status
       final index = _chatSessions.indexWhere((s) => s.id == sessionId);
       if (index != -1) {
         // Note: In a real implementation, you would update the session status
         // For now, we'll just leave it as is
       }
-      
+
       // Leave if it's the active session
       if (_activeChatSession?.id == sessionId) {
         await leaveChatSession();
       }
-      
+
     } catch (e) {
       debugPrint('❌ Failed to end chat session: $e');
+      rethrow;
+    }
+  }
+
+  /// Accept an incoming chat session (for astrologers)
+  Future<void> acceptChatSession(String sessionId) async {
+    try {
+      debugPrint('✅ Accepting chat session: $sessionId');
+
+      // Accept via socket
+      await _socketService.acceptChatSession(sessionId);
+
+      // Join the chat room
+      await _socketService.joinChatSession(sessionId);
+
+      notifyListeners();
+
+    } catch (e) {
+      debugPrint('❌ Failed to accept chat session: $e');
+      rethrow;
+    }
+  }
+
+  /// Reject an incoming chat session (for astrologers)
+  Future<void> rejectChatSession(String sessionId, {String reason = 'busy'}) async {
+    try {
+      debugPrint('❌ Rejecting chat session: $sessionId');
+
+      // Reject via socket
+      await _socketService.rejectChatSession(sessionId, reason: reason);
+
+      notifyListeners();
+
+    } catch (e) {
+      debugPrint('❌ Failed to reject chat session: $e');
       rethrow;
     }
   }
@@ -280,10 +377,14 @@ class ChatService extends ChangeNotifier {
       
       final userId = _getCurrentUserId();
       
+      // Get actual user type from auth service
+      final authService = getIt<AuthService>();
+      final userType = authService.currentUser?.role.value ?? 'customer';
+
       final result = await _chatApiService.getMessages(
         sessionId: sessionId,
         userId: userId,
-        userType: 'user',
+        userType: userType,
       );
       
       if (result['success']) {

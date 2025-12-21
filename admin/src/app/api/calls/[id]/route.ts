@@ -13,7 +13,8 @@ export async function GET(
     const sessionId = resolvedParams.id;
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
-    const userType = searchParams.get('userType') || 'user';
+    // Use 'customer' as default instead of 'user'
+    const userType = searchParams.get('userType') || 'customer';
 
     if (!sessionId || !ObjectId.isValid(sessionId)) {
       return NextResponse.json({
@@ -41,7 +42,8 @@ export async function GET(
     }
 
     // Verify user access
-    if (userId && userType === 'user' && session.user_id !== userId) {
+    const isCustomer = userType === 'customer';
+    if (userId && isCustomer && session.user_id !== userId) {
       return NextResponse.json({
         success: false,
         error: 'Access denied',
@@ -173,7 +175,8 @@ export async function PUT(
     }
 
     // Verify user has permission to perform this action
-    if (user_type === 'user' && session.user_id !== user_id) {
+    const isCustomerAction = user_type === 'customer';
+    if (isCustomerAction && session.user_id !== user_id) {
       return NextResponse.json({
         success: false,
         error: 'Access denied',

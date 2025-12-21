@@ -20,7 +20,6 @@ import 'screens/astrologer_consultations_screen.dart';
 import 'services/service_locator.dart';
 import 'services/auth/auth_service.dart';
 import 'services/local/local_storage_service.dart';
-import 'services/cart_service.dart';
 import 'services/network/dio_client.dart';
 import 'services/payment/razorpay_service.dart';
 import 'services/deep_link_service.dart';
@@ -80,14 +79,26 @@ void main() async {
   // Print configuration in debug mode
   await Config.printConfig();
 
-  // Initialize Firebase
+  // Initialize Firebase (handles duplicate-app error gracefully during hot reload)
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      debugPrint('✅ Firebase initialized successfully');
+    } else {
+      debugPrint('✅ Firebase already initialized, reusing existing app');
+    }
 
     // Set background message handler
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  } on FirebaseException catch (e) {
+    // Handle duplicate-app error gracefully - Firebase is already initialized
+    if (e.code == 'duplicate-app') {
+      debugPrint('✅ Firebase already initialized (duplicate-app), continuing...');
+    } else {
+      debugPrint('❌ Firebase initialization failed: $e');
+    }
   } catch (e) {
     debugPrint('❌ Firebase initialization failed: $e');
   }
@@ -99,9 +110,8 @@ void main() async {
   final localStorage = getIt<LocalStorageService>();
   await localStorage.init();
 
-  // Initialize cart service
-  final cartService = getIt<CartService>();
-  await cartService.initialize();
+  // Note: Cart service initialization moved to after user login (in AuthService)
+  // This prevents fetching GST rate before user is authenticated
 
   // Initialize payment services (without server config - will load when user logs in)
   try {

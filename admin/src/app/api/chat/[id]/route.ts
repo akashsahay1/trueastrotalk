@@ -13,7 +13,8 @@ export async function GET(
     const sessionId = resolvedParams.id;
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
-    const userType = searchParams.get('userType') || 'user';
+    // Use 'customer' as default instead of 'user'
+    const userType = searchParams.get('userType') || 'customer';
     const messagesLimit = parseInt(searchParams.get('messagesLimit') || '50');
     const messagesPage = parseInt(searchParams.get('messagesPage') || '1');
     const messagesSkip = (messagesPage - 1) * messagesLimit;
@@ -42,20 +43,47 @@ export async function GET(
     }
 
     // Verify user access (user can only access their own sessions)
-    if (userId && userType === 'user' && session.user_id !== userId) {
-      return NextResponse.json({
-        success: false,
-        error: 'Access denied',
-        message: 'You do not have access to this chat session'
-      }, { status: 403 });
+    // Handle case where userId might be MongoDB _id instead of custom user_id
+    const isCustomer = userType === 'customer';
+
+    if (userId && isCustomer) {
+      let hasAccess = session.user_id === userId;
+
+      // If not, check if userId is a MongoDB _id and lookup the user's custom user_id
+      if (!hasAccess && ObjectId.isValid(userId)) {
+        const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+        if (user && user.user_id === session.user_id) {
+          hasAccess = true;
+        }
+      }
+
+      if (!hasAccess) {
+        return NextResponse.json({
+          success: false,
+          error: 'Access denied',
+          message: 'You do not have access to this chat session'
+        }, { status: 403 });
+      }
     }
 
-    if (userId && userType === 'astrologer' && session.astrologer_id !== userId) {
-      return NextResponse.json({
-        success: false,
-        error: 'Access denied',
-        message: 'You do not have access to this chat session'
-      }, { status: 403 });
+    if (userId && userType === 'astrologer') {
+      let hasAccess = session.astrologer_id === userId;
+
+      // If not, check if userId is a MongoDB _id and lookup the user's custom user_id
+      if (!hasAccess && ObjectId.isValid(userId)) {
+        const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+        if (user && user.user_id === session.astrologer_id) {
+          hasAccess = true;
+        }
+      }
+
+      if (!hasAccess) {
+        return NextResponse.json({
+          success: false,
+          error: 'Access denied',
+          message: 'You do not have access to this chat session'
+        }, { status: 403 });
+      }
     }
 
     // Get messages for this session
@@ -76,7 +104,7 @@ export async function GET(
 
     // Mark messages as read for the requesting user
     if (userId) {
-      const readUpdateField = userType === 'user' ? 'read_by_user' : 'read_by_astrologer';
+      const readUpdateField = isCustomer ? 'read_by_user' : 'read_by_astrologer';
       await chatMessagesCollection.updateMany(
         { 
           session_id: sessionId,
@@ -92,7 +120,7 @@ export async function GET(
       );
 
       // Update unread count in session
-      const unreadCountField = userType === 'user' ? 'user_unread_count' : 'astrologer_unread_count';
+      const unreadCountField = isCustomer ? 'user_unread_count' : 'astrologer_unread_count';
       await sessionsCollection.updateOne(
         { _id: new ObjectId(sessionId), session_type: 'chat' },
         {
@@ -130,7 +158,7 @@ export async function GET(
       total_amount: session.total_amount,
       last_message: session.last_message,
       last_message_time: session.last_message_time,
-      unread_count: userType === 'user' ? session.user_unread_count : session.astrologer_unread_count,
+      unread_count: isCustomer ? session.user_unread_count : session.astrologer_unread_count,
       created_at: session.created_at,
       updated_at: session.updated_at,
       messages: messages.reverse().map(msg => ({ // Reverse to show oldest first
@@ -197,6 +225,7 @@ export async function PUT(
 
     const sessionsCollection = await DatabaseService.getCollection('sessions');
     const chatMessagesCollection = await DatabaseService.getCollection('chat_messages');
+    const usersCollection = await DatabaseService.getCollection('users');
 
     // Get session
     const session = await sessionsCollection.findOne({ _id: new ObjectId(sessionId), session_type: 'chat' });
@@ -210,20 +239,47 @@ export async function PUT(
     }
 
     // Verify user has permission to perform this action
-    if (user_type === 'user' && session.user_id !== user_id) {
-      return NextResponse.json({
-        success: false,
-        error: 'Access denied',
-        message: 'You do not have permission to modify this session'
-      }, { status: 403 });
+    // Handle case where user_id might be MongoDB _id instead of custom user_id
+    const isCustomer = user_type === 'user' || user_type === 'customer';
+
+    if (isCustomer) {
+      let hasAccess = session.user_id === user_id;
+
+      // If not, check if user_id is a MongoDB _id and lookup the user's custom user_id
+      if (!hasAccess && ObjectId.isValid(user_id)) {
+        const user = await usersCollection.findOne({ _id: new ObjectId(user_id) });
+        if (user && user.user_id === session.user_id) {
+          hasAccess = true;
+        }
+      }
+
+      if (!hasAccess) {
+        return NextResponse.json({
+          success: false,
+          error: 'Access denied',
+          message: 'You do not have permission to modify this session'
+        }, { status: 403 });
+      }
     }
 
-    if (user_type === 'astrologer' && session.astrologer_id !== user_id) {
-      return NextResponse.json({
-        success: false,
-        error: 'Access denied',
-        message: 'You do not have permission to modify this session'
-      }, { status: 403 });
+    if (user_type === 'astrologer') {
+      let hasAccess = session.astrologer_id === user_id;
+
+      // If not, check if user_id is a MongoDB _id and lookup the user's custom user_id
+      if (!hasAccess && ObjectId.isValid(user_id)) {
+        const user = await usersCollection.findOne({ _id: new ObjectId(user_id) });
+        if (user && user.user_id === session.astrologer_id) {
+          hasAccess = true;
+        }
+      }
+
+      if (!hasAccess) {
+        return NextResponse.json({
+          success: false,
+          error: 'Access denied',
+          message: 'You do not have permission to modify this session'
+        }, { status: 403 });
+      }
     }
 
     const updateData: Record<string, unknown> = {

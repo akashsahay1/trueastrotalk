@@ -19,7 +19,7 @@ export type NextApiResponseServerIO = NextApiResponse & {
 const connectedUsers = new Map<string, {
   socketId: string;
   userId: string;
-  userType: 'user' | 'astrologer';
+  userType: 'customer' | 'astrologer';
   isOnline: boolean;
 }>();
 
@@ -116,7 +116,7 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
             message_type: messageType || 'text',
             content: content || '',
             image_url: imageUrl || null,
-            read_by_user: senderType === 'user',
+            read_by_user: senderType === 'customer',
             read_by_astrologer: senderType === 'astrologer',
             timestamp: new Date(),
             created_at: new Date()
@@ -131,7 +131,7 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
             updated_at: new Date()
           };
 
-          if (senderType === 'user') {
+          if (senderType === 'customer') {
             updateData.$inc = { astrologer_unread_count: 1 };
           } else {
             updateData.$inc = { user_unread_count: 1 };
@@ -154,7 +154,7 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
           );
 
           // Get receiver info for push notification (before closing connection)
-          const receiverId = senderType === 'user' ? session.astrologer_id : session.user_id;
+          const receiverId = senderType === 'customer' ? session.astrologer_id : session.user_id;
           const receiver = await db.collection('users').findOne({ user_id: receiverId });
 
           await client.close();
@@ -185,7 +185,7 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
               await NotificationService.sendToUser(
                 {
                   userId: receiverId,
-                  userType: receiver.user_type || (senderType === 'user' ? 'astrologer' : 'customer'),
+                  userType: receiver.user_type || (senderType === 'customer' ? 'astrologer' : 'customer'),
                   fcmToken: receiver.fcm_token,
                   email: receiver.email_address
                 },
@@ -248,7 +248,7 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
           );
 
           // Determine receiver
-          const receiverId = callerType === 'user' ? session.astrologer_id : session.user_id;
+          const receiverId = callerType === 'customer' ? session.astrologer_id : session.user_id;
 
           // Get caller and receiver info for push notification (before closing db connection)
           const usersCollection = db.collection('users');
@@ -268,7 +268,7 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
             status: 'ringing'
           });
 
-          const callerName = caller?.full_name || (callerType === 'user' ? 'Customer' : 'Astrologer');
+          const callerName = caller?.full_name || (callerType === 'customer' ? 'Customer' : 'Astrologer');
 
           console.log(`📞 [CALL] Determined receiverId: ${receiverId}, callerName: ${callerName}`);
           console.log(`📞 [CALL] Receiver FCM token: ${receiver?.fcm_token ? 'EXISTS (' + receiver.fcm_token.substring(0, 20) + '...)' : 'NOT SET'}`);

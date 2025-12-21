@@ -11,7 +11,7 @@ class CallsApiService {
   // Get user's call sessions
   Future<Map<String, dynamic>> getCallSessions({
     required String userId,
-    String userType = 'user',
+    String userType = 'customer',
     String? status,
     int limit = 20,
     int page = 1,
@@ -114,7 +114,7 @@ class CallsApiService {
   Future<Map<String, dynamic>> getCallSession({
     required String sessionId,
     required String userId,
-    String userType = 'user',
+    String userType = 'customer',
   }) async {
     try {
       final response = await _dio.get(

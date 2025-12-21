@@ -40,6 +40,14 @@ class SocketService extends ChangeNotifier {
       StreamController<Map<String, dynamic>>.broadcast();
   final StreamController<Map<String, dynamic>> _incomingCallStreamController =
       StreamController<Map<String, dynamic>>.broadcast();
+  final StreamController<Map<String, dynamic>> _incomingChatStreamController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final StreamController<Map<String, dynamic>> _chatAcceptedStreamController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final StreamController<Map<String, dynamic>> _chatRejectedStreamController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final StreamController<Map<String, dynamic>> _chatEndedStreamController =
+      StreamController<Map<String, dynamic>>.broadcast();
 
   // Getters
   bool get isConnected => _isConnected;
@@ -118,6 +126,10 @@ class SocketService extends ChangeNotifier {
   Stream<bool> get connectionStream => _connectionStreamController.stream;
   Stream<Map<String, dynamic>> get typingStream => _typingStreamController.stream;
   Stream<Map<String, dynamic>> get incomingCallStream => _incomingCallStreamController.stream;
+  Stream<Map<String, dynamic>> get incomingChatStream => _incomingChatStreamController.stream;
+  Stream<Map<String, dynamic>> get chatAcceptedStream => _chatAcceptedStreamController.stream;
+  Stream<Map<String, dynamic>> get chatRejectedStream => _chatRejectedStreamController.stream;
+  Stream<Map<String, dynamic>> get chatEndedStream => _chatEndedStreamController.stream;
 
   /// Initialize socket connection
   Future<void> connect({String? serverUrl}) async {
@@ -143,8 +155,8 @@ class SocketService extends ChangeNotifier {
       
       debugPrint('🔌 Connecting to Socket.IO server: $socketUrl');
       
-      // Determine user type based on role
-      final userType = _currentUser!.role.value == 'astrologer' ? 'astrologer' : 'user';
+      // Determine user type based on role - use standardized types: 'customer' or 'astrologer'
+      final userType = _currentUser!.role.value == 'astrologer' ? 'astrologer' : 'customer';
       debugPrint('🔌 Socket connecting as: $userType (role: ${_currentUser!.role.value})');
 
       // Initialize socket with authentication
@@ -186,7 +198,7 @@ class SocketService extends ChangeNotifier {
       // CRITICAL: Emit authenticate event so backend joins user to their room
       // Without this, user won't receive incoming_call or other targeted events
       if (_currentUser != null) {
-        final userType = _currentUser!.role.value == 'astrologer' ? 'astrologer' : 'user';
+        final userType = _currentUser!.role.value == 'astrologer' ? 'astrologer' : 'customer';
         debugPrint('🔐 Emitting authenticate event: userId=${_currentUser!.id}, userType=$userType');
         _socket!.emit('authenticate', {
           'userId': _currentUser!.id,
@@ -261,6 +273,56 @@ class SocketService extends ChangeNotifier {
         debugPrint('📞 [SOCKET] Incoming call pushed to stream');
       } catch (e) {
         debugPrint('❌ [SOCKET] Error handling incoming call: $e');
+      }
+    });
+
+    // Chat session events (similar to call flow)
+    _socket!.on('incoming_chat', (data) {
+      debugPrint('💬 [SOCKET] Incoming chat received: $data');
+      try {
+        final chatData = Map<String, dynamic>.from(data);
+        _incomingChatStreamController.add(chatData);
+        debugPrint('💬 [SOCKET] Incoming chat pushed to stream');
+      } catch (e) {
+        debugPrint('❌ [SOCKET] Error handling incoming chat: $e');
+      }
+    });
+
+    _socket!.on('chat_initiated', (data) {
+      debugPrint('💬 [SOCKET] Chat initiated response: $data');
+    });
+
+    _socket!.on('chat_accepted', (data) {
+      debugPrint('✅ [SOCKET] Chat accepted: $data');
+      try {
+        final chatData = Map<String, dynamic>.from(data);
+        _chatAcceptedStreamController.add(chatData);
+      } catch (e) {
+        debugPrint('❌ [SOCKET] Error handling chat accepted: $e');
+      }
+    });
+
+    _socket!.on('chat_rejected', (data) {
+      debugPrint('❌ [SOCKET] Chat rejected: $data');
+      try {
+        final chatData = Map<String, dynamic>.from(data);
+        _chatRejectedStreamController.add(chatData);
+      } catch (e) {
+        debugPrint('❌ [SOCKET] Error handling chat rejected: $e');
+      }
+    });
+
+    _socket!.on('chat_error', (data) {
+      debugPrint('❌ [SOCKET] Chat error: $data');
+    });
+
+    _socket!.on('chat_ended', (data) {
+      debugPrint('🔚 [SOCKET] Chat ended: $data');
+      try {
+        final chatData = Map<String, dynamic>.from(data);
+        _chatEndedStreamController.add(chatData);
+      } catch (e) {
+        debugPrint('❌ [SOCKET] Error handling chat ended: $e');
       }
     });
     
@@ -387,12 +449,52 @@ class SocketService extends ChangeNotifier {
     if (!_isConnected || _socket == null) {
       throw Exception('Socket not connected');
     }
-    
+
     debugPrint('🔚 Ending chat session: $chatSessionId');
-    
+
     _socket!.emit('end_chat_session', {
       'chatSessionId': chatSessionId,
       'userId': _currentUser!.id,
+    });
+  }
+
+  /// Initiate a chat session with an astrologer (emits socket event)
+  Future<void> initiateChatSession(String astrologerId) async {
+    if (!_isConnected || _socket == null) {
+      throw Exception('Socket not connected');
+    }
+
+    debugPrint('💬 Initiating chat session with astrologer: $astrologerId');
+
+    _socket!.emit('initiate_chat', {
+      'astrologerId': astrologerId,
+    });
+  }
+
+  /// Accept an incoming chat session (for astrologers)
+  Future<void> acceptChatSession(String sessionId) async {
+    if (!_isConnected || _socket == null) {
+      throw Exception('Socket not connected');
+    }
+
+    debugPrint('✅ Accepting chat session: $sessionId');
+
+    _socket!.emit('accept_chat', {
+      'sessionId': sessionId,
+    });
+  }
+
+  /// Reject an incoming chat session (for astrologers)
+  Future<void> rejectChatSession(String sessionId, {String reason = 'busy'}) async {
+    if (!_isConnected || _socket == null) {
+      throw Exception('Socket not connected');
+    }
+
+    debugPrint('❌ Rejecting chat session: $sessionId');
+
+    _socket!.emit('reject_chat', {
+      'sessionId': sessionId,
+      'reason': reason,
     });
   }
 
@@ -463,6 +565,11 @@ class SocketService extends ChangeNotifier {
     _sessionUpdateStreamController.close();
     _connectionStreamController.close();
     _typingStreamController.close();
+    _incomingCallStreamController.close();
+    _incomingChatStreamController.close();
+    _chatAcceptedStreamController.close();
+    _chatRejectedStreamController.close();
+    _chatEndedStreamController.close();
     super.dispose();
   }
 

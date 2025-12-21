@@ -20,18 +20,25 @@ class AppConfigService {
   Future<double> getGSTRate() async {
     try {
       final config = await _getAppConfig();
-      return (config['commission']?['gstRate'] ?? 18).toDouble();
+      if (config != null) {
+        return (config['commission']?['gstRate'] ?? 18).toDouble();
+      }
+      return 18.0; // Default when not logged in
     } catch (e) {
-      print('Error getting GST rate: $e');
+      // Only log unexpected errors, not auth-related ones
+      if (!e.toString().contains('Authentication')) {
+        print('Error getting GST rate: $e');
+      }
       return 18.0; // Default fallback
     }
   }
 
   /// Fetch app configuration from API
-  Future<Map<String, dynamic>> _getAppConfig() async {
+  /// Returns null if user is not authenticated (no token)
+  Future<Map<String, dynamic>?> _getAppConfig() async {
     // Return cached config if valid
-    if (_cachedConfig != null && 
-        _lastFetched != null && 
+    if (_cachedConfig != null &&
+        _lastFetched != null &&
         DateTime.now().difference(_lastFetched!) < _cacheValidityDuration) {
       return _cachedConfig!;
     }
@@ -39,9 +46,10 @@ class AppConfigService {
     try {
       final authService = getIt<AuthService>();
       final token = authService.authToken;
-      
+
+      // If not logged in, return null silently (will use defaults)
       if (token == null) {
-        throw Exception('Authentication token not available');
+        return null;
       }
 
       final baseUrl = await Config.baseUrl;

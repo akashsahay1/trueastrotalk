@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     
     // Validate and sanitize status filter
     if (status) {
-      const validStatuses = ['pending', 'active', 'completed', 'cancelled'];
+      const validStatuses = ['pending', 'active', 'completed', 'cancelled', 'ringing', 'rejected'];
       if (validStatuses.includes(status)) {
         query.status = status;
       }

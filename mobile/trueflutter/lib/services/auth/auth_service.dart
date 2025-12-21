@@ -12,6 +12,7 @@ import '../service_locator.dart';
 import '../socket/socket_service.dart';
 import '../call/call_service.dart';
 import '../notifications/notification_service.dart';
+import '../cart_service.dart';
 import '../../config/payment_config.dart';
 import '../../common/utils/error_handler.dart';
 
@@ -94,7 +95,20 @@ class AuthService {
         _authToken = savedToken;
         // Set the global auth token in Dio client
         DioClient.setAuthToken(savedToken);
+        // Also save to secure storage for socket service
+        await _localStorage.saveAuthToken(savedToken);
         _currentUser = await _userApiService.getCurrentUser(savedToken);
+        // Save user data to local storage for socket service
+        if (_currentUser != null) {
+          await _saveUserData(_currentUser!);
+          // Initialize cart service after user is restored
+          try {
+            final cartService = getIt<CartService>();
+            await cartService.initialize();
+          } catch (e) {
+            debugPrint('⚠️ CartService initialization failed: $e');
+          }
+        }
       } catch (e) {
         debugPrint('🔄 Token validation failed during init: $e');
         try {
@@ -102,18 +116,24 @@ class AuthService {
           await refreshAuthToken();
           if (_authToken != null) {
             _currentUser = await _userApiService.getCurrentUser(_authToken!);
+            // Save user data to local storage for socket service
+            if (_currentUser != null) {
+              await _saveUserData(_currentUser!);
+            }
             return;
           }
         } catch (refreshError) {
           debugPrint('🔄 Token refresh failed: $refreshError');
         }
-        
+
         // Fall back to local storage
         try {
           final savedUserData = prefs.getString('user_data');
           if (savedUserData != null) {
             final userJson = jsonDecode(savedUserData) as Map<String, dynamic>;
             _currentUser = app_user.User.fromJson(userJson);
+            // Also sync to local storage service for socket
+            await _localStorage.saveUserMap(userJson);
             debugPrint('Loaded user data from local storage as fallback');
           } else {
             await _clearAuthData();
@@ -637,6 +657,17 @@ class AuthService {
     } catch (e) {
       debugPrint('⚠️ PaymentConfig initialization failed: $e');
       // Don't throw error - payment config is not critical for basic app functionality
+    }
+
+    // Initialize CartService after successful login (to fetch GST rate)
+    try {
+      debugPrint('🛒 Initializing CartService...');
+      final cartService = getIt<CartService>();
+      await cartService.initialize();
+      debugPrint('✅ CartService initialized successfully');
+    } catch (e) {
+      debugPrint('⚠️ CartService initialization failed: $e');
+      // Don't throw error - cart service is not critical for basic app functionality
     }
 
     // Update FCM token on server with the fresh auth token

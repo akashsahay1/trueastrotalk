@@ -5,8 +5,10 @@ import '../common/constants/dimensions.dart';
 import '../config/config.dart';
 import '../models/order.dart';
 import '../models/address.dart';
+import '../models/enums.dart' hide PaymentStatus;
 import '../services/service_locator.dart';
 import '../services/api/orders_api_service.dart';
+import '../services/auth/auth_service.dart';
 import '../services/local/local_storage_service.dart';
 import 'order_details.dart';
 import 'products_list.dart';
@@ -21,6 +23,7 @@ class OrdersListScreen extends StatefulWidget {
 class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerProviderStateMixin {
   late final OrdersApiService _ordersApiService;
   late final LocalStorageService _localStorage;
+  late final AuthService _authService;
   late TabController _tabController;
   
   List<Order> _allOrders = [];
@@ -33,6 +36,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
     super.initState();
     _ordersApiService = getIt<OrdersApiService>();
     _localStorage = getIt<LocalStorageService>();
+    _authService = getIt<AuthService>();
     _tabController = TabController(length: _tabs.length, vsync: this);
     _loadOrders();
   }
@@ -54,10 +58,11 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
       debugPrint('🔍 Loading orders for user_id: $userId');
       debugPrint('🌐 API call: ${Config.baseUrl}/api/orders?userId=$userId');
       
-      // Fetch orders from API
+      // Fetch orders from API - use actual user role
+      final userType = _authService.currentUser?.role.value ?? 'customer';
       final result = await _ordersApiService.getOrders(
         userId: userId,
-        userType: 'user',
+        userType: userType,
       );
       
       if (result['success']) {

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../../models/call.dart';
+import '../../models/enums.dart';
 import '../api/calls_api_service.dart';
 import '../auth/auth_service.dart';
 import '../socket/socket_service.dart';
@@ -13,6 +14,7 @@ class CallService extends ChangeNotifier {
 
   final CallsApiService _callsApiService = getIt<CallsApiService>();
   final SocketService _socketService = SocketService.instance;
+  final AuthService _authService = getIt<AuthService>();
   
   // Current call sessions
   List<CallSession> _callSessions = [];
@@ -176,9 +178,11 @@ class CallService extends ChangeNotifier {
         return;
       }
 
+      // Use actual user role instead of hardcoded value
+      final userType = _authService.currentUser?.role.value ?? 'customer';
       final result = await _callsApiService.getCallSessions(
         userId: userId,
-        userType: 'user',
+        userType: userType,
       );
       
       if (result['success']) {

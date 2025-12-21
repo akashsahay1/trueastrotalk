@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
@@ -10,6 +11,7 @@ import '../services/auth/auth_service.dart';
 import '../services/chat/chat_service.dart';
 import '../services/call/call_service.dart';
 import '../services/wallet/wallet_service.dart';
+import '../services/socket/socket_service.dart';
 import '../models/call.dart';
 import '../config/config.dart';
 import 'package:share_plus/share_plus.dart';
@@ -1362,7 +1364,7 @@ Connect now on True AstroTalk! 🌟
       return;
     }
 
-    // Show loading indicator
+    // Show loading indicator - waiting for astrologer to accept
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1377,32 +1379,88 @@ Connect now on True AstroTalk! 🌟
                 ),
               ),
               const SizedBox(width: 12),
-              Text('Connecting to ${_astrologer!.fullName}...'),
+              Text('Requesting chat with ${_astrologer!.fullName}...'),
             ],
           ),
           backgroundColor: AppColors.info,
-          duration: const Duration(seconds: 10),
+          duration: const Duration(seconds: 30), // Longer duration while waiting
         ),
       );
     }
 
+    StreamSubscription<Map<String, dynamic>>? acceptedSub;
+    StreamSubscription<Map<String, dynamic>>? rejectedSub;
+    Timer? timeoutTimer;
+
     try {
-      // Start chat session (this now ensures socket is connected)
+      // Start chat session (this creates session via API and emits socket event)
       final chatService = getIt<ChatService>();
+      final socketService = SocketService.instance;
       final chatSession = await chatService.startChatSession(_astrologer!.id);
 
-      // Navigate to chat screen
+      // Set up listeners for chat acceptance/rejection
+      final completer = Completer<bool>();
+
+      acceptedSub = socketService.chatAcceptedStream.listen((data) {
+        debugPrint('💬 Chat accepted event received: $data');
+        if (!completer.isCompleted) {
+          completer.complete(true);
+        }
+      });
+
+      rejectedSub = socketService.chatRejectedStream.listen((data) {
+        debugPrint('💬 Chat rejected event received: $data');
+        if (!completer.isCompleted) {
+          completer.complete(false);
+        }
+      });
+
+      // Set timeout - if astrologer doesn't respond in 30 seconds, proceed anyway
+      // (The session is already created, astrologer can still accept later)
+      timeoutTimer = Timer(const Duration(seconds: 30), () {
+        if (!completer.isCompleted) {
+          debugPrint('💬 Chat request timeout - proceeding to chat screen');
+          completer.complete(true); // Proceed anyway
+        }
+      });
+
+      // Wait for response or timeout
+      final accepted = await completer.future;
+
+      // Cleanup listeners
+      acceptedSub.cancel();
+      rejectedSub.cancel();
+      timeoutTimer.cancel();
+
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => ChatScreen(
-              chatSession: chatSession,
+
+        if (accepted) {
+          // Navigate to chat screen
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => ChatScreen(
+                chatSession: chatSession,
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          // Chat was rejected
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${_astrologer!.fullName} is busy right now. Please try again later.'),
+              backgroundColor: AppColors.error,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
       }
     } catch (e) {
+      // Cleanup on error
+      acceptedSub?.cancel();
+      rejectedSub?.cancel();
+      timeoutTimer?.cancel();
+
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
 

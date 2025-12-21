@@ -20,7 +20,7 @@ export type NextApiResponseServerIO = NextApiResponse & {
 interface UserConnection {
   socketId: string;
   userId: string;
-  userType: 'user' | 'astrologer';
+  userType: 'customer' | 'astrologer';
   isOnline: boolean;
   lastSeen: Date;
 }
@@ -58,7 +58,7 @@ interface MessageData {
 
 interface _SocketAuth {
   userId?: string;
-  userType?: 'user' | 'astrologer';
+  userType?: 'customer' | 'astrologer';
   token?: string;
 }
 
@@ -98,7 +98,7 @@ interface ChatMessage {
   session_id: string;
   sender_id: string;
   sender_name: string;
-  sender_type: 'user' | 'astrologer';
+  sender_type: 'customer' | 'astrologer';
   message_type: 'text' | 'image' | 'voice' | 'system';
   content: string;
   image_url?: string;
@@ -169,7 +169,8 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
           return next(new Error('Invalid token'));
         }
         socket.data.userId = decoded.userId || (decoded as Record<string, unknown>).id as string;
-        socket.data.userType = (decoded as Record<string, unknown>).role === 'astrologer' ? 'astrologer' : 'user';
+        // Use 'customer' as standardized user type (not 'user')
+        socket.data.userType = (decoded as Record<string, unknown>).role === 'astrologer' ? 'astrologer' : 'customer';
         next();
       } catch {
         next(new Error('Authentication failed'));
@@ -367,7 +368,7 @@ async function handleSendMessage(socket: Socket, io: ServerIO, data: MessageData
       content: content || '',
       image_url: imageUrl,
       voice_url: voiceUrl,
-      read_by_user: senderType === 'user',
+      read_by_user: senderType === 'customer',
       read_by_astrologer: senderType === 'astrologer',
       timestamp: new Date(),
       created_at: new Date()
@@ -384,7 +385,7 @@ async function handleSendMessage(socket: Socket, io: ServerIO, data: MessageData
           last_message_time: new Date(),
           updated_at: new Date()
         },
-        $inc: senderType === 'user' 
+        $inc: senderType === 'customer'
           ? { astrologer_unread_count: 1 }
           : { user_unread_count: 1 }
       }
@@ -402,7 +403,7 @@ async function handleSendMessage(socket: Socket, io: ServerIO, data: MessageData
     io.to(`chat_${sessionId}`).emit('new_message', formattedMessage);
     
     // Also send to user rooms for notifications
-    const receiverId = senderType === 'user' ? session.astrologer_id : session.user_id;
+    const receiverId = senderType === 'customer' ? session.astrologer_id : session.user_id;
     io.to(`user_${receiverId}`).emit('message_notification', {
       sessionId,
       message: formattedMessage
@@ -446,7 +447,7 @@ async function handleMarkMessagesRead(socket: Socket, io: ServerIO, data: Messag
     const { client, db } = await getDbConnection();
     
     // Update read status
-    const updateField = userType === 'user' ? 'read_by_user' : 'read_by_astrologer';
+    const updateField = userType === 'customer' ? 'read_by_user' : 'read_by_astrologer';
     await db.collection('chat_messages').updateMany(
       { 
         _id: { $in: messageIds.map((id: string) => new ObjectId(id)) },
@@ -456,7 +457,7 @@ async function handleMarkMessagesRead(socket: Socket, io: ServerIO, data: Messag
     );
     
     // Reset unread count in unified sessions collection
-    const unreadField = userType === 'user' ? 'user_unread_count' : 'astrologer_unread_count';
+    const unreadField = userType === 'customer' ? 'user_unread_count' : 'astrologer_unread_count';
     await db.collection('sessions').updateOne(
       { _id: new ObjectId(sessionId), session_type: 'chat' },
       { $set: { [unreadField]: 0 } }
@@ -488,8 +489,8 @@ async function handleInitiateChat(socket: Socket, io: ServerIO, data: ChatReques
 
     console.log(`📱 initiate_chat received: userId=${userId}, astrologerId=${astrologerId}, userType=${userType}`);
 
-    // Only users (customers) can initiate chat
-    if (userType !== 'user') {
+    // Only customers can initiate chat
+    if (userType !== 'customer') {
       socket.emit('chat_error', { error: 'Only customers can initiate chat sessions' });
       return;
     }
@@ -979,8 +980,8 @@ async function handleInitiateCall(socket: Socket, io: ServerIO, data: CallData) 
       _id: new ObjectId(sessionId),
       session_id: sessionId,
       session_type: sessionType,
-      user_id: callerType === 'user' ? callerId : targetUserId,
-      astrologer_id: callerType === 'astrologer' ? callerId : targetUserId,
+      user_id: callerType === 'customer' ? callerId : targetUserId,
+      astrologer_id: callerType === 'customer' ? targetUserId : callerId,
       status: 'ringing',
       rate_per_minute: callerType === 'astrologer'
         ? (callType === 'video' ? caller.video_rate : caller.call_rate)

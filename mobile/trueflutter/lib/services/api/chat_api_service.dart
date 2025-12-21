@@ -10,7 +10,7 @@ class ChatApiService {
   // Get user's chat sessions
   Future<Map<String, dynamic>> getChatSessions({
     required String userId,
-    String userType = 'user',
+    String userType = 'customer',
     String? status,
     int limit = 20,
     int page = 1,
@@ -105,7 +105,7 @@ class ChatApiService {
   Future<Map<String, dynamic>> getChatSession({
     required String sessionId,
     required String userId,
-    String userType = 'user',
+    String userType = 'customer',
     int messagesLimit = 50,
     int messagesPage = 1,
   }) async {

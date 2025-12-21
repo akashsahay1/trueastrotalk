@@ -130,6 +130,7 @@ class BillingService extends ChangeNotifier {
   Future<bool> startChatBilling({
     required String sessionId,
     required Astrologer astrologer,
+    String? userId,
   }) async {
     try {
       debugPrint('💰 Starting chat billing for session: $sessionId');
@@ -138,6 +139,8 @@ class BillingService extends ChangeNotifier {
         sessionId: sessionId,
         sessionType: 'chat',
         ratePerMinute: astrologer.chatRate,
+        astrologerId: astrologer.id,
+        userId: userId,
       );
     } catch (e) {
       debugPrint('❌ Failed to start chat billing: $e');

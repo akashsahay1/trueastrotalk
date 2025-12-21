@@ -151,7 +151,7 @@ class User {
       AuthType testAuthType;
       
       try {
-        testId = json['id']?.toString() ?? '';
+        testId = (json['id'] ?? json['user_id'] ?? json['_id'] ?? '').toString();
         debugPrint('✅ ID parsing successful: $testId');
       } catch (e) {
         debugPrint('❌ ID parsing failed: $e');

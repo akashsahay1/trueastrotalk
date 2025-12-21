@@ -402,11 +402,24 @@ export async function PUT(request: NextRequest) {
 
     switch (action) {
       case 'join':
-        if (consultation.status !== 'scheduled' && consultation.status !== 'pending') {
+        // Allow joining scheduled, pending, or ringing consultations
+        // If already active/ongoing, return success without updating (user is reconnecting)
+        if (consultation.status === 'active' || consultation.status === 'ongoing' || consultation.status === 'in_progress') {
+          // Already active, return success without updating
+          return NextResponse.json({
+            success: true,
+            message: 'Consultation is already active',
+            consultation: {
+              ...consultation,
+              _id: consultation._id.toString()
+            }
+          });
+        }
+        if (consultation.status !== 'scheduled' && consultation.status !== 'pending' && consultation.status !== 'ringing') {
           return NextResponse.json({
             success: false,
             error: 'INVALID_STATUS',
-            message: 'Can only join scheduled consultations'
+            message: `Cannot join consultation with status '${consultation.status}'. Only scheduled, pending, or ringing consultations can be joined.`
           }, { status: 400 });
         }
         updateData = {
@@ -417,11 +430,11 @@ export async function PUT(request: NextRequest) {
         break;
 
       case 'end':
-        if (consultation.status !== 'ongoing' && consultation.status !== 'in_progress') {
+        if (consultation.status !== 'ongoing' && consultation.status !== 'in_progress' && consultation.status !== 'active') {
           return NextResponse.json({
             success: false,
             error: 'INVALID_STATUS',
-            message: 'Can only end active consultations'
+            message: `Cannot end consultation with status '${consultation.status}'. Only active consultations can be ended.`
           }, { status: 400 });
         }
         const endTime = new Date();

@@ -72,12 +72,12 @@ class CartService extends ChangeNotifier {
           debugPrint('🛒 Raw cart_items from API: $cartItemsData (type: ${cartItemsData.runtimeType})');
           
           List<CartItem> cartItems = [];
-          if (cartItemsData != null && cartItemsData is List) {
+          if (cartItemsData != null && cartItemsData is List && cartItemsData.isNotEmpty) {
             // Check if items are already CartItem objects or raw JSON
             debugPrint('🛒 Checking first item type: ${cartItemsData.first.runtimeType}');
             debugPrint('🛒 First item is CartItem: ${cartItemsData.first is CartItem}');
-            
-            if (cartItemsData.isNotEmpty && cartItemsData.first is CartItem) {
+
+            if (cartItemsData.first is CartItem) {
               // Items are already parsed CartItem objects
               cartItems = cartItemsData.cast<CartItem>();
               debugPrint('🛒 Using already parsed ${cartItems.length} cart items from API');
@@ -117,9 +117,10 @@ class CartService extends ChangeNotifier {
               cartItems = await _enrichCartItemsWithProductData(cartItems);
             }
           } else {
-            debugPrint('🛒 No cart items found in API response');
+            debugPrint('🛒 Cart is empty or no cart items found in API response');
+            cartItems = [];
           }
-          
+
           _cart = Cart(items: cartItems);
           await _saveCartToLocal(); // Cache locally
         } else {
