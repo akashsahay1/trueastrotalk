@@ -3,14 +3,14 @@ import { existsSync } from 'fs';
 import path from 'path';
 import { MongoClient, ObjectId } from 'mongodb';
 
-const MONGODB_URL = process.env.MONGODB_URL;
-const DB_NAME = process.env.DB_NAME;
+const MONGODB_URL = process.env.MONGODB_URL!;
+const DB_NAME = process.env.DB_NAME!;
 
-if (!MONGODB_URL) {
+if (!process.env.MONGODB_URL) {
   throw new Error('MONGODB_URL environment variable is required');
 }
 
-if (!DB_NAME) {
+if (!process.env.DB_NAME) {
   throw new Error('DB_NAME environment variable is required');
 }
 

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ObjectId } from 'mongodb';
 import DatabaseService from '@/lib/database';
 import { Media } from '@/models';
 

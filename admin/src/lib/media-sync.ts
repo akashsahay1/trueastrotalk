@@ -7,8 +7,8 @@ import { MongoClient } from 'mongodb';
 import fs from 'fs';
 import path from 'path';
 
-const MONGODB_URL = process.env.MONGODB_URL;
-const DB_NAME = process.env.DB_NAME;
+const MONGODB_URL = process.env.MONGODB_URL!;
+const DB_NAME = process.env.DB_NAME!;
 
 if (!MONGODB_URL) {
   throw new Error('MONGODB_URL environment variable is required');

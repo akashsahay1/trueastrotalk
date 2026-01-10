@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import DatabaseService from '@/lib/database';
-import { ObjectId } from 'mongodb';
 import { jwtVerify } from 'jose';
 import { withSecurity } from '@/lib/api-security';
 import { Media } from '@/models';

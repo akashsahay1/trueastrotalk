@@ -219,7 +219,7 @@ export async function GET(request: NextRequest) {
 
     console.log('📋 Client IDs to lookup:', clientIds);
 
-    let clientsData: Record<string, { name?: string; image?: string; phone?: string; email?: string }> = {};
+    const clientsData: Record<string, { name?: string; image?: string; phone?: string; email?: string }> = {};
     if (clientIds.length > 0) {
       const clients = await usersCollection
         .find({

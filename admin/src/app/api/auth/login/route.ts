@@ -394,7 +394,7 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
       // Save Google profile image to media library if provided and user doesn't have one
       if (google_photo_url && !user.profile_image_id) {
         const mediaResult = await Media.createExternalImage(
-          google_photo_url,
+          google_photo_url as string,
           'profile_image',
           user.user_id
         );
