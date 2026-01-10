@@ -209,6 +209,11 @@ class ChatMessage {
   });
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
+    // Parse UTC timestamp and convert to local timezone
+    final parsedTime = json['timestamp'] != null
+        ? DateTime.tryParse(json['timestamp'].toString())?.toLocal() ?? DateTime.now()
+        : DateTime.now();
+
     return ChatMessage(
       id: json['id']?.toString() ?? '',
       chatSessionId: json['chat_session_id']?.toString() ?? '',
@@ -219,9 +224,7 @@ class ChatMessage {
       content: json['content']?.toString() ?? '',
       imageUrl: json['image_url']?.toString(),
       isRead: json['is_read'] == true || json['is_read'] == 1,
-      timestamp: json['timestamp'] != null 
-          ? DateTime.tryParse(json['timestamp'].toString()) ?? DateTime.now()
-          : DateTime.now(),
+      timestamp: parsedTime,
     );
   }
 
@@ -256,9 +259,9 @@ class ChatMessage {
   }
 
   // Helper getters
-  String get formattedTime => DateFormat('HH:mm').format(timestamp);
+  String get formattedTime => DateFormat('h:mm a').format(timestamp);
   String get formattedDate => DateFormat('dd MMM yyyy').format(timestamp);
-  String get formattedDateTime => DateFormat('dd MMM yyyy, HH:mm').format(timestamp);
+  String get formattedDateTime => DateFormat('dd MMM yyyy, h:mm a').format(timestamp);
   
   bool get isFromUser => senderType.toLowerCase() == 'customer';
   bool get isFromAstrologer => senderType.toLowerCase() == 'astrologer';

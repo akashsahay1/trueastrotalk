@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import DatabaseService from '../../../../lib/database';
-// import { InputSanitizer } from '../../../../lib/security';
+import { Media } from '@/models';
 
 // Helper function to get base URL for images
 function getBaseUrl(request: NextRequest): string {
@@ -8,41 +8,10 @@ function getBaseUrl(request: NextRequest): string {
   if (process.env.NODE_ENV === 'production') {
     return process.env.IMAGE_BASE_URL || 'https://admin.trueastrotalk.com';
   }
-  
+
   // For development, use the request host
   const host = request.headers.get('host');
   return `http://${host}`;
-}
-
-// Helper function to resolve profile image
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function resolveProfileImage(user: Record<string, unknown>, mediaCollection: any, baseUrl: string): Promise<string | null> {
-  
-  // Priority 1: If user has Google auth and social_auth_profile_image, use external URL
-  if (user.auth_type === 'google' && user.social_auth_profile_image && typeof user.social_auth_profile_image === 'string') {
-    return user.social_auth_profile_image;
-  }
-  
-  // Priority 2: If user has profile_image_id, resolve from media library
-  if (user.profile_image_id) {
-    try {
-      // The profile_image_id refers to media_id field in media collection, not _id
-      const mediaId = user.profile_image_id.toString();
-        
-      const mediaFile = await mediaCollection.findOne({ media_id: mediaId });
-      
-      if (mediaFile) {
-        const imageUrl = `${baseUrl}${mediaFile.file_path}`;
-        return imageUrl;
-      } else {
-      }
-    } catch (error) {
-      console.error('   ❌ Error resolving media file:', error);
-    }
-  }
-  
-  // No profile image - return null to indicate no image uploaded
-  return null;
 }
 
 export async function GET(request: NextRequest) {
@@ -62,8 +31,6 @@ export async function GET(request: NextRequest) {
     // const sortBy = searchParams.get('sort_by') || 'rating'; // rating, experience, rate
 
     const usersCollection = await DatabaseService.getCollection('users');
-    const mediaCollection = await DatabaseService.getCollection('media');
-    // const chatSessionsCollection = await DatabaseService.getCollection('chat_sessions');
 
     // Build query for available astrologers - only verified ones with complete profiles
     const query: Record<string, unknown> = {
@@ -121,7 +88,7 @@ export async function GET(request: NextRequest) {
         const realSessionCount = astrologerSessionCounts.get(astrologerId) || 0;
         
         // Resolve profile image from media library or fallback
-        const resolvedProfileImage = await resolveProfileImage(astrologer, mediaCollection, baseUrl);
+        const resolvedProfileImage = await Media.resolveProfileImage(astrologer, baseUrl);
         
         return {
           id: astrologer.user_id, // Use custom user_id instead of MongoDB _id

@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
+import 'package:flutter_callkit_incoming/entities/entities.dart';
+import 'package:uuid/uuid.dart';
 import '../api/user_api_service.dart';
 import '../local/local_storage_service.dart';
 import '../service_locator.dart';
@@ -16,27 +19,180 @@ class NotificationService {
 
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
-  
+  final Uuid _uuid = const Uuid();
+
   String? _fcmToken;
+  String? _currentCallKitUuid;
   Function(Map<String, dynamic>)? _onCallNotification;
+  Function(Map<String, dynamic>)? _onCallAnswered;
+  Function(Map<String, dynamic>)? _onCallDeclined;
   Function(Map<String, dynamic>)? _onMessageNotification;
   Function(Map<String, dynamic>)? _onNotificationTapped;
+  Function(Map<String, dynamic>)? _onIncomingChatNotification;
 
   /// Initialize the notification service
   Future<void> initialize({
     Function(Map<String, dynamic>)? onCallNotification,
+    Function(Map<String, dynamic>)? onCallAnswered,
+    Function(Map<String, dynamic>)? onCallDeclined,
     Function(Map<String, dynamic>)? onMessageNotification,
     Function(Map<String, dynamic>)? onNotificationTapped,
+    Function(Map<String, dynamic>)? onIncomingChatNotification,
   }) async {
     _onCallNotification = onCallNotification;
+    _onCallAnswered = onCallAnswered;
+    _onCallDeclined = onCallDeclined;
     _onMessageNotification = onMessageNotification;
     _onNotificationTapped = onNotificationTapped;
+    _onIncomingChatNotification = onIncomingChatNotification;
 
     await _initializeLocalNotifications();
     await _initializeFirebaseMessaging();
+    await _initializeCallKit();
     await _requestPermissions();
     await _getFCMToken();
     _setupMessageHandlers();
+  }
+
+  /// Initialize CallKit for native incoming call UI
+  Future<void> _initializeCallKit() async {
+    try {
+      // Listen for CallKit events
+      FlutterCallkitIncoming.onEvent.listen((CallEvent? event) {
+        if (event == null) return;
+
+        debugPrint('📞 CallKit event: ${event.event}');
+
+        switch (event.event) {
+          case Event.actionCallIncoming:
+            // Call is ringing
+            debugPrint('📞 Incoming call received');
+            break;
+          case Event.actionCallAccept:
+            // User accepted the call
+            debugPrint('📞 Call accepted via CallKit');
+            _handleCallKitAccept(event.body);
+            break;
+          case Event.actionCallDecline:
+            // User declined the call
+            debugPrint('📞 Call declined via CallKit');
+            _handleCallKitDecline(event.body);
+            break;
+          case Event.actionCallEnded:
+            // Call ended
+            debugPrint('📞 Call ended via CallKit');
+            _currentCallKitUuid = null;
+            break;
+          case Event.actionCallTimeout:
+            // Call timed out (missed call)
+            debugPrint('📞 Call timeout (missed)');
+            _currentCallKitUuid = null;
+            break;
+          case Event.actionCallStart:
+            debugPrint('📞 Call started');
+            break;
+          case Event.actionCallCallback:
+            debugPrint('📞 Call callback');
+            break;
+          case Event.actionCallToggleHold:
+            debugPrint('📞 Call toggle hold');
+            break;
+          case Event.actionCallToggleMute:
+            debugPrint('📞 Call toggle mute');
+            break;
+          case Event.actionCallToggleDmtf:
+            debugPrint('📞 Call toggle DTMF');
+            break;
+          case Event.actionCallToggleGroup:
+            debugPrint('📞 Call toggle group');
+            break;
+          case Event.actionCallToggleAudioSession:
+            debugPrint('📞 Call toggle audio session');
+            break;
+          case Event.actionDidUpdateDevicePushTokenVoip:
+            debugPrint('📞 VoIP token updated');
+            break;
+          default:
+            break;
+        }
+      });
+
+      debugPrint('📞 CallKit initialized successfully');
+    } catch (e) {
+      debugPrint('❌ Failed to initialize CallKit: $e');
+    }
+  }
+
+  /// Handle CallKit accept action
+  void _handleCallKitAccept(Map<String, dynamic>? body) {
+    if (body == null) {
+      debugPrint('📞 CallKit accept - body is null');
+      return;
+    }
+
+    debugPrint('📞 CallKit accept - full body: $body');
+
+    // Try to get extra data from different possible locations
+    Map<String, dynamic>? callData;
+
+    // First try body['extra']
+    if (body['extra'] != null) {
+      if (body['extra'] is Map<String, dynamic>) {
+        callData = body['extra'] as Map<String, dynamic>;
+      } else if (body['extra'] is Map) {
+        callData = Map<String, dynamic>.from(body['extra'] as Map);
+      }
+    }
+
+    // If no extra, check if data is directly in body
+    if (callData == null || callData.isEmpty) {
+      // Look for session_id directly in body
+      if (body['session_id'] != null || body['sessionId'] != null) {
+        callData = Map<String, dynamic>.from(body);
+      }
+    }
+
+    if (callData != null && callData.isNotEmpty) {
+      debugPrint('📞 Call accepted - call data: $callData');
+      _onCallAnswered?.call(callData);
+    } else {
+      debugPrint('⚠️ CallKit accept - no valid call data found in body');
+    }
+  }
+
+  /// Handle CallKit decline action
+  void _handleCallKitDecline(Map<String, dynamic>? body) {
+    if (body == null) {
+      debugPrint('📞 CallKit decline - body is null');
+      return;
+    }
+
+    debugPrint('📞 CallKit decline - full body: $body');
+
+    // Try to get extra data from different possible locations
+    Map<String, dynamic>? callData;
+
+    if (body['extra'] != null) {
+      if (body['extra'] is Map<String, dynamic>) {
+        callData = body['extra'] as Map<String, dynamic>;
+      } else if (body['extra'] is Map) {
+        callData = Map<String, dynamic>.from(body['extra'] as Map);
+      }
+    }
+
+    if (callData == null || callData.isEmpty) {
+      if (body['session_id'] != null || body['sessionId'] != null) {
+        callData = Map<String, dynamic>.from(body);
+      }
+    }
+
+    if (callData != null && callData.isNotEmpty) {
+      debugPrint('📞 Call declined - call data: $callData');
+      _onCallDeclined?.call(callData);
+    } else {
+      debugPrint('⚠️ CallKit decline - no valid call data found');
+    }
+    _currentCallKitUuid = null;
   }
 
   /// Initialize local notifications
@@ -169,6 +325,9 @@ class NotificationService {
       case 'incoming_call':
         _handleIncomingCallNotification(data, message.notification, isBackground);
         break;
+      case 'incoming_chat':
+        _handleIncomingChatNotification(data, message.notification, isBackground);
+        break;
       case 'new_message':
         _handleNewMessageNotification(data, message.notification, isBackground);
         break;
@@ -185,22 +344,43 @@ class NotificationService {
 
   /// Handle incoming call notifications
   void _handleIncomingCallNotification(
-    Map<String, dynamic> data, 
+    Map<String, dynamic> data,
     RemoteNotification? notification,
     bool isBackground,
   ) async {
-    if (isBackground) {
-      // Show local notification for incoming call
-      await showCallNotification(
-        callerId: data['caller_id'] ?? '',
-        callerName: data['caller_name'] ?? 'Incoming Call',
-        callType: data['call_type'] ?? 'voice',
-        sessionId: data['session_id'] ?? '',
-      );
-    } else {
-      // App is in foreground - directly handle the call
-      _onCallNotification?.call(data);
-    }
+    // Always show CallKit for incoming calls (works on locked screen too)
+    // CallKit provides native phone-like ring even when app is in background/killed
+    await showCallNotification(
+      callerId: data['caller_id'] ?? '',
+      callerName: data['caller_name'] ?? 'Incoming Call',
+      callType: data['call_type'] ?? 'voice',
+      sessionId: data['session_id'] ?? '',
+      extraData: data, // Pass all data including astrologer info
+    );
+
+    // Always notify the call notification handler to track the session
+    // This is needed to prevent CallKit decline from rejecting handled calls
+    _onCallNotification?.call(data);
+  }
+
+  /// Handle incoming chat request notifications (for astrologers)
+  void _handleIncomingChatNotification(
+    Map<String, dynamic> data,
+    RemoteNotification? notification,
+    bool isBackground,
+  ) async {
+    debugPrint('💬 Handling incoming chat notification: $data');
+
+    // Show local notification for incoming chat request
+    await showIncomingChatNotification(
+      userId: data['user_id'] ?? '',
+      userName: data['user_name'] ?? 'Customer',
+      sessionId: data['session_id'] ?? '',
+      chatRate: data['chat_rate'] ?? '0',
+    );
+
+    // Notify the incoming chat handler (e.g., to show in-app UI)
+    _onIncomingChatNotification?.call(data);
   }
 
   /// Handle new message notifications
@@ -267,8 +447,109 @@ class NotificationService {
     }
   }
 
-  /// Show incoming call notification with answer/decline actions
+  /// Show incoming call notification with native CallKit UI
+  /// This will ring like a real phone call even when screen is locked
   Future<void> showCallNotification({
+    required String callerId,
+    required String callerName,
+    required String callType,
+    required String sessionId,
+    Map<String, dynamic>? extraData,
+  }) async {
+    // Generate unique ID for this call
+    _currentCallKitUuid = _uuid.v4();
+
+    // Prepare extra data to pass through CallKit
+    final Map<String, dynamic> extra = {
+      'type': 'incoming_call',
+      'caller_id': callerId,
+      'caller_name': callerName,
+      'call_type': callType,
+      'session_id': sessionId,
+      ...?extraData,
+    };
+
+    // Configure CallKit parameters
+    final params = CallKitParams(
+      id: _currentCallKitUuid,
+      nameCaller: callerName,
+      appName: 'True Astrotalk',
+      avatar: null, // Can set avatar URL here
+      handle: callerId,
+      type: callType.toLowerCase() == 'video' ? 1 : 0, // 0 = audio, 1 = video
+      textAccept: 'Accept',
+      textDecline: 'Decline',
+      missedCallNotification: const NotificationParams(
+        showNotification: true,
+        isShowCallback: false,
+        subtitle: 'Missed call',
+        callbackText: 'Call back',
+      ),
+      duration: 45000, // Ring for 45 seconds
+      extra: extra,
+      headers: <String, dynamic>{},
+      android: const AndroidParams(
+        isCustomNotification: false,
+        isShowLogo: true,
+        ringtonePath: 'system_ringtone_default',
+        backgroundColor: '#FF6A1B',
+        backgroundUrl: null,
+        actionColor: '#4CAF50',
+        textColor: '#ffffff',
+        incomingCallNotificationChannelName: 'Incoming Calls',
+        missedCallNotificationChannelName: 'Missed Calls',
+        isShowCallID: false,
+        isShowFullLockedScreen: true,
+      ),
+      ios: const IOSParams(
+        iconName: 'CallKitLogo',
+        handleType: 'generic',
+        supportsVideo: true,
+        maximumCallGroups: 1,
+        maximumCallsPerCallGroup: 1,
+        audioSessionMode: 'default',
+        audioSessionActive: true,
+        audioSessionPreferredSampleRate: 44100.0,
+        audioSessionPreferredIOBufferDuration: 0.005,
+        supportsDTMF: false,
+        supportsHolding: false,
+        supportsGrouping: false,
+        supportsUngrouping: false,
+        ringtonePath: 'system_ringtone_default',
+      ),
+    );
+
+    // Show native incoming call UI
+    await FlutterCallkitIncoming.showCallkitIncoming(params);
+    debugPrint('📞 CallKit incoming call shown: $_currentCallKitUuid');
+  }
+
+  /// End the current CallKit call (call this when call ends or is rejected)
+  Future<void> endCallKit() async {
+    if (_currentCallKitUuid != null) {
+      await FlutterCallkitIncoming.endCall(_currentCallKitUuid!);
+      debugPrint('📞 CallKit call ended: $_currentCallKitUuid');
+      _currentCallKitUuid = null;
+    }
+  }
+
+  /// End all active CallKit calls
+  Future<void> endAllCallKitCalls() async {
+    await FlutterCallkitIncoming.endAllCalls();
+    _currentCallKitUuid = null;
+    debugPrint('📞 All CallKit calls ended');
+  }
+
+  /// Get the current CallKit UUID
+  String? get currentCallKitUuid => _currentCallKitUuid;
+
+  /// Check if there's an active CallKit call
+  Future<List<dynamic>?> getActiveCalls() async {
+    return await FlutterCallkitIncoming.activeCalls();
+  }
+
+  /// Legacy local notification for incoming calls (fallback)
+  Future<void> showCallNotificationLegacy({
     required String callerId,
     required String callerName,
     required String callType,
@@ -323,6 +604,66 @@ class NotificationService {
       notificationDetails,
       payload: payload,
     );
+  }
+
+  /// Show incoming chat request notification (for astrologers)
+  Future<void> showIncomingChatNotification({
+    required String userId,
+    required String userName,
+    required String sessionId,
+    required String chatRate,
+  }) async {
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'chat_requests',
+      'Chat Requests',
+      channelDescription: 'Notifications for incoming chat requests',
+      importance: Importance.max,
+      priority: Priority.high,
+      category: AndroidNotificationCategory.message,
+      fullScreenIntent: true,
+      ongoing: true,
+      autoCancel: false,
+      actions: [
+        AndroidNotificationAction(
+          'accept_chat',
+          'Accept',
+          icon: DrawableResourceAndroidBitmap('ic_chat'),
+        ),
+        AndroidNotificationAction(
+          'decline_chat',
+          'Decline',
+          icon: DrawableResourceAndroidBitmap('ic_close'),
+        ),
+      ],
+    );
+
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+      categoryIdentifier: 'incoming_chat_category',
+      interruptionLevel: InterruptionLevel.timeSensitive,
+    );
+
+    const NotificationDetails notificationDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    final payload = jsonEncode({
+      'type': 'incoming_chat',
+      'user_id': userId,
+      'user_name': userName,
+      'session_id': sessionId,
+      'chat_rate': chatRate,
+    });
+
+    await _localNotifications.show(
+      4, // Unique ID for incoming chat notifications
+      'New Chat Request',
+      '$userName wants to chat with you',
+      notificationDetails,
+      payload: payload,
+    );
+
+    debugPrint('💬 Incoming chat notification shown for session: $sessionId');
   }
 
   /// Show new message notification

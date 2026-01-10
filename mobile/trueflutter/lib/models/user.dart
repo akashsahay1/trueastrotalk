@@ -662,20 +662,7 @@ class User {
   }
 
   static String? _getProfilePicture(Map<String, dynamic> json) {
-    // Priority order: social_profile_image (for Google users), then profile_picture/profile_image
-    final fields = [
-      'social_profile_image',
-      'profile_picture', 
-      'profile_image'
-    ];
-    
-    for (final field in fields) {
-      final value = json[field]?.toString();
-      if (value != null && value.isNotEmpty) {
-        return value;
-      }
-    }
-    
-    return null;
+    // Simple: just use profile_image (already resolved URL from API)
+    return json['profile_image']?.toString();
   }
 }

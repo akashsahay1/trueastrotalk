@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import DatabaseService from '@/lib/database';
 import { ObjectId } from 'mongodb';
 import { NotificationService } from '@/lib/notifications';
+import { Media } from '@/models';
+
+// Helper function to get base URL for images
+function getBaseUrl(request: NextRequest): string {
+  const host = request.headers.get('host');
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+  return `${protocol}://${host}`;
+}
 
 // GET - Get chat session details with messages
 export async function GET(
@@ -30,6 +38,7 @@ export async function GET(
     const sessionsCollection = await DatabaseService.getCollection('sessions');
     const chatMessagesCollection = await DatabaseService.getCollection('chat_messages');
     const usersCollection = await DatabaseService.getCollection('users');
+    const baseUrl = getBaseUrl(request);
 
     // Get chat session from unified sessions collection
     const session = await sessionsCollection.findOne({ _id: new ObjectId(sessionId), session_type: 'chat' });
@@ -102,6 +111,10 @@ export async function GET(
       usersCollection.findOne({ user_id: session.astrologer_id, user_type: 'astrologer' })
     ]);
 
+    // Resolve profile images from media library
+    const userProfileImage = user ? await Media.resolveProfileImage(user, baseUrl) : null;
+    const astrologerProfileImage = astrologer ? await Media.resolveProfileImage(astrologer, baseUrl) : null;
+
     // Mark messages as read for the requesting user
     if (userId) {
       const readUpdateField = isCustomer ? 'read_by_user' : 'read_by_astrologer';
@@ -140,13 +153,13 @@ export async function GET(
         _id: user._id.toString(),
         name: user.full_name,
         email: user.email_address,
-        profile_image: user.profile_image
+        profile_image: userProfileImage || ''
       } : null,
       astrologer: astrologer ? {
         _id: astrologer._id.toString(),
         full_name: astrologer.full_name,
         email_address: astrologer.email_address,
-        profile_image: astrologer.profile_image,
+        profile_image: astrologerProfileImage || '',
         chat_rate: astrologer.chat_rate,
         is_online: astrologer.is_online
       } : null,

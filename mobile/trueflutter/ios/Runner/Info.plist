@@ -94,8 +94,17 @@
 			<string>remote-notification</string>
 			<string>fetch</string>
 			<string>voip</string>
+			<string>audio</string>
+			<string>processing</string>
 		</array>
 		<key>FirebaseAppDelegateProxyEnabled</key>
 		<false/>
+		<key>NSAppTransportSecurity</key>
+		<dict>
+			<key>NSAllowsArbitraryLoads</key>
+			<true/>
+			<key>NSAllowsLocalNetworking</key>
+			<true/>
+		</dict>
 	</dict>
 </plist>

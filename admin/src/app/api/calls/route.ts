@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 import DatabaseService from '@/lib/database';
+import { Media } from '@/models';
+
+// Helper function to get base URL for images
+function getBaseUrl(request: NextRequest): string {
+  const host = request.headers.get('host');
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+  return `${protocol}://${host}`;
+}
 
 // GET - Get user's call sessions
 export async function GET(request: NextRequest) {
@@ -24,6 +32,7 @@ export async function GET(request: NextRequest) {
 
     const sessionsCollection = await DatabaseService.getCollection('sessions');
     const usersCollection = await DatabaseService.getCollection('users');
+    const baseUrl = getBaseUrl(request);
 
     // Build query based on user type - filter for call sessions (voice and video)
     const query: Record<string, unknown> = {
@@ -58,6 +67,10 @@ export async function GET(request: NextRequest) {
           usersCollection.findOne({ user_id: session.astrologer_id, user_type: 'astrologer' })
         ]);
 
+        // Resolve profile images from media library
+        const userProfileImage = user ? await Media.resolveProfileImage(user, baseUrl) : null;
+        const astrologerProfileImage = astrologer ? await Media.resolveProfileImage(astrologer, baseUrl) : null;
+
         return {
           id: session._id.toString(),
           _id: session._id.toString(),
@@ -74,7 +87,7 @@ export async function GET(request: NextRequest) {
             account_status: user.account_status || 'active',
             verification_status: user.verification_status || 'verified',
             auth_type: user.auth_type || 'email',
-            profile_image: user.profile_image
+            profile_image: userProfileImage || ''
           } : {
             id: session.user_id,
             name: 'Unknown User',
@@ -94,7 +107,7 @@ export async function GET(request: NextRequest) {
             user_type: 'astrologer',
             account_status: astrologer.account_status || 'active',
             verification_status: astrologer.verification_status || 'verified',
-            profile_image: astrologer.profile_image,
+            profile_image: astrologerProfileImage || '',
             call_rate: astrologer.call_rate || 0,
             video_rate: astrologer.video_rate || 0,
             chat_rate: astrologer.chat_rate || 0,
@@ -192,6 +205,7 @@ export async function POST(request: NextRequest) {
 
     const sessionsCollection = await DatabaseService.getCollection('sessions');
     const usersCollection = await DatabaseService.getCollection('users');
+    const baseUrl = getBaseUrl(request);
 
     // Check if astrologer exists and is online (removed availability check)
     const astrologer = await usersCollection.findOne({
@@ -228,6 +242,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingSession) {
+      // Resolve profile images for the response
+      const existingUserImage = await Media.resolveProfileImage(user, baseUrl);
+      const existingAstrologerImage = await Media.resolveProfileImage(astrologer, baseUrl);
+
       // Return full session data with user and astrologer info
       const sessionId = existingSession._id.toString();
       return NextResponse.json({
@@ -255,7 +273,7 @@ export async function POST(request: NextRequest) {
             account_status: user.account_status || 'active',
             verification_status: user.verification_status || 'verified',
             auth_type: user.auth_type || 'email',
-            profile_image: user.profile_image
+            profile_image: existingUserImage || ''
           },
           astrologer: {
             id: astrologer.user_id,
@@ -268,7 +286,7 @@ export async function POST(request: NextRequest) {
             user_type: 'astrologer',
             account_status: astrologer.account_status || 'active',
             verification_status: astrologer.verification_status || 'verified',
-            profile_image: astrologer.profile_image,
+            profile_image: existingAstrologerImage || '',
             call_rate: astrologer.call_rate || 0,
             video_rate: astrologer.video_rate || 0,
             chat_rate: astrologer.chat_rate || 0,
@@ -320,6 +338,11 @@ export async function POST(request: NextRequest) {
 
     const result = await sessionsCollection.insertOne(sessionData);
     const sessionId = result.insertedId.toString();
+
+    // Resolve profile images for the response
+    const newUserImage = await Media.resolveProfileImage(user, baseUrl);
+    const newAstrologerImage = await Media.resolveProfileImage(astrologer, baseUrl);
+
     return NextResponse.json({
       success: true,
       message: 'Call session created successfully',
@@ -345,7 +368,7 @@ export async function POST(request: NextRequest) {
           account_status: user.account_status || 'active',
           verification_status: user.verification_status || 'verified',
           auth_type: user.auth_type || 'email',
-          profile_image: user.profile_image
+          profile_image: newUserImage || ''
         },
         astrologer: {
           id: astrologer.user_id,
@@ -358,7 +381,7 @@ export async function POST(request: NextRequest) {
           user_type: 'astrologer',
           account_status: astrologer.account_status || 'active',
           verification_status: astrologer.verification_status || 'verified',
-          profile_image: astrologer.profile_image,
+          profile_image: newAstrologerImage || '',
           call_rate: astrologer.call_rate || 0,
           video_rate: astrologer.video_rate || 0,
           chat_rate: astrologer.chat_rate || 0,

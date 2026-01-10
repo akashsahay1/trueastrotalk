@@ -338,8 +338,26 @@ export default function AstrologersPage() {
         return 'badge-warning';
       case 'banned':
         return 'badge-danger';
+      case 'pending_verification':
+        return 'badge-info';
       default:
         return 'badge-secondary';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'Active';
+      case 'inactive':
+        return 'Inactive';
+      case 'banned':
+        return 'Banned';
+      case 'pending_verification':
+        return 'Pending Verification';
+      default:
+        // Convert snake_case to Title Case for any unknown status
+        return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
     }
   };
 
@@ -347,11 +365,10 @@ export default function AstrologersPage() {
     switch (status) {
       case 'verified':
         return 'badge-success';
-      case 'pending':
-        return 'badge-warning';
       case 'rejected':
         return 'badge-danger';
       default:
+        // unverified, pending, pending_verification all show as warning
         return 'badge-warning';
     }
   };
@@ -360,12 +377,11 @@ export default function AstrologersPage() {
     switch (status) {
       case 'verified':
         return 'Verified';
-      case 'pending':
-        return 'Pending';
       case 'rejected':
         return 'Rejected';
       default:
-        return 'Pending';
+        // unverified, pending, pending_verification all show as Unverified
+        return 'Unverified';
     }
   };
 
@@ -700,7 +716,7 @@ export default function AstrologersPage() {
                                 <td>{user.city ? `${user.city}, ${user.state}` : '-'}</td>
                                 <td>
                                   <span className={`badge ${getStatusBadge(user.account_status)}`}>
-                                    {user.account_status}
+                                    {getStatusLabel(user.account_status)}
                                   </span>
                                 </td>
                                 <td>
@@ -822,14 +838,14 @@ export default function AstrologersPage() {
                   <div className="col-4">
                     <div className="form-group">
                       <label>Verification Status</label>
-                      <select 
+                      <select
                         className="form-control form-control-sm"
                         value={filters.verificationStatus}
                         onChange={(e) => handleFilterChange('verificationStatus', e.target.value)}
                       >
                         <option value="">All Verification</option>
+                        <option value="unverified">Unverified</option>
                         <option value="verified">Verified</option>
-                        <option value="pending">Pending</option>
                         <option value="rejected">Rejected</option>
                       </select>
                     </div>
@@ -1021,8 +1037,8 @@ export default function AstrologersPage() {
                       )}
                       {bulkUpdateData.field === 'verification_status' && (
                         <>
+                          <option value="unverified">Unverified</option>
                           <option value="verified">Verified</option>
-                          <option value="pending">Pending</option>
                           <option value="rejected">Rejected</option>
                         </>
                       )}

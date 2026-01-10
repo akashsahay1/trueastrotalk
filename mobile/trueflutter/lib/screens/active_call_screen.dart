@@ -12,6 +12,8 @@ import '../services/wallet/wallet_service.dart';
 import '../services/network/network_diagnostics_service.dart';
 import '../services/call/call_service.dart';
 import '../services/auth/auth_service.dart';
+import '../services/api/user_api_service.dart';
+import '../services/notifications/notification_service.dart';
 import '../services/service_locator.dart';
 import 'history.dart';
 import '../models/astrologer.dart';
@@ -51,6 +53,8 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
   bool _isCameraOn = true;
   bool _isConnected = false;
   bool _isConnecting = true;
+  bool _isCallEndedHandled = false; // Prevent duplicate call ended handling
+  bool _isBillingStarting = false; // Prevent duplicate billing initialization (race condition fix)
   
   late AnimationController _controlsAnimationController;
   late AnimationController _buttonAnimationController;
@@ -79,11 +83,15 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     
     // Register this call screen with CallService
     _callService.setCallScreenActive(widget.callData);
-    
-    // Initialize call connection with significant delay to ensure UI is fully rendered
+
+    // Initialize call connection
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // Add additional delay to let UI settle completely
-      await Future.delayed(const Duration(milliseconds: 500));
+      // For incoming calls, answer quickly to reduce delay
+      // For outgoing calls, add a small delay for UI to settle
+      final delay = widget.isIncoming
+          ? const Duration(milliseconds: 100)  // Quick answer for incoming
+          : const Duration(milliseconds: 300); // Slightly longer for outgoing
+      await Future.delayed(delay);
       if (mounted) {
         _initializeCall();
       }
@@ -326,19 +334,32 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
         // Check if this is an incoming or outgoing call
         if (widget.isIncoming) {
           debugPrint('📞 Background: Answering incoming call');
-          final sessionId = widget.callData['sessionId'];
-          final callerId = widget.callData['callerId'];
-          final callerName = widget.callData['callerName'];
-          final callType = widget.callData['callType'] == 'video' ? webrtc.CallType.video : webrtc.CallType.voice;
-          debugPrint('🔥 ActiveCall: Setting incoming call data - sessionId: $sessionId, callerId: $callerId');
-          await _webrtcService.setIncomingCallData(sessionId, callerId, callerName, callType);
-          await _webrtcService.answerCall();
+          debugPrint('📞 callData contents: ${widget.callData}');
+
+          // Use snake_case only
+          final sessionId = widget.callData['session_id']?.toString() ?? '';
+          final callerId = widget.callData['caller_id']?.toString() ?? '';
+          final callerName = widget.callData['caller_name']?.toString() ?? 'Unknown';
+          final callTypeStr = widget.callData['call_type']?.toString() ?? 'voice';
+          final callType = callTypeStr == 'video' ? webrtc.CallType.video : webrtc.CallType.voice;
+
+          debugPrint('🔥 ActiveCall: Parsed data - session_id: $sessionId, caller_id: $callerId, caller_name: $callerName, call_type: $callTypeStr');
+
+          if (sessionId.isNotEmpty && callerId.isNotEmpty) {
+            await _webrtcService.setIncomingCallData(sessionId, callerId, callerName, callType);
+            // answerCall() will create peer connection and send answer_call socket event
+            await _webrtcService.answerCall();
+          } else {
+            debugPrint('❌ Missing required fields - session_id: "$sessionId", caller_id: "$callerId"');
+            throw Exception('Missing session_id or caller_id for incoming call. Got session_id="$sessionId", caller_id="$callerId"');
+          }
         } else {
           debugPrint('📞 Background: Initiating outgoing call');
-          final callType = widget.callData['callType'] == 'video' ? webrtc.CallType.video : webrtc.CallType.voice;
-          final targetUserId = widget.callData['receiverId'];
-          final sessionId = widget.callData['sessionId'];
-          debugPrint('🔥 ActiveCall: Passing sessionId to WebRTC: $sessionId');
+          final callTypeStr = widget.callData['call_type']?.toString() ?? 'voice';
+          final callType = callTypeStr == 'video' ? webrtc.CallType.video : webrtc.CallType.voice;
+          final targetUserId = widget.callData['receiver_id']?.toString() ?? '';
+          final sessionId = widget.callData['session_id']?.toString();
+          debugPrint('🔥 ActiveCall: Passing session_id to WebRTC: $sessionId');
           await _webrtcService.initiateCall(targetUserId, callType, sessionId: sessionId);
         }
         
@@ -420,7 +441,7 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
   }
 
   Widget _buildVideoBackground() {
-    final isVideoCall = widget.callData['callType'] == 'video';
+    final isVideoCall = widget.callData['call_type'] == 'video';
     
     if (!isVideoCall) {
       // Audio call background
@@ -515,18 +536,20 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
   }
 
   Widget _buildCallInfo() {
-    final isVideoCall = widget.callData['callType'] == 'video';
+    final isVideoCall = widget.callData['call_type'] == 'video';
     
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(Dimensions.paddingLg),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             if (!isVideoCall) ...[
               const Spacer(),
-              
-              // Profile picture for audio calls
-              Container(
+
+              // Profile picture for audio calls - centered
+              Center(
+                child: Container(
                 width: 160,
                 height: 160,
                 decoration: BoxDecoration(
@@ -550,10 +573,11 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
                       : _buildDefaultAvatar(),
                 ),
               ),
-              
+              ),  // Close Center widget
+
               const SizedBox(height: Dimensions.paddingXl),
             ],
-            
+
             // Caller/Receiver name
             Text(
               () {
@@ -697,7 +721,7 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
 
 
   Widget _buildCallControls() {
-    final isVideoCall = widget.callData['callType'] == 'video';
+    final isVideoCall = widget.callData['call_type'] == 'video';
     
     return Positioned(
       bottom: 0,
@@ -1071,30 +1095,24 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
   void _endCall() async {
     try {
       debugPrint('🔚 Starting call end process...');
-      
-      // Send end call event first to notify other party
-      debugPrint('📤 Sending end_call event...');
-      _socketService.emit('end_call', {
-        'callId': widget.callData['callId'],
-        'sessionId': widget.callData['sessionId'],
-        'endedBy': widget.callData['callerId'], // Add who ended the call
-        'timestamp': DateTime.now().millisecondsSinceEpoch,
-      });
-      
-      // Small delay to allow socket event to be sent
-      await Future.delayed(const Duration(milliseconds: 200));
-      
-      // Stop billing
+
+      // End CallKit notification (if still active)
+      await NotificationService().endCallKit();
+
+      // NOTE: Don't emit end_call here - WebRTCService.endCall() will handle it
+      // This prevents duplicate end_call socket events
+
+      // Stop billing first
       debugPrint('💰 Stopping billing...');
       await _billingService.stopBilling();
-      
-      // End WebRTC call
+
+      // End WebRTC call (this will emit end_call via socket)
       debugPrint('📞 Ending WebRTC call...');
       await _webrtcService.endCall();
-      
+
       debugPrint('✅ Call end process completed');
       _handleCallEnded('Call ended');
-      
+
     } catch (e) {
       debugPrint('❌ Failed to end call: $e');
       _handleCallEnded('Call ended');
@@ -1103,7 +1121,14 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
 
   void _handleCallEnded(String reason) async {
     if (!mounted) return;
-    
+
+    // Prevent duplicate handling
+    if (_isCallEndedHandled) {
+      debugPrint('📴 Call ended already handled, ignoring: $reason');
+      return;
+    }
+    _isCallEndedHandled = true;
+
     debugPrint('📴 Handling call ended: $reason');
     
     // Stop billing and get final summary
@@ -1168,19 +1193,19 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
   /// Simple navigation back with snackbar
   void _simpleNavigateBack(String reason) {
     if (!mounted) return;
-    
+
     debugPrint('📱 Simple navigation back with reason: $reason');
-    
+
     final currentUser = _authService.currentUser;
     final isAstrologer = currentUser != null && currentUser.isAstrologer;
-    
+
     // For customers, try to navigate back to astrologer details if possible
     if (!isAstrologer) {
       final astrologerData = widget.callData['astrologer'];
       if (astrologerData != null) {
         debugPrint('📱 Customer: Navigating back to astrologer details after simple call end');
         _navigateToAstrologerDetailsImmediate();
-        
+
         // Show snackbar after navigation
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
@@ -1196,8 +1221,8 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
         return;
       }
     }
-    
-    // Fallback: show snackbar and pop
+
+    // Fallback: show snackbar and navigate back safely
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(reason),
@@ -1205,9 +1230,13 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
         duration: const Duration(seconds: 2),
       ),
     );
-    
-    // Navigate back immediately
-    Navigator.of(context).pop();
+
+    // Navigate back safely using maybePop to avoid navigator lock errors
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).maybePop();
+      }
+    });
   }
 
   /// Navigate astrologer to history screen with earnings info
@@ -1289,17 +1318,42 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
   }
 
   Future<void> _startBilling() async {
+    // Prevent race condition - check both the initialization lock and active session
+    if (_isBillingStarting) {
+      debugPrint('⏳ Billing initialization already in progress, skipping...');
+      return;
+    }
+    if (_billingService.isSessionActive) {
+      debugPrint('⏳ Billing session already active, skipping...');
+      return;
+    }
+
+    _isBillingStarting = true;
+
     try {
-      final astrologerData = widget.callData['astrologer'];
+      // Support both snake_case and camelCase field names
+      var astrologerData = widget.callData['astrologer'];
+
+      // If astrologer data is missing, try to fetch from API
+      if (astrologerData == null) {
+        debugPrint('⚠️ No astrologer data in callData, attempting to fetch from API...');
+        final astrologerId = widget.callData['astrologer_id'] ?? widget.callData['astrologerId'];
+        if (astrologerId != null) {
+          astrologerData = await _fetchAstrologerData(astrologerId.toString());
+        }
+      }
+
       if (astrologerData == null) {
         debugPrint('❌ No astrologer data found for billing');
         return;
       }
-      
+
       final astrologer = Astrologer.fromJson(astrologerData);
-      final callType = widget.callData['callType'] == 'video' ? call_models.CallType.video : call_models.CallType.voice;
-      final sessionId = widget.callData['sessionId']?.toString() ?? 'unknown';
-      
+      // Support both snake_case and camelCase
+      final callTypeStr = widget.callData['call_type'] ?? widget.callData['callType'];
+      final callType = callTypeStr == 'video' ? call_models.CallType.video : call_models.CallType.voice;
+      final sessionId = (widget.callData['session_id'] ?? widget.callData['sessionId'])?.toString() ?? 'unknown';
+
       // Get current user ID for session creation
       final currentUser = _authService.currentUser;
       final userId = currentUser?.id;
@@ -1310,13 +1364,28 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
         callType: callType,
         userId: userId,
       );
-      
+
       if (!success) {
         _handleInsufficientBalance();
       }
     } catch (e) {
       debugPrint('❌ Failed to start billing: $e');
+    } finally {
+      _isBillingStarting = false;
     }
+  }
+
+  /// Fetch astrologer data from API if not included in callData
+  Future<Map<String, dynamic>?> _fetchAstrologerData(String astrologerId) async {
+    try {
+      final userApiService = getIt<UserApiService>();
+      final astrologer = await userApiService.getAstrologerById(astrologerId);
+      debugPrint('✅ Fetched astrologer data from API');
+      return astrologer.toJson();
+    } catch (e) {
+      debugPrint('❌ Failed to fetch astrologer data: $e');
+    }
+    return null;
   }
 
   void _showLowBalanceWarning(int remainingMinutes) {
@@ -1355,8 +1424,8 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
       return const SizedBox.shrink();
     }
 
-    final isVideoCall = widget.callData['callType'] == 'video';
-    
+    final isVideoCall = widget.callData['call_type'] == 'video';
+
     return Positioned(
       top: MediaQuery.of(context).padding.top + (isVideoCall ? 220 : 140),
       left: 0,

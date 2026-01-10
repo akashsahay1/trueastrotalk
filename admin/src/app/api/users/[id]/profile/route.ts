@@ -1,33 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ObjectId } from 'mongodb';
 import DatabaseService from '@/lib/database';
+import { Media } from '@/models';
 
 // Helper function to get base URL for images
 function getBaseUrl(request: NextRequest): string {
   const host = request.headers.get('host') || 'localhost:4001';
   const protocol = request.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
   return `${protocol}://${host}`;
-}
-
-// Helper function to resolve profile image to full URL
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function resolveProfileImage(user: Record<string, unknown>, mediaCollection: any, baseUrl: string): Promise<string | null> {
-  // Check if user has profile_image_id
-  if (!user.profile_image_id) {
-    return null;
-  }
-
-  try {
-    const mediaFile = await mediaCollection.findOne({ media_id: user.profile_image_id });
-    
-    if (mediaFile && mediaFile.file_path) {
-      return `${baseUrl}${mediaFile.file_path}`;
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Error resolving media file:', error);
-    return null;
-  }
 }
 
 export async function GET(
@@ -38,7 +18,6 @@ export async function GET(
     const { id } = await params;
     
     const usersCollection = await DatabaseService.getCollection('users');
-    const mediaCollection = await DatabaseService.getCollection('media');
 
     // Find user by user_id field (custom format like user_xxx)
     const user = await usersCollection.findOne({ user_id: id });
@@ -52,7 +31,7 @@ export async function GET(
 
     // Resolve profile image to full URL
     const baseUrl = getBaseUrl(request);
-    const profileImage = await resolveProfileImage(user, mediaCollection, baseUrl);
+    const profileImage = await Media.resolveProfileImage(user, baseUrl);
 
     // Prepare response based on user type
     const userResponse: Record<string, unknown> = {

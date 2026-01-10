@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../lib/database';
 import { SecurityMiddleware, InputSanitizer } from '../../../lib/security';
+import { Media } from '@/models';
+
+// Helper function to get base URL for images
+function getBaseUrl(request: NextRequest): string {
+  const host = request.headers.get('host');
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+  return `${protocol}://${host}`;
+}
 
 // GET - Get user's chat sessions
 export async function GET(request: NextRequest) {
@@ -41,6 +49,7 @@ export async function GET(request: NextRequest) {
 
     const sessionsCollection = await DatabaseService.getCollection('sessions');
     const usersCollection = await DatabaseService.getCollection('users');
+    const baseUrl = getBaseUrl(request);
 
     // Build secure query based on user type
     const query: Record<string, unknown> = {
@@ -105,13 +114,17 @@ export async function GET(request: NextRequest) {
           )
         ]);
 
+        // Resolve profile images from media library
+        const userProfileImage = user ? await Media.resolveProfileImage(user, baseUrl) : null;
+        const astrologerProfileImage = astrologer ? await Media.resolveProfileImage(astrologer, baseUrl) : null;
+
         return {
           _id: session._id.toString(),
           session_id: session._id.toString(),
           user: user ? {
             _id: user._id.toString(),
             full_name: user.full_name,
-            profile_image: user.profile_image || '',
+            profile_image: userProfileImage || '',
             // Only show essential info to astrologer
             ...(userType === 'astrologer' && {
               phone_number: user.phone_number
@@ -120,7 +133,7 @@ export async function GET(request: NextRequest) {
           astrologer: astrologer ? {
             _id: astrologer._id.toString(),
             full_name: astrologer.full_name,
-            profile_image: astrologer.profile_image || '',
+            profile_image: astrologerProfileImage || '',
             chat_rate: astrologer.chat_rate,
             is_online: astrologer.is_online || false,
             rating: astrologer.rating || 0,
@@ -134,8 +147,8 @@ export async function GET(request: NextRequest) {
           total_amount: session.total_amount || 0,
           last_message: session.last_message,
           last_message_time: session.last_message_time,
-          unread_count: userType === 'customer' ? 
-            (session.user_unread_count || 0) : 
+          unread_count: userType === 'customer' ?
+            (session.user_unread_count || 0) :
             (session.astrologer_unread_count || 0),
           created_at: session.created_at,
           updated_at: session.updated_at
@@ -167,6 +180,7 @@ export async function GET(request: NextRequest) {
 
 // POST - Create new chat session
 export async function POST(request: NextRequest) {
+  console.log('📨 POST /api/chat called');
   try {
     const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
@@ -219,6 +233,7 @@ export async function POST(request: NextRequest) {
 
     const sessionsCollection = await DatabaseService.getCollection('sessions');
     const usersCollection = await DatabaseService.getCollection('users');
+    const baseUrl = getBaseUrl(request);
 
     // Check if astrologer exists and is available
     const astrologer = await usersCollection.findOne({
@@ -278,6 +293,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingSession) {
+      const existingAstrologerImage = await Media.resolveProfileImage(astrologer, baseUrl);
       return NextResponse.json({
         success: true,
         message: 'Active session already exists',
@@ -290,7 +306,7 @@ export async function POST(request: NextRequest) {
           astrologer: {
             _id: astrologer._id.toString(),
             full_name: astrologer.full_name,
-            profile_image: astrologer.profile_image || '',
+            profile_image: existingAstrologerImage || '',
             chat_rate: astrologer.chat_rate,
             is_online: astrologer.is_online
           }
@@ -351,6 +367,9 @@ export async function POST(request: NextRequest) {
     const result = await sessionsCollection.insertOne(sessionData);
     const sessionId = result.insertedId.toString();
 
+    // Resolve profile images for the response
+    const newUserImage = await Media.resolveProfileImage(user, baseUrl);
+    const newAstrologerImage = await Media.resolveProfileImage(astrologer, baseUrl);
 
     return NextResponse.json({
       success: true,
@@ -364,12 +383,12 @@ export async function POST(request: NextRequest) {
         user: {
           _id: user._id.toString(),
           full_name: user.full_name,
-          profile_image: user.profile_image || ''
+          profile_image: newUserImage || ''
         },
         astrologer: {
           _id: astrologer._id.toString(),
           full_name: astrologer.full_name,
-          profile_image: astrologer.profile_image || '',
+          profile_image: newAstrologerImage || '',
           chat_rate: astrologer.chat_rate,
           rating: astrologer.rating || 0,
           skills: astrologer.skills || []

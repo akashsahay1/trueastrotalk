@@ -3,55 +3,13 @@ import DatabaseService from '@/lib/database';
 import { ObjectId } from 'mongodb';
 import { jwtVerify } from 'jose';
 import { withSecurity } from '@/lib/api-security';
+import { Media } from '@/models';
 
 // Helper function to get base URL for images
 function getBaseUrl(request: NextRequest): string {
   const host = request.headers.get('host');
   const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
   return `${protocol}://${host}`;
-}
-
-// Helper function to resolve profile image to full URL
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function resolveProfileImage(user: Record<string, unknown>, mediaCollection: any, baseUrl: string): Promise<string | null> {
-  // Priority 1: If user has Google auth and social_auth_profile_image, use external URL
-  if (user.auth_type === 'google' && user.social_auth_profile_image && typeof user.social_auth_profile_image === 'string') {
-    return user.social_auth_profile_image;
-  }
-  
-  // Priority 2: If user has profile_image_id, resolve from media library
-  if (user.profile_image_id || user.profile_image) {
-    try {
-      const mediaRef = user.profile_image_id || user.profile_image;
-      let mediaFile = null;
-      
-      if (typeof mediaRef === 'string') {
-        // Check if it's our custom media_id format
-        if (mediaRef.startsWith('media_')) {
-          mediaFile = await mediaCollection.findOne({ media_id: mediaRef });
-        } else if (mediaRef.length === 24) {
-          // Try legacy ObjectId lookup first
-          try {
-            mediaFile = await mediaCollection.findOne({ _id: new ObjectId(mediaRef) });
-          } catch {
-            // If ObjectId conversion fails, try as string
-            mediaFile = await mediaCollection.findOne({ media_id: mediaRef });
-          }
-        }
-      } else if (mediaRef instanceof ObjectId) {
-        mediaFile = await mediaCollection.findOne({ _id: mediaRef });
-      }
-        
-      if (mediaFile && mediaFile.file_path) {
-        return `${baseUrl}${mediaFile.file_path}`;
-      }
-    } catch (error) {
-      console.error('Error resolving media file:', error);
-    }
-  }
-  
-  // No profile image - return null to indicate no image uploaded
-  return null;
 }
 
 const JWT_SECRET = new TextEncoder().encode(
@@ -164,7 +122,6 @@ export const GET = withSecurity(async (request: NextRequest) => {
 
     // Connect to MongoDB
     const usersCollection = await DatabaseService.getCollection('users');
-    const mediaCollection = await DatabaseService.getCollection('media');
 
     // Get users with pagination
     const [users, totalCount] = await Promise.all([
@@ -177,7 +134,7 @@ export const GET = withSecurity(async (request: NextRequest) => {
       .skip(skip)
       .limit(limit)
       .toArray(),
-      
+
       usersCollection.countDocuments(query)
     ]);
 
@@ -188,7 +145,7 @@ export const GET = withSecurity(async (request: NextRequest) => {
     const usersWithResolvedImages = await Promise.all(
       users.map(async (user) => ({
         ...user,
-        profile_image: await resolveProfileImage(user, mediaCollection, baseUrl)
+        profile_image: await Media.resolveProfileImage(user, baseUrl)
       }))
     );
     // Calculate pagination info

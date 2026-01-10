@@ -1076,6 +1076,7 @@ function EditUserContent() {
                             value={formData.account_status}
                             onChange={handleInputChange}
                           >
+                            <option value="pending_verification">Pending Verification</option>
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
                             <option value="banned">Banned</option>
@@ -1168,6 +1169,7 @@ function EditUserContent() {
                             value={formData.account_status}
                             onChange={handleInputChange}
                           >
+                            <option value="pending_verification">Pending Verification</option>
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
                             <option value="banned">Banned</option>
@@ -1189,7 +1191,7 @@ function EditUserContent() {
                               }
                             }}
                           >
-                            <option value="pending">Pending</option>
+                            <option value="unverified">Unverified</option>
                             <option value="verified">Verified</option>
                             <option value="rejected">Rejected</option>
                           </select>

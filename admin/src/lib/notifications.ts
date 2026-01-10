@@ -3,47 +3,64 @@ import sgMail from '@sendgrid/mail';
 import DatabaseService from './database';
 import { ObjectId } from 'mongodb';
 
-// Initialize Firebase Admin SDK
-let firebaseApp: admin.app.App | null = null;
+/**
+ * Get Firebase App - initializes from environment variables if not already done
+ * Handles Next.js RSC context where module state may not persist
+ */
+function getFirebaseApp(): admin.app.App | null {
+  try {
+    // Check for required environment variables first
+    const projectId = process.env.FIREBASE_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
-try {
-  // Only initialize Firebase if all required environment variables are present
-  const requiredFirebaseEnvs = [
-    'FIREBASE_PROJECT_ID',
-    'FIREBASE_PRIVATE_KEY_ID', 
-    'FIREBASE_PRIVATE_KEY',
-    'FIREBASE_CLIENT_EMAIL',
-    'FIREBASE_CLIENT_ID'
-  ];
+    if (!projectId || !clientEmail || !privateKey) {
+      console.error('❌ Firebase: Missing environment variables');
+      return null;
+    }
 
-  const hasAllFirebaseEnvs = requiredFirebaseEnvs.every(envVar => process.env[envVar]);
+    // Always try to get existing app first (handles Next.js RSC context)
+    try {
+      const existingApp = admin.app();
+      // App exists, return it
+      return existingApp;
+    } catch {
+      // No existing app, need to initialize
+    }
 
-  if (hasAllFirebaseEnvs && !admin.apps.length) {
+    // Parse private key - handle both escaped (\n as literal) and actual newlines
+    let parsedPrivateKey = privateKey;
+    if (privateKey.includes('\\n')) {
+      parsedPrivateKey = privateKey.replace(/\\n/g, '\n');
+    }
+    parsedPrivateKey = parsedPrivateKey.replace(/^["']|["']$/g, '');
+
+    // Build service account credentials
     const serviceAccount = {
-      type: "service_account",
-      project_id: process.env.FIREBASE_PROJECT_ID!,
-      private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID!,
-      private_key: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, '\n'),
-      client_email: process.env.FIREBASE_CLIENT_EMAIL!,
-      client_id: process.env.FIREBASE_CLIENT_ID!,
-      auth_uri: "https://accounts.google.com/o/oauth2/auth",
-      token_uri: "https://oauth2.googleapis.com/token",
-      auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-      client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL || `https://www.googleapis.com/robot/v1/metadata/x509/${process.env.FIREBASE_CLIENT_EMAIL}`
+      type: 'service_account',
+      project_id: projectId,
+      private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+      private_key: parsedPrivateKey,
+      client_email: clientEmail,
+      client_id: process.env.FIREBASE_CLIENT_ID,
+      auth_uri: process.env.FIREBASE_AUTH_URI || 'https://accounts.google.com/o/oauth2/auth',
+      token_uri: process.env.FIREBASE_TOKEN_URI || 'https://oauth2.googleapis.com/token',
+      auth_provider_x509_cert_url: process.env.FIREBASE_AUTH_PROVIDER_CERT_URL || 'https://www.googleapis.com/oauth2/v1/certs',
+      client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL,
+      universe_domain: 'googleapis.com'
     };
 
-    firebaseApp = admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-      projectId: process.env.FIREBASE_PROJECT_ID
+    // Initialize new app with credentials
+    const app = admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount)
     });
-  } else if (admin.apps.length) {
-    firebaseApp = admin.app();
-  } else {
-    console.warn('Firebase Admin not initialized: Missing required environment variables');
+
+    console.log('🔥 [NOTIFICATIONS] Firebase Admin SDK initialized for project:', projectId);
+    return app;
+  } catch (error) {
+    console.error('❌ Firebase Admin initialization error:', error);
+    return null;
   }
-} catch (error) {
-  console.error('Firebase Admin initialization error:', error);
-  firebaseApp = null;
 }
 
 // Initialize SendGrid
@@ -171,7 +188,8 @@ export class NotificationService {
    */
   static async sendPushNotification(target: NotificationTarget, notification: NotificationData): Promise<boolean> {
     try {
-      if (!firebaseApp || !target.fcmToken) {
+      const app = getFirebaseApp();
+      if (!app || !target.fcmToken) {
         return false;
       }
 
@@ -235,7 +253,7 @@ export class NotificationService {
         }
       };
 
-      const _response = await firebaseApp.messaging().send(message);
+      const _response = await app.messaging().send(message);
 
       // Update delivery status
       await this.updateNotificationStatus(target.userId, notification.type, 'delivered');

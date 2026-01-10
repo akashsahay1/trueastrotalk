@@ -15,11 +15,12 @@ import { generateUserId } from '../../../../lib/custom-id';
 /**
  * Generate a unique media ID that persists across database exports/imports
  * Format: media_{timestamp}_{random}
+ * @param timestamp - Optional timestamp to use (for consistency with filename)
  */
-function generateMediaId(): string {
-  const timestamp = Date.now();
+function generateMediaId(timestamp?: number): string {
+  const ts = timestamp || Date.now();
   const random = Math.random().toString(36).substring(2, 10);
-  return `media_${timestamp}_${random}`;
+  return `media_${ts}_${random}`;
 }
 
 /**
@@ -57,19 +58,20 @@ async function handleFileUpload(file: File, fileType: string, uploadedBy: string
       await mkdir(uploadDir, { recursive: true });
     }
 
-    // Generate filename
+    // Generate filename with consistent timestamp
     const timestamp = Date.now();
     const extension = path.extname(file.name);
     const fileName = `ta-${timestamp}${extension}`;
     const filePath = path.join(uploadDir, fileName);
-    
+
     // Save file
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     await writeFile(filePath, buffer);
-    
+
     const publicUrl = `/uploads/${year}/${month}/${fileName}`;
-    const mediaId = generateMediaId();
+    // Use the same timestamp for media_id to ensure consistency
+    const mediaId = generateMediaId(timestamp);
 
     // Save to media collection
     const mediaCollection = await DatabaseService.getCollection('media');
@@ -92,6 +94,49 @@ async function handleFileUpload(file: File, fileType: string, uploadedBy: string
     return { mediaId, filePath: publicUrl };
   } catch (error) {
     console.error('File upload error:', error);
+    return null;
+  }
+}
+
+/**
+ * Save external image URL (e.g., Google profile picture) to media library
+ */
+async function saveExternalImageToMedia(
+  imageUrl: string,
+  fileType: string,
+  uploadedBy: string
+): Promise<{ mediaId: string; filePath: string } | null> {
+  try {
+    console.log('📥 [REGISTER] Saving external image URL to media:', imageUrl);
+
+    const now = new Date();
+    const mediaId = generateMediaId();
+
+    // Save to media collection with external URL as file_path
+    const mediaCollection = await DatabaseService.getCollection('media');
+    await mediaCollection.insertOne({
+      media_id: mediaId,
+      filename: 'external_image',
+      original_name: 'google_profile.jpg',
+      file_path: imageUrl,
+      file_size: 0,
+      mime_type: 'image/jpeg',
+      file_type: fileType,
+      uploaded_by: uploadedBy,
+      associated_record: uploadedBy,
+      is_external: true,
+      uploaded_at: now,
+      created_at: now,
+      updated_at: now
+    });
+
+    console.log('✅ [REGISTER] External image URL saved to media library:');
+    console.log('   media_id:', mediaId);
+    console.log('   file_path:', imageUrl);
+
+    return { mediaId, filePath: imageUrl };
+  } catch (error) {
+    console.error('External image save error:', error);
     return null;
   }
 }
@@ -127,12 +172,24 @@ async function validateGoogleRegistration(googleToken: string): Promise<{ email:
   }
 }
 
+// Configure body size limit for file uploads (Next.js App Router)
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const maxDuration = 60; // 60 seconds timeout for file uploads
+
 export async function POST(request: NextRequest) {
   try {
+    console.log('📝 [REGISTER] Request received');
+    console.log('   Method:', request.method);
+    console.log('   URL:', request.url);
+    console.log('   Origin:', request.headers.get('origin'));
+
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    console.log('   IP:', ip);
 
     // Check if request is multipart/form-data or JSON
     const contentType = request.headers.get('content-type') || '';
+    console.log('   Content-Type:', contentType);
     let body: Record<string, unknown> = {};
     let profileImageFile: File | null = null;
     let panCardImageFile: File | null = null;
@@ -144,6 +201,9 @@ export async function POST(request: NextRequest) {
       // Extract files
       profileImageFile = formData.get('profile_image') as File || null;
       panCardImageFile = formData.get('pan_card_image') as File || null;
+
+      console.log('📸 [REGISTER] Profile image file received:', profileImageFile ? `${profileImageFile.name} (${profileImageFile.size} bytes)` : 'None');
+      console.log('📄 [REGISTER] PAN card file received:', panCardImageFile ? `${panCardImageFile.name} (${panCardImageFile.size} bytes)` : 'None');
       
       // Extract other fields
       for (const [key, value] of formData.entries()) {
@@ -486,8 +546,19 @@ export async function POST(request: NextRequest) {
     // Add Google-specific data
     if (auth_type === 'google' && googleUserInfo) {
       userData.google_id = googleUserInfo.email;
-      userData.profile_image = googleUserInfo.picture || '';
       userData.email_verified = true;
+
+      // Save Google profile picture URL to media library (only if no profile image uploaded)
+      if (googleUserInfo.picture && !profileImageFile) {
+        const googleImageResult = await saveExternalImageToMedia(
+          googleUserInfo.picture,
+          'profile_image',
+          userData.user_id as string
+        );
+        if (googleImageResult) {
+          userData.profile_image_id = googleImageResult.mediaId;
+        }
+      }
     }
 
     // Add personal information
@@ -551,18 +622,23 @@ export async function POST(request: NextRequest) {
 
     // Handle profile image upload if provided
     if (profileImageFile) {
+      console.log('📸 [REGISTER] Starting profile image upload...');
       const uploadResult = await handleFileUpload(
-        profileImageFile, 
-        'profile_image', 
+        profileImageFile,
+        'profile_image',
         userData.user_id as string
       );
-      
+
       if (uploadResult) {
-        // Store media_id in profile_image_id field (not profile_image)
         userData.profile_image_id = uploadResult.mediaId;
-        // Also store the path for backward compatibility if needed
-        userData.profile_image = uploadResult.filePath;
+        console.log('✅ [REGISTER] Profile image uploaded successfully:');
+        console.log('   media_id:', uploadResult.mediaId);
+        console.log('   file_path:', uploadResult.filePath);
+      } else {
+        console.log('❌ [REGISTER] Profile image upload failed');
       }
+    } else {
+      console.log('📸 [REGISTER] No profile image provided');
     }
 
     // Handle PAN card image upload for astrologers
@@ -637,7 +713,6 @@ export async function POST(request: NextRequest) {
       account_status: userData.account_status,
       verification_status: userData.verification_status,
       auth_type: userData.auth_type,
-      profile_image: userData.profile_image || '',
       profile_image_id: userData.profile_image_id || null,
       wallet_balance: userData.wallet_balance,
       is_online: false,
@@ -688,4 +763,17 @@ export async function POST(request: NextRequest) {
       message: 'Registration failed due to server error. Please try again.'
     }, { status: 500 });
   }
+}
+
+// Handle CORS preflight requests
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
 }

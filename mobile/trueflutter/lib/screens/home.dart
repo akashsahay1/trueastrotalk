@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
@@ -52,6 +53,17 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   late final NotificationService _notificationService;
   late final CallService _callService;
 
+  // Stream subscriptions for call events
+  StreamSubscription<Map<String, dynamic>>? _incomingCallSubscription;
+  StreamSubscription<Map<String, dynamic>>? _callAnsweredSubscription;
+  StreamSubscription<Map<String, dynamic>>? _callRejectedSubscription;
+  StreamSubscription<Map<String, dynamic>>? _callEndedSubscription;
+
+  // Stream subscriptions for chat events
+  StreamSubscription<Map<String, dynamic>>? _incomingChatSubscription;
+  StreamSubscription<Map<String, dynamic>>? _chatAcceptedSubscription;
+  StreamSubscription<Map<String, dynamic>>? _chatRejectedSubscription;
+
   app_user.User? _currentUser;
   List<Astrologer> _featuredAstrologers = [];
   List<Product> _featuredProducts = [];
@@ -74,6 +86,15 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   // Infinite scroll setup
   final int _infinitePageCount = 10000;
   late int _initialPage;
+
+  // Track if IncomingCallScreen is showing (to prevent CallKit race condition)
+  bool _isIncomingCallScreenShowing = false;
+
+  // Track session ID being handled by Flutter UI (to prevent CallKit from rejecting it)
+  String? _activeIncomingSessionId;
+
+  // Track if a call is being accepted (to prevent declined callback from rejecting)
+  bool _isAcceptingCall = false;
 
   // Astrologer-specific data
   bool _isLoadingDashboard = true;
@@ -109,6 +130,17 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    // Cancel call stream subscriptions
+    _incomingCallSubscription?.cancel();
+    _callAnsweredSubscription?.cancel();
+    _callRejectedSubscription?.cancel();
+    _callEndedSubscription?.cancel();
+
+    // Cancel chat stream subscriptions
+    _incomingChatSubscription?.cancel();
+    _chatAcceptedSubscription?.cancel();
+    _chatRejectedSubscription?.cancel();
+
     _cartService.removeListener(_onCartChanged);
     _socketService.disconnect();
     _carouselController.dispose();
@@ -127,7 +159,20 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       await _notificationService.initialize(
         onCallNotification: (data) {
           debugPrint('📞 Call notification received: $data');
+          // Set session ID IMMEDIATELY to prevent CallKit race condition
+          _activeIncomingSessionId = data['session_id']?.toString();
+          debugPrint('📞 Tracking incoming session: $_activeIncomingSessionId');
           _handleIncomingCallNotification(data);
+        },
+        onCallAnswered: (data) {
+          // User answered call from native CallKit UI (locked screen)
+          debugPrint('📞 Call answered via CallKit: $data');
+          _handleCallKitAccepted(data);
+        },
+        onCallDeclined: (data) {
+          // User declined call from native CallKit UI (locked screen)
+          debugPrint('📞 Call declined via CallKit: $data');
+          _handleCallKitDeclined(data);
         },
         onMessageNotification: (data) {
           debugPrint('💬 Message notification received: $data');
@@ -137,11 +182,93 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           debugPrint('👆 Notification tapped: $data');
           _handleNotificationTapped(data);
         },
+        onIncomingChatNotification: (data) {
+          debugPrint('💬 Incoming chat notification received via FCM: $data');
+          _showIncomingChatDialog(data);
+        },
       );
 
       debugPrint('✅ Notification service initialized successfully');
     } catch (e) {
       debugPrint('❌ Failed to initialize notifications: $e');
+    }
+  }
+
+  /// Handle when user accepts call from native CallKit UI (locked screen)
+  void _handleCallKitAccepted(Map<String, dynamic> data) async {
+    debugPrint('📞 CallKit accepted - raw data: $data');
+
+    // Mark that we're accepting a call (prevents declined callback from rejecting)
+    _isAcceptingCall = true;
+    _activeIncomingSessionId = data['session_id']?.toString();
+    debugPrint('📞 Marked call as being accepted: $_activeIncomingSessionId');
+
+    // End the CallKit notification since we're handling the call now
+    await _notificationService.endCallKit();
+
+    // Normalize the call data to use snake_case consistently
+    final normalizedData = <String, dynamic>{
+      ...data,
+      // Use snake_case only
+      'session_id': data['session_id'] ?? '',
+      'caller_id': data['caller_id'] ?? '',
+      'caller_name': data['caller_name'] ?? 'Unknown Caller',
+      'call_type': data['call_type'] ?? 'voice',
+      'rate_per_minute': data['rate_per_minute'] ?? 0,
+    };
+
+    debugPrint('📞 CallKit accepted - normalized data: $normalizedData');
+
+    // Navigate to the active call screen
+    if (mounted) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => ActiveCallScreen(
+            callData: normalizedData,
+            isIncoming: true,
+          ),
+        ),
+      );
+    }
+  }
+
+  /// Handle when user declines call from native CallKit UI (locked screen)
+  void _handleCallKitDeclined(Map<String, dynamic> data) async {
+    final sessionId = data['session_id']?.toString();
+    debugPrint('📞 CallKit declined callback received');
+    debugPrint('📞 Session from callback: $sessionId');
+    debugPrint('📞 Active incoming session: $_activeIncomingSessionId');
+    debugPrint('📞 IncomingCallScreen showing: $_isIncomingCallScreenShowing');
+    debugPrint('📞 Is accepting call: $_isAcceptingCall');
+
+    // End the CallKit notification first
+    await _notificationService.endCallKit();
+
+    // If we're in the process of accepting the call, ignore the decline callback
+    // This happens because endCallKit() triggers the declined callback
+    if (_isAcceptingCall) {
+      debugPrint('⚠️ Call is being accepted - ignoring CallKit decline callback');
+      _isAcceptingCall = false; // Reset the flag
+      return;
+    }
+
+    // If this is the same session we're tracking (regardless of how it was set), don't reject
+    if (sessionId != null && _activeIncomingSessionId != null && sessionId == _activeIncomingSessionId) {
+      debugPrint('⚠️ Session $sessionId matches active session - ignoring CallKit decline');
+      return;
+    }
+
+    // Also check the screen flag as backup
+    if (_isIncomingCallScreenShowing) {
+      debugPrint('⚠️ IncomingCallScreen is showing - ignoring CallKit decline');
+      return;
+    }
+
+    // Only send reject if this session is NOT being handled by Flutter UI
+    // This happens when app is in background/killed and user ACTUALLY declines from CallKit
+    if (sessionId != null && sessionId.isNotEmpty) {
+      debugPrint('📞 Sending reject_call from CallKit decline - user explicitly declined');
+      await _socketService.rejectCallSession(sessionId, reason: 'declined');
     }
   }
 
@@ -235,85 +362,98 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
 
   // Setup listeners for incoming calls, chats, and messages
   void _setupCallListeners() {
-    // Listen for incoming calls
-    _socketService.on('incoming_call', (data) {
-      debugPrint('📞 RAW Incoming call data received: $data');
-      debugPrint('📞 Incoming call data type: ${data.runtimeType}');
+    // Cancel any existing call subscriptions first
+    _incomingCallSubscription?.cancel();
+    _callAnsweredSubscription?.cancel();
+    _callRejectedSubscription?.cancel();
+    _callEndedSubscription?.cancel();
 
-      // Debug each field specifically
-      if (data is Map) {
-        debugPrint('📞 Incoming call fields:');
-        data.forEach((key, value) {
-          debugPrint('   - $key: "$value" (${value.runtimeType})');
-        });
+    // Cancel any existing chat subscriptions first
+    _incomingChatSubscription?.cancel();
+    _chatAcceptedSubscription?.cancel();
+    _chatRejectedSubscription?.cancel();
 
-        final callerName = data['callerName'];
-        final callerId = data['callerId'];
-        final sessionId = data['sessionId'];
-        final callType = data['callType'];
+    // Listen for incoming calls via stream
+    _incomingCallSubscription = _socketService.incomingCallStream.listen((data) {
+      debugPrint('📞 Incoming call from stream: $data');
 
-        debugPrint('📞 Key fields extracted:');
-        debugPrint('   - callerName: "$callerName"');
-        debugPrint('   - callerId: "$callerId"');
-        debugPrint('   - sessionId: "$sessionId"');
-        debugPrint('   - callType: "$callType"');
+      // Support both snake_case and camelCase for backward compatibility
+      final callerId = data['caller_id'] ?? data['callerId'];
+      final currentUserId = _currentUser?.id;
 
-        // CRITICAL: Filter out incoming calls where we are the caller
-        // This prevents the caller from seeing their own incoming call
-        final currentUserId = _currentUser?.id;
-        debugPrint('📞 Current user ID: $currentUserId');
-        if (callerId != null && callerId == currentUserId) {
-          debugPrint('📞 Ignoring incoming_call - we are the caller');
-          return;
-        }
+      // Filter out incoming calls where we are the caller
+      if (callerId != null && callerId == currentUserId) {
+        debugPrint('📞 Ignoring incoming_call - we are the caller');
+        return;
       }
 
       _showIncomingCallDialog(data);
     });
 
-    // Listen for incoming chat requests (for astrologers)
-    _socketService.on('incoming_chat', (data) {
-      debugPrint('💬 Incoming chat request received: $data');
-      if (data is Map) {
-        _showIncomingChatDialog(Map<String, dynamic>.from(data));
-      }
+    // Listen for call answered via stream
+    _callAnsweredSubscription = _socketService.callAnsweredStream.listen((data) {
+      debugPrint('✅ Call answered from stream: $data');
+      // The CallService handles the state updates
     });
 
-    // Listen for chat accepted (for customers)
-    _socketService.on('chat_accepted', (data) {
-      debugPrint('✅ Chat accepted: $data');
-      if (data is Map && mounted) {
-        final chatData = Map<String, dynamic>.from(data);
-        final sessionId = chatData['sessionId'] as String?;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Chat request accepted! Starting chat...'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        // Navigate to chat screen
-        if (sessionId != null) {
-          _navigateToChatScreen(sessionId, chatData);
-        }
-      }
-    });
-
-    // Listen for chat rejected (for customers)
-    _socketService.on('chat_rejected', (data) {
-      debugPrint('❌ Chat rejected: $data');
-      if (data is Map && mounted) {
-        final reason = data['reason'] ?? 'Astrologer is busy';
-        final astrologerName = data['astrologerName'] ?? 'The astrologer';
+    // Listen for call rejected via stream
+    _callRejectedSubscription = _socketService.callRejectedStream.listen((data) {
+      debugPrint('❌ Call rejected from stream: $data');
+      if (mounted) {
+        final reason = data['reason'] ?? 'Call rejected';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('$astrologerName declined your chat request: $reason'),
+            content: Text('Call rejected: $reason'),
             backgroundColor: AppColors.error,
           ),
         );
       }
     });
 
-    // Listen for chat initiated confirmation (for customers)
+    // Listen for call ended via stream
+    _callEndedSubscription = _socketService.callEndedStream.listen((data) {
+      debugPrint('📴 Call ended from stream: $data');
+    });
+
+    // Listen for incoming chat requests (for astrologers) via stream
+    _incomingChatSubscription = _socketService.incomingChatStream.listen((data) {
+      debugPrint('💬 Incoming chat request from stream: $data');
+      _showIncomingChatDialog(data);
+    });
+
+    // Listen for chat accepted (for customers) via stream
+    _chatAcceptedSubscription = _socketService.chatAcceptedStream.listen((data) {
+      debugPrint('✅ Chat accepted from stream: $data');
+      if (mounted) {
+        final sessionId = data['sessionId'] as String?;
+        // Clear any existing snackbars before navigating
+        ScaffoldMessenger.of(context).clearSnackBars();
+        // Navigate to chat screen
+        if (sessionId != null) {
+          _navigateToChatScreen(sessionId, data);
+        }
+      }
+    });
+
+    // Listen for chat rejected (for customers) via stream
+    _chatRejectedSubscription = _socketService.chatRejectedStream.listen((data) {
+      debugPrint('❌ Chat rejected from stream: $data');
+      if (mounted) {
+        // Clear the "Waiting for..." snackbar first
+        ScaffoldMessenger.of(context).clearSnackBars();
+
+        final astrologerName = data['astrologerName'] ?? 'The astrologer';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$astrologerName declined your chat request'),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    });
+
+    // Listen for chat initiated confirmation (for customers) - keep as raw listener since no stream exists
     _socketService.on('chat_initiated', (data) {
       debugPrint('💬 Chat initiated: $data');
       if (data is Map && mounted) {
@@ -346,7 +486,7 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
       }
     });
 
-    // Listen for chat errors
+    // Listen for chat errors - keep as raw listener since no stream exists
     _socketService.on('chat_error', (data) {
       debugPrint('❌ Chat error: $data');
       if (data is Map && mounted) {
@@ -358,23 +498,6 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           ),
         );
       }
-    });
-
-    // Listen for call status changes
-    _socketService.on('call_answered', (data) {
-      debugPrint('✅ Call answered: $data');
-      // Notify any active call screen to start timer
-      if (_callService.isCallScreenActive) {
-        debugPrint('🕒 Notifying call screen about answered call');
-      }
-    });
-
-    _socketService.on('call_rejected', (data) {
-      debugPrint('❌ Call rejected: $data');
-    });
-
-    _socketService.on('call_ended', (data) {
-      debugPrint('📴 Call ended: $data');
     });
   }
 
@@ -428,12 +551,22 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   void _showIncomingCallDialog(Map<String, dynamic> callData) {
     if (!mounted) return;
 
+    // Set flags to prevent CallKit from rejecting
+    _isIncomingCallScreenShowing = true;
+    _activeIncomingSessionId = callData['session_id']?.toString();
+    debugPrint('📞 Showing IncomingCallScreen for session: $_activeIncomingSessionId');
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => IncomingCallScreen(callData: callData),
         fullscreenDialog: true,
       ),
-    );
+    ).then((_) {
+      // Clear flags when IncomingCallScreen is closed
+      debugPrint('📞 IncomingCallScreen closed, clearing session: $_activeIncomingSessionId');
+      _isIncomingCallScreenShowing = false;
+      _activeIncomingSessionId = null;
+    });
   }
 
   // Method to refresh astrologer dashboard data
@@ -1865,14 +1998,13 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
           MaterialPageRoute(
             builder: (context) => ActiveCallScreen(
               callData: {
-                'sessionId': session.id,
-                'callId': session.id,
-                'callType': callType == CallType.video ? 'video' : 'voice',
-                'receiverId': astrologer.id,
-                'receiverName': astrologer.fullName,
-                'receiverProfileImage': astrologer.profileImage,
-                'callerId': _currentUser?.id,
-                'callerName': _currentUser?.name ?? 'You',
+                'session_id': session.id,
+                'call_type': callType == CallType.video ? 'video' : 'voice',
+                'receiver_id': astrologer.id,
+                'receiver_name': astrologer.fullName,
+                'receiver_profile_image': astrologer.profileImage,
+                'caller_id': _currentUser?.id,
+                'caller_name': _currentUser?.name ?? 'You',
                 'astrologer': astrologer.toJson(),
               },
               isIncoming: false,
@@ -2910,13 +3042,23 @@ class _CustomerHomeScreenState extends State<HomeScreen> {
   void _handleIncomingCallNotification(Map<String, dynamic> data) {
     if (!mounted) return;
 
+    // Set flags to prevent CallKit from rejecting
+    _isIncomingCallScreenShowing = true;
+    _activeIncomingSessionId = data['session_id']?.toString();
+    debugPrint('📞 Showing IncomingCallScreen (notification) for session: $_activeIncomingSessionId');
+
     // Navigate to incoming call screen
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => IncomingCallScreen(callData: data),
         fullscreenDialog: true,
       ),
-    );
+    ).then((_) {
+      // Clear flags when IncomingCallScreen is closed
+      debugPrint('📞 IncomingCallScreen closed, clearing session: $_activeIncomingSessionId');
+      _isIncomingCallScreenShowing = false;
+      _activeIncomingSessionId = null;
+    });
   }
 
   /// Handle incoming message notifications

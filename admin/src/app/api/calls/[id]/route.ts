@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import DatabaseService from '@/lib/database';
 import { ObjectId } from 'mongodb';
 import { NotificationService } from '@/lib/notifications';
+import { Media } from '@/models';
+
+// Helper function to get base URL for images
+function getBaseUrl(request: NextRequest): string {
+  const host = request.headers.get('host');
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+  return `${protocol}://${host}`;
+}
 
 // GET - Get call session details
 export async function GET(
@@ -26,6 +34,7 @@ export async function GET(
 
     const sessionsCollection = await DatabaseService.getCollection('sessions');
     const usersCollection = await DatabaseService.getCollection('users');
+    const baseUrl = getBaseUrl(request);
 
     // Get call session (voice_call or video_call)
     const session = await sessionsCollection.findOne({
@@ -65,6 +74,10 @@ export async function GET(
       usersCollection.findOne({ user_id: session.astrologer_id, user_type: 'astrologer' })
     ]);
 
+    // Resolve profile images from media library
+    const userProfileImage = user ? await Media.resolveProfileImage(user, baseUrl) : null;
+    const astrologerProfileImage = astrologer ? await Media.resolveProfileImage(astrologer, baseUrl) : null;
+
     // Format response
     const formattedSession = {
       _id: session._id.toString(),
@@ -73,7 +86,7 @@ export async function GET(
         _id: user._id.toString(),
         name: user.name,
         email: user.email,
-        profile_image: user.profile_image
+        profile_image: userProfileImage || ''
       } : null,
       astrologer: astrologer ? {
         id: astrologer.user_id,
@@ -86,7 +99,7 @@ export async function GET(
         user_type: 'astrologer',
         account_status: astrologer.account_status || 'active',
         verification_status: astrologer.verification_status || 'verified',
-        profile_image: astrologer.profile_image,
+        profile_image: astrologerProfileImage || '',
         call_rate: astrologer.call_rate || 0,
         video_rate: astrologer.video_rate || 0,
         chat_rate: astrologer.chat_rate || 0,

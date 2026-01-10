@@ -3,10 +3,13 @@ import 'package:flutter/services.dart';
 import '../common/themes/app_colors.dart';
 import '../common/themes/text_styles.dart';
 import '../common/constants/dimensions.dart';
+import '../models/chat.dart';
+import '../models/astrologer.dart';
+import '../models/user.dart';
+import '../models/enums.dart';
 import '../services/socket/socket_service.dart';
 import '../services/audio/ringtone_service.dart';
 import '../services/service_locator.dart';
-import '../services/chat/chat_service.dart';
 import 'chat_screen.dart';
 
 class IncomingChatScreen extends StatefulWidget {
@@ -475,25 +478,18 @@ class _IncomingChatScreenState extends State<IncomingChatScreen>
       // Provide haptic feedback
       HapticFeedback.mediumImpact();
 
-      // Send accept chat event
+      final sessionId = widget.chatData['sessionId']?.toString() ?? '';
+      debugPrint('💬 Accepting chat session: $sessionId');
+
+      // Send accept chat event via socket
       _socketService.emit('accept_chat', {
-        'sessionId': widget.chatData['sessionId'],
+        'sessionId': sessionId,
       });
 
-      // Initialize chat service and load sessions
-      final chatService = getIt<ChatService>();
-      await chatService.initialize();
-      await chatService.loadChatSessions();
+      // Create ChatSession from chatData we already have
+      final session = _createSessionFromChatData();
 
-      // Find the session
-      final sessionId = widget.chatData['sessionId'];
-      final sessions = chatService.chatSessions;
-      final session = sessions.firstWhere(
-        (s) => s.id == sessionId,
-        orElse: () => throw Exception('Session not found'),
-      );
-
-      // Navigate to chat screen
+      // Navigate to chat screen with the session
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
@@ -502,7 +498,7 @@ class _IncomingChatScreenState extends State<IncomingChatScreen>
         );
       }
     } catch (e) {
-      debugPrint('Failed to accept chat: $e');
+      debugPrint('❌ Failed to accept chat: $e');
       setState(() {
         _isAccepting = false;
       });
@@ -516,5 +512,66 @@ class _IncomingChatScreenState extends State<IncomingChatScreen>
         );
       }
     }
+  }
+
+  /// Create a ChatSession from the chatData received in notification
+  ChatSession _createSessionFromChatData() {
+    final data = widget.chatData;
+    final sessionId = data['sessionId']?.toString() ?? '';
+    final chatRate = (data['chatRate'] as num?)?.toDouble() ?? 0.0;
+    final now = DateTime.now();
+
+    // Create User from chatData (the customer who initiated the chat)
+    final user = User(
+      id: data['userId']?.toString() ?? '',
+      name: data['userName']?.toString() ?? 'Customer',
+      email: null,
+      phone: null,
+      role: UserRole.customer,
+      accountStatus: AccountStatus.active,
+      verificationStatus: VerificationStatus.verified,
+      authType: AuthType.email,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    // Create Astrologer from chatData (the current user - astrologer)
+    final astrologer = Astrologer(
+      id: data['astrologerId']?.toString() ?? '',
+      fullName: data['astrologerName']?.toString() ?? 'Astrologer',
+      emailAddress: '',
+      phoneNumber: '',
+      chatRate: chatRate,
+      callRate: chatRate,
+      videoRate: chatRate,
+      isOnline: true,
+      isAvailable: true,
+      experienceYears: 0,
+      rating: 0.0,
+      totalReviews: 0,
+      totalConsultations: 0,
+      languages: const [],
+      skills: const [],
+      qualifications: const [],
+      accountStatus: 'active',
+      verificationStatus: VerificationStatus.verified,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    return ChatSession(
+      id: sessionId,
+      user: user,
+      astrologer: astrologer,
+      status: ChatStatus.active,
+      ratePerMinute: chatRate,
+      startTime: now,
+      durationMinutes: 0,
+      totalAmount: 0.0,
+      unreadCount: 0,
+      messages: const [],
+      createdAt: now,
+      updatedAt: now,
+    );
   }
 }

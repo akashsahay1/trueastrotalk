@@ -65,6 +65,9 @@ class WebRTCService extends ChangeNotifier {
   Timer? _reconnectTimer;
   bool _isReconnecting = false;
 
+  // Track if socket listeners are already set up
+  bool _listenersInitialized = false;
+
   // Callback for reconnection events
   Function(bool isReconnecting, int attempt)? onReconnectionStateChanged;
 
@@ -164,46 +167,55 @@ class WebRTCService extends ChangeNotifier {
 
   /// Setup socket event listeners for WebRTC signaling
   void _setupSocketListeners() {
-    // Incoming call
+    // Prevent duplicate listener registration
+    if (_listenersInitialized) {
+      debugPrint('⚠️ Socket listeners already initialized, skipping');
+      return;
+    }
+    _listenersInitialized = true;
+    debugPrint('🔌 Setting up WebRTC socket listeners');
+
+    // Incoming call - snake_case only
     _socketService.on('incoming_call', (data) async {
       try {
         debugPrint('📞 RAW incoming call data: $data');
-        
-        final callerId = data['callerId'];
-        final callerName = data['callerName'];
-        final callType = data['callType'] == 'video' ? CallType.video : CallType.voice;
-        final sessionId = data['sessionId'];
+
+        final callerId = data['caller_id'];
+        final callerName = data['caller_name'];
+        final callTypeStr = data['call_type'] ?? 'voice';
+        final callType = callTypeStr == 'video' ? CallType.video : CallType.voice;
+        final sessionId = data['session_id'];
 
         debugPrint('📞 Parsed incoming call:');
-        debugPrint('   - callerId: $callerId');
-        debugPrint('   - callerName: "$callerName"');
-        debugPrint('   - callType: $callType');
-        debugPrint('   - sessionId: $sessionId');
+        debugPrint('   - caller_id: $callerId');
+        debugPrint('   - caller_name: "$callerName"');
+        debugPrint('   - call_type: $callType');
+        debugPrint('   - session_id: $sessionId');
 
         _currentSessionId = sessionId;
         _remoteUserId = callerId;
         _remoteUserName = callerName;
         _callType = callType;
         _isInitiator = false;
-        
+
         _updateCallState(CallState.ringing);
       } catch (e) {
         debugPrint('❌ Error handling incoming call: $e');
       }
     });
 
-    // Call initiated
+    // Call initiated - snake_case only
     _socketService.on('call_initiated', (data) async {
       try {
         debugPrint('🔥 WebRTC: Received call_initiated event: $data');
-        final sessionId = data['sessionId'];
-        final targetName = data['targetName'];
+        final sessionId = data['session_id'];
+        final targetName = data['target_name'];
 
-        debugPrint('📞 Call initiated to $targetName, sessionId: $sessionId');
+        debugPrint('📞 Call initiated to $targetName, session_id: $sessionId');
 
         _currentSessionId = sessionId;
         _remoteUserName = targetName;
-        
+
         _updateCallState(CallState.ringing);
         debugPrint('🔥 WebRTC: Set _currentSessionId = $sessionId');
       } catch (e) {
@@ -211,19 +223,19 @@ class WebRTCService extends ChangeNotifier {
       }
     });
 
-    // Call answered
+    // Call answered - snake_case only
     _socketService.on('call_answered', (data) async {
       try {
         debugPrint('🔥 WebRTC: Received call_answered event: $data');
-        final sessionId = data['sessionId'];
-        
-        debugPrint('🔥 WebRTC: Comparing sessionId=$sessionId with _currentSessionId=$_currentSessionId');
+        final sessionId = data['session_id'];
+
+        debugPrint('🔥 WebRTC: Comparing session_id=$sessionId with _currentSessionId=$_currentSessionId');
         debugPrint('🔥 WebRTC: _isInitiator=$_isInitiator, _peerConnection=${_peerConnection != null}');
-        
+
         if (sessionId == _currentSessionId) {
           debugPrint('✅ WebRTC: Call answered - session IDs match!');
           _updateCallState(CallState.connecting);
-          
+
           // If we are the initiator, create and send offer
           if (_isInitiator && _peerConnection != null) {
             debugPrint('📤 Creating WebRTC offer as initiator');
@@ -244,12 +256,12 @@ class WebRTCService extends ChangeNotifier {
       }
     });
 
-    // Call rejected
+    // Call rejected - snake_case only
     _socketService.on('call_rejected', (data) async {
       try {
-        final sessionId = data['sessionId'];
+        final sessionId = data['session_id'];
         final reason = data['reason'] ?? 'rejected';
-        
+
         if (sessionId == _currentSessionId) {
           debugPrint('❌ Call rejected: $reason');
           _updateCallState(CallState.rejected);
@@ -260,11 +272,11 @@ class WebRTCService extends ChangeNotifier {
       }
     });
 
-    // Call ended
+    // Call ended - snake_case only
     _socketService.on('call_ended', (data) async {
       try {
-        final sessionId = data['sessionId'];
-        
+        final sessionId = data['session_id'];
+
         if (sessionId == _currentSessionId) {
           debugPrint('📴 Call ended');
           _updateCallState(CallState.ended);
@@ -386,9 +398,9 @@ class WebRTCService extends ChangeNotifier {
         return; // Don't send answer_call event yet, it will be handled by _handleOffer
       }
 
-      // Send answer call event
+      // Send answer call event using snake_case
       _socketService.emit('answer_call', {
-        'sessionId': _currentSessionId,
+        'session_id': _currentSessionId,
       });
 
     } catch (e) {
@@ -409,7 +421,7 @@ class WebRTCService extends ChangeNotifier {
       debugPrint('❌ Rejecting call: $reason');
 
       _socketService.emit('reject_call', {
-        'sessionId': _currentSessionId,
+        'session_id': _currentSessionId,
         'reason': reason,
       });
 
@@ -431,7 +443,7 @@ class WebRTCService extends ChangeNotifier {
       debugPrint('📴 Ending call');
 
       _socketService.emit('end_call', {
-        'sessionId': _currentSessionId,
+        'session_id': _currentSessionId,
       });
 
       _updateCallState(CallState.ended);

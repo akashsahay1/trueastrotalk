@@ -5,6 +5,14 @@ import {
   SecurityMiddleware,
   InputSanitizer
 } from '../../../../lib/security';
+import { Media } from '@/models';
+
+// Helper function to get base URL for images
+function getBaseUrl(request: NextRequest): string {
+  const host = request.headers.get('host');
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+  return `${protocol}://${host}`;
+}
 
 interface SessionData {
   _id: { toString(): string };
@@ -92,6 +100,7 @@ export async function GET(request: NextRequest) {
     // Get collections
     const sessionsCollection = await DatabaseService.getCollection('sessions');
     const usersCollection = await DatabaseService.getCollection('users');
+    const baseUrl = getBaseUrl(request);
 
     // Helper function to build consultation object
     const buildConsultation = (session: SessionData, sessionType: string) => {
@@ -219,7 +228,7 @@ export async function GET(request: NextRequest) {
         .project({
           user_id: 1,
           full_name: 1,
-          profile_image_url: 1,
+          profile_image_id: 1,
           phone_number: 1,
           email_address: 1
         })
@@ -227,16 +236,17 @@ export async function GET(request: NextRequest) {
 
       console.log('📋 Found clients:', clients.length, clients.map((c: Record<string, unknown>) => ({ user_id: c.user_id, full_name: c.full_name })));
 
-      clientsData = clients.reduce((acc, client) => {
+      // Resolve profile images for all clients
+      for (const client of clients) {
         const userId = (client as unknown as { user_id: string }).user_id;
-        acc[userId] = {
+        const profileImage = await Media.resolveProfileImage(client, baseUrl);
+        clientsData[userId] = {
           name: (client as unknown as { full_name?: string }).full_name,
-          image: (client as unknown as { profile_image_url?: string }).profile_image_url,
+          image: profileImage || undefined,
           phone: (client as unknown as { phone_number?: string }).phone_number,
           email: (client as unknown as { email_address?: string }).email_address
         };
-        return acc;
-      }, {} as Record<string, { name?: string; image?: string; phone?: string; email?: string }>);
+      }
     } else {
       console.log('📋 No client IDs found in consultations');
     }
@@ -364,14 +374,16 @@ export async function PUT(request: NextRequest) {
     // Use unified sessions collection
     const sessionsCollection = await DatabaseService.getCollection('sessions');
 
-    // Determine session_type filter
+    // Determine session_type filter - account for different naming conventions
     let sessionTypeFilter: string | { $in: string[] };
-    if (session_type === 'voice_call' || session_type === 'video_call') {
-      sessionTypeFilter = session_type as string;
+    if (session_type === 'voice_call' || session_type === 'voice') {
+      sessionTypeFilter = { $in: ['voice_call', 'voice', 'call'] };
+    } else if (session_type === 'video_call' || session_type === 'video') {
+      sessionTypeFilter = { $in: ['video_call', 'video'] };
     } else if (session_type === 'chat') {
       sessionTypeFilter = 'chat';
     } else {
-      sessionTypeFilter = { $in: ['chat', 'voice_call', 'video_call'] };
+      sessionTypeFilter = { $in: ['chat', 'voice_call', 'video_call', 'voice', 'video', 'call'] };
     }
 
     // Build query for finding consultation - support both ObjectId and string IDs
@@ -383,12 +395,22 @@ export async function PUT(request: NextRequest) {
     }
 
     // Find the consultation
+    console.log('🔍 Looking up consultation:', { consultation_id, astrologerId, sessionQuery });
+
     const consultation = await sessionsCollection.findOne({
       ...sessionQuery,
       astrologer_id: astrologerId
     });
 
     if (!consultation) {
+      // Debug: Try to find the session without astrologer filter to diagnose
+      const sessionWithoutAstrologer = await sessionsCollection.findOne(sessionQuery);
+      console.log('❌ Consultation not found. Session exists without astrologer filter:', !!sessionWithoutAstrologer);
+      if (sessionWithoutAstrologer) {
+        console.log('  Session astrologer_id:', sessionWithoutAstrologer.astrologer_id, 'vs requested:', astrologerId);
+        console.log('  Session type:', sessionWithoutAstrologer.session_type);
+      }
+
       return NextResponse.json({
         success: false,
         error: 'CONSULTATION_NOT_FOUND',

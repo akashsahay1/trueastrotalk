@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
 import '../../models/chat.dart';
 import 'endpoints.dart';
@@ -319,6 +320,55 @@ class ChatApiService {
         return {
           'success': false,
           'error': response.data['error'] ?? 'Failed to mark messages as read',
+        };
+      }
+    } on DioException catch (e) {
+      return {
+        'success': false,
+        'error': _handleDioError(e),
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Unexpected error: $e',
+      };
+    }
+  }
+
+  // Upload chat attachment
+  Future<Map<String, dynamic>> uploadAttachment({
+    required File file,
+    required String sessionId,
+  }) async {
+    try {
+      final fileName = file.path.split('/').last;
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(
+          file.path,
+          filename: fileName,
+        ),
+        'session_id': sessionId,
+      });
+
+      final response = await _dio.post(
+        ApiEndpoints.chatAttachments,
+        data: formData,
+        options: Options(
+          contentType: 'multipart/form-data',
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data['success']) {
+        return {
+          'success': true,
+          'image_url': response.data['data']['image_url'],
+          'file_path': response.data['data']['file_path'],
+          'file_id': response.data['data']['file_id'],
+        };
+      } else {
+        return {
+          'success': false,
+          'error': response.data['error'] ?? 'Failed to upload attachment',
         };
       }
     } on DioException catch (e) {

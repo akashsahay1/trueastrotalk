@@ -4,88 +4,17 @@ import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import DatabaseService from '../../../../lib/database';
-import { 
-  SecurityMiddleware, 
+import {
+  SecurityMiddleware,
   InputSanitizer
 } from '../../../../lib/security';
+import { Media } from '@/models';
 
 // Helper function to get base URL for images
 function getBaseUrl(request: NextRequest): string {
   const host = request.headers.get('host');
   const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
   return `${protocol}://${host}`;
-}
-
-
-// Helper function to resolve media ID to full URL (kept for non-sensitive media)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function _resolveMediaUrl(mediaId: string | null | undefined, mediaCollection: any, baseUrl: string): Promise<string | null> {
-  if (!mediaId || !mediaId.startsWith('media_')) {
-    return mediaId || null;
-  }
-
-  try {
-    const mediaFile = await mediaCollection.findOne({ media_id: mediaId });
-    if (!mediaFile || !mediaFile.file_path) {
-      return null;
-    }
-    return `${baseUrl}${mediaFile.file_path}`;
-  } catch (error) {
-    console.error(`Error resolving media ID ${mediaId}:`, error);
-    return null;
-  }
-}
-
-// Helper function to resolve profile image to full URL
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function resolveProfileImage(user: Record<string, unknown>, mediaCollection: any, baseUrl: string): Promise<string | null> {
-  // Priority 1: If user has profile_image_id, resolve from media library
-  if (user.profile_image_id) {
-    try {
-      let mediaFile = null;
-      
-      if (typeof user.profile_image_id === 'string') {
-        // Check if it's our custom media_id format
-        if (user.profile_image_id.startsWith('media_')) {
-          mediaFile = await mediaCollection.findOne({ media_id: user.profile_image_id });
-        } else if (user.profile_image_id.length === 24) {
-          // Try legacy ObjectId lookup
-          try {
-            mediaFile = await mediaCollection.findOne({ _id: new ObjectId(user.profile_image_id) });
-          } catch {
-            mediaFile = await mediaCollection.findOne({ media_id: user.profile_image_id });
-          }
-        }
-      } else if (user.profile_image_id instanceof ObjectId) {
-        mediaFile = await mediaCollection.findOne({ _id: user.profile_image_id });
-      }
-      
-      if (mediaFile && mediaFile.file_path) {
-        return `${baseUrl}${mediaFile.file_path}`;
-      }
-    } catch (error) {
-      console.error('Error resolving media file:', error);
-    }
-  }
-  
-  // Priority 2: Direct profile_image URL
-  if (user.profile_image && typeof user.profile_image === 'string') {
-    if (user.profile_image.startsWith('/')) {
-      return `${baseUrl}${user.profile_image}`;
-    }
-    return user.profile_image;
-  }
-  
-  // Priority 3: profile_picture URL (fallback)
-  if (user.profile_picture && typeof user.profile_picture === 'string') {
-    if (user.profile_picture.startsWith('/')) {
-      return `${baseUrl}${user.profile_picture}`;
-    }
-    return user.profile_picture;
-  }
-  
-  // No profile image - return null
-  return null;
 }
 
 // Helper function to delete file safely
@@ -172,7 +101,7 @@ export async function GET(request: NextRequest) {
     const baseUrl = getBaseUrl(request);
 
     // Resolve profile image to full URL
-    const profileImageUrl = await resolveProfileImage(dbUser, mediaCollection, baseUrl);
+    const profileImageUrl = await Media.resolveProfileImage(dbUser, baseUrl);
 
     // Resolve PAN card image to direct URL for the owner
     // Since user is already authenticated, we can return the direct URL
@@ -607,8 +536,10 @@ export async function PUT(request: NextRequest) {
     const baseUrl = getBaseUrl(request);
 
     // Resolve profile image to full URL
+    const profileImageUrl = await Media.resolveProfileImage(updatedUser, baseUrl);
+
+    // Get media collection for PAN card lookup
     const mediaCollection2 = await DatabaseService.getCollection('media');
-    const profileImageUrl = await resolveProfileImage(updatedUser, mediaCollection2, baseUrl);
 
     // Resolve PAN card image to direct URL for the owner
     let panCardUrlUpdated: string | null = null;

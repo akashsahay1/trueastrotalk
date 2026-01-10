@@ -496,16 +496,8 @@ class UserApiService {
 
         // Map astrologer consultations to customer history format
         final mappedConsultations = consultations.map((c) {
-          // Map session type to consultation type
-          String consultationType = 'call';
-          final sessionType = c['type'] ?? c['service_type'] ?? '';
-          if (sessionType == 'chat') {
-            consultationType = 'chat';
-          } else if (sessionType == 'video_call') {
-            consultationType = 'video';
-          } else {
-            consultationType = 'call';
-          }
+          // Keep the type as returned by API (chat, voice_call, video_call)
+          final consultationType = c['type'] ?? c['service_type'] ?? 'voice_call';
 
           // Format duration
           final durationMinutes = c['duration_minutes'] ?? 0;

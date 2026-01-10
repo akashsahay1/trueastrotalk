@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ObjectId } from 'mongodb';
 import DatabaseService from '../../../../lib/database';
 import {
   SecurityMiddleware,
   InputSanitizer
 } from '../../../../lib/security';
+import { Media } from '@/models';
+
+// Helper function to get base URL for images
+function getBaseUrl(request: NextRequest): string {
+  const host = request.headers.get('host');
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+  return `${protocol}://${host}`;
+}
 
 // GET - Astrologer dashboard data
 export async function GET(request: NextRequest) {
@@ -38,6 +47,7 @@ export async function GET(request: NextRequest) {
     const sessionsCollection = await DatabaseService.getCollection('sessions');
     const walletTransactionsCollection = await DatabaseService.getCollection('transactions');
     const reviewsCollection = await DatabaseService.getCollection('reviews');
+    const baseUrl = getBaseUrl(request);
 
     // Get astrologer profile
     const astrologer = await usersCollection.findOne(
@@ -258,6 +268,8 @@ export async function GET(request: NextRequest) {
       ? ((thisMonthEarnings[0].total - lastMonthEarnings[0].total) / lastMonthEarnings[0].total) * 100
       : 0;
 
+    // Resolve profile image from media library
+    const profileImage = await Media.resolveProfileImage(astrologer, baseUrl);
 
     return NextResponse.json({
       success: true,
@@ -268,7 +280,7 @@ export async function GET(request: NextRequest) {
           full_name: astrologer.full_name,
           email_address: astrologer.email_address,
           phone_number: astrologer.phone_number || '',
-          profile_image: astrologer.profile_image || '',
+          profile_image: profileImage || '',
           bio: astrologer.bio || '',
           experience_years: astrologer.experience_years || 0,
           languages: astrologer.languages || '',

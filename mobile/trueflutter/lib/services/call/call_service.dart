@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../models/call.dart';
 import '../../models/enums.dart';
@@ -9,13 +10,20 @@ import '../service_locator.dart';
 class CallService extends ChangeNotifier {
   static CallService? _instance;
   static CallService get instance => _instance ??= CallService._();
-  
+
   CallService._();
 
   final CallsApiService _callsApiService = getIt<CallsApiService>();
   final SocketService _socketService = SocketService.instance;
   final AuthService _authService = getIt<AuthService>();
-  
+
+  // Stream subscriptions for call events
+  StreamSubscription<Map<String, dynamic>>? _incomingCallSubscription;
+  StreamSubscription<Map<String, dynamic>>? _callAnsweredSubscription;
+  StreamSubscription<Map<String, dynamic>>? _callRejectedSubscription;
+  StreamSubscription<Map<String, dynamic>>? _callEndedSubscription;
+  StreamSubscription<Map<String, dynamic>>? _callErrorSubscription;
+
   // Current call sessions
   List<CallSession> _callSessions = [];
   CallSession? _activeCallSession;
@@ -55,27 +63,49 @@ class CallService extends ChangeNotifier {
     }
   }
 
-  /// Setup socket event listeners for call-specific events
+  /// Setup socket event listeners for call-specific events using streams
   void _setupSocketListeners() {
-    // Listen for incoming calls
-    _socketService.on('incoming_call', (data) {
+    // Cancel any existing subscriptions first
+    _cancelSocketSubscriptions();
+
+    // Listen for incoming calls via stream
+    _incomingCallSubscription = _socketService.incomingCallStream.listen((data) {
+      debugPrint('📞 [CALL_SERVICE] Incoming call from stream: $data');
       _handleIncomingCall(data);
     });
-    
-    // Listen for call status updates
-    _socketService.on('call_status_updated', (data) {
-      _handleCallStatusUpdate(data);
+
+    // Listen for call answered via stream
+    _callAnsweredSubscription = _socketService.callAnsweredStream.listen((data) {
+      debugPrint('✅ [CALL_SERVICE] Call answered from stream: $data');
+      _handleCallAnswered(data);
     });
-    
-    // Listen for call ended
-    _socketService.on('call_ended', (data) {
+
+    // Listen for call rejected via stream
+    _callRejectedSubscription = _socketService.callRejectedStream.listen((data) {
+      debugPrint('❌ [CALL_SERVICE] Call rejected from stream: $data');
+      _handleCallRejected(data);
+    });
+
+    // Listen for call ended via stream
+    _callEndedSubscription = _socketService.callEndedStream.listen((data) {
+      debugPrint('📴 [CALL_SERVICE] Call ended from stream: $data');
       _handleCallEnded(data);
     });
-    
-    // Listen for call connection updates
-    _socketService.on('call_connection_update', (data) {
-      _handleCallConnectionUpdate(data);
+
+    // Listen for call errors via stream
+    _callErrorSubscription = _socketService.callErrorStream.listen((data) {
+      debugPrint('❌ [CALL_SERVICE] Call error from stream: $data');
+      _handleCallError(data);
     });
+  }
+
+  /// Cancel all socket subscriptions
+  void _cancelSocketSubscriptions() {
+    _incomingCallSubscription?.cancel();
+    _callAnsweredSubscription?.cancel();
+    _callRejectedSubscription?.cancel();
+    _callEndedSubscription?.cancel();
+    _callErrorSubscription?.cancel();
   }
 
   /// Handle incoming call
@@ -102,37 +132,13 @@ class CallService extends ChangeNotifier {
     }
   }
 
-  /// Handle call status updates
-  void _handleCallStatusUpdate(dynamic data) {
-    try {
-      debugPrint('🔄 Call status update: $data');
-      final callSession = CallSession.fromJson(data);
-      
-      final index = _callSessions.indexWhere((s) => s.id == callSession.id);
-      if (index != -1) {
-        _callSessions[index] = callSession;
-      } else {
-        _callSessions.insert(0, callSession);
-      }
-      
-      // Update active call session if it matches
-      if (_activeCallSession?.id == callSession.id) {
-        _activeCallSession = callSession;
-      }
-      
-      notifyListeners();
-      
-    } catch (e) {
-      debugPrint('❌ Failed to handle call status update: $e');
-    }
-  }
-
   /// Handle call ended
   void _handleCallEnded(dynamic data) {
     try {
       debugPrint('📵 Call ended: $data');
-      final callId = data['callId']?.toString();
-      
+      // Support both snake_case and camelCase for backward compatibility
+      final callId = (data['session_id'] ?? data['callId'])?.toString();
+
       if (callId != null) {
         final index = _callSessions.indexWhere((s) => s.id == callId);
         if (index != -1) {
@@ -143,26 +149,129 @@ class CallService extends ChangeNotifier {
             'end_time': DateTime.now().toIso8601String(),
           });
           _callSessions[index] = updatedSession;
-          
+
           // Clear active call if it's the one that ended
           if (_activeCallSession?.id == callId) {
             _activeCallSession = null;
           }
         }
       }
-      
+
+      // Clear call screen state
+      _isCallScreenActive = false;
+      _activeCallData = null;
+
       notifyListeners();
-      
+
     } catch (e) {
       debugPrint('❌ Failed to handle call ended: $e');
     }
   }
 
-  /// Handle call connection updates (e.g., network issues, reconnection)
-  void _handleCallConnectionUpdate(dynamic data) {
-    debugPrint('🔗 Call connection update: $data');
-    // Handle connection quality updates, reconnections, etc.
-    notifyListeners();
+  /// Handle call answered (when astrologer accepts the call)
+  void _handleCallAnswered(dynamic data) {
+    try {
+      debugPrint('✅ Call answered: $data');
+      // Support both snake_case and camelCase
+      final callId = (data['session_id'] ?? data['callId'])?.toString();
+
+      if (callId != null) {
+        final index = _callSessions.indexWhere((s) => s.id == callId);
+        if (index != -1) {
+          // Update call status to active
+          final updatedSession = CallSession.fromJson({
+            ..._callSessions[index].toJson(),
+            'status': 'active',
+            'start_time': data['start_time'] ?? DateTime.now().toIso8601String(),
+          });
+          _callSessions[index] = updatedSession;
+
+          // Update active call session
+          if (_activeCallSession?.id == callId) {
+            _activeCallSession = updatedSession;
+          }
+        }
+      }
+
+      notifyListeners();
+
+    } catch (e) {
+      debugPrint('❌ Failed to handle call answered: $e');
+    }
+  }
+
+  /// Handle call rejected (when astrologer rejects the call)
+  void _handleCallRejected(dynamic data) {
+    try {
+      debugPrint('❌ Call rejected: $data');
+      // Support both snake_case and camelCase
+      final callId = (data['session_id'] ?? data['callId'])?.toString();
+      final reason = data['reason']?.toString() ?? 'rejected';
+
+      if (callId != null) {
+        final index = _callSessions.indexWhere((s) => s.id == callId);
+        if (index != -1) {
+          // Update call status to rejected
+          final updatedSession = CallSession.fromJson({
+            ..._callSessions[index].toJson(),
+            'status': reason == 'busy' ? 'busy' : 'rejected',
+            'end_time': DateTime.now().toIso8601String(),
+          });
+          _callSessions[index] = updatedSession;
+
+          // Clear active call if it's the one that was rejected
+          if (_activeCallSession?.id == callId) {
+            _activeCallSession = null;
+          }
+        }
+      }
+
+      // Clear call screen state
+      _isCallScreenActive = false;
+      _activeCallData = null;
+
+      notifyListeners();
+
+    } catch (e) {
+      debugPrint('❌ Failed to handle call rejected: $e');
+    }
+  }
+
+  /// Handle call errors
+  void _handleCallError(dynamic data) {
+    try {
+      debugPrint('❌ Call error: $data');
+      final callId = (data['session_id'] ?? data['callId'])?.toString();
+      final error = data['error']?.toString() ?? 'Unknown error';
+
+      if (callId != null) {
+        final index = _callSessions.indexWhere((s) => s.id == callId);
+        if (index != -1) {
+          // Update call status to failed
+          final updatedSession = CallSession.fromJson({
+            ..._callSessions[index].toJson(),
+            'status': 'failed',
+            'end_time': DateTime.now().toIso8601String(),
+          });
+          _callSessions[index] = updatedSession;
+
+          // Clear active call if it had an error
+          if (_activeCallSession?.id == callId) {
+            _activeCallSession = null;
+          }
+        }
+      }
+
+      // Clear call screen state
+      _isCallScreenActive = false;
+      _activeCallData = null;
+
+      debugPrint('❌ Call error details: $error');
+      notifyListeners();
+
+    } catch (e) {
+      debugPrint('❌ Failed to handle call error: $e');
+    }
   }
 
   /// Load call sessions from API
@@ -225,28 +334,18 @@ class CallService extends ChangeNotifier {
 
       if (result['success']) {
         final session = result['session'] as CallSession;
-        debugPrint('📞 [CALL] Session created successfully: ${session.id}');
+        debugPrint('📞 Call session created: ${session.id}');
 
         // Add to sessions list
         _callSessions.insert(0, session);
         _activeCallSession = session;
 
-        // Get user name - should always be available for valid users
-        final userName = _getCurrentUserName();
-        debugPrint('📞 [CALL] Caller info: userId=$userId, userName=$userName');
-
-        // Emit call request via socket
-        final socketData = {
-          'sessionId': session.id,
-          'callerId': userId,
-          'callerName': userName,
-          'callerType': 'user',
-          'callType': callType.name.toLowerCase(),
-        };
-        debugPrint('📞 [CALL] Emitting initiate_call via socket: $socketData');
-        debugPrint('📞 [CALL] Socket connected: ${_socketService.isConnected}');
-        _socketService.emit('initiate_call', socketData);
-        debugPrint('📞 [CALL] Socket event emitted successfully');
+        // Emit call request via socket using SocketService method
+        await _socketService.initiateCallSession(
+          sessionId: session.id,
+          astrologerId: astrologerId,
+          callType: callType.name.toLowerCase(),
+        );
 
         notifyListeners();
         return session;
@@ -264,21 +363,19 @@ class CallService extends ChangeNotifier {
   Future<void> acceptCall(String callSessionId) async {
     try {
       debugPrint('✅ Accepting call: $callSessionId');
-      
+
       final session = _callSessions.firstWhere(
         (s) => s.id == callSessionId,
         orElse: () => throw Exception('Call session not found'),
       );
-      
+
       _activeCallSession = session;
-      
-      // Emit accept call via socket
-      _socketService.emit('accept_call', {
-        'callSessionId': callSessionId,
-      });
-      
+
+      // Emit accept call via socket using SocketService method
+      await _socketService.answerCallSession(callSessionId);
+
       notifyListeners();
-      
+
     } catch (e) {
       debugPrint('❌ Failed to accept call: $e');
       rethrow;
@@ -286,27 +383,25 @@ class CallService extends ChangeNotifier {
   }
 
   /// Reject an incoming call
-  Future<void> rejectCall(String callSessionId) async {
+  Future<void> rejectCall(String callSessionId, {String reason = 'rejected'}) async {
     try {
       debugPrint('❌ Rejecting call: $callSessionId');
-      
-      // Emit reject call via socket
-      _socketService.emit('reject_call', {
-        'callSessionId': callSessionId,
-      });
-      
+
+      // Emit reject call via socket using SocketService method
+      await _socketService.rejectCallSession(callSessionId, reason: reason);
+
       // Update local session status
       final index = _callSessions.indexWhere((s) => s.id == callSessionId);
       if (index != -1) {
         final updatedSession = CallSession.fromJson({
           ..._callSessions[index].toJson(),
-          'status': 'cancelled',
+          'status': 'rejected',
         });
         _callSessions[index] = updatedSession;
       }
-      
+
       notifyListeners();
-      
+
     } catch (e) {
       debugPrint('❌ Failed to reject call: $e');
       rethrow;
@@ -317,19 +412,21 @@ class CallService extends ChangeNotifier {
   Future<void> endCall(String callSessionId) async {
     try {
       debugPrint('📵 Ending call: $callSessionId');
-      
-      // Emit end call via socket
-      _socketService.emit('end_call_session', {
-        'callSessionId': callSessionId,
-      });
-      
+
+      // Emit end call via socket using SocketService method
+      await _socketService.endCallSession(callSessionId);
+
       // Clear active call
       if (_activeCallSession?.id == callSessionId) {
         _activeCallSession = null;
       }
-      
+
+      // Clear call screen state
+      _isCallScreenActive = false;
+      _activeCallData = null;
+
       notifyListeners();
-      
+
     } catch (e) {
       debugPrint('❌ Failed to end call: $e');
       rethrow;
@@ -340,26 +437,26 @@ class CallService extends ChangeNotifier {
   Future<void> joinCall(String callSessionId) async {
     try {
       debugPrint('🔄 Joining call: $callSessionId');
-      
+
       final session = _callSessions.firstWhere(
         (s) => s.id == callSessionId,
         orElse: () => throw Exception('Call session not found'),
       );
-      
+
       if (session.canJoin) {
         _activeCallSession = session;
-        
-        // Emit join call via socket
+
+        // Emit join call via socket using snake_case fields
         _socketService.emit('join_call', {
-          'callSessionId': callSessionId,
-          'roomId': session.roomId,
+          'session_id': callSessionId,
+          'room_id': session.roomId,
         });
-        
+
         notifyListeners();
       } else {
         throw Exception('Cannot join call in current status: ${session.status.name}');
       }
-      
+
     } catch (e) {
       debugPrint('❌ Failed to join call: $e');
       rethrow;
@@ -404,17 +501,6 @@ class CallService extends ChangeNotifier {
     }
   }
   
-  /// Get current user name from auth service
-  String? _getCurrentUserName() {
-    try {
-      final authService = getIt<AuthService>();
-      return authService.currentUser?.name;
-    } catch (e) {
-      debugPrint('❌ Error getting current user name: $e');
-      return null;
-    }
-  }
-
   /// Cleanup all active calls - call this before logout or app close
   Future<void> cleanup() async {
     try {
@@ -445,6 +531,8 @@ class CallService extends ChangeNotifier {
   /// Cleanup
   @override
   void dispose() {
+    // Cancel socket subscriptions
+    _cancelSocketSubscriptions();
     cleanup();
     super.dispose();
   }

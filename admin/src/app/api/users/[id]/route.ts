@@ -5,6 +5,7 @@ import { omit } from '@/utils/omit';
 import { cleanupUserFiles } from '@/lib/file-cleanup';
 import { emailService } from '@/lib/email-service';
 import { PasswordSecurity, SecurityMiddleware } from '@/lib/security';
+import { Media } from '@/models';
 
 /**
  * Log verification status change to audit log
@@ -48,48 +49,6 @@ function getBaseUrl(request: NextRequest): string {
   return `${protocol}://${host}`;
 }
 
-// Helper function to resolve profile image to full URL
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function resolveProfileImage(user: Record<string, unknown>, mediaCollection: any, baseUrl: string): Promise<string | null> {
-  // Priority 1: If user has Google auth and social_auth_profile_image, use external URL
-  if (user.auth_type === 'google' && user.social_auth_profile_image && typeof user.social_auth_profile_image === 'string') {
-    return user.social_auth_profile_image;
-  }
-  
-  // Priority 2: If user has profile_image_id, resolve from media library
-  if (user.profile_image_id || user.profile_image) {
-    try {
-      const mediaRef = user.profile_image_id || user.profile_image;
-      let mediaFile = null;
-      
-      if (typeof mediaRef === 'string') {
-        // Check if it's our custom media_id format
-        if (mediaRef.startsWith('media_')) {
-          mediaFile = await mediaCollection.findOne({ media_id: mediaRef });
-        } else if (mediaRef.length === 24) {
-          // Try legacy ObjectId lookup first
-          try {
-            mediaFile = await mediaCollection.findOne({ _id: new ObjectId(mediaRef) });
-          } catch {
-            mediaFile = await mediaCollection.findOne({ media_id: mediaRef });
-          }
-        }
-      } else if (mediaRef instanceof ObjectId) {
-        mediaFile = await mediaCollection.findOne({ _id: mediaRef });
-      }
-        
-      if (mediaFile && mediaFile.file_path) {
-        return `${baseUrl}${mediaFile.file_path}`;
-      }
-    } catch (error) {
-      console.error('Error resolving media file:', error);
-    }
-  }
-  
-  // No profile image - return null to indicate no image uploaded
-  return null;
-}
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -120,7 +79,11 @@ export async function GET(
 
     // Resolve profile image to full URL for display
     const baseUrl = getBaseUrl(request);
-    userResponse.profile_image = await resolveProfileImage(user, mediaCollection, baseUrl);
+    console.log('🔍 [USER GET] Resolving profile image for user:', id);
+    console.log('   profile_image_id:', user.profile_image_id);
+    console.log('   profile_image:', user.profile_image);
+    userResponse.profile_image = await Media.resolveProfileImage(user, baseUrl);
+    console.log('   resolved URL:', userResponse.profile_image);
 
     // Resolve PAN card image to full URL if exists
     if (user.pan_card_id) {
@@ -185,17 +148,25 @@ export async function PUT(
     }
 
     // Validate required fields
-    const { 
-      full_name, 
-      email_address, 
-      user_type, 
-      phone_number, 
-      gender 
+    const {
+      full_name,
+      email_address,
+      user_type,
+      phone_number,
+      gender
     } = body;
 
-    if (!full_name || !email_address || !user_type || !phone_number || !gender) {
+    // Check each required field and collect missing ones
+    const missingBaseFields: string[] = [];
+    if (!full_name) missingBaseFields.push('Full Name');
+    if (!email_address) missingBaseFields.push('Email Address');
+    if (!user_type) missingBaseFields.push('User Type');
+    if (!phone_number) missingBaseFields.push('Phone Number');
+    if (!gender) missingBaseFields.push('Gender');
+
+    if (missingBaseFields.length > 0) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: `Missing required fields: ${missingBaseFields.join(', ')}` },
         { status: 400 }
       );
     }
@@ -211,31 +182,35 @@ export async function PUT(
 
     // Additional validation for astrologers
     if (user_type === 'astrologer') {
-      const { 
-        date_of_birth, 
-        birth_time, 
-        birth_place, 
-        address, 
-        city, 
-        state, 
-        country, 
-        zip, 
-        qualifications, 
-        skills, 
+      const {
+        address,
+        city,
+        state,
+        country,
+        zip,
+        qualifications,
+        skills,
         call_rate,
         chat_rate,
-        video_rate 
+        video_rate
       } = body;
 
-      if (!date_of_birth || !birth_time || !birth_place || !address || 
-          !city || !state || !country || !zip || 
-          !qualifications || qualifications.length === 0 ||
-          !skills || skills.length === 0 ||
-          !call_rate || 
-          !chat_rate || 
-          !video_rate) {
+      // Check each required field and collect missing ones
+      const missingFields: string[] = [];
+      if (!address) missingFields.push('Address');
+      if (!city) missingFields.push('City');
+      if (!state) missingFields.push('State');
+      if (!country) missingFields.push('Country');
+      if (!zip) missingFields.push('ZIP/Postal Code');
+      if (!qualifications || qualifications.length === 0) missingFields.push('Qualifications (at least one)');
+      if (!skills || skills.length === 0) missingFields.push('Skills (at least one)');
+      if (!call_rate) missingFields.push('Call Rate');
+      if (!chat_rate) missingFields.push('Chat Rate');
+      if (!video_rate) missingFields.push('Video Rate');
+
+      if (missingFields.length > 0) {
         return NextResponse.json(
-          { error: 'Missing required fields for astrologer account' },
+          { error: `Missing required fields for astrologer account: ${missingFields.join(', ')}` },
           { status: 400 }
         );
       }
@@ -403,8 +378,8 @@ export async function PUT(
 
     // Resolve profile image to full URL for response
     const baseUrl = getBaseUrl(request);
+    userResponse.profile_image = await Media.resolveProfileImage(updatedUser!, baseUrl);
     const mediaCollection = await DatabaseService.getCollection('media');
-    userResponse.profile_image = await resolveProfileImage(updatedUser!, mediaCollection, baseUrl);
 
     // Resolve PAN card image to full URL if exists
     if (updatedUser!.pan_card_id) {

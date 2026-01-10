@@ -100,16 +100,17 @@ class BillingService extends ChangeNotifier {
       debugPrint('💰 Starting call billing for session: $sessionId');
 
       // Determine rate and session type based on call type
+      // NOTE: session_type must match what socket-server.js uses: 'video_call' or 'voice_call'
       final double ratePerMinute;
       final String sessionType;
       switch (callType) {
         case CallType.video:
           ratePerMinute = astrologer.videoRate;
-          sessionType = 'video';
+          sessionType = 'video_call';
           break;
         case CallType.voice:
           ratePerMinute = astrologer.callRate;
-          sessionType = 'call';
+          sessionType = 'voice_call';
           break;
       }
 
@@ -159,9 +160,20 @@ class BillingService extends ChangeNotifier {
     // Stop any existing billing session
     await stopBilling();
 
+    // REFRESH balance from server before checking
+    // This prevents race condition where cached balance is stale
+    try {
+      debugPrint('💰 Refreshing wallet balance before billing...');
+      await _walletService.loadWalletBalance();
+      debugPrint('💰 Wallet balance refreshed: ${_walletService.formattedBalance}');
+    } catch (e) {
+      debugPrint('⚠️ Failed to refresh wallet balance: $e');
+      // Continue with cached balance if refresh fails
+    }
+
     // Check if user has sufficient balance for at least 1 minute
     if (!_walletService.hasSufficientBalanceForMinimumDuration(ratePerMinute)) {
-      debugPrint('❌ Insufficient balance for billing');
+      debugPrint('❌ Insufficient balance for billing (after refresh)');
       return false;
     }
 

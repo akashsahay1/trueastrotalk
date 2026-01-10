@@ -49,6 +49,16 @@ class SocketService extends ChangeNotifier {
   final StreamController<Map<String, dynamic>> _chatEndedStreamController =
       StreamController<Map<String, dynamic>>.broadcast();
 
+  // Call-related stream controllers (matching chat pattern)
+  final StreamController<Map<String, dynamic>> _callAnsweredStreamController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final StreamController<Map<String, dynamic>> _callRejectedStreamController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final StreamController<Map<String, dynamic>> _callEndedStreamController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final StreamController<Map<String, dynamic>> _callErrorStreamController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
   // Getters
   bool get isConnected => _isConnected;
   bool get isConnecting => _isConnecting;
@@ -130,6 +140,12 @@ class SocketService extends ChangeNotifier {
   Stream<Map<String, dynamic>> get chatAcceptedStream => _chatAcceptedStreamController.stream;
   Stream<Map<String, dynamic>> get chatRejectedStream => _chatRejectedStreamController.stream;
   Stream<Map<String, dynamic>> get chatEndedStream => _chatEndedStreamController.stream;
+
+  // Call streams (matching chat pattern)
+  Stream<Map<String, dynamic>> get callAnsweredStream => _callAnsweredStreamController.stream;
+  Stream<Map<String, dynamic>> get callRejectedStream => _callRejectedStreamController.stream;
+  Stream<Map<String, dynamic>> get callEndedStream => _callEndedStreamController.stream;
+  Stream<Map<String, dynamic>> get callErrorStream => _callErrorStreamController.stream;
 
   /// Initialize socket connection
   Future<void> connect({String? serverUrl}) async {
@@ -316,6 +332,20 @@ class SocketService extends ChangeNotifier {
       debugPrint('❌ [SOCKET] Chat error: $data');
     });
 
+    // Listen for message sent confirmation (for sender to add message to UI)
+    _socket!.on('message_sent', (data) {
+      debugPrint('✅ [SOCKET] Message sent confirmation: $data');
+      try {
+        // The server sends the full message in the 'message' field
+        if (data['message'] != null) {
+          final message = ChatMessage.fromJson(data['message']);
+          _messageStreamController.add(message);
+        }
+      } catch (e) {
+        debugPrint('❌ [SOCKET] Error handling message_sent: $e');
+      }
+    });
+
     _socket!.on('chat_ended', (data) {
       debugPrint('🔚 [SOCKET] Chat ended: $data');
       try {
@@ -327,19 +357,47 @@ class SocketService extends ChangeNotifier {
     });
     
     _socket!.on('call_initiated', (data) {
-      debugPrint('📞 Call initiated: $data');
+      debugPrint('📞 [SOCKET] Call initiated: $data');
     });
-    
+
     _socket!.on('call_answered', (data) {
-      debugPrint('✅ Call answered: $data');
+      debugPrint('✅ [SOCKET] Call answered: $data');
+      try {
+        final callData = Map<String, dynamic>.from(data);
+        _callAnsweredStreamController.add(callData);
+      } catch (e) {
+        debugPrint('❌ [SOCKET] Error handling call_answered: $e');
+      }
     });
-    
+
     _socket!.on('call_rejected', (data) {
-      debugPrint('❌ Call rejected: $data');
+      debugPrint('❌ [SOCKET] Call rejected: $data');
+      try {
+        final callData = Map<String, dynamic>.from(data);
+        _callRejectedStreamController.add(callData);
+      } catch (e) {
+        debugPrint('❌ [SOCKET] Error handling call_rejected: $e');
+      }
     });
-    
+
     _socket!.on('call_ended', (data) {
-      debugPrint('📴 Call ended: $data');
+      debugPrint('📴 [SOCKET] Call ended: $data');
+      try {
+        final callData = Map<String, dynamic>.from(data);
+        _callEndedStreamController.add(callData);
+      } catch (e) {
+        debugPrint('❌ [SOCKET] Error handling call_ended: $e');
+      }
+    });
+
+    _socket!.on('call_error', (data) {
+      debugPrint('❌ [SOCKET] Call error: $data');
+      try {
+        final callData = Map<String, dynamic>.from(data);
+        _callErrorStreamController.add(callData);
+      } catch (e) {
+        debugPrint('❌ [SOCKET] Error handling call_error: $e');
+      }
     });
     
     // WebRTC Signaling events
@@ -404,9 +462,9 @@ class SocketService extends ChangeNotifier {
     if (!_isConnected || _socket == null) {
       throw Exception('Socket not connected');
     }
-    
+
     debugPrint('💬 Sending message: $content');
-    
+
     final messageData = {
       'sessionId': chatSessionId,
       'content': content,
@@ -414,7 +472,25 @@ class SocketService extends ChangeNotifier {
       if (imageUrl != null) 'imageUrl': imageUrl,
       if (voiceUrl != null) 'voiceUrl': voiceUrl,
     };
-    
+
+    _socket!.emit('send_message', messageData);
+  }
+
+  /// Send an image message
+  Future<void> sendImageMessage(String chatSessionId, String imageUrl) async {
+    if (!_isConnected || _socket == null) {
+      throw Exception('Socket not connected');
+    }
+
+    debugPrint('📷 Sending image message: $imageUrl');
+
+    final messageData = {
+      'sessionId': chatSessionId,
+      'content': '',
+      'messageType': 'image',
+      'imageUrl': imageUrl,
+    };
+
     _socket!.emit('send_message', messageData);
   }
 
@@ -498,6 +574,70 @@ class SocketService extends ChangeNotifier {
     });
   }
 
+  // ============ CALL SESSION METHODS (matching chat pattern) ============
+
+  /// Initiate a call session with an astrologer
+  Future<void> initiateCallSession({
+    required String sessionId,
+    required String astrologerId,
+    required String callType,
+  }) async {
+    if (!_isConnected || _socket == null) {
+      throw Exception('Socket not connected');
+    }
+
+    debugPrint('📞 [SOCKET] Initiating call: session_id=$sessionId, astrologer_id=$astrologerId, call_type=$callType');
+
+    _socket!.emit('initiate_call', {
+      'session_id': sessionId,
+      'astrologer_id': astrologerId,
+      'caller_id': _currentUser!.id,
+      'caller_name': _currentUser!.name,
+      'caller_type': 'customer',
+      'call_type': callType,
+    });
+  }
+
+  /// Answer an incoming call (for astrologers)
+  Future<void> answerCallSession(String sessionId) async {
+    if (!_isConnected || _socket == null) {
+      throw Exception('Socket not connected');
+    }
+
+    debugPrint('✅ [SOCKET] Answering call: session_id=$sessionId');
+
+    _socket!.emit('answer_call', {
+      'session_id': sessionId,
+    });
+  }
+
+  /// Reject an incoming call (for astrologers)
+  Future<void> rejectCallSession(String sessionId, {String reason = 'busy'}) async {
+    if (!_isConnected || _socket == null) {
+      throw Exception('Socket not connected');
+    }
+
+    debugPrint('❌ [SOCKET] Rejecting call: session_id=$sessionId, reason=$reason');
+
+    _socket!.emit('reject_call', {
+      'session_id': sessionId,
+      'reason': reason,
+    });
+  }
+
+  /// End an active call
+  Future<void> endCallSession(String sessionId) async {
+    if (!_isConnected || _socket == null) {
+      throw Exception('Socket not connected');
+    }
+
+    debugPrint('📴 [SOCKET] Ending call: session_id=$sessionId');
+
+    _socket!.emit('end_call', {
+      'session_id': sessionId,
+    });
+  }
+
   /// Mark messages as read
   Future<void> markMessagesAsRead(String chatSessionId, List<String> messageIds) async {
     if (!_isConnected || _socket == null) return;
@@ -570,6 +710,11 @@ class SocketService extends ChangeNotifier {
     _chatAcceptedStreamController.close();
     _chatRejectedStreamController.close();
     _chatEndedStreamController.close();
+    // Call stream controllers
+    _callAnsweredStreamController.close();
+    _callRejectedStreamController.close();
+    _callEndedStreamController.close();
+    _callErrorStreamController.close();
     super.dispose();
   }
 

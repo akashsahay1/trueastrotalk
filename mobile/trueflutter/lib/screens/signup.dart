@@ -144,6 +144,10 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
   // Focus states
   bool _isAddressFocused = false;
 
+  // Track empty states for efficient rebuilds (only rebuild when empty state changes)
+  bool _wasNameEmpty = true;
+  bool _wasPhoneEmpty = true;
+
   // Qualifications repeater field
   final List<String> _qualificationsList = [];
   final TextEditingController _qualificationController = TextEditingController();
@@ -182,26 +186,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
     _countryController.text = 'India';
     
     // Add listener to password controller for reactive validation
-    _passwordController.addListener(() {
-      if (_passwordController.text.isNotEmpty) {
-        // Check if password meets all requirements
-        final hasUpperCase = ValidationPatterns.hasUppercase(_passwordController.text);
-        final hasLowerCase = ValidationPatterns.hasLowercase(_passwordController.text);
-        final hasDigit = ValidationPatterns.hasDigit(_passwordController.text);
-        final hasSpecialChar = ValidationPatterns.hasSpecialChar(_passwordController.text);
-        final hasMinLength = _passwordController.text.length >= 8;
-        
-        final meetsAllRequirements = hasUpperCase && hasLowerCase && hasDigit && hasSpecialChar && hasMinLength;
-        
-        setState(() {
-          _showPasswordRequirements = !meetsAllRequirements && _passwordController.text.isNotEmpty;
-        });
-      } else {
-        setState(() {
-          _showPasswordRequirements = false;
-        });
-      }
-    });
+    _passwordController.addListener(_onPasswordChanged);
 
     // Add address focus listener
     _addressFocusNode.addListener(() {
@@ -219,8 +204,9 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
     });
     
     // Add listeners for validation state updates (triggers button enable/disable)
-    _nameController.addListener(() => setState(() {}));
-    _phoneController.addListener(() => setState(() {}));
+    // Only rebuild when transitioning between empty/non-empty states
+    _nameController.addListener(_onNameChanged);
+    _phoneController.addListener(_onPhoneChanged);
   }
 
   Future<void> _loadAstrologerOptions() async {
@@ -280,6 +266,11 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
 
   @override
   void dispose() {
+    // Remove listeners before disposing
+    _nameController.removeListener(_onNameChanged);
+    _phoneController.removeListener(_onPhoneChanged);
+    _passwordController.removeListener(_onPasswordChanged);
+
     _pageController.dispose();
     // Dispose all controllers
     for (final controller in [
@@ -339,6 +330,41 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
     }
     
     super.dispose();
+  }
+
+  // Efficient listeners that only rebuild when empty state changes
+  void _onNameChanged() {
+    final isEmpty = _nameController.text.isEmpty;
+    if (isEmpty != _wasNameEmpty) {
+      _wasNameEmpty = isEmpty;
+      setState(() {});
+    }
+  }
+
+  void _onPhoneChanged() {
+    final isEmpty = _phoneController.text.isEmpty;
+    if (isEmpty != _wasPhoneEmpty) {
+      _wasPhoneEmpty = isEmpty;
+      setState(() {});
+    }
+  }
+
+  void _onPasswordChanged() {
+    final shouldShow = _passwordController.text.isNotEmpty && !_meetsAllPasswordRequirements();
+    if (shouldShow != _showPasswordRequirements) {
+      setState(() {
+        _showPasswordRequirements = shouldShow;
+      });
+    }
+  }
+
+  bool _meetsAllPasswordRequirements() {
+    final text = _passwordController.text;
+    return ValidationPatterns.hasUppercase(text) &&
+           ValidationPatterns.hasLowercase(text) &&
+           ValidationPatterns.hasDigit(text) &&
+           ValidationPatterns.hasSpecialChar(text) &&
+           text.length >= 8;
   }
 
   int get _totalSections => widget.isAdvanced ? 6 : 3; // Personal, Contact, Professional, Address, Rates, Bank Details for astrologers (Birth Details removed)
@@ -831,6 +857,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
       setState(() {
         _qualificationsList.add(_qualificationController.text.trim());
         _qualificationController.clear();
+        _qualificationsError = null; // Clear error when qualification is added
       });
     }
   }
@@ -1631,7 +1658,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
                             children: selectedItems.map((item) {
                               return Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                                decoration: BoxDecoration(color: AppColors.primary.withAlpha(25), borderRadius: BorderRadius.circular(12)),
                                 child: Text(
                                   item,
                                   style: AppTextStyles.bodySmall.copyWith(color: AppColors.primary, fontWeight: FontWeight.w500),
@@ -1870,7 +1897,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Container(
-                        decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                        decoration: BoxDecoration(color: AppColors.primary.withAlpha(25), borderRadius: BorderRadius.circular(8)),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           child: Row(
@@ -2674,7 +2701,7 @@ _buildTextField(
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
+                color: AppColors.primary.withAlpha(25),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(

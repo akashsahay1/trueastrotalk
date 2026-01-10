@@ -17,6 +17,7 @@ class ApiEndpoints {
   static const String chat = '/chat';
   static String chatById(String id) => '$chat/$id';
   static const String chatMessages = '/chat/messages';
+  static const String chatAttachments = '/chat/attachments';
   
   // Calls endpoints
   static const String calls = '/calls';

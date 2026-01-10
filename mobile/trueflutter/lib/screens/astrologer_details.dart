@@ -608,23 +608,9 @@ class _AstrologerDetailsScreenState extends State<AstrologerDetailsScreen> {
     );
   }
 
-  // Helper function to get profile picture - same logic as User model
+  // Helper function to get profile picture - simple: just use profile_image
   String? _getProfilePicture(Map<String, dynamic> userData) {
-    // Priority order: social_profile_image (for Google users), then profile_picture/profile_image
-    final fields = [
-      'social_profile_image',
-      'profile_picture',
-      'profile_image'
-    ];
-
-    for (final field in fields) {
-      final value = userData[field]?.toString();
-      if (value != null && value.isNotEmpty) {
-        return value;
-      }
-    }
-
-    return null;
+    return userData['profile_image']?.toString();
   }
 
   Widget _buildReviewCard(Map<String, dynamic> review) {
@@ -1573,18 +1559,18 @@ Connect now on True AstroTalk! 🌟
         final currentUser = authService.currentUser;
 
         final callData = {
-          'sessionId': callSession.id,
-          'callType': callType == CallType.video ? 'video' : 'voice',
-          'ratePerMinute': callSession.ratePerMinute,
-          'isVideo': callType == CallType.video,
+          'session_id': callSession.id,
+          'call_type': callType == CallType.video ? 'video' : 'voice',
+          'rate_per_minute': callSession.ratePerMinute,
+          'is_video': callType == CallType.video,
           // Caller info (current user initiating the call)
-          'callerId': currentUser?.id ?? '',
-          'callerName': currentUser?.name ?? 'You',
-          'callerProfileImage': currentUser?.profilePicture,
+          'caller_id': currentUser?.id ?? '',
+          'caller_name': currentUser?.name ?? 'You',
+          'caller_profile_image': currentUser?.profilePicture,
           // Receiver info (astrologer receiving the call)
-          'receiverId': _astrologer!.id,
-          'receiverName': _astrologer!.fullName,
-          'receiverProfileImage': _astrologer!.profileImage,
+          'receiver_id': _astrologer!.id,
+          'receiver_name': _astrologer!.fullName,
+          'receiver_profile_image': _astrologer!.profileImage,
           // Full astrologer data for display
           'astrologer': _astrologer!.toJson(),
         };

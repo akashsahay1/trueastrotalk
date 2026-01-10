@@ -6,6 +6,7 @@ import '../common/constants/dimensions.dart';
 import '../services/socket/socket_service.dart';
 import '../services/webrtc/webrtc_service.dart';
 import '../services/audio/ringtone_service.dart';
+import '../services/notifications/notification_service.dart';
 import '../services/service_locator.dart';
 import 'active_call_screen.dart';
 
@@ -26,7 +27,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   late final SocketService _socketService;
   late final WebRTCService _webrtcService;
   late final RingtoneService _ringtoneService;
-  
+
   late AnimationController _pulseController;
   late AnimationController _slideController;
   late Animation<double> _pulseAnimation;
@@ -34,6 +35,16 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
   bool _isAnswering = false;
   bool _isRejecting = false;
+
+  // Helper getters to support both snake_case and camelCase
+  String get _callType =>
+      (widget.callData['call_type'] ?? widget.callData['callType'])?.toString() ?? 'voice';
+  String get _callerName =>
+      (widget.callData['caller_name'] ?? widget.callData['callerName'])?.toString() ?? 'Incoming Call...';
+  String? get _callerProfileImage =>
+      (widget.callData['caller_profile_image'] ?? widget.callData['callerProfileImage'])?.toString();
+  String get _sessionId =>
+      (widget.callData['session_id'] ?? widget.callData['sessionId'])?.toString() ?? '';
 
   @override
   void initState() {
@@ -85,13 +96,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     
     // Start ringtone
     _ringtoneService.startRingtone();
-    
-    // Setup call timeout (auto-reject after 30 seconds)
-    Future.delayed(const Duration(seconds: 30), () {
-      if (mounted && !_isAnswering && !_isRejecting) {
-        _rejectCall();
-      }
-    });
+
+    // Note: Auto-reject timeout removed - CallKit handles its own timeout
+    // for the native call UI. The server can also implement a session timeout.
   }
 
   @override
@@ -156,7 +163,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  widget.callData['callType'] == 'video'
+                  _callType == 'video'
                       ? Icons.videocam
                       : Icons.phone,
                   color: AppColors.white,
@@ -164,7 +171,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  'Incoming ${widget.callData['callType'] == 'video' ? 'Video' : 'Voice'} Call',
+                  'Incoming ${_callType == 'video' ? 'Video' : 'Voice'} Call',
                   style: AppTextStyles.bodySmall.copyWith(
                     color: AppColors.white,
                     fontWeight: FontWeight.w600,
@@ -206,9 +213,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                   ],
                 ),
                 child: ClipOval(
-                  child: widget.callData['callerProfileImage'] != null
+                  child: _callerProfileImage != null
                       ? Image.network(
-                          widget.callData['callerProfileImage'],
+                          _callerProfileImage!,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
                             return _buildDefaultAvatar();
@@ -225,19 +232,19 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         
         // Caller name
         Text(
-          widget.callData['callerName'] ?? 'Incoming Call...',
+          _callerName,
           style: AppTextStyles.heading3.copyWith(
             color: AppColors.white,
             fontWeight: FontWeight.w600,
           ),
           textAlign: TextAlign.center,
         ),
-        
+
         const SizedBox(height: Dimensions.paddingSm),
-        
+
         // Call type and status
         Text(
-          '${widget.callData['callType'] == 'video' ? 'Video' : 'Voice'} Call',
+          '${_callType == 'video' ? 'Video' : 'Voice'} Call',
           style: AppTextStyles.bodyLarge.copyWith(
             color: AppColors.white.withValues(alpha: 0.8),
           ),
@@ -414,29 +421,29 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
   void _rejectCall() async {
     if (_isRejecting || _isAnswering) return;
-    
+
     setState(() {
       _isRejecting = true;
     });
-    
+
     try {
       // Stop ringtone
       _ringtoneService.stopRingtone();
-      
+
+      // End CallKit notification (if shown)
+      await NotificationService().endCallKit();
+
       // Provide haptic feedback
       HapticFeedback.mediumImpact();
-      
-      // Send reject call event
-      _socketService.emit('reject_call', {
-        'callId': widget.callData['callId'],
-        'sessionId': widget.callData['sessionId'],
-      });
-      
+
+      // Send reject call event using SocketService method
+      await _socketService.rejectCallSession(_sessionId, reason: 'rejected');
+
       // Close the screen
       if (mounted) {
         Navigator.of(context).pop();
       }
-      
+
     } catch (e) {
       debugPrint('❌ Failed to reject call: $e');
       if (mounted) {
@@ -447,27 +454,30 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
   void _answerCall() async {
     if (_isAnswering || _isRejecting) return;
-    
+
     setState(() {
       _isAnswering = true;
     });
-    
+
     try {
       // Stop ringtone
       _ringtoneService.stopRingtone();
-      
+
+      // NOTE: Don't call endCallKit() here - it triggers the declined callback
+      // which causes a race condition. Let the call naturally end or handle
+      // it in ActiveCallScreen after WebRTC connects.
+
       // Provide haptic feedback
       HapticFeedback.mediumImpact();
-      
-      // Initialize WebRTC
+
+      // Initialize WebRTC renderers (but don't create peer connection yet)
       await _webrtcService.initialize();
-      
-      // Send answer call event
-      _socketService.emit('answer_call', {
-        'callId': widget.callData['callId'],
-        'sessionId': widget.callData['sessionId'],
-      });
-      
+
+      // DON'T send answer_call here - let ActiveCallScreen send it
+      // after creating the peer connection. This ensures the peer connection
+      // is ready to receive the webrtc_offer when it arrives.
+      debugPrint('📞 WebRTC initialized, navigating to ActiveCallScreen...');
+
       // Navigate to active call screen
       if (mounted) {
         Navigator.of(context).pushReplacement(
@@ -479,7 +489,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
           ),
         );
       }
-      
+
     } catch (e) {
       debugPrint('❌ Failed to answer call: $e');
       setState(() {

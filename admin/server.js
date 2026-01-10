@@ -1,3 +1,6 @@
+// Load environment variables from .env file
+require('dotenv').config();
+
 const { createServer } = require('http');
 const next = require('next');
 const { Server } = require('socket.io');
@@ -10,13 +13,39 @@ const port = process.env.PORT || 4001;
 const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
 const DB_NAME = 'trueastrotalkDB';
 
-// Initialize Firebase Admin SDK
+// Initialize Firebase Admin SDK from environment variables
 try {
-  const serviceAccount = require('./service-account-key.json');
+  if (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_CLIENT_EMAIL || !process.env.FIREBASE_PRIVATE_KEY) {
+    throw new Error('Missing Firebase environment variables: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY');
+  }
+
+  // Parse private key - handle both escaped (\n as literal) and actual newlines
+  let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+  if (privateKey.includes('\\n')) {
+    privateKey = privateKey.replace(/\\n/g, '\n');
+  }
+  // Remove any wrapping quotes
+  privateKey = privateKey.replace(/^["']|["']$/g, '');
+
+  const serviceAccount = {
+    type: 'service_account',
+    project_id: process.env.FIREBASE_PROJECT_ID,
+    private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+    private_key: privateKey,
+    client_email: process.env.FIREBASE_CLIENT_EMAIL,
+    client_id: process.env.FIREBASE_CLIENT_ID,
+    auth_uri: process.env.FIREBASE_AUTH_URI || 'https://accounts.google.com/o/oauth2/auth',
+    token_uri: process.env.FIREBASE_TOKEN_URI || 'https://oauth2.googleapis.com/token',
+    auth_provider_x509_cert_url: process.env.FIREBASE_AUTH_PROVIDER_CERT_URL || 'https://www.googleapis.com/oauth2/v1/certs',
+    client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL,
+    universe_domain: 'googleapis.com'
+  };
+
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
   });
-  console.log('🔥 Firebase Admin SDK initialized successfully');
+
+  console.log('🔥 Firebase Admin SDK initialized for project:', process.env.FIREBASE_PROJECT_ID);
 } catch (error) {
   console.error('❌ Firebase Admin SDK initialization failed:', error.message);
 }
@@ -59,9 +88,12 @@ app.prepare().then(() => {
           isOnline: true
         });
 
+        // Strip 'user_' prefix to avoid double prefix in room name
+        const roomId = userId?.startsWith('user_') ? userId.substring(5) : userId;
+
         // Join user to their personal room
-        socket.join(`user_${userId}`);
-        console.log(`🔌 [SOCKET] User ${userId} (${userType}) joined room: user_${userId}`);
+        socket.join(`user_${roomId}`);
+        console.log(`🔌 [SOCKET] User ${userId} (${userType}) joined room: user_${roomId}`);
 
         // Join astrologers to astrologer room
         if (userType === 'astrologer') {
@@ -81,7 +113,14 @@ app.prepare().then(() => {
     // Handle call initiation
     socket.on('initiate_call', async (data) => {
       try {
-        const { sessionId, callerId, callerName, callerType, callType } = data;
+        // Support both snake_case and camelCase field names
+        const sessionId = data.session_id || data.sessionId;
+        const callerId = data.caller_id || data.callerId;
+        const callerName = data.caller_name || data.callerName;
+        const callerType = data.caller_type || data.callerType;
+        const callType = data.call_type || data.callType;
+        const astrologerId = data.astrologer_id || data.astrologerId;
+
         console.log('📞 [CALL] initiate_call received:', JSON.stringify(data, null, 2));
 
         const client = new MongoClient(MONGODB_URL);
@@ -96,7 +135,7 @@ app.prepare().then(() => {
 
         if (!session) {
           console.log('❌ [CALL] Session not found:', sessionId);
-          socket.emit('call_error', { error: 'Call session not found' });
+          socket.emit('call_error', { session_id: sessionId, error: 'Call session not found' });
           await client.close();
           return;
         }
@@ -111,65 +150,123 @@ app.prepare().then(() => {
         const receiverId = callerType === 'customer' ? session.astrologer_id : session.user_id;
         console.log(`📞 [CALL] Receiver ID: ${receiverId}`);
 
-        // Get receiver info for push notification
+        // Strip 'user_' prefix for socket room name to avoid double prefix (user_user_...)
+        const receiverRoomId = receiverId && receiverId.startsWith('user_')
+          ? receiverId.substring(5)
+          : receiverId;
+
+        // Get receiver info for push notification (use original ID with prefix)
         const receiver = await db.collection('users').findOne({ user_id: receiverId });
+
+        // Get caller info (customer) for the astrologer to see
+        const caller = await db.collection('users').findOne({ user_id: callerId });
+
+        // Get astrologer info for billing and display
+        const astrologer = await db.collection('users').findOne({
+          user_id: session.astrologer_id,
+          user_type: 'astrologer'
+        });
         await client.close();
 
         console.log(`📞 [CALL] Receiver FCM token: ${receiver?.fcm_token ? 'EXISTS (' + receiver.fcm_token.substring(0, 20) + '...)' : 'NOT SET'}`);
 
-        // Emit incoming call to receiver via socket
-        console.log(`📞 [CALL] Emitting 'incoming_call' to room: user_${receiverId}`);
-        io.to(`user_${receiverId}`).emit('incoming_call', {
-          sessionId,
-          callerId,
-          callerType,
-          callType,
-          callerName: callerName || 'Unknown',
+        // Build astrologer object for billing (needed by ActiveCallScreen)
+        const astrologerData = astrologer ? {
+          id: astrologer.user_id,
+          user_id: astrologer.user_id,
+          full_name: astrologer.full_name || 'Astrologer',
+          profile_image: astrologer.profile_image || '',
+          call_rate: astrologer.call_rate || 0,
+          video_rate: astrologer.video_rate || 0,
+          chat_rate: astrologer.chat_rate || 0,
+          rating: astrologer.rating || 0,
+          skills: astrologer.skills || [],
+          is_online: astrologer.is_online || false
+        } : null;
+
+        // Build caller object for the receiver to see
+        const callerData = caller ? {
+          id: caller.user_id,
+          user_id: caller.user_id,
+          full_name: caller.full_name || callerName || 'Customer',
+          profile_image: caller.profile_image || ''
+        } : null;
+
+        // Emit incoming call to receiver via socket with all required data
+        console.log(`📞 [CALL] Emitting 'incoming_call' to room: user_${receiverRoomId}`);
+        io.to(`user_${receiverRoomId}`).emit('incoming_call', {
+          // Use snake_case consistently
+          session_id: sessionId,
+          caller_id: callerId,
+          caller_type: callerType,
+          call_type: callType,
+          caller_name: callerName || caller?.full_name || 'Unknown',
+          caller: callerData,
+          astrologer: astrologerData,
+          rate_per_minute: session.rate_per_minute || astrologer?.call_rate || 0,
           timestamp: new Date()
         });
-        console.log(`✅ [CALL] incoming_call event emitted to user_${receiverId}`);
+        console.log(`✅ [CALL] incoming_call event emitted to user_${receiverRoomId}`);
 
-        // Send FCM push notification for incoming call
+        // Send FCM push notification for incoming call with high priority
+        // This triggers flutter_callkit_incoming to show native call UI
         if (receiver?.fcm_token) {
           try {
+            const displayName = callerName || caller?.full_name || 'Unknown Caller';
             const message = {
               token: receiver.fcm_token,
-              notification: {
-                title: `Incoming ${callType || 'voice'} call`,
-                body: `${callerName || 'Someone'} is calling you`
-              },
+              // Use data-only message for CallKit to handle properly
               data: {
                 type: 'incoming_call',
-                sessionId: String(sessionId || ''),
-                callerId: String(callerId || ''),
-                callerName: String(callerName || 'Unknown'),
-                callerType: String(callerType || 'user'),
-                callType: String(callType || 'voice')
+                session_id: String(sessionId || ''),
+                caller_id: String(callerId || ''),
+                caller_name: String(displayName),
+                caller_type: String(callerType || 'customer'),
+                call_type: String(callType || 'voice'),
+                rate_per_minute: String(session?.rate_per_minute || astrologer?.call_rate || 0),
+                // Include astrologer data as JSON string for billing
+                astrologer: astrologerData ? JSON.stringify(astrologerData) : '',
+                // Required fields for flutter_callkit_incoming
+                nameCaller: String(displayName),
+                appName: 'True Astrotalk',
+                handle: String(callerId || ''),
+                avatar: '',
+                duration: '45000',
+                textAccept: 'Accept',
+                textDecline: 'Decline',
+                missedCallNotification: 'true',
+                isVideo: String(callType === 'video')
               },
               android: {
                 priority: 'high',
+                ttl: 45000, // 45 seconds TTL matching ring duration
                 notification: {
                   channelId: 'incoming_calls',
                   priority: 'max',
                   defaultSound: true,
-                  defaultVibrateTimings: true
+                  defaultVibrateTimings: true,
+                  visibility: 'public',
+                  title: `Incoming ${callType || 'voice'} call`,
+                  body: `${displayName} is calling you`
                 }
               },
               apns: {
                 payload: {
                   aps: {
                     alert: {
-                      title: `Incoming ${callType} call`,
-                      body: `${callerName || 'Someone'} is calling you`
+                      title: `Incoming ${callType || 'voice'} call`,
+                      body: `${displayName} is calling you`
                     },
                     sound: 'default',
                     badge: 1,
-                    'content-available': 1
+                    'content-available': 1,
+                    'mutable-content': 1
                   }
                 },
                 headers: {
                   'apns-priority': '10',
-                  'apns-push-type': 'alert'
+                  'apns-push-type': 'alert',
+                  'apns-expiration': String(Math.floor(Date.now() / 1000) + 45) // 45 seconds
                 }
               }
             };
@@ -192,44 +289,67 @@ app.prepare().then(() => {
     // Handle call answer
     socket.on('answer_call', async (data) => {
       try {
-        const { sessionId } = data;
+        // Support both snake_case and camelCase
+        const sessionId = data.session_id || data.sessionId;
         console.log('✅ [CALL] answer_call received:', JSON.stringify(data, null, 2));
 
         const client = new MongoClient(MONGODB_URL);
         await client.connect();
         const db = client.db(DB_NAME);
 
-        // Get call session
-        const session = await db.collection('sessions').findOne({
-          _id: new ObjectId(sessionId),
-          session_type: { $in: ['voice_call', 'video_call'] }
-        });
+        // IDEMPOTENCY: Atomically update only if session is still in 'ringing' or 'initiated' state
+        // This prevents duplicate processing when answer_call is sent multiple times
+        const startTime = new Date();
+        const result = await db.collection('sessions').findOneAndUpdate(
+          {
+            _id: new ObjectId(sessionId),
+            session_type: { $in: ['voice_call', 'video_call'] },
+            status: { $in: ['ringing', 'initiated'] }  // Only update if not already connected
+          },
+          {
+            $set: { status: 'connected', start_time: startTime, updated_at: new Date() }
+          },
+          { returnDocument: 'after' }
+        );
+
+        const session = result;
 
         if (!session) {
+          // Check if session exists but is already connected (duplicate answer_call)
+          const existingSession = await db.collection('sessions').findOne({
+            _id: new ObjectId(sessionId),
+            session_type: { $in: ['voice_call', 'video_call'] }
+          });
+
+          if (existingSession && existingSession.status === 'connected') {
+            console.log('⚠️ [CALL] answer_call ignored - session already connected (duplicate):', sessionId);
+            await client.close();
+            return; // Silently ignore duplicate
+          }
+
           console.log('❌ [CALL] Session not found for answer:', sessionId);
-          socket.emit('call_error', { error: 'Call session not found' });
+          socket.emit('call_error', { session_id: sessionId, error: 'Call session not found' });
           await client.close();
           return;
         }
 
-        // Update call status to connected
-        await db.collection('sessions').updateOne(
-          { _id: new ObjectId(sessionId) },
-          { $set: { status: 'connected', started_at: new Date(), updated_at: new Date() } }
-        );
         await client.close();
 
         // Find the caller (initiator) to notify them
         const callerId = session.user_id;
+        // Strip 'user_' prefix to avoid double prefix in room name
+        const callerRoomId = callerId?.startsWith('user_')
+          ? callerId.substring(5)
+          : callerId;
         console.log(`✅ [CALL] Notifying caller ${callerId} that call was answered`);
 
         // Emit call_answered to the caller so they can start WebRTC offer
-        io.to(`user_${callerId}`).emit('call_answered', {
-          sessionId,
-          answeredAt: new Date()
+        io.to(`user_${callerRoomId}`).emit('call_answered', {
+          session_id: sessionId,
+          start_time: startTime
         });
 
-        console.log(`✅ [CALL] call_answered emitted to user_${callerId}`);
+        console.log(`✅ [CALL] call_answered emitted to user_${callerRoomId}`);
 
       } catch (error) {
         console.error('❌ [CALL] answer_call error:', error);
@@ -240,7 +360,9 @@ app.prepare().then(() => {
     // Handle call rejection
     socket.on('reject_call', async (data) => {
       try {
-        const { sessionId, reason } = data;
+        // Support both snake_case and camelCase
+        const sessionId = data.session_id || data.sessionId;
+        const reason = data.reason;
         console.log('❌ [CALL] reject_call received:', JSON.stringify(data, null, 2));
 
         const client = new MongoClient(MONGODB_URL);
@@ -257,16 +379,20 @@ app.prepare().then(() => {
           // Update call status to rejected
           await db.collection('sessions').updateOne(
             { _id: new ObjectId(sessionId) },
-            { $set: { status: 'rejected', end_reason: reason || 'rejected', updated_at: new Date() } }
+            { $set: { status: 'rejected', end_reason: reason || 'rejected', end_time: new Date(), updated_at: new Date() } }
           );
 
-          // Notify the caller
+          // Notify the caller using snake_case
           const callerId = session.user_id;
-          io.to(`user_${callerId}`).emit('call_rejected', {
-            sessionId,
+          // Strip 'user_' prefix to avoid double prefix in room name
+          const callerRoomId = callerId?.startsWith('user_')
+            ? callerId.substring(5)
+            : callerId;
+          io.to(`user_${callerRoomId}`).emit('call_rejected', {
+            session_id: sessionId,
             reason: reason || 'Call was rejected'
           });
-          console.log(`❌ [CALL] call_rejected emitted to user_${callerId}`);
+          console.log(`❌ [CALL] call_rejected emitted to user_${callerRoomId}`);
         }
 
         await client.close();
@@ -279,7 +405,9 @@ app.prepare().then(() => {
     // Handle call end
     socket.on('end_call', async (data) => {
       try {
-        const { sessionId, endedBy } = data;
+        // Support both snake_case and camelCase
+        const sessionId = data.session_id || data.sessionId;
+        const endedBy = data.ended_by || data.endedBy;
         console.log('📴 [CALL] end_call received:', JSON.stringify(data, null, 2));
 
         const client = new MongoClient(MONGODB_URL);
@@ -296,15 +424,23 @@ app.prepare().then(() => {
           // Update call status to completed
           await db.collection('sessions').updateOne(
             { _id: new ObjectId(sessionId) },
-            { $set: { status: 'completed', ended_at: new Date(), updated_at: new Date() } }
+            { $set: { status: 'completed', end_time: new Date(), updated_at: new Date() } }
           );
 
-          // Notify both parties
+          // Notify both parties using snake_case
           const userId = session.user_id;
           const astrologerId = session.astrologer_id;
 
-          io.to(`user_${userId}`).emit('call_ended', { sessionId, endedBy });
-          io.to(`user_${astrologerId}`).emit('call_ended', { sessionId, endedBy });
+          // Strip 'user_' prefix to avoid double prefix in room names
+          const userRoomId = userId?.startsWith('user_')
+            ? userId.substring(5)
+            : userId;
+          const astrologerRoomId = astrologerId?.startsWith('user_')
+            ? astrologerId.substring(5)
+            : astrologerId;
+
+          io.to(`user_${userRoomId}`).emit('call_ended', { session_id: sessionId, ended_by: endedBy });
+          io.to(`user_${astrologerRoomId}`).emit('call_ended', { session_id: sessionId, ended_by: endedBy });
           console.log(`📴 [CALL] call_ended emitted to both parties`);
         }
 
@@ -318,13 +454,18 @@ app.prepare().then(() => {
     // Handle WebRTC offer
     socket.on('webrtc_offer', (data) => {
       const { sessionId, targetUserId, offer } = data;
-      console.log(`📤 [WEBRTC] Forwarding offer to user_${targetUserId}`);
+
+      // Strip 'user_' prefix to avoid double prefix (user_user_...)
+      const targetRoomId = targetUserId?.startsWith('user_')
+        ? targetUserId.substring(5)
+        : targetUserId;
+      console.log(`📤 [WEBRTC] Forwarding offer to user_${targetRoomId}`);
 
       // Get the sender's user ID from connectedUsers
       const senderInfo = connectedUsers.get(socket.id);
       const fromUserId = senderInfo?.userId;
 
-      io.to(`user_${targetUserId}`).emit('webrtc_offer', {
+      io.to(`user_${targetRoomId}`).emit('webrtc_offer', {
         sessionId,
         offer,
         fromUserId
@@ -334,13 +475,18 @@ app.prepare().then(() => {
     // Handle WebRTC answer
     socket.on('webrtc_answer', (data) => {
       const { sessionId, targetUserId, answer } = data;
-      console.log(`📤 [WEBRTC] Forwarding answer to user_${targetUserId}`);
+
+      // Strip 'user_' prefix to avoid double prefix (user_user_...)
+      const targetRoomId = targetUserId?.startsWith('user_')
+        ? targetUserId.substring(5)
+        : targetUserId;
+      console.log(`📤 [WEBRTC] Forwarding answer to user_${targetRoomId}`);
 
       // Get the sender's user ID from connectedUsers
       const senderInfo = connectedUsers.get(socket.id);
       const fromUserId = senderInfo?.userId;
 
-      io.to(`user_${targetUserId}`).emit('webrtc_answer', {
+      io.to(`user_${targetRoomId}`).emit('webrtc_answer', {
         sessionId,
         answer,
         fromUserId
@@ -350,9 +496,14 @@ app.prepare().then(() => {
     // Handle WebRTC ICE candidate
     socket.on('webrtc_ice_candidate', (data) => {
       const { sessionId, targetUserId, candidate } = data;
-      console.log(`🧊 [WEBRTC] Forwarding ICE candidate to user_${targetUserId}`);
 
-      io.to(`user_${targetUserId}`).emit('webrtc_ice_candidate', {
+      // Strip 'user_' prefix to avoid double prefix (user_user_...)
+      const targetRoomId = targetUserId?.startsWith('user_')
+        ? targetUserId.substring(5)
+        : targetUserId;
+      console.log(`🧊 [WEBRTC] Forwarding ICE candidate to user_${targetRoomId}`);
+
+      io.to(`user_${targetRoomId}`).emit('webrtc_ice_candidate', {
         sessionId,
         candidate
       });
@@ -363,8 +514,11 @@ app.prepare().then(() => {
       const { userId, userType } = data;
       console.log(`👤 ${userType} ${userId} joined`);
 
+      // Strip 'user_' prefix to avoid double prefix in room name
+      const roomId = userId?.startsWith('user_') ? userId.substring(5) : userId;
+
       // Join user to their personal room
-      socket.join(`user_${userId}`);
+      socket.join(`user_${roomId}`);
 
       // Join astrologers to astrologer room for broadcasts
       if (userType === 'astrologer') {
@@ -438,9 +592,6 @@ app.prepare().then(() => {
         if (existingSession) {
           console.log(`💬 [CHAT] Existing session found: ${existingSession._id}, status: ${existingSession.status}`);
 
-          // Get astrologer details for the response
-          const astrologer = await db.collection('users').findOne({ user_id: astrologerId });
-
           socket.emit('chat_initiated', {
             sessionId: existingSession._id.toString(),
             status: existingSession.status,
@@ -449,14 +600,87 @@ app.prepare().then(() => {
             astrologerAvatar: astrologer?.profile_picture
           });
 
-          // If session is active, also notify astrologer to open chat
+          // Strip 'user_' prefix to avoid double prefix in room name
+          const astrologerRoomId = astrologerId?.startsWith('user_') ? astrologerId.substring(5) : astrologerId;
+
+          // If session is still ringing, re-notify the astrologer (they may have missed it)
+          if (existingSession.status === 'ringing') {
+            // Re-send incoming_chat via socket
+            const incomingChatData = {
+              sessionId: existingSession._id.toString(),
+              userId: userId,
+              userName: user.full_name || 'Customer',
+              userAvatar: user.profile_picture,
+              chatRate: astrologer.chat_rate || 30,
+              timestamp: new Date()
+            };
+            console.log(`💬 [CHAT] Re-emitting incoming_chat to user_${astrologerRoomId}`);
+            io.to(`user_${astrologerRoomId}`).emit('incoming_chat', incomingChatData);
+
+            // Re-send FCM push notification
+            if (astrologer?.fcm_token) {
+              try {
+                const displayName = user.full_name || 'Customer';
+                const message = {
+                  token: astrologer.fcm_token,
+                  data: {
+                    type: 'incoming_chat',
+                    session_id: String(existingSession._id),
+                    user_id: String(userId),
+                    user_name: String(displayName),
+                    user_avatar: String(user.profile_picture || ''),
+                    chat_rate: String(astrologer.chat_rate || 30),
+                    timestamp: new Date().toISOString()
+                  },
+                  android: {
+                    priority: 'high',
+                    ttl: 60000,
+                    notification: {
+                      channelId: 'chat_requests',
+                      priority: 'high',
+                      defaultSound: true,
+                      defaultVibrateTimings: true,
+                      visibility: 'public',
+                      title: 'New Chat Request',
+                      body: `${displayName} wants to chat with you`
+                    }
+                  },
+                  apns: {
+                    payload: {
+                      aps: {
+                        alert: {
+                          title: 'New Chat Request',
+                          body: `${displayName} wants to chat with you`
+                        },
+                        sound: 'default',
+                        badge: 1,
+                        'content-available': 1,
+                        'mutable-content': 1
+                      }
+                    },
+                    headers: {
+                      'apns-priority': '10',
+                      'apns-push-type': 'alert'
+                    }
+                  }
+                };
+
+                await admin.messaging().send(message);
+                console.log(`📱 [CHAT] FCM re-notification sent to astrologer ${astrologerId}`);
+              } catch (fcmError) {
+                console.error('❌ [CHAT] FCM re-notification error:', fcmError.message);
+              }
+            }
+          }
+
+          // If session is active, notify astrologer to open chat
           if (existingSession.status === 'active') {
-            io.to(`user_${astrologerId}`).emit('chat_resumed', {
+            io.to(`user_${astrologerRoomId}`).emit('chat_resumed', {
               sessionId: existingSession._id.toString(),
               userId: userId,
               userName: user.full_name || 'Customer'
             });
-            console.log(`💬 [CHAT] Notified astrologer to resume chat`);
+            console.log(`💬 [CHAT] Notified astrologer to resume chat (room: user_${astrologerRoomId})`);
           }
 
           await client.close();
@@ -501,8 +725,68 @@ app.prepare().then(() => {
         };
 
         // Notify astrologer via socket
-        console.log(`💬 [CHAT] Emitting incoming_chat to user_${astrologerId}`);
-        io.to(`user_${astrologerId}`).emit('incoming_chat', incomingChatData);
+        // Strip 'user_' prefix to avoid double prefix in room name
+        const astrologerRoomId = astrologerId?.startsWith('user_') ? astrologerId.substring(5) : astrologerId;
+        console.log(`💬 [CHAT] Emitting incoming_chat to user_${astrologerRoomId}`);
+        io.to(`user_${astrologerRoomId}`).emit('incoming_chat', incomingChatData);
+
+        // Send FCM push notification to astrologer for incoming chat
+        // This ensures they receive notification even if app is in background
+        if (astrologer?.fcm_token) {
+          try {
+            const displayName = user.full_name || 'Customer';
+            const message = {
+              token: astrologer.fcm_token,
+              data: {
+                type: 'incoming_chat',
+                session_id: String(sessionId),
+                user_id: String(userId),
+                user_name: String(displayName),
+                user_avatar: String(user.profile_picture || ''),
+                chat_rate: String(astrologer.chat_rate || 30),
+                timestamp: new Date().toISOString()
+              },
+              android: {
+                priority: 'high',
+                ttl: 60000, // 60 seconds TTL
+                notification: {
+                  channelId: 'chat_requests',
+                  priority: 'high',
+                  defaultSound: true,
+                  defaultVibrateTimings: true,
+                  visibility: 'public',
+                  title: 'New Chat Request',
+                  body: `${displayName} wants to chat with you`
+                }
+              },
+              apns: {
+                payload: {
+                  aps: {
+                    alert: {
+                      title: 'New Chat Request',
+                      body: `${displayName} wants to chat with you`
+                    },
+                    sound: 'default',
+                    badge: 1,
+                    'content-available': 1,
+                    'mutable-content': 1
+                  }
+                },
+                headers: {
+                  'apns-priority': '10',
+                  'apns-push-type': 'alert'
+                }
+              }
+            };
+
+            await admin.messaging().send(message);
+            console.log(`📱 [CHAT] FCM push notification sent to astrologer ${astrologerId}`);
+          } catch (fcmError) {
+            console.error('❌ [CHAT] FCM notification error:', fcmError.message);
+          }
+        } else {
+          console.log('⚠️ [CHAT] No FCM token for astrologer, push notification not sent');
+        }
 
         // Confirm to customer
         socket.emit('chat_initiated', {
@@ -593,10 +877,12 @@ app.prepare().then(() => {
           astrologerName: astrologer?.full_name || 'Astrologer'
         };
 
-        io.to(`user_${session.user_id}`).emit('chat_accepted', chatAcceptedData);
+        // Strip 'user_' prefix to avoid double prefix in room name
+        const userRoomId = session.user_id?.startsWith('user_') ? session.user_id.substring(5) : session.user_id;
+        io.to(`user_${userRoomId}`).emit('chat_accepted', chatAcceptedData);
         socket.emit('chat_accepted', { sessionId, userId: session.user_id });
 
-        console.log(`✅ [CHAT] chat_accepted emitted to user_${session.user_id}`);
+        console.log(`✅ [CHAT] chat_accepted emitted to user_${userRoomId}`);
 
       } catch (error) {
         console.error('❌ [CHAT] accept_chat error:', error);
@@ -668,10 +954,14 @@ app.prepare().then(() => {
           astrologerName: astrologer?.full_name || 'Astrologer'
         };
 
-        io.to(`user_${session.user_id}`).emit('chat_rejected', chatRejectedData);
-        socket.emit('chat_rejected', { sessionId, success: true });
+        // Strip 'user_' prefix to avoid double prefix in room name
+        const userRoomId = session.user_id?.startsWith('user_') ? session.user_id.substring(5) : session.user_id;
+        io.to(`user_${userRoomId}`).emit('chat_rejected', chatRejectedData);
 
-        console.log(`❌ [CHAT] chat_rejected emitted to user_${session.user_id}`);
+        // Send confirmation to astrologer (different event name to avoid showing rejection message)
+        socket.emit('chat_reject_success', { sessionId, success: true });
+
+        console.log(`❌ [CHAT] chat_rejected emitted to user_${userRoomId}`);
 
       } catch (error) {
         console.error('❌ [CHAT] reject_chat error:', error);
@@ -796,8 +1086,11 @@ app.prepare().then(() => {
         io.to(`chat_${chatSessionId}`).emit('chat_ended', chatEndedData);
 
         // Also emit to individual users
-        io.to(`user_${session.user_id}`).emit('chat_ended', chatEndedData);
-        io.to(`user_${session.astrologer_id}`).emit('chat_ended', chatEndedData);
+        // Strip 'user_' prefix to avoid double prefix in room name
+        const userRoomId = session.user_id?.startsWith('user_') ? session.user_id.substring(5) : session.user_id;
+        const astrologerRoomId = session.astrologer_id?.startsWith('user_') ? session.astrologer_id.substring(5) : session.astrologer_id;
+        io.to(`user_${userRoomId}`).emit('chat_ended', chatEndedData);
+        io.to(`user_${astrologerRoomId}`).emit('chat_ended', chatEndedData);
 
         console.log(`✅ [CHAT] Chat session ${chatSessionId} ended. Duration: ${durationMinutes} min, Amount: ₹${totalAmount}`);
 
@@ -816,16 +1109,29 @@ app.prepare().then(() => {
 
         // Support both formats: new (sessionId, content) and old (consultationId, message)
         const sessionId = data.sessionId || data.consultationId;
-        const content = data.content || data.message;
-        const messageType = data.messageType || 'text';
+        const content = data.content || data.message || '';
+        const messageType = data.messageType || data.type || 'text';
+        const imageUrl = data.imageUrl || data.image_url || null;
         const senderId = userInfo?.userId || data.senderId;
 
-        if (!sessionId || !content) {
-          socket.emit('chat_error', { error: 'Session ID and content are required' });
+        // For text messages, content is required. For image messages, imageUrl is required.
+        if (!sessionId) {
+          socket.emit('chat_error', { error: 'Session ID is required' });
           return;
         }
 
-        console.log(`💬 [CHAT] Message in session ${sessionId} from ${senderId}: ${content.substring(0, 50)}...`);
+        if (messageType === 'text' && !content) {
+          socket.emit('chat_error', { error: 'Content is required for text messages' });
+          return;
+        }
+
+        if (messageType === 'image' && !imageUrl) {
+          socket.emit('chat_error', { error: 'Image URL is required for image messages' });
+          return;
+        }
+
+        const logContent = messageType === 'image' ? `[Image: ${imageUrl}]` : content.substring(0, 50);
+        console.log(`💬 [CHAT] Message in session ${sessionId} from ${senderId}: ${logContent}...`);
 
         await client.connect();
         const db = client.db(DB_NAME);
@@ -857,16 +1163,25 @@ app.prepare().then(() => {
           sender_type: senderType,
           type: messageType,
           content: content,
+          image_url: imageUrl,
           is_read: false,
           timestamp: timestamp.toISOString()
         };
 
+        // Save message to database
+        await db.collection('chat_messages').insertOne({
+          ...messageData,
+          _id: new ObjectId(),
+          created_at: timestamp
+        });
+
         // Update session's last message
+        const lastMessagePreview = messageType === 'image' ? '📷 Image' : content;
         await db.collection('sessions').updateOne(
           { _id: new ObjectId(sessionId) },
           {
             $set: {
-              last_message: content,
+              last_message: lastMessagePreview,
               last_message_time: timestamp,
               updated_at: timestamp
             },
@@ -878,20 +1193,20 @@ app.prepare().then(() => {
 
         await client.close();
 
-        // Emit 'new_message' to chat room (Flutter listens for this)
-        io.to(`chat_${sessionId}`).emit('new_message', messageData);
+        // Emit 'new_message' to chat room (excluding sender to prevent duplicate)
+        // Using socket.to() instead of io.to() excludes the sender
+        socket.to(`chat_${sessionId}`).emit('new_message', messageData);
 
-        // Also emit to individual users in case they're not in the chat room
-        io.to(`user_${receiverId}`).emit('new_message', messageData);
-
-        // Send confirmation back to sender
+        // Send confirmation back to sender with the message data
+        // This allows sender to add the message to their UI
         socket.emit('message_sent', {
           sessionId,
           messageId,
+          message: messageData,
           timestamp: timestamp.toISOString()
         });
 
-        console.log(`✅ [CHAT] Message sent to chat_${sessionId} and user_${receiverId}`);
+        console.log(`✅ [CHAT] Message sent to chat_${sessionId} (receiver only)`);
 
       } catch (error) {
         console.error('❌ [CHAT] send_message error:', error);
@@ -903,12 +1218,14 @@ app.prepare().then(() => {
     // Handle consultation status updates
     socket.on('consultation_status', (data) => {
       const { consultationId, status, participants } = data;
-      
+
       console.log(`📞 Consultation ${consultationId} status: ${status}`);
-      
+
       // Notify all participants
       participants.forEach(userId => {
-        io.to(`user_${userId}`).emit('consultation_update', {
+        // Strip 'user_' prefix to avoid double prefix in room name
+        const userRoomId = userId?.startsWith('user_') ? userId.substring(5) : userId;
+        io.to(`user_${userRoomId}`).emit('consultation_update', {
           consultationId,
           status,
           timestamp: new Date().toISOString()
@@ -959,7 +1276,9 @@ app.prepare().then(() => {
             userId: senderId,
             userType: userInfo?.userType || 'customer'
           });
-          io.to(`user_${receiverId}`).emit('typing_start', {
+          // Strip 'user_' prefix to avoid double prefix in room name
+          const receiverRoomId = receiverId?.startsWith('user_') ? receiverId.substring(5) : receiverId;
+          io.to(`user_${receiverRoomId}`).emit('typing_start', {
             chatSessionId: sessionId,
             userId: senderId,
             userType: userInfo?.userType || 'customer'
@@ -999,7 +1318,9 @@ app.prepare().then(() => {
             userId: senderId,
             userType: userInfo?.userType || 'customer'
           });
-          io.to(`user_${receiverId}`).emit('typing_stop', {
+          // Strip 'user_' prefix to avoid double prefix in room name
+          const receiverRoomId = receiverId?.startsWith('user_') ? receiverId.substring(5) : receiverId;
+          io.to(`user_${receiverRoomId}`).emit('typing_stop', {
             chatSessionId: sessionId,
             userId: senderId,
             userType: userInfo?.userType || 'customer'
@@ -1014,8 +1335,10 @@ app.prepare().then(() => {
     // Handle notifications
     socket.on('send_notification', (data) => {
       const { userId, notification } = data;
-      
-      io.to(`user_${userId}`).emit('notification', {
+
+      // Strip 'user_' prefix to avoid double prefix in room name
+      const userRoomId = userId?.startsWith('user_') ? userId.substring(5) : userId;
+      io.to(`user_${userRoomId}`).emit('notification', {
         ...notification,
         timestamp: new Date().toISOString()
       });
@@ -1024,6 +1347,8 @@ app.prepare().then(() => {
     // Handle disconnection
     socket.on('disconnect', (reason) => {
       console.log('🔌 Client disconnected:', socket.id, 'Reason:', reason);
+      // Clean up user from connected users map to prevent memory leak
+      connectedUsers.delete(socket.id);
     });
 
     // Error handling

@@ -37,13 +37,17 @@ class ConsultationItem {
   });
 
   factory ConsultationItem.fromJson(Map<String, dynamic> json) {
+    // Parse UTC time and convert to local timezone
+    final parsedTime = DateTime.tryParse(json['scheduled_time'] ?? '');
+    final localTime = parsedTime?.toLocal() ?? DateTime.now();
+
     return ConsultationItem(
       id: json['id'] ?? '',
       clientName: json['client_name'] ?? 'Unknown Client',
       clientImage: json['client_image'] ?? '',
       type: _parseConsultationType(json['type']),
       status: _parseConsultationStatus(json['status']),
-      scheduledTime: DateTime.tryParse(json['scheduled_time'] ?? '') ?? DateTime.now(),
+      scheduledTime: localTime,
       duration: Duration(minutes: json['duration_minutes'] ?? 0),
       amount: (json['amount'] ?? 0).toDouble(),
       notes: json['notes'],
@@ -53,13 +57,17 @@ class ConsultationItem {
   }
 
   factory ConsultationItem.fromApiJson(Map<String, dynamic> json) {
+    // Parse UTC time and convert to local timezone
+    final parsedTime = DateTime.tryParse(json['scheduled_time'] ?? '');
+    final localTime = parsedTime?.toLocal() ?? DateTime.now();
+
     return ConsultationItem(
       id: json['id'] ?? json['consultation_id'] ?? '',
       clientName: json['client_name'] ?? 'Unknown Client',
       clientImage: json['client_image'] ?? '',
       type: _parseConsultationType(json['type']),
       status: _parseConsultationStatus(json['status']),
-      scheduledTime: DateTime.tryParse(json['scheduled_time'] ?? '') ?? DateTime.now(),
+      scheduledTime: localTime,
       duration: Duration(minutes: json['duration_minutes'] ?? 0),
       amount: (json['total_amount'] ?? json['amount'] ?? 0).toDouble(),
       notes: json['notes'],
@@ -73,13 +81,11 @@ class ConsultationItem {
       case 'chat':
         return ConsultationType.chat;
       case 'voice_call':
-      case 'voice':
         return ConsultationType.voiceCall;
       case 'video_call':
-      case 'video':
         return ConsultationType.videoCall;
       default:
-        return ConsultationType.chat;
+        throw ArgumentError('Invalid consultation type: $type. Expected: chat, voice_call, or video_call');
     }
   }
 

@@ -11,6 +11,7 @@ import {
 } from '../../../../lib/security';
 import { ErrorHandler, ErrorCode, AppError } from '../../../../lib/error-handler';
 import { formatPhoneNumber, isValidPhoneNumber } from '@/lib/otp';
+import { Media } from '@/models';
 
 // Rate limiting for login attempts
 // const loginLimiter = rateLimit({
@@ -77,6 +78,7 @@ async function validateGoogleToken(idToken: string): Promise<{ email: string; na
     return null;
   }
 }
+
 
 async function handleLogin(request: NextRequest): Promise<NextResponse> {
   // Apply rate limiting (in production, use proper middleware)
@@ -389,8 +391,16 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
 
     // Update Google profile data if applicable
     if (detectedAuthType === 'google') {
-      if (google_photo_url) {
-        updateData.profile_image = google_photo_url;
+      // Save Google profile image to media library if provided and user doesn't have one
+      if (google_photo_url && !user.profile_image_id) {
+        const mediaResult = await Media.createExternalImage(
+          google_photo_url,
+          'profile_image',
+          user.user_id
+        );
+        if (mediaResult) {
+          updateData.profile_image_id = mediaResult.mediaId;
+        }
       }
       if (google_display_name) {
         updateData.full_name = google_display_name;
@@ -453,6 +463,14 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
       return response;
 
     } else {
+      // Get base URL for image resolution
+      const host = request.headers.get('host');
+      const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+      const baseUrl = `${protocol}://${host}`;
+
+      // Resolve profile image from media library
+      const resolvedProfileImage = await Media.resolveProfileImage(user, baseUrl);
+
       // Mobile response with tokens in body
       return NextResponse.json({
         success: true,
@@ -467,7 +485,7 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
             account_status: user.account_status,
             verification_status: user.verification_status || 'unverified',
             auth_type: user.auth_type || 'email',
-            profile_image: user.profile_image || '',
+            profile_image: resolvedProfileImage || '',
             wallet_balance: user.wallet_balance || 0,
             is_online: true,
             gender: user.gender || '',
@@ -504,7 +522,8 @@ export async function POST(request: NextRequest) {
   try {
     return await handleLogin(request);
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('❌ Login error:', error);
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
 
     // Handle AppError from ErrorHandler.createError()
     if (error instanceof AppError) {

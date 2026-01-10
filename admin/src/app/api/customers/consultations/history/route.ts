@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ObjectId } from 'mongodb';
 import DatabaseService from '@/lib/database';
-
 import { jwtVerify } from 'jose';
+import { Media } from '@/models';
+
+// Helper function to get base URL for images
+function getBaseUrl(request: NextRequest): string {
+  const host = request.headers.get('host');
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+  return `${protocol}://${host}`;
+}
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
@@ -51,6 +59,7 @@ export async function GET(request: NextRequest) {
     // Connect to MongoDB
     const sessionsCollection = await DatabaseService.getCollection('sessions');
     const usersCollection = await DatabaseService.getCollection('users');
+    const baseUrl = getBaseUrl(request);
 
     // Build query
     const query: Record<string, unknown> = {
@@ -72,16 +81,22 @@ export async function GET(request: NextRequest) {
 
     // Get astrologer details for each session
     const enrichedConsultations = [];
-    
+
     for (const session of sessions) {
       let astrologer = null;
-      
+      let astrologerImage = null;
+
       try {
         // Find astrologer using user_id field
         astrologer = await usersCollection.findOne(
           { user_id: session.astrologer_id },
           { projection: { full_name: 1, profile_image_id: 1 } }
         );
+
+        // Resolve astrologer profile image from media library
+        if (astrologer) {
+          astrologerImage = await Media.resolveProfileImage(astrologer, baseUrl);
+        }
       } catch (error) {
         console.error('Error fetching astrologer details:', error);
       }
@@ -107,7 +122,7 @@ export async function GET(request: NextRequest) {
         astrologer_id: session.astrologer_id,
         astrologer_user_id: session.astrologer_id,
         astrologer_name: astrologer?.full_name || 'Unknown Astrologer',
-        astrologer_image: astrologer?.profile_image_url,
+        astrologer_image: astrologerImage || '',
         type: consultationType,
         duration: durationStr,
         amount: session.total_amount || session.amount || 0,

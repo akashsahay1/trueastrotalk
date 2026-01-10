@@ -243,14 +243,28 @@ class ChatService extends ChangeNotifier {
   Future<void> sendMessage(String sessionId, String content) async {
     try {
       if (content.trim().isEmpty) return;
-      
+
       debugPrint('💬 Sending message: $content');
-      
+
       // Send via socket
       await _socketService.sendMessage(sessionId, content);
-      
+
     } catch (e) {
       debugPrint('❌ Failed to send message: $e');
+      rethrow;
+    }
+  }
+
+  /// Send an image message in the current chat session
+  Future<void> sendImageMessage(String sessionId, String imageUrl) async {
+    try {
+      debugPrint('📷 Sending image message: $imageUrl');
+
+      // Send via socket with image type
+      await _socketService.sendImageMessage(sessionId, imageUrl);
+
+    } catch (e) {
+      debugPrint('❌ Failed to send image message: $e');
       rethrow;
     }
   }

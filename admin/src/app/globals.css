@@ -54,6 +54,10 @@ a {
 	background-color: var(--primary-color) !important;
 }
 
+.text-primary {
+	color: var(--primary-color) !important;
+}
+
 /* Button overrides */
 .btn-primary {
   background-color: var(--primary-color) !important;

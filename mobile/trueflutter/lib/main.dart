@@ -1,9 +1,13 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
+import 'package:flutter_callkit_incoming/entities/entities.dart';
+import 'package:uuid/uuid.dart';
 import 'firebase_options.dart';
 import 'common/themes/app_theme.dart';
 import 'config/config.dart';
@@ -27,6 +31,7 @@ import 'services/app_info_service.dart';
 import 'services/api/user_api_service.dart';
 
 /// Firebase background message handler - must be top-level function
+/// This shows native CallKit UI for incoming calls when app is in background/killed
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Only initialize Firebase if not already initialized (prevents duplicate-app error on Android)
@@ -34,7 +39,102 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   }
   debugPrint('🔔 Handling background message: ${message.messageId}');
-  // Handle the message in background
+  debugPrint('🔔 Message data: ${message.data}');
+
+  // Check if this is an incoming call notification
+  final data = message.data;
+  final notificationType = data['type'];
+
+  if (notificationType == 'incoming_call') {
+    debugPrint('📞 Incoming call notification received in background');
+    await _showCallKitIncoming(data);
+  }
+}
+
+/// Show native CallKit incoming call UI
+Future<void> _showCallKitIncoming(Map<String, dynamic> data) async {
+  try {
+    final uuid = const Uuid().v4();
+    final callerName = data['caller_name'] ?? data['nameCaller'] ?? 'Unknown Caller';
+    final callType = data['call_type'] ?? 'voice';
+    final sessionId = data['session_id'] ?? '';
+    final callerId = data['caller_id'] ?? '';
+
+    // Parse astrologer data if available
+    Map<String, dynamic>? astrologerData;
+    if (data['astrologer'] != null && data['astrologer'].toString().isNotEmpty) {
+      try {
+        astrologerData = jsonDecode(data['astrologer']);
+      } catch (e) {
+        debugPrint('⚠️ Failed to parse astrologer data: $e');
+      }
+    }
+
+    // Prepare extra data to pass through CallKit
+    final Map<String, dynamic> extra = {
+      'type': 'incoming_call',
+      'caller_id': callerId,
+      'caller_name': callerName,
+      'call_type': callType,
+      'session_id': sessionId,
+      'rate_per_minute': data['rate_per_minute'] ?? '0',
+      if (astrologerData != null) 'astrologer': astrologerData,
+    };
+
+    final params = CallKitParams(
+      id: uuid,
+      nameCaller: callerName,
+      appName: 'True Astrotalk',
+      avatar: null,
+      handle: callerId,
+      type: callType == 'video' ? 1 : 0, // 0 = audio, 1 = video
+      textAccept: 'Accept',
+      textDecline: 'Decline',
+      missedCallNotification: const NotificationParams(
+        showNotification: true,
+        isShowCallback: false,
+        subtitle: 'Missed call',
+        callbackText: 'Call back',
+      ),
+      duration: 45000, // Ring for 45 seconds
+      extra: extra,
+      headers: <String, dynamic>{},
+      android: const AndroidParams(
+        isCustomNotification: false,
+        isShowLogo: true,
+        ringtonePath: 'system_ringtone_default',
+        backgroundColor: '#FF6A1B',
+        backgroundUrl: null,
+        actionColor: '#4CAF50',
+        textColor: '#ffffff',
+        incomingCallNotificationChannelName: 'Incoming Calls',
+        missedCallNotificationChannelName: 'Missed Calls',
+        isShowCallID: false,
+        isShowFullLockedScreen: true,
+      ),
+      ios: const IOSParams(
+        iconName: 'CallKitLogo',
+        handleType: 'generic',
+        supportsVideo: true,
+        maximumCallGroups: 1,
+        maximumCallsPerCallGroup: 1,
+        audioSessionMode: 'default',
+        audioSessionActive: true,
+        audioSessionPreferredSampleRate: 44100.0,
+        audioSessionPreferredIOBufferDuration: 0.005,
+        supportsDTMF: false,
+        supportsHolding: false,
+        supportsGrouping: false,
+        supportsUngrouping: false,
+        ringtonePath: 'system_ringtone_default',
+      ),
+    );
+
+    await FlutterCallkitIncoming.showCallkitIncoming(params);
+    debugPrint('📞 CallKit incoming call shown from background handler');
+  } catch (e) {
+    debugPrint('❌ Failed to show CallKit from background: $e');
+  }
 }
 
 /// Initialize app dependencies during splash screen
