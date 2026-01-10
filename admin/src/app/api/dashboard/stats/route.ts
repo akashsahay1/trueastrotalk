@@ -31,8 +31,9 @@ export async function GET(request: NextRequest) {
       'dashboard-stats',
       async () => {
         const usersCollection = await DatabaseService.getCollection('users');
-        
-        // Optimized aggregation pipeline
+        const sessionsCollection = await DatabaseService.getCollection('sessions');
+
+        // Optimized aggregation pipeline for users
         const [statsResult] = await usersCollection.aggregate([
           {
             $facet: {
@@ -62,11 +63,47 @@ export async function GET(request: NextRequest) {
           }
         ]).toArray();
 
+        // Get session stats
+        const [sessionStats] = await sessionsCollection.aggregate([
+          {
+            $facet: {
+              totalSessions: [
+                { $match: { status: 'completed' } },
+                { $count: 'total' }
+              ],
+              totalRevenue: [
+                { $match: { status: 'completed' } },
+                { $group: { _id: null, total: { $sum: '$total_amount' } } }
+              ],
+              todaySessions: [
+                {
+                  $match: {
+                    status: 'completed',
+                    created_at: { $gte: new Date(new Date().setHours(0, 0, 0, 0)).toISOString() }
+                  }
+                },
+                { $count: 'total' }
+              ],
+              todayRevenue: [
+                {
+                  $match: {
+                    status: 'completed',
+                    created_at: { $gte: new Date(new Date().setHours(0, 0, 0, 0)).toISOString() }
+                  }
+                },
+                { $group: { _id: null, total: { $sum: '$total_amount' } } }
+              ]
+            }
+          }
+        ]).toArray();
+
         return {
           totalCustomers: statsResult.customerCount[0]?.total || 0,
           totalAstrologers: statsResult.astrologerCount[0]?.total || 0,
-          totalOrders: 0, // As requested
-          totalRevenue: 0, // As requested
+          totalSessions: sessionStats.totalSessions[0]?.total || 0,
+          totalRevenue: sessionStats.totalRevenue[0]?.total || 0,
+          todaySessions: sessionStats.todaySessions[0]?.total || 0,
+          todayRevenue: sessionStats.todayRevenue[0]?.total || 0,
           recentCustomers: statsResult.recentCustomers
         };
       },

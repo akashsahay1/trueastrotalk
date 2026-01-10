@@ -198,6 +198,18 @@ export default function CommissionsPage() {
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      'active': 'Active',
+      'inactive': 'Inactive',
+      'suspended': 'Suspended',
+      'pending': 'Pending',
+      'banned': 'Banned',
+      'pending_verification': 'Pending Verification'
+    };
+    return labels[status] || status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
+  };
+
   const totalStats = commissions.reduce((acc, commission) => ({
     totalRevenue: acc.totalRevenue + commission.total_revenue,
     totalCommission: acc.totalCommission + commission.total_commission,
@@ -251,7 +263,7 @@ export default function CommissionsPage() {
               <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12">
                 <div className="card border-top-primary shadow-sm h-100">
                   <div className="card-body">
-                    <h5 className="text-muted">Total Commissions</h5>
+                    <h5 className="text-muted">Astrologer Earnings</h5>
                     <div className="metric-value d-inline-block">
                       <h1 className="mb-1">₹{totalStats.totalCommission.toLocaleString()}</h1>
                     </div>
@@ -261,7 +273,7 @@ export default function CommissionsPage() {
               <div className="col-xl-3 col-lg-6 col-md-6 col-sm-12 col-12">
                 <div className="card border-top-primary shadow-sm h-100">
                   <div className="card-body">
-                    <h5 className="text-muted">Platform Fees</h5>
+                    <h5 className="text-muted">Platform Commission</h5>
                     <div className="metric-value d-inline-block">
                       <h1 className="mb-1">₹{totalStats.totalPlatformFee.toLocaleString()}</h1>
                     </div>
@@ -323,9 +335,9 @@ export default function CommissionsPage() {
                             <th>Status</th>
                             <th>Sessions</th>
                             <th>Revenue</th>
-                            <th>Commission</th>
-                            <th>Platform Fee</th>
-                            <th>Commission Rates</th>
+                            <th>Earnings</th>
+                            <th>Platform Commission</th>
+                            <th>Platform Rates</th>
                             <th>Wallet Balance</th>
                             <th>Last Session</th>
                             <th>Actions</th>
@@ -350,7 +362,7 @@ export default function CommissionsPage() {
                                 </td>
                                 <td>
                                   <span className={`badge ${getStatusBadge(commission.status)}`}>
-                                    {commission.status}
+                                    {getStatusLabel(commission.status)}
                                   </span>
                                 </td>
                                 <td>

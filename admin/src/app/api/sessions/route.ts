@@ -383,15 +383,32 @@ export async function PATCH(request: NextRequest) {
         }
       );
 
-      // Credit astrologer's wallet (80% of the amount, 20% platform commission)
-      const astrologerShare = amountToDeduct * 0.8; // 80% to astrologer
-      // const platformCommission = amountToDeduct * 0.2; // 20% platform commission (for future use)
-
-      // Get astrologer to update their wallet
+      // Get astrologer with commission rates
       const astrologer = await usersCollection.findOne(
         { user_id: session.astrologer_id },
-        { projection: { wallet_balance: 1, full_name: 1 } }
+        { projection: { wallet_balance: 1, full_name: 1, commission_percentage: 1 } }
       );
+
+      // Get default commission rate from app settings
+      const settingsCollection = await DatabaseService.getCollection('app_settings');
+      const settings = await settingsCollection.findOne({ type: 'general' });
+      const defaultPlatformRate = (settings as Record<string, unknown>)?.commission
+        ? ((settings as Record<string, unknown>).commission as Record<string, unknown>).defaultRate as number
+        : 20;
+
+      // Determine platform commission rate based on session type
+      let platformCommissionRate: number;
+      if (sessionType === 'call' || sessionType === 'audio_call') {
+        platformCommissionRate = astrologer?.commission_percentage?.call ?? defaultPlatformRate;
+      } else if (sessionType === 'chat') {
+        platformCommissionRate = astrologer?.commission_percentage?.chat ?? defaultPlatformRate;
+      } else {
+        platformCommissionRate = astrologer?.commission_percentage?.video ?? defaultPlatformRate;
+      }
+
+      // Calculate shares based on commission rate
+      const astrologerSharePercent = (100 - platformCommissionRate) / 100;
+      const astrologerShare = amountToDeduct * astrologerSharePercent;
 
       if (astrologer) {
         const astrologerCurrentBalance = astrologer.wallet_balance || 0;
@@ -430,8 +447,8 @@ export async function PATCH(request: NextRequest) {
           { upsert: true }
         );
 
-        // Astrologer credit transaction - update existing or create new  
-        const astrologerTotalShare = totalAmount * 0.8;
+        // Astrologer credit transaction - update existing or create new
+        const astrologerTotalShare = totalAmount * astrologerSharePercent;
         await walletTransactionsCollection.updateOne(
           {
             recipient_user_id: session.astrologer_id,
@@ -454,7 +471,8 @@ export async function PATCH(request: NextRequest) {
         );
 
         // Platform commission transaction - update existing or create new
-        const totalPlatformCommission = totalAmount * 0.2;
+        const platformCommissionPercent = platformCommissionRate / 100;
+        const totalPlatformCommission = totalAmount * platformCommissionPercent;
         await walletTransactionsCollection.updateOne(
           {
             transaction_type: 'commission',

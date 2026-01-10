@@ -2,10 +2,14 @@ import { MongoClient, Db, Collection, Document } from 'mongodb';
 
 // Database connection configuration
 const MONGODB_URL = process.env.MONGODB_URL;
-const DB_NAME = process.env.DB_NAME || 'trueastrotalkDB';
+const DB_NAME = process.env.DB_NAME;
 
 if (!MONGODB_URL) {
   throw new Error('MONGODB_URL environment variable is required');
+}
+
+if (!DB_NAME) {
+  throw new Error('DB_NAME environment variable is required');
 }
 
 interface DatabaseConnection {

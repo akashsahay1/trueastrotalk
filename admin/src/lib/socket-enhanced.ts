@@ -4,8 +4,16 @@ import { Server as ServerIO, Socket } from 'socket.io';
 import { MongoClient, ObjectId, Db } from 'mongodb';
 import jwt from 'jsonwebtoken';
 
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+const MONGODB_URL = process.env.MONGODB_URL;
+const DB_NAME = process.env.DB_NAME;
+
+if (!MONGODB_URL) {
+  throw new Error('MONGODB_URL environment variable is required');
+}
+
+if (!DB_NAME) {
+  throw new Error('DB_NAME environment variable is required');
+}
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 export type NextApiResponseServerIO = NextApiResponse & {

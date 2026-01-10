@@ -4,8 +4,16 @@ import { Server as ServerIO } from 'socket.io';
 import { MongoClient, ObjectId } from 'mongodb';
 import NotificationService, { NotificationType, NotificationPriority, NotificationChannel } from './notifications';
 
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const DB_NAME = 'trueastrotalkDB';
+const MONGODB_URL = process.env.MONGODB_URL;
+const DB_NAME = process.env.DB_NAME;
+
+if (!MONGODB_URL) {
+  throw new Error('MONGODB_URL environment variable is required');
+}
+
+if (!DB_NAME) {
+  throw new Error('DB_NAME environment variable is required');
+}
 
 export type NextApiResponseServerIO = NextApiResponse & {
   socket: {

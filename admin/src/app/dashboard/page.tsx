@@ -8,8 +8,10 @@ import { useEffect, useState } from 'react';
 interface DashboardStats {
   totalCustomers: number;
   totalAstrologers: number;
-  totalOrders: number;
+  totalSessions: number;
   totalRevenue: number;
+  todaySessions: number;
+  todayRevenue: number;
 }
 
 interface RecentCustomer {
@@ -25,8 +27,10 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({
     totalCustomers: 0,
     totalAstrologers: 0,
-    totalOrders: 0,
-    totalRevenue: 0
+    totalSessions: 0,
+    totalRevenue: 0,
+    todaySessions: 0,
+    todayRevenue: 0
   });
   const [recentCustomers, setRecentCustomers] = useState<RecentCustomer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,8 +53,10 @@ export default function DashboardPage() {
         setStats({
           totalCustomers: data.totalCustomers || 0,
           totalAstrologers: data.totalAstrologers || 0,
-          totalOrders: data.totalOrders || 0,
-          totalRevenue: data.totalRevenue || 0
+          totalSessions: data.totalSessions || 0,
+          totalRevenue: data.totalRevenue || 0,
+          todaySessions: data.todaySessions || 0,
+          todayRevenue: data.todayRevenue || 0
         });
         setRecentCustomers(data.recentCustomers || []);
       }
@@ -140,8 +146,9 @@ export default function DashboardPage() {
                       <div className="d-flex justify-content-between">
                         <div className="metric-value">
                           <h1 className="font-weight-bold">
-                            {loading ? '...' : (stats?.totalOrders || 0).toLocaleString()}
+                            {loading ? '...' : (stats?.totalSessions || 0).toLocaleString()}
                           </h1>
+                          <small className="text-muted">Today: {stats?.todaySessions || 0}</small>
                         </div>
                         <div className="metric-label align-self-center text-success font-weight-bold">
                           <span className="icon-shape icon-xs rounded-circle text-success bg-success-light">
@@ -162,12 +169,12 @@ export default function DashboardPage() {
                           <h1 className="font-weight-bold">
                             ₹{loading ? '...' : (stats?.totalRevenue || 0).toLocaleString()}
                           </h1>
+                          <small className="text-muted">Today: ₹{(stats?.todayRevenue || 0).toLocaleString()}</small>
                         </div>
-                        <div className="metric-label align-self-center text-danger font-weight-bold">
-                          <span className="icon-shape icon-xs rounded-circle text-danger bg-danger-light">
-                            <i className="fa fa-fw fa-arrow-down"></i>
+                        <div className="metric-label align-self-center text-success font-weight-bold">
+                          <span className="icon-shape icon-xs rounded-circle text-success bg-success-light">
+                            <i className="fa fa-fw fa-arrow-up"></i>
                           </span>
-                          <span className="ml-1">2%</span>
                         </div>
                       </div>
                     </div>

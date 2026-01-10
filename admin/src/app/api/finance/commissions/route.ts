@@ -14,6 +14,13 @@ export async function GET(request: NextRequest) {
 
     const usersCollection = await DatabaseService.getCollection('users');
     const sessionsCollection = await DatabaseService.getCollection('sessions');
+    const settingsCollection = await DatabaseService.getCollection('app_settings');
+
+    // Get default commission rate from app settings
+    const settings = await settingsCollection.findOne({ type: 'general' });
+    const defaultCommissionRate = (settings as Record<string, unknown>)?.commission
+      ? ((settings as Record<string, unknown>).commission as Record<string, unknown>).defaultRate as number
+      : 0;
 
     // Build query for search - only get astrologers from users collection
     const mongoQuery: Record<string, unknown> = { user_type: 'astrologer' };
@@ -31,69 +38,95 @@ export async function GET(request: NextRequest) {
     const commissions = [];
     
     for (const astrologer of astrologers) {
-      // Build session query with date filter - use custom user_id
-      const sessionQuery: Record<string, unknown> = { astrologer_id: astrologer.user_id };
-      
+      // Build session query - only completed sessions count for revenue
+      const sessionQuery: Record<string, unknown> = {
+        astrologer_id: astrologer.user_id,
+        status: 'completed'
+      };
+
       if (dateFrom || dateTo) {
         (sessionQuery as Record<string, unknown>).created_at = {};
         if (dateFrom) ((sessionQuery as Record<string, unknown>).created_at as Record<string, unknown>).$gte = dateFrom;
         if (dateTo) ((sessionQuery as Record<string, unknown>).created_at as Record<string, unknown>).$lte = dateTo;
       }
-      
-      // Get sessions for this astrologer
+
+      // Get completed sessions for this astrologer
       const astrologerSessions = await sessionsCollection
         .find(sessionQuery)
         .toArray();
       
-      // Calculate commissions by session type
-      const callSessions = astrologerSessions.filter(s => s.session_id?.startsWith('TASC#'));
-      const chatSessions = astrologerSessions.filter(s => s.session_id?.startsWith('TASCH#'));
-      const videoSessions = astrologerSessions.filter(s => s.session_id?.startsWith('TASV#'));
+      // Calculate commissions by session type (using session_type field)
+      const callSessions = astrologerSessions.filter(s => s.session_type === 'call' || s.session_type === 'audio_call');
+      const chatSessions = astrologerSessions.filter(s => s.session_type === 'chat');
+      const videoSessions = astrologerSessions.filter(s => s.session_type === 'video_call' || s.session_type === 'video');
       
       const callRevenue = callSessions.reduce((sum, s) => sum + (s.total_amount || 0), 0);
       const chatRevenue = chatSessions.reduce((sum, s) => sum + (s.total_amount || 0), 0);
       const videoRevenue = videoSessions.reduce((sum, s) => sum + (s.total_amount || 0), 0);
       
-      const callCommission = callRevenue * (astrologer.commission_percentage?.call || 70) / 100;
-      const chatCommission = chatRevenue * (astrologer.commission_percentage?.chat || 65) / 100;
-      const videoCommission = videoRevenue * (astrologer.commission_percentage?.video || 75) / 100;
-      
+      // commission_percentage is the PLATFORM's cut (e.g., 20% means platform takes 20%, astrologer gets 80%)
+      const callPlatformRate = astrologer.commission_percentage?.call ?? defaultCommissionRate;
+      const chatPlatformRate = astrologer.commission_percentage?.chat ?? defaultCommissionRate;
+      const videoPlatformRate = astrologer.commission_percentage?.video ?? defaultCommissionRate;
+
+      // Platform commission (what platform keeps)
+      const callPlatformCommission = callRevenue * callPlatformRate / 100;
+      const chatPlatformCommission = chatRevenue * chatPlatformRate / 100;
+      const videoPlatformCommission = videoRevenue * videoPlatformRate / 100;
+
+      // Astrologer earnings (what astrologer gets = revenue - platform commission)
+      const callAstrologerEarnings = callRevenue - callPlatformCommission;
+      const chatAstrologerEarnings = chatRevenue - chatPlatformCommission;
+      const videoAstrologerEarnings = videoRevenue - videoPlatformCommission;
+
       const totalRevenue = callRevenue + chatRevenue + videoRevenue;
-      const totalCommission = callCommission + chatCommission + videoCommission;
-      const platformFee = totalRevenue - totalCommission;
+      const totalPlatformCommission = callPlatformCommission + chatPlatformCommission + videoPlatformCommission;
+      const totalAstrologerEarnings = totalRevenue - totalPlatformCommission;
       
       commissions.push({
         _id: astrologer._id,
-        astrologer_id: astrologer._id,
+        astrologer_id: astrologer.user_id, // Use custom user_id to match transactions
         astrologer_name: astrologer.full_name,
         email: astrologer.email_address,
         phone: astrologer.phone_number,
         status: astrologer.account_status,
+        // Platform commission rates (what platform takes)
         commission_percentage: astrologer.commission_percentage,
+        commission_rates: {
+          call_rate: callPlatformRate,
+          chat_rate: chatPlatformRate,
+          video_rate: videoPlatformRate
+        },
         sessions: {
           call: {
             count: callSessions.length,
             revenue: callRevenue,
-            commission: callCommission,
-            rate: astrologer.commission_percentage?.call || 70
+            astrologer_earnings: callAstrologerEarnings,
+            platform_commission: callPlatformCommission,
+            platform_rate: callPlatformRate
           },
           chat: {
             count: chatSessions.length,
             revenue: chatRevenue,
-            commission: chatCommission,
-            rate: astrologer.commission_percentage?.chat || 65
+            astrologer_earnings: chatAstrologerEarnings,
+            platform_commission: chatPlatformCommission,
+            platform_rate: chatPlatformRate
           },
           video: {
             count: videoSessions.length,
             revenue: videoRevenue,
-            commission: videoCommission,
-            rate: astrologer.commission_percentage?.video || 75
+            astrologer_earnings: videoAstrologerEarnings,
+            platform_commission: videoPlatformCommission,
+            platform_rate: videoPlatformRate
           }
         },
         total_sessions: astrologerSessions.length,
         total_revenue: totalRevenue,
-        total_commission: totalCommission,
-        platform_fee: platformFee,
+        total_astrologer_earnings: totalAstrologerEarnings,  // What astrologer gets (80%)
+        total_platform_commission: totalPlatformCommission,   // What platform keeps (20%)
+        // Keep old field names for backward compatibility
+        total_commission: totalAstrologerEarnings,
+        platform_fee: totalPlatformCommission,
         wallet_balance: astrologer.wallet_balance || 0,
         last_session: astrologerSessions.length > 0 ? 
           astrologerSessions.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0].created_at : 

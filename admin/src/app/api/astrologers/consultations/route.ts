@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
         end_time: session.ended_at,
         duration_minutes: session.duration_minutes || 0,
         total_amount: session.total_amount || 0,
-        astrologer_earnings: session.astrologer_earnings || ((session.total_amount || 0) * 0.7), // 70% commission
+        astrologer_earnings: session.astrologer_earnings || 0, // Should be calculated when session ends
         rating: session.rating,
         review: session.review,
         notes: session.notes || session.astrologer_notes,

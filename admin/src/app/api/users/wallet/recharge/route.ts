@@ -256,8 +256,10 @@ export async function POST(request: NextRequest) {
         payment_method: 'razorpay'
       });
 
+      const timestamp = Date.now();
+
       if (pendingTransaction) {
-        // Update existing pending transaction
+        // Update existing pending transaction - also ensure it has reference_id
         await transactionsCollection.updateOne(
           { _id: pendingTransaction._id },
           {
@@ -267,20 +269,39 @@ export async function POST(request: NextRequest) {
               status: 'completed',
               description: 'Wallet Recharge',
               updated_at: new Date().toISOString()
+            },
+            $setOnInsert: {
+              reference_id: `RCH${timestamp}`,
+              transaction_id: `txn_${timestamp}_${Math.random().toString(36).substr(2, 6)}`
             }
           }
         );
+
+        // If existing transaction doesn't have reference_id, add it
+        if (!pendingTransaction.reference_id) {
+          await transactionsCollection.updateOne(
+            { _id: pendingTransaction._id },
+            {
+              $set: {
+                reference_id: pendingTransaction.reference_id || `RCH${timestamp}`,
+                transaction_id: pendingTransaction.transaction_id || `txn_${timestamp}_${Math.random().toString(36).substr(2, 6)}`
+              }
+            }
+          );
+        }
       } else {
         // Create new transaction record (fallback for legacy payments)
         const transaction = {
           user_id: payload.userId as string,
-          user_type: 'customer',
+          user_type: payload.user_type as string || 'customer',
           transaction_type: 'credit',
           type: 'recharge',
           amount: parseFloat(amount),
           description: 'Wallet Recharge',
           payment_method: actualPaymentMethod,
           payment_id,
+          reference_id: `RCH${timestamp}`,
+          transaction_id: `txn_${timestamp}_${Math.random().toString(36).substr(2, 6)}`,
           status: 'completed',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()

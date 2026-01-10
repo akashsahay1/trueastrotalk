@@ -771,10 +771,18 @@ export class NotificationService {
     sessionId: string
   ): Promise<void> {
     const usersCollection = await DatabaseService.getCollection('users');
-    const [customer, astrologer] = await Promise.all([
+    const settingsCollection = await DatabaseService.getCollection('app_settings');
+
+    const [customer, astrologer, settings] = await Promise.all([
       usersCollection.findOne({ user_id: customerId }),
-      usersCollection.findOne({ user_id: astrologerId })
+      usersCollection.findOne({ user_id: astrologerId }),
+      settingsCollection.findOne({ type: 'general' })
     ]);
+
+    // Get default commission rate from settings
+    const defaultPlatformRate = (settings as Record<string, unknown>)?.commission
+      ? ((settings as Record<string, unknown>).commission as Record<string, unknown>).defaultRate as number
+      : 20;
 
     const sessionTypeLabel = sessionType === 'video' ? 'Video Call' : sessionType === 'call' ? 'Voice Call' : 'Chat';
 
@@ -806,7 +814,16 @@ export class NotificationService {
 
     // Send notification to astrologer
     if (astrologer) {
-      const astrologerEarnings = totalAmount * 0.8; // 80% commission
+      // Calculate earnings based on astrologer's commission rate
+      let platformRate: number;
+      if (sessionType === 'call') {
+        platformRate = astrologer.commission_percentage?.call ?? defaultPlatformRate;
+      } else if (sessionType === 'chat') {
+        platformRate = astrologer.commission_percentage?.chat ?? defaultPlatformRate;
+      } else {
+        platformRate = astrologer.commission_percentage?.video ?? defaultPlatformRate;
+      }
+      const astrologerEarnings = totalAmount * (100 - platformRate) / 100;
       await this.sendToUser(
         {
           userId: astrologerId,

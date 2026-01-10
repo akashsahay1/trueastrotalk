@@ -132,13 +132,35 @@ export async function PATCH(
         console.log(`💰 Deducted ₹${amountToDeduct} from customer ${session.user_id}. New balance: ₹${newBalance}`);
       }
 
-      // Credit astrologer's wallet (80% of the amount, 20% platform commission)
-      const astrologerShare = amountToDeduct * 0.8;
-
+      // Get astrologer with commission rates
       const astrologer = await usersCollection.findOne(
         { user_id: session.astrologer_id },
-        { projection: { wallet_balance: 1, full_name: 1 } }
+        { projection: { wallet_balance: 1, full_name: 1, commission_percentage: 1 } }
       );
+
+      // Get default commission rate from app settings
+      const settingsCollection = await DatabaseService.getCollection('app_settings');
+      const settings = await settingsCollection.findOne({ type: 'general' });
+      const defaultPlatformRate = (settings as Record<string, unknown>)?.commission
+        ? ((settings as Record<string, unknown>).commission as Record<string, unknown>).defaultRate as number
+        : 20; // Fallback to 20% if settings not found
+
+      // Determine platform commission rate based on session type
+      let platformCommissionRate: number;
+      if (sessionType === 'call' || sessionType === 'audio_call') {
+        platformCommissionRate = astrologer?.commission_percentage?.call ?? defaultPlatformRate;
+      } else if (sessionType === 'chat') {
+        platformCommissionRate = astrologer?.commission_percentage?.chat ?? defaultPlatformRate;
+      } else {
+        // video_call or video
+        platformCommissionRate = astrologer?.commission_percentage?.video ?? defaultPlatformRate;
+      }
+
+      // Calculate astrologer share (100% - platform commission)
+      const astrologerSharePercent = (100 - platformCommissionRate) / 100;
+      const astrologerShare = amountToDeduct * astrologerSharePercent;
+
+      console.log(`📊 [BILLING] Platform rate: ${platformCommissionRate}%, Astrologer share: ${(astrologerSharePercent * 100).toFixed(0)}%`);
 
       if (astrologer) {
         const astrologerCurrentBalance = astrologer.wallet_balance || 0;
@@ -155,6 +177,7 @@ export async function PATCH(
 
         // Create/Update transaction records
         const transactionsCollection = await DatabaseService.getCollection('transactions');
+        const timestamp = Date.now();
 
         // Customer debit transaction
         await transactionsCollection.updateOne(
@@ -172,14 +195,18 @@ export async function PATCH(
               updated_at: new Date()
             },
             $setOnInsert: {
+              reference_id: `PAY${timestamp}`,
+              transaction_id: `txn_${timestamp}_${Math.random().toString(36).substr(2, 6)}`,
+              user_type: 'customer',
+              payment_method: 'wallet',
               created_at: new Date()
             }
           },
           { upsert: true }
         );
 
-        // Astrologer credit transaction
-        const astrologerTotalShare = totalAmount * 0.8;
+        // Astrologer credit transaction (using same rate calculated above)
+        const astrologerTotalShare = totalAmount * astrologerSharePercent;
         await transactionsCollection.updateOne(
           {
             user_id: session.astrologer_id,
@@ -196,6 +223,10 @@ export async function PATCH(
               updated_at: new Date()
             },
             $setOnInsert: {
+              reference_id: `ERN${timestamp}`,
+              transaction_id: `txn_${timestamp}_${Math.random().toString(36).substr(2, 6)}`,
+              user_type: 'astrologer',
+              payment_method: 'wallet',
               created_at: new Date()
             }
           },
@@ -203,7 +234,8 @@ export async function PATCH(
         );
 
         // Platform commission transaction
-        const totalPlatformCommission = totalAmount * 0.2;
+        const platformCommissionPercent = platformCommissionRate / 100;
+        const totalPlatformCommission = totalAmount * platformCommissionPercent;
         await transactionsCollection.updateOne(
           {
             transaction_type: 'commission',
@@ -218,6 +250,10 @@ export async function PATCH(
               updated_at: new Date()
             },
             $setOnInsert: {
+              reference_id: `COM${timestamp}`,
+              transaction_id: `txn_${timestamp}_${Math.random().toString(36).substr(2, 6)}`,
+              user_type: 'platform',
+              payment_method: 'internal',
               created_at: new Date()
             }
           },
