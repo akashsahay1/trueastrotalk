@@ -1088,20 +1088,41 @@ class UserApiService {
     }
   }
 
-  // Request astrologer payout
+  // Get pending payout status
+  Future<Map<String, dynamic>> getPendingPayoutStatus(String token) async {
+    try {
+      final response = await _dio.get(
+        ApiEndpoints.astrologerPayouts,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data;
+      } else {
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'Failed to get payout status',
+        };
+      }
+    } on DioException catch (e) {
+      debugPrint('❌ Get payout status API error: ${e.response?.statusCode} - ${e.response?.data}');
+      return {
+        'success': false,
+        'message': _handleDioException(e),
+      };
+    }
+  }
+
+  // Request astrologer payout (uses new payouts endpoint)
   Future<Map<String, dynamic>> requestAstrologerPayout(
     String token, {
     required double amount,
-    required String withdrawalMethod,
-    required Map<String, dynamic> accountDetails,
   }) async {
     try {
       final response = await _dio.post(
-        ApiEndpoints.astrologerEarnings,
+        ApiEndpoints.astrologerPayouts,
         data: {
           'amount': amount,
-          'withdrawal_method': withdrawalMethod,
-          'account_details': accountDetails,
         },
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );

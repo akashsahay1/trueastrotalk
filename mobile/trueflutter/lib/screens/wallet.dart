@@ -37,6 +37,10 @@ class _WalletScreenState extends State<WalletScreen> {
   int _totalConsultations = 0;
   double _averageRating = 0.0;
 
+  // Payout-specific data
+  Map<String, dynamic>? _pendingPayout;
+  bool _isLoadingPayout = true;
+
   @override
   void initState() {
     super.initState();
@@ -66,16 +70,44 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   Future<void> _loadData() async {
-    final futures = [
+    final futures = <Future>[
       _loadWalletBalance(),
       _loadTransactions(),
     ];
 
     if (_currentUser?.isAstrologer == true) {
       futures.add(_loadEarningsData());
+      futures.add(_loadPendingPayout());
     }
 
     await Future.wait(futures);
+  }
+
+  Future<void> _loadPendingPayout() async {
+    try {
+      final token = _authService.authToken;
+      if (token == null) {
+        setState(() => _isLoadingPayout = false);
+        return;
+      }
+
+      final response = await _userApiService.getPendingPayoutStatus(token);
+      if (mounted) {
+        setState(() {
+          if (response['success'] == true && response['data'] != null) {
+            _pendingPayout = response['data']['pending_payout'];
+          } else {
+            _pendingPayout = null;
+          }
+          _isLoadingPayout = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading pending payout: $e');
+      if (mounted) {
+        setState(() => _isLoadingPayout = false);
+      }
+    }
   }
 
   Future<void> _loadWalletBalance() async {
@@ -220,6 +252,8 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   Widget _buildWalletBalanceCard() {
+    final isAstrologer = _currentUser?.isAstrologer == true;
+
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
@@ -245,12 +279,35 @@ class _WalletScreenState extends State<WalletScreen> {
             children: [
               const Icon(Icons.account_balance_wallet, color: AppColors.white, size: 28),
               const SizedBox(width: 12),
-              Text(
-                'Available Balance',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.white.withValues(alpha: 0.9),
+              Expanded(
+                child: Text(
+                  'Available Balance',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.white.withValues(alpha: 0.9),
+                  ),
                 ),
               ),
+              // Payout button for astrologers
+              if (isAstrologer && !_isLoadingBalance)
+                ElevatedButton.icon(
+                  onPressed: _pendingPayout != null ? null : _showPayoutRequestDialog,
+                  icon: Icon(
+                    _pendingPayout != null ? Icons.pending : Icons.account_balance,
+                    size: 16,
+                  ),
+                  label: Text(
+                    _pendingPayout != null ? 'Pending' : 'Request Payout',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _pendingPayout != null ? Colors.orange : AppColors.white,
+                    foregroundColor: _pendingPayout != null ? AppColors.white : AppColors.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 12),
@@ -263,6 +320,33 @@ class _WalletScreenState extends State<WalletScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+          // Show pending payout info
+          if (isAstrologer && _pendingPayout != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.pending, color: Colors.orange, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Payout Pending: ₹${(_pendingPayout!['amount'] ?? 0).toStringAsFixed(2)}',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1506,6 +1590,200 @@ class _WalletScreenState extends State<WalletScreen> {
         ],
       ),
     );
+  }
+
+  void _showPayoutRequestDialog() {
+    // Check for saved payment method
+    final hasUpi = _currentUser?.upiId != null && _currentUser!.upiId!.isNotEmpty;
+    final hasBank = _currentUser?.accountNumber != null && _currentUser!.accountNumber!.isNotEmpty;
+
+    if (!hasUpi && !hasBank) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please add UPI ID or bank account details in your profile before requesting payout'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    // Determine payment method display
+    String paymentMethodDisplay;
+    if (hasUpi) {
+      paymentMethodDisplay = 'UPI - ${_currentUser!.upiId}';
+    } else {
+      final maskedAccount = _currentUser!.accountNumber!.length > 4
+          ? '***${_currentUser!.accountNumber!.substring(_currentUser!.accountNumber!.length - 4)}'
+          : _currentUser!.accountNumber!;
+      paymentMethodDisplay = 'Bank - $maskedAccount (${_currentUser!.bankName ?? 'Bank'})';
+    }
+
+    final TextEditingController amountController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Request Payout'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Available Balance: ₹${_walletBalance.toStringAsFixed(2)}',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.success,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: amountController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Payout Amount',
+                  hintText: 'Minimum ₹1000',
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.currency_rupee),
+                  helperText: 'Enter amount between ₹1000 and ₹${_walletBalance.toStringAsFixed(0)}',
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      hasUpi ? Icons.account_balance_wallet : Icons.account_balance,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Payment to:',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            paymentMethodDisplay,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Note: Payouts are processed within 2-3 business days after admin approval.',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final amount = double.tryParse(amountController.text) ?? 0;
+              if (amount < 1000) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Minimum payout amount is ₹1000'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+              if (amount > _walletBalance) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Amount exceeds available balance'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+
+              Navigator.of(context).pop();
+              _requestPayout(amount);
+            },
+            child: const Text('Request'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _requestPayout(double amount) async {
+    try {
+      final token = _authService.authToken;
+      if (token == null) {
+        throw Exception('Authentication token not found');
+      }
+
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      final response = await _userApiService.requestAstrologerPayout(
+        token,
+        amount: amount,
+      );
+
+      // Hide loading indicator
+      if (mounted) Navigator.of(context).pop();
+
+      if (mounted) {
+        if (response['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response['message'] ?? 'Payout request submitted successfully'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+          // Reload data to update pending payout status
+          _loadData();
+        } else {
+          throw Exception(response['message'] ?? 'Failed to request payout');
+        }
+      }
+    } catch (e) {
+      // Hide loading indicator if still showing
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
+
+      if (mounted) {
+        final appError = ErrorHandler.handleError(e, context: 'payout');
+        ErrorHandler.logError(appError);
+        ErrorHandler.showError(context, appError);
+      }
+    }
   }
 }
 

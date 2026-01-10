@@ -86,6 +86,63 @@ export async function PATCH(
       updated_at: new Date()
     };
 
+    // Handle wallet balance updates for withdrawal transactions
+    if (currentTransaction.transaction_type === 'withdrawal') {
+      const usersCollection = await DatabaseService.getCollection('users');
+      const withdrawalAmount = currentTransaction.amount || 0;
+
+      if (status === 'completed') {
+        // Approved: Deduct from wallet_balance and clear reserved_balance
+        await usersCollection.updateOne(
+          { user_id: currentTransaction.user_id },
+          [
+            {
+              $set: {
+                wallet_balance: {
+                  $subtract: [
+                    { $ifNull: ['$wallet_balance', 0] },
+                    withdrawalAmount
+                  ]
+                },
+                reserved_balance: {
+                  $subtract: [
+                    { $ifNull: ['$reserved_balance', 0] },
+                    withdrawalAmount
+                  ]
+                },
+                total_withdrawn: {
+                  $add: [
+                    { $ifNull: ['$total_withdrawn', 0] },
+                    withdrawalAmount
+                  ]
+                },
+                last_payout_at: new Date(),
+                updated_at: new Date()
+              }
+            }
+          ]
+        );
+      } else if (status === 'failed' || status === 'cancelled') {
+        // Rejected: Release the reserved_balance (don't deduct from wallet)
+        await usersCollection.updateOne(
+          { user_id: currentTransaction.user_id },
+          [
+            {
+              $set: {
+                reserved_balance: {
+                  $subtract: [
+                    { $ifNull: ['$reserved_balance', 0] },
+                    withdrawalAmount
+                  ]
+                },
+                updated_at: new Date()
+              }
+            }
+          ]
+        );
+      }
+    }
+
     // Update the transaction
     const result = await transactionsCollection.updateOne(
       { _id: new ObjectId(transactionId) },

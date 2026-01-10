@@ -86,6 +86,7 @@ class ApiEndpoints {
   static const String astrologerConsultationsPending = '$astrologers/consultations/pending';
   static const String astrologerConsultations = '$astrologers/consultations';
   static const String astrologerEarnings = '$astrologers/earnings';
+  static const String astrologerPayouts = '$astrologers/payouts';
   static String astrologerConsultationStatus(String id) => '$astrologers/consultations/$id/status';
 
   // Public discovery endpoints

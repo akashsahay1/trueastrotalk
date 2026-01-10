@@ -375,9 +375,9 @@ export default function CommissionsPage() {
                                 </td>
                                 <td>
                                   <small>
-                                    Call: {commission.commission_rates.call_rate}%<br />
-                                    Chat: {commission.commission_rates.chat_rate}%<br />
-                                    Video: {commission.commission_rates.video_rate}%
+                                    Call: {commission.commission_rates?.call_rate ?? 0}%<br />
+                                    Chat: {commission.commission_rates?.chat_rate ?? 0}%<br />
+                                    Video: {commission.commission_rates?.video_rate ?? 0}%
                                   </small>
                                 </td>
                                 <td>

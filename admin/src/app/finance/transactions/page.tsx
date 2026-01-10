@@ -26,6 +26,13 @@ interface Transaction {
     ifsc_code: string;
     bank_name?: string;
   };
+  account_details?: {
+    upi_id?: string;
+    account_holder_name?: string;
+    account_number?: string;
+    bank_name?: string;
+    ifsc_code?: string;
+  };
   created_at: string;
 }
 
@@ -406,7 +413,25 @@ function TransactionsContent() {
                                     {transaction.status}
                                   </span>
                                 </td>
-                                <td>{transaction.payment_method}</td>
+                                <td>
+                                  {transaction.payment_method}
+                                  {/* Show account details for withdrawal transactions */}
+                                  {transaction.transaction_type === 'withdrawal' && transaction.account_details && (
+                                    <div className="mt-1">
+                                      {transaction.account_details.upi_id ? (
+                                        <small className="text-info">
+                                          <i className="fas fa-mobile-alt mr-1"></i>
+                                          {transaction.account_details.upi_id}
+                                        </small>
+                                      ) : transaction.account_details.account_number && (
+                                        <small className="text-muted">
+                                          <i className="fas fa-university mr-1"></i>
+                                          ***{transaction.account_details.account_number.slice(-4)} | {transaction.account_details.bank_name}
+                                        </small>
+                                      )}
+                                    </div>
+                                  )}
+                                </td>
                                 <td>
                                   <small>{transaction.description}</small>
                                   {transaction.bank_details && (
