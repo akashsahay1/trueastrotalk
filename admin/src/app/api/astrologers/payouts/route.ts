@@ -191,18 +191,28 @@ export async function POST(request: NextRequest) {
         };
 
     // Create transaction record
-    const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const timestamp = Date.now();
+    const transactionId = `txn_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
+    const referenceId = `WD${timestamp}`;
     const now = new Date();
+
+    // Format payment method for description
+    const paymentMethodLabel = paymentMethod === 'upi' ? 'UPI' : 'Bank Transfer';
+    const paymentTarget = hasUpi
+      ? astrologer.upi_id
+      : `${astrologer.bank_name} - ****${astrologer.account_number?.slice(-4)}`;
 
     const transaction = {
       transaction_id: transactionId,
+      reference_id: referenceId,
       user_id: astrologerId,
+      user_type: 'astrologer',
       transaction_type: 'withdrawal',
       amount: withdrawalAmount,
       status: 'pending',
       payment_method: paymentMethod,
       account_details: InputSanitizer.sanitizeMongoQuery(accountDetails),
-      description: `Payout request - ${paymentMethod.toUpperCase()}`,
+      description: `Payout to ${paymentMethodLabel} (${paymentTarget})`,
       created_at: now,
       updated_at: now,
       request_ip: ip,

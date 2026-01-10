@@ -72,17 +72,22 @@ export async function GET(request: NextRequest) {
     
     // Enrich transactions with user data
     const enrichedTransactions = [];
-    
+
     for (const transaction of transactions) {
       let userData = null;
-      
-      // Get user data from users collection regardless of type
-      try {
-        userData = await usersCollection.findOne({ _id: new ObjectId(transaction.user_id) });
-      } catch {
-        userData = await usersCollection.findOne({ _id: transaction.user_id });
+
+      // Get user data from users collection - try user_id field first (for user_xxx format)
+      userData = await usersCollection.findOne({ user_id: transaction.user_id });
+
+      // Fallback: try as ObjectId
+      if (!userData && transaction.user_id) {
+        try {
+          userData = await usersCollection.findOne({ _id: new ObjectId(transaction.user_id) });
+        } catch {
+          // Not a valid ObjectId, skip
+        }
       }
-      
+
       if (!userData) {
         console.error(`❌ User not found for transaction ${transaction._id}: ${transaction.user_id}`);
       }

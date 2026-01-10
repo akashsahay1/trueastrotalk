@@ -253,6 +253,43 @@ function TransactionsContent() {
     return userType === 'customer' ? 'badge-primary' : 'badge-success';
   };
 
+  // Format labels for display
+  const getTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      'recharge': 'Recharge',
+      'withdrawal': 'Withdrawal',
+      'payment': 'Payment',
+      'commission': 'Commission',
+      'credit': 'Credit',
+      'debit': 'Debit'
+    };
+    return labels[type] || type;
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      'completed': 'Completed',
+      'pending': 'Pending',
+      'processing': 'Processing',
+      'failed': 'Failed',
+      'cancelled': 'Cancelled'
+    };
+    return labels[status] || status;
+  };
+
+  const getPaymentMethodLabel = (method: string) => {
+    const labels: Record<string, string> = {
+      'upi': 'UPI',
+      'bank_transfer': 'Bank Transfer',
+      'razorpay': 'Razorpay',
+      'paytm': 'Paytm',
+      'wallet': 'Wallet',
+      'cash': 'Cash',
+      'card': 'Card'
+    };
+    return labels[method] || method;
+  };
+
   const totalStats = transactions.reduce((acc, transaction) => ({
     totalAmount: acc.totalAmount + transaction.amount,
     completedAmount: acc.completedAmount + (transaction.status === 'completed' ? transaction.amount : 0),
@@ -387,13 +424,13 @@ function TransactionsContent() {
                                     <small className="text-muted">{transaction.user_email}</small>
                                     <br />
                                     <span className={`badge ${getUserTypeBadge(transaction.user_type)} badge-sm`}>
-                                      {transaction.user_type}
+                                      {transaction.user_type === 'customer' ? 'Customer' : transaction.user_type === 'astrologer' ? 'Astrologer' : transaction.user_type}
                                     </span>
                                   </div>
                                 </td>
                                 <td>
                                   <span className={`badge ${getTypeBadge(transaction.transaction_type)}`}>
-                                    {transaction.transaction_type}
+                                    {getTypeLabel(transaction.transaction_type)}
                                   </span>
                                 </td>
                                 <td>
@@ -410,11 +447,11 @@ function TransactionsContent() {
                                 </td>
                                 <td>
                                   <span className={`badge ${getStatusBadge(transaction.status)}`}>
-                                    {transaction.status}
+                                    {getStatusLabel(transaction.status)}
                                   </span>
                                 </td>
                                 <td>
-                                  {transaction.payment_method}
+                                  {getPaymentMethodLabel(transaction.payment_method)}
                                   {/* Show account details for withdrawal transactions */}
                                   {transaction.transaction_type === 'withdrawal' && transaction.account_details && (
                                     <div className="mt-1">
