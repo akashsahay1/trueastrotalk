@@ -39,7 +39,6 @@ class _WalletScreenState extends State<WalletScreen> {
 
   // Payout-specific data
   Map<String, dynamic>? _pendingPayout;
-  bool _isLoadingPayout = true;
 
   @override
   void initState() {
@@ -86,10 +85,7 @@ class _WalletScreenState extends State<WalletScreen> {
   Future<void> _loadPendingPayout() async {
     try {
       final token = _authService.authToken;
-      if (token == null) {
-        setState(() => _isLoadingPayout = false);
-        return;
-      }
+      if (token == null) return;
 
       final response = await _userApiService.getPendingPayoutStatus(token);
       if (mounted) {
@@ -99,14 +95,10 @@ class _WalletScreenState extends State<WalletScreen> {
           } else {
             _pendingPayout = null;
           }
-          _isLoadingPayout = false;
         });
       }
     } catch (e) {
       debugPrint('Error loading pending payout: $e');
-      if (mounted) {
-        setState(() => _isLoadingPayout = false);
-      }
     }
   }
 
