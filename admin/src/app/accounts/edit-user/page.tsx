@@ -70,6 +70,24 @@ interface FormData {
   };
 }
 
+interface AuditLogEntry {
+  _id: string;
+  action: string;
+  previous_value: string;
+  new_value: string;
+  reason?: string;
+  performed_by_name: string;
+  created_at: string;
+}
+
+interface UserTimeline {
+  created_at?: string;
+  profile_submitted_at?: string;
+  updated_at?: string;
+  verified_at?: string;
+  verified_by?: string;
+}
+
 function EditUserContent() {
   const searchParams = useSearchParams();
   const userId = searchParams?.get('id');
@@ -79,6 +97,25 @@ function EditUserContent() {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
   const [defaultCommission, setDefaultCommission] = useState(25);
+  const [currentUserType, setCurrentUserType] = useState<string>('');
+
+  // Fetch current logged-in user's type
+  useEffect(() => {
+    const fetchCurrentUserType = async () => {
+      try {
+        const response = await fetch('/api/auth/check');
+        if (response.ok) {
+          const data = await response.json();
+          setCurrentUserType(data.userType || '');
+        }
+      } catch (error) {
+        console.error('Failed to fetch current user type:', error);
+      }
+    };
+    fetchCurrentUserType();
+  }, []);
+
+  const isCurrentUserManager = currentUserType === 'manager';
 
   const [formData, setFormData] = useState<FormData>({
     user_id: '',
@@ -140,6 +177,15 @@ function EditUserContent() {
   const [selectedRejectionReason, setSelectedRejectionReason] = useState<string>('');
   const [customRejectionMessage, setCustomRejectionMessage] = useState<string>('');
 
+  // Rejection confirmation dialog state
+  const [showRejectionConfirm, setShowRejectionConfirm] = useState(false);
+  const [pendingVerificationStatus, setPendingVerificationStatus] = useState<string>('');
+
+  // Audit log and timeline state
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [userTimeline, setUserTimeline] = useState<UserTimeline>({});
+  const [showAuditHistory, setShowAuditHistory] = useState(false);
+
   // Define user type booleans for conditional rendering
   const isAstrologer = formData.user_type === 'astrologer';
   const isCustomer = formData.user_type === 'customer';
@@ -170,6 +216,42 @@ function EditUserContent() {
     } catch (error) {
       console.error('Failed to load astrologer options:', error);
     }
+  };
+
+  const loadAuditLogs = async (id: string) => {
+    try {
+      const response = await fetch(`/api/users/${id}/audit`);
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setAuditLogs(data.logs || []);
+      }
+    } catch (error) {
+      console.error('Failed to load audit logs:', error);
+    }
+  };
+
+  // Helper function to get profile completion checklist
+  const getProfileCompletionChecklist = () => {
+    const checks = [
+      { label: 'Email Address', complete: !!formData.email_address.trim() },
+      { label: 'Bio/Description', complete: !!formData.bio.trim() },
+      { label: 'Skills (min 2)', complete: formData.skills.length >= 2 },
+      { label: 'Languages (min 1)', complete: formData.languages.length >= 1 },
+      { label: 'Experience Years', complete: formData.experience_years > 0 },
+      { label: 'At Least One Rate', complete: formData.call_rate > 0 || formData.chat_rate > 0 || formData.video_rate > 0 },
+      { label: 'PAN Card', complete: !!formData.pan_card_id },
+      { label: 'Bank Account Holder', complete: !!formData.bank_details.account_holder_name.trim() },
+      { label: 'Bank Account Number', complete: !!formData.bank_details.account_number.trim() },
+      { label: 'Bank Name', complete: !!formData.bank_details.bank_name.trim() },
+      { label: 'IFSC Code', complete: !!formData.bank_details.ifsc_code.trim() },
+    ];
+    return checks;
+  };
+
+  const isProfileCompleteForApproval = () => {
+    const checks = getProfileCompletionChecklist();
+    return checks.every(check => check.complete);
   };
 
   const fetchUser = useCallback(async () => {
@@ -263,6 +345,20 @@ function EditUserContent() {
 
         if (user.pan_card_image) {
           setPanCardPreview(user.pan_card_image);
+        }
+
+        // Set timeline data
+        setUserTimeline({
+          created_at: user.created_at,
+          profile_submitted_at: user.profile_submitted_at,
+          updated_at: user.updated_at,
+          verified_at: user.verified_at,
+          verified_by: user.verified_by,
+        });
+
+        // Load audit logs for astrologers
+        if (user.user_type === 'astrologer' && userId) {
+          loadAuditLogs(userId);
         }
 
         // Parse existing rejection reason if user is rejected
@@ -781,7 +877,7 @@ function EditUserContent() {
 
             <form onSubmit={handleSubmit}>
               <div className="row">
-                <div className="col-xl-8 col-lg-8 col-md-12 col-sm-12 col-12">
+                <div className="col-xl-8 col-lg-7 col-md-12 col-sm-12 col-12">
 
                   {/* Basic Information Card - Always Visible */}
                   <div className="card mb-4">
@@ -842,9 +938,14 @@ function EditUserContent() {
                           >
                             <option value="customer">Customer</option>
                             <option value="astrologer">Astrologer</option>
-                            <option value="administrator">Administrator</option>
+                            {!isCurrentUserManager && (
+                              <option value="administrator">Administrator</option>
+                            )}
                             <option value="manager">Manager</option>
                           </select>
+                          {isCurrentUserManager && formData.user_type === 'administrator' && (
+                            <small className="text-danger">You cannot set user type to Administrator</small>
+                          )}
                         </div>
 
                         {/* Full Name */}
@@ -1183,11 +1284,18 @@ function EditUserContent() {
                             name="verification_status"
                             value={formData.verification_status}
                             onChange={(e) => {
-                              handleInputChange(e);
-                              // Clear rejection reason when status changes away from rejected
-                              if (e.target.value !== 'rejected') {
-                                setSelectedRejectionReason('');
-                                setCustomRejectionMessage('');
+                              const newStatus = e.target.value;
+                              // Show confirmation dialog for rejection
+                              if (newStatus === 'rejected' && formData.verification_status !== 'rejected') {
+                                setPendingVerificationStatus(newStatus);
+                                setShowRejectionConfirm(true);
+                              } else {
+                                handleInputChange(e);
+                                // Clear rejection reason when status changes away from rejected
+                                if (newStatus !== 'rejected') {
+                                  setSelectedRejectionReason('');
+                                  setCustomRejectionMessage('');
+                                }
                               }
                             }}
                           >
@@ -1642,8 +1750,256 @@ function EditUserContent() {
                   </div>
 
                 </div>
+
+                {/* Sidebar for Astrologers - Timeline, Profile Checklist, Documents, Audit */}
+                {isAstrologer && (
+                  <div className="col-xl-4 col-lg-5 col-md-12 col-sm-12 col-12">
+
+                    {/* Timeline Card */}
+                    <div className="card mb-4">
+                      <h5 className="card-header">
+                        <i className="fas fa-clock mr-2"></i>Timeline
+                      </h5>
+                      <div className="card-body p-0">
+                        <ul className="list-group list-group-flush">
+                          <li className="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i className="fas fa-user-plus text-primary mr-2"></i>Account Created</span>
+                            <small className="text-muted">
+                              {userTimeline.created_at
+                                ? new Date(userTimeline.created_at).toLocaleDateString('en-IN', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric'
+                                  })
+                                : 'N/A'}
+                            </small>
+                          </li>
+                          <li className="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i className="fas fa-file-alt text-info mr-2"></i>Profile Submitted</span>
+                            <small className="text-muted">
+                              {userTimeline.profile_submitted_at
+                                ? new Date(userTimeline.profile_submitted_at).toLocaleDateString('en-IN', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric'
+                                  })
+                                : 'Not yet'}
+                            </small>
+                          </li>
+                          <li className="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i className="fas fa-edit text-warning mr-2"></i>Last Updated</span>
+                            <small className="text-muted">
+                              {userTimeline.updated_at
+                                ? new Date(userTimeline.updated_at).toLocaleDateString('en-IN', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric'
+                                  })
+                                : 'N/A'}
+                            </small>
+                          </li>
+                          {formData.verification_status === 'verified' && (
+                            <li className="list-group-item d-flex justify-content-between align-items-center bg-light">
+                              <span><i className="fas fa-check-circle text-success mr-2"></i>Verified</span>
+                              <small className="text-success">
+                                {userTimeline.verified_at
+                                  ? new Date(userTimeline.verified_at).toLocaleDateString('en-IN', {
+                                      day: 'numeric',
+                                      month: 'short',
+                                      year: 'numeric'
+                                    })
+                                  : 'N/A'}
+                                {userTimeline.verified_by && ` by ${userTimeline.verified_by}`}
+                              </small>
+                            </li>
+                          )}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Profile Completion Checklist Card */}
+                    <div className="card mb-4">
+                      <h5 className="card-header d-flex justify-content-between align-items-center">
+                        <span><i className="fas fa-tasks mr-2"></i>Profile Checklist</span>
+                        <span className={`badge ${isProfileCompleteForApproval() ? 'badge-success' : 'badge-warning'}`}>
+                          {getProfileCompletionChecklist().filter(c => c.complete).length}/{getProfileCompletionChecklist().length}
+                        </span>
+                      </h5>
+                      <div className="card-body p-0">
+                        <ul className="list-group list-group-flush">
+                          {getProfileCompletionChecklist().map((check, index) => (
+                            <li key={index} className="list-group-item d-flex justify-content-between align-items-center py-2">
+                              <span className={check.complete ? 'text-success' : 'text-muted'}>
+                                {check.label}
+                              </span>
+                              {check.complete ? (
+                                <i className="fas fa-check-circle text-success"></i>
+                              ) : (
+                                <i className="fas fa-times-circle text-danger"></i>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                        {!isProfileCompleteForApproval() && (
+                          <div className="card-footer bg-warning-light">
+                            <small className="text-warning">
+                              <i className="fas fa-exclamation-triangle mr-1"></i>
+                              Profile incomplete - cannot be approved
+                            </small>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Document Review Card */}
+                    <div className="card mb-4">
+                      <h5 className="card-header">
+                        <i className="fas fa-file-image mr-2"></i>Document Verification
+                      </h5>
+                      <div className="card-body">
+                        {panCardPreview ? (
+                          <div className="text-center">
+                            <p className="mb-2 font-weight-bold">PAN Card Document</p>
+                            <a href={panCardPreview} target="_blank" rel="noopener noreferrer">
+                              <Image
+                                src={panCardPreview}
+                                alt="PAN Card"
+                                width={250}
+                                height={150}
+                                className="img-thumbnail mb-2"
+                                style={{ objectFit: 'cover', cursor: 'zoom-in' }}
+                              />
+                            </a>
+                            <p className="text-muted small mb-0">
+                              <i className="fas fa-search-plus mr-1"></i>
+                              Click to view full size
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="text-center text-muted py-3">
+                            <i className="fas fa-file-upload fa-2x mb-2"></i>
+                            <p className="mb-0">No PAN card uploaded</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Audit History Card */}
+                    <div className="card mb-4">
+                      <h5
+                        className="card-header d-flex justify-content-between align-items-center"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => setShowAuditHistory(!showAuditHistory)}
+                      >
+                        <span><i className="fas fa-history mr-2"></i>Review History</span>
+                        <i className={`fas fa-chevron-${showAuditHistory ? 'up' : 'down'}`}></i>
+                      </h5>
+                      {showAuditHistory && (
+                        <div className="card-body p-0">
+                          {auditLogs.length > 0 ? (
+                            <ul className="list-group list-group-flush">
+                              {auditLogs.slice(0, 10).map((log) => (
+                                <li key={log._id} className="list-group-item">
+                                  <div className="d-flex justify-content-between">
+                                    <span className={`badge ${
+                                      log.new_value === 'verified' ? 'badge-success' :
+                                      log.new_value === 'rejected' ? 'badge-danger' : 'badge-secondary'
+                                    }`}>
+                                      {log.previous_value} → {log.new_value}
+                                    </span>
+                                    <small className="text-muted">
+                                      {new Date(log.created_at).toLocaleDateString('en-IN', {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        year: 'numeric'
+                                      })}
+                                    </small>
+                                  </div>
+                                  <small className="text-muted d-block mt-1">
+                                    By: {log.performed_by_name}
+                                  </small>
+                                  {log.reason && (
+                                    <small className="text-danger d-block">
+                                      Reason: {log.reason}
+                                    </small>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <div className="text-center text-muted py-3">
+                              <i className="fas fa-inbox fa-2x mb-2"></i>
+                              <p className="mb-0">No review history</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
+                )}
               </div>
             </form>
+
+            {/* Rejection Confirmation Modal */}
+            {showRejectionConfirm && (
+              <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal-dialog modal-dialog-centered">
+                  <div className="modal-content">
+                    <div className="modal-header bg-danger text-white">
+                      <h5 className="modal-title">
+                        <i className="fas fa-exclamation-triangle mr-2"></i>
+                        Confirm Rejection
+                      </h5>
+                      <button
+                        type="button"
+                        className="close text-white"
+                        onClick={() => {
+                          setShowRejectionConfirm(false);
+                          setPendingVerificationStatus('');
+                        }}
+                      >
+                        <span>&times;</span>
+                      </button>
+                    </div>
+                    <div className="modal-body">
+                      <p>Are you sure you want to reject this astrologer&apos;s application?</p>
+                      <p className="text-muted small mb-0">
+                        The astrologer will be notified via email about this decision.
+                        You will need to provide a rejection reason on the next step.
+                      </p>
+                    </div>
+                    <div className="modal-footer">
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => {
+                          setShowRejectionConfirm(false);
+                          setPendingVerificationStatus('');
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-danger"
+                        onClick={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            verification_status: pendingVerificationStatus
+                          }));
+                          setShowRejectionConfirm(false);
+                          setPendingVerificationStatus('');
+                        }}
+                      >
+                        <i className="fas fa-times-circle mr-2"></i>
+                        Yes, Reject Application
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Media Library Modals */}
             <MediaLibrary

@@ -13,7 +13,7 @@ import 'api/app_config_service.dart';
 import 'auth/auth_service.dart';
 import 'network/dio_client.dart';
 import 'local/local_storage_service.dart';
-import 'cart_service.dart';
+import 'cart/cart_service.dart';
 import 'payment/razorpay_service.dart';
 import 'email/email_service.dart';
 import 'socket/socket_service.dart';
@@ -24,6 +24,8 @@ import 'call/call_service.dart';
 import 'wallet/wallet_service.dart';
 import 'notifications/notification_service.dart';
 import 'audio/ringtone_service.dart';
+import 'theme/theme_service.dart';
+import 'profile/profile_completion_service.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -78,6 +80,16 @@ void setupServiceLocator() {
   // Register Auth service
   getIt.registerSingleton<AuthService>(
     AuthService(getIt<UserApiService>()),
+  );
+
+  // Register Theme service (depends on AuthService)
+  getIt.registerSingleton<ThemeService>(
+    ThemeService(),
+  );
+
+  // Register Profile Completion service (for astrologer profile tracking)
+  getIt.registerSingleton<ProfileCompletionService>(
+    ProfileCompletionService(),
   );
 
   // Register Cart service

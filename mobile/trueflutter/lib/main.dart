@@ -9,20 +9,21 @@ import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:flutter_callkit_incoming/entities/entities.dart';
 import 'package:uuid/uuid.dart';
 import 'firebase_options.dart';
-import 'common/themes/app_theme.dart';
 import 'config/config.dart';
-import 'screens/onboarding.dart';
-import 'screens/welcome.dart';
-import 'screens/auth/unified_auth_screen.dart';
-import 'screens/auth/signup_completion_screen.dart';
-import 'screens/otp_verification.dart';
-import 'screens/signup.dart';
-import 'screens/home.dart';
-import 'screens/orders_list.dart';
-import 'screens/consultation_details_screen.dart';
-import 'screens/astrologer_consultations_screen.dart';
+import 'screens/onboarding/onboarding.dart';
+import 'screens/onboarding/welcome.dart';
+import 'screens/auth/login.dart';
+import 'screens/auth/signup_completion.dart';
+import 'screens/auth/otp_verification.dart';
+import 'screens/auth/signup.dart';
+import 'screens/home/home.dart';
+import 'screens/shop/orders_list.dart';
+import 'screens/wallet/wallet.dart';
+import 'screens/consultation/details.dart';
+import 'screens/astrologer/consultations.dart';
 import 'services/service_locator.dart';
 import 'services/auth/auth_service.dart';
+import 'services/theme/theme_service.dart';
 import 'services/local/local_storage_service.dart';
 import 'services/network/dio_client.dart';
 import 'services/payment/razorpay_service.dart';
@@ -249,8 +250,32 @@ void main() async {
   runApp(const TrueAstrotalkApp());
 }
 
-class TrueAstrotalkApp extends StatelessWidget {
+class TrueAstrotalkApp extends StatefulWidget {
   const TrueAstrotalkApp({super.key});
+
+  @override
+  State<TrueAstrotalkApp> createState() => _TrueAstrotalkAppState();
+}
+
+class _TrueAstrotalkAppState extends State<TrueAstrotalkApp> {
+  late final ThemeService _themeService;
+
+  @override
+  void initState() {
+    super.initState();
+    _themeService = getIt<ThemeService>();
+    _themeService.addListener(_onThemeChanged);
+  }
+
+  @override
+  void dispose() {
+    _themeService.removeListener(_onThemeChanged);
+    super.dispose();
+  }
+
+  void _onThemeChanged() {
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -258,8 +283,8 @@ class TrueAstrotalkApp extends StatelessWidget {
       title: Config.appName,
       debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey, // Global navigator key for deep linking
-      // Theme configuration
-      theme: AppTheme.lightTheme,
+      // Theme configuration - dynamic based on user type
+      theme: _themeService.currentTheme,
       themeMode: ThemeMode.light,
 
       // Initial route - Check auth state
@@ -271,12 +296,12 @@ class TrueAstrotalkApp extends StatelessWidget {
         '/welcome': (context) => const WelcomeScreen(),
 
         // Unified auth flow
-        '/auth': (context) => const UnifiedAuthScreen(),
+        '/auth': (context) => const LoginScreen(),
         '/signup-completion': (context) => const SignupCompletionScreen(),
         '/otp-verification': (context) => const OTPVerificationScreen(),
 
-        // Astrologer signup (uses advanced multi-page form)
-        '/astrologer-signup': (context) => const SignupScreen(isAdvanced: true),
+        // Astrologer signup (simplified quick signup)
+        '/astrologer-signup': (context) => const AstrologerSignupScreen(),
 
         // Home screens
         '/home': (context) => const HomeScreen(),
@@ -288,6 +313,7 @@ class TrueAstrotalkApp extends StatelessWidget {
 
         // Other screens
         '/orders': (context) => const OrdersListScreen(),
+        '/wallet': (context) => const WalletScreen(),
       },
 
       // Handle routes with arguments
@@ -377,7 +403,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
     }
 
     if (_authService.isLoggedIn) {
-      // User is logged in, show the home screen (it handles role-based UI internally)
+      final user = _authService.currentUser;
+
+      // Check if profile is complete (has full_name)
+      if (user?.name == null || user!.name.isEmpty) {
+        // Profile incomplete, go to signup completion
+        return const SignupCompletionScreen();
+      }
+
+      // User is logged in with complete profile, show the home screen
       return const HomeScreen();
     }
 

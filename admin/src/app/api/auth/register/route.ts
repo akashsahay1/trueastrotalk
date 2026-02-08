@@ -4,13 +4,14 @@ import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import DatabaseService from '../../../../lib/database';
-import { 
-  PasswordSecurity, 
-  JWTSecurity, 
-  ValidationSchemas, 
+import {
+  PasswordSecurity,
+  JWTSecurity,
+  ValidationSchemas,
   InputSanitizer
 } from '../../../../lib/security';
 import { generateUserId } from '../../../../lib/custom-id';
+import { validateAllRates, getDefaultRates } from '../../../../lib/rate-validation';
 
 /**
  * Generate a unique media ID that persists across database exports/imports
@@ -422,30 +423,34 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Validate astrologer-specific fields
+    // Validate astrologer-specific fields (relaxed for minimal signup)
     if (user_type === 'astrologer') {
-      if (!experience_years || !bio || !languages) {
-        return NextResponse.json({
-          success: false,
-          error: 'MISSING_ASTROLOGER_INFO',
-          message: 'Experience, bio, and languages are required for astrologers'
-        }, { status: 400 });
+      // Experience, bio, and languages are now optional at signup
+      // They will be required before admin approval (profile completion)
+
+      // Only validate experience if provided (must be 0-50)
+      if (experience_years !== undefined && experience_years !== null && experience_years !== '' && experience_years !== 0) {
+        if (Number(experience_years) < 0 || Number(experience_years) > 50) {
+          return NextResponse.json({
+            success: false,
+            error: 'INVALID_EXPERIENCE',
+            message: 'Experience must be between 0 and 50 years'
+          }, { status: 400 });
+        }
       }
 
-      if (Number(experience_years) < 1 || Number(experience_years) > 50) {
-        return NextResponse.json({
-          success: false,
-          error: 'INVALID_EXPERIENCE',
-          message: 'Experience must be between 1 and 50 years'
-        }, { status: 400 });
-      }
+      // Validate consultation rates using centralized validation
+      const rateValidation = validateAllRates({
+        chat_rate,
+        call_rate,
+        video_rate,
+      });
 
-      // Validate consultation rates
-      if (call_rate && (Number(call_rate) < 10 || Number(call_rate) > 10000)) {
+      if (!rateValidation.isValid) {
         return NextResponse.json({
           success: false,
-          error: 'INVALID_CALL_RATE',
-          message: 'Call rate must be between ₹10 and ₹10,000 per minute'
+          error: 'INVALID_RATES',
+          message: rateValidation.errors.join(', ')
         }, { status: 400 });
       }
     }
@@ -520,7 +525,7 @@ export async function POST(request: NextRequest) {
     const userData: Record<string, unknown> = {
       _id: isUpdatingExisting && existingUserId ? existingUserId : new ObjectId(),
       user_id: isUpdatingExisting && existingUserId ? existingUserId.toString() : generateUserId(),
-      full_name: (full_name as string || 'Guest').trim(),
+      full_name: (full_name as string).trim(),
       email_address: cleanEmail || '',
       phone_number: phone_number ? InputSanitizer.sanitizePhoneNumber(phone_number as string) : '',
       user_type,
@@ -576,22 +581,24 @@ export async function POST(request: NextRequest) {
       if (birth_place) userData.birth_place = (birth_place as string).trim();
     }
 
-    // Add astrologer-specific fields
+    // Add astrologer-specific fields (with defaults for minimal signup)
     if (user_type === 'astrologer') {
-      userData.experience_years = parseInt(experience_years as string);
-      userData.bio = (bio as string).trim();
+      userData.experience_years = experience_years ? parseInt(experience_years as string) : 0;
+      userData.bio = bio ? (bio as string).trim() : '';
+
+      // Process arrays properly (with empty array defaults)
+      userData.languages = Array.isArray(languages) ? languages :
+                          typeof languages === 'string' && languages ? languages.split(',').map((l: string) => l.trim()).filter(Boolean) : [];
+      userData.skills = Array.isArray(skills) ? skills :
+                       typeof skills === 'string' && skills ? skills.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+      userData.qualifications = Array.isArray(qualifications) ? qualifications :
+                               typeof qualifications === 'string' && qualifications ? qualifications.split(',').map((q: string) => q.trim()).filter(Boolean) : [];
       
-      // Process arrays properly
-      userData.languages = Array.isArray(languages) ? languages : 
-                          typeof languages === 'string' ? languages.split(',').map((l: string) => l.trim()).filter(Boolean) : [];
-      userData.skills = Array.isArray(skills) ? skills : 
-                       typeof skills === 'string' ? skills.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-      userData.qualifications = Array.isArray(qualifications) ? qualifications : 
-                               typeof qualifications === 'string' ? qualifications.split(',').map((q: string) => q.trim()).filter(Boolean) : [];
-      
-      userData.call_rate = call_rate ? parseFloat(call_rate as string) : 50;
-      userData.chat_rate = chat_rate ? parseFloat(chat_rate as string) : 30;
-      userData.video_rate = video_rate ? parseFloat(video_rate as string) : 80;
+      // Use centralized default rates if not provided
+      const defaultRates = getDefaultRates();
+      userData.call_rate = call_rate ? parseFloat(call_rate as string) : defaultRates.call_rate;
+      userData.chat_rate = chat_rate ? parseFloat(chat_rate as string) : defaultRates.chat_rate;
+      userData.video_rate = video_rate ? parseFloat(video_rate as string) : defaultRates.video_rate;
       
       // Add bank details if provided
       if (bank_details && typeof bank_details === 'object') {

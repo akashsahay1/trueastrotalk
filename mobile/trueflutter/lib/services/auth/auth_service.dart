@@ -12,9 +12,11 @@ import '../service_locator.dart';
 import '../socket/socket_service.dart';
 import '../call/call_service.dart';
 import '../notifications/notification_service.dart';
-import '../cart_service.dart';
+import '../cart/cart_service.dart';
+import '../theme/theme_service.dart';
 import '../../config/payment_config.dart';
 import '../../common/utils/error_handler.dart';
+import '../deep_link_service.dart'; // For navigatorKey
 
 class AuthResult {
   final bool success;
@@ -86,62 +88,160 @@ class AuthService {
   String? get authToken => _authToken;
   bool get isLoggedIn => _currentUser != null && _authToken != null;
 
+  /// Update theme based on current user type
+  void _updateTheme() {
+    try {
+      final themeService = getIt<ThemeService>();
+      themeService.updateForUser(_currentUser);
+    } catch (e) {
+      debugPrint('⚠️ Failed to update theme: $e');
+    }
+  }
+
+  /// Reset theme to default (customer theme)
+  void _resetTheme() {
+    try {
+      final themeService = getIt<ThemeService>();
+      themeService.reset();
+    } catch (e) {
+      debugPrint('⚠️ Failed to reset theme: $e');
+    }
+  }
+
+  /// Handle forced logout when user is deleted or session is invalid
+  /// This is called by DioClient when auth fails (401/404 USER_NOT_FOUND)
+  Future<void> _handleForcedLogout(String reason) async {
+    debugPrint('🚨 Forced logout triggered: $reason');
+
+    // Clear local auth state
+    _currentUser = null;
+    _authToken = null;
+    _resetTheme();
+
+    // Clear stored data
+    await _localStorage.removeAuthToken();
+    await _localStorage.clearUserMap();
+    PaymentConfig.instance.clearCredentials();
+
+    // Disconnect services
+    try {
+      final callService = CallService.instance;
+      await callService.cleanup();
+    } catch (e) {
+      debugPrint('⚠️ Call cleanup error: $e');
+    }
+
+    try {
+      final socketService = getIt<SocketService>();
+      await socketService.disconnect();
+    } catch (e) {
+      debugPrint('⚠️ Socket disconnect error: $e');
+    }
+
+    // Navigate to welcome screen using global navigator key
+    final navigator = navigatorKey.currentState;
+    if (navigator != null) {
+      debugPrint('🔄 Navigating to welcome screen...');
+      navigator.pushNamedAndRemoveUntil('/welcome', (route) => false);
+    } else {
+      debugPrint('⚠️ Navigator not available for forced logout navigation');
+    }
+  }
+
   Future<void> initialize() async {
+    // Set up auth failure callback to handle forced logout
+    DioClient.onAuthFailure = _handleForcedLogout;
+
     final prefs = await SharedPreferences.getInstance();
     final savedToken = prefs.getString('auth_token');
 
-    if (savedToken != null) {
-      try {
-        _authToken = savedToken;
-        // Set the global auth token in Dio client
-        DioClient.setAuthToken(savedToken);
-        // Also save to secure storage for socket service
-        await _localStorage.saveAuthToken(savedToken);
-        _currentUser = await _userApiService.getCurrentUser(savedToken);
-        // Save user data to local storage for socket service
-        if (_currentUser != null) {
-          await _saveUserData(_currentUser!);
-          // Initialize cart service after user is restored
-          try {
-            final cartService = getIt<CartService>();
-            await cartService.initialize();
-          } catch (e) {
-            debugPrint('⚠️ CartService initialization failed: $e');
-          }
-        }
-      } catch (e) {
-        debugPrint('🔄 Token validation failed during init: $e');
-        try {
-          // Try to refresh the token
-          await refreshAuthToken();
-          if (_authToken != null) {
-            _currentUser = await _userApiService.getCurrentUser(_authToken!);
-            // Save user data to local storage for socket service
-            if (_currentUser != null) {
-              await _saveUserData(_currentUser!);
-            }
-            return;
-          }
-        } catch (refreshError) {
-          debugPrint('🔄 Token refresh failed: $refreshError');
-        }
+    if (savedToken == null) {
+      debugPrint('🔐 No saved token found');
+      return;
+    }
 
-        // Fall back to local storage
+    debugPrint('🔐 Found saved token, restoring session...');
+    _authToken = savedToken;
+    DioClient.setAuthToken(savedToken);
+    await _localStorage.saveAuthToken(savedToken);
+
+    // FIRST: Try to load user from local storage (fast, works offline)
+    final savedUserData = prefs.getString('user_data');
+    if (savedUserData != null) {
+      try {
+        final userJson = jsonDecode(savedUserData) as Map<String, dynamic>;
+        _currentUser = app_user.User.fromJson(userJson);
+        await _localStorage.saveUserMap(userJson);
+        _updateTheme();
+        debugPrint('✅ Restored user from local storage: ${_currentUser?.name ?? "no name"}');
+      } catch (e) {
+        debugPrint('⚠️ Failed to parse saved user data: $e');
+      }
+    }
+
+    // If we have a user from local storage, we're logged in
+    // Try to refresh from API in background (but don't fail if it doesn't work)
+    if (_currentUser != null) {
+      try {
+        final cartService = getIt<CartService>();
+        await cartService.initialize();
+      } catch (e) {
+        debugPrint('⚠️ CartService initialization failed: $e');
+      }
+
+      // Optionally refresh user data from API (don't block, don't fail)
+      _refreshUserFromApi();
+      return;
+    }
+
+    // No local user data - try to fetch from API
+    debugPrint('🔄 No local user data, fetching from API...');
+    try {
+      _currentUser = await _userApiService.getCurrentUser(savedToken);
+      if (_currentUser != null) {
+        await _saveUserData(_currentUser!);
+        _updateTheme();
         try {
-          final savedUserData = prefs.getString('user_data');
-          if (savedUserData != null) {
-            final userJson = jsonDecode(savedUserData) as Map<String, dynamic>;
-            _currentUser = app_user.User.fromJson(userJson);
-            // Also sync to local storage service for socket
-            await _localStorage.saveUserMap(userJson);
-            debugPrint('Loaded user data from local storage as fallback');
-          } else {
-            await _clearAuthData();
+          final cartService = getIt<CartService>();
+          await cartService.initialize();
+        } catch (e) {
+          debugPrint('⚠️ CartService initialization failed: $e');
+        }
+      }
+    } catch (e) {
+      debugPrint('🔄 API fetch failed: $e');
+      // Try token refresh as last resort
+      try {
+        await refreshAuthToken();
+        if (_authToken != null) {
+          _currentUser = await _userApiService.getCurrentUser(_authToken!);
+          if (_currentUser != null) {
+            await _saveUserData(_currentUser!);
+            _updateTheme();
           }
-        } catch (localError) {
+        }
+      } catch (refreshError) {
+        debugPrint('🔄 Token refresh also failed: $refreshError');
+        // Clear auth data only if we have no user at all
+        if (_currentUser == null) {
           await _clearAuthData();
         }
       }
+    }
+  }
+
+  /// Refresh user data from API in background (non-blocking)
+  Future<void> _refreshUserFromApi() async {
+    if (_authToken == null) return;
+
+    try {
+      final freshUser = await _userApiService.getCurrentUser(_authToken!);
+      _currentUser = freshUser;
+      await _saveUserData(freshUser);
+      debugPrint('✅ User data refreshed from API');
+    } catch (e) {
+      debugPrint('⚠️ Background user refresh failed (non-critical): $e');
+      // Don't clear auth - we still have local data
     }
   }
 
@@ -634,7 +734,10 @@ class AuthService {
   Future<void> _saveAuthData(app_user.User user, String token, [String? refreshToken]) async {
     _currentUser = user;
     _authToken = token;
-    
+
+    // Update theme based on user type
+    _updateTheme();
+
     // Set the global auth token in Dio client
     DioClient.setAuthToken(token);
 
@@ -671,15 +774,30 @@ class AuthService {
     }
 
     // Update FCM token on server with the fresh auth token
+    _updateFcmTokenOnServer(token);
+  }
+
+  /// Update FCM token on server (runs in background, non-blocking)
+  Future<void> _updateFcmTokenOnServer(String authToken) async {
     try {
       debugPrint('🔔 Updating FCM token on server...');
       final notificationService = NotificationService();
-      final fcmToken = notificationService.fcmToken;
+
+      // Check if FCM token is available
+      var fcmToken = notificationService.fcmToken;
+
+      // If not available, initialize the notification service first
+      if (fcmToken == null || fcmToken.isEmpty) {
+        debugPrint('🔔 FCM token not ready, initializing NotificationService...');
+        await notificationService.initialize();
+        fcmToken = notificationService.fcmToken;
+      }
+
       if (fcmToken != null && fcmToken.isNotEmpty) {
-        await _userApiService.updateFcmToken(token, fcmToken: fcmToken);
+        await _userApiService.updateFcmToken(authToken, fcmToken: fcmToken);
         debugPrint('✅ FCM token updated successfully');
       } else {
-        debugPrint('⚠️ No FCM token available to update');
+        debugPrint('⚠️ FCM token still not available (notification permissions may be denied)');
       }
     } catch (e) {
       debugPrint('⚠️ FCM token update failed: $e');
@@ -697,7 +815,10 @@ class AuthService {
   Future<void> _clearAuthData() async {
     _currentUser = null;
     _authToken = null;
-    
+
+    // Reset theme to default (customer theme)
+    _resetTheme();
+
     // Clear the global auth token in Dio client
     DioClient.clearAuthToken();
 
@@ -790,17 +911,23 @@ class AuthService {
 
   // Phone Authentication Methods
 
-  // Unified Authentication Methods (New)
+  // Unified Authentication Methods
 
-  /// Send OTP to email or phone for unified authentication
+  /// Send OTP to email or phone for authentication
+  /// For phone: use countryCode + phoneNumber
+  /// For email: use identifier + authType='email'
   Future<Map<String, dynamic>> sendUnifiedOTP({
-    required String identifier,
-    required String authType,
+    String? identifier,
+    String? authType,
+    String? countryCode,
+    String? phoneNumber,
   }) async {
     try {
       return await _userApiService.sendUnifiedOTP(
         identifier: identifier,
         authType: authType,
+        countryCode: countryCode,
+        phoneNumber: phoneNumber,
       );
     } catch (e) {
       final appError = ErrorHandler.handleError(e, context: 'send-otp');
@@ -814,10 +941,14 @@ class AuthService {
   }
 
   /// Verify OTP for unified authentication (email or phone)
+  ///
+  /// Set [skipTokenSave] to true when verifying email for an existing logged-in user
+  /// (e.g., adding email to profile). This prevents replacing the current user's auth tokens.
   Future<Map<String, dynamic>> verifyUnifiedOTP({
     required String identifier,
     required String otp,
     required String authType,
+    bool skipTokenSave = false,
   }) async {
     try {
       final result = await _userApiService.verifyUnifiedOTP(
@@ -826,8 +957,8 @@ class AuthService {
         authType: authType,
       );
 
-      // If user exists, save auth data
-      if (result['success'] && result['user'] != null) {
+      // If user exists, save auth data (unless skipped for email verification)
+      if (result['success'] && result['user'] != null && !skipTokenSave) {
         final user = result['user'] as app_user.User;
         final token = result['access_token'] as String;
         final refreshToken = result['refresh_token'] as String? ?? '';
@@ -1007,6 +1138,44 @@ class AuthService {
         'error': appError.userMessage.isNotEmpty
             ? appError.userMessage
             : 'Failed to login. Please try again.'
+      };
+    }
+  }
+
+  /// Register astrologer with minimal info (name + phone only)
+  /// Used for simplified astrologer signup flow
+  Future<Map<String, dynamic>> registerAstrologerMinimal({
+    required String fullName,
+    required String phoneNumber,
+  }) async {
+    try {
+      final result = await _userApiService.registerAstrologerMinimal(
+        fullName: fullName,
+        phoneNumber: phoneNumber,
+      );
+
+      if (result['success']) {
+        final user = result['user'] as app_user.User;
+        final token = result['access_token'] as String;
+        final refreshToken = result['refresh_token'] as String? ?? '';
+
+        await _saveAuthData(user, token, refreshToken);
+
+        return {
+          'success': true,
+          'user': user,
+          'token': token,
+        };
+      }
+
+      return result;
+    } catch (e) {
+      final appError = ErrorHandler.handleError(e, context: 'register-astrologer');
+      return {
+        'success': false,
+        'error': appError.userMessage.isNotEmpty
+            ? appError.userMessage
+            : 'Failed to create account. Please try again.'
       };
     }
   }

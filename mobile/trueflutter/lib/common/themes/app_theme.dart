@@ -4,16 +4,35 @@ import 'app_colors.dart';
 import 'text_styles.dart';
 
 class AppTheme {
-  static ThemeData get lightTheme {
+  /// Light theme for customers (red accent)
+  static ThemeData get lightTheme => _buildLightTheme(
+        primary: AppColors.primary,
+        primaryLight: AppColors.primaryLight,
+        primaryDark: AppColors.primaryDark,
+      );
+
+  /// Light theme for astrologers (green accent)
+  static ThemeData get astrologerLightTheme => _buildLightTheme(
+        primary: AppColors.astrologerPrimary,
+        primaryLight: AppColors.astrologerPrimaryLight,
+        primaryDark: AppColors.astrologerPrimaryDark,
+      );
+
+  /// Build a light theme with custom primary colors
+  static ThemeData _buildLightTheme({
+    required Color primary,
+    required Color primaryLight,
+    required Color primaryDark,
+  }) {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       
       // Color Scheme
-      colorScheme: const ColorScheme.light(
-        primary: AppColors.primary,
+      colorScheme: ColorScheme.light(
+        primary: primary,
         onPrimary: AppColors.white,
-        primaryContainer: AppColors.primaryLight,
+        primaryContainer: primaryLight,
         onPrimaryContainer: AppColors.white,
         secondary: AppColors.secondary,
         onSecondary: AppColors.white,
@@ -23,7 +42,7 @@ class AppTheme {
         onTertiary: AppColors.white,
         error: AppColors.error,
         onError: AppColors.white,
-        errorContainer: Color(0xFFFFEBEE),
+        errorContainer: const Color(0xFFFFEBEE),
         onErrorContainer: AppColors.error,
         surface: AppColors.surfaceLight,
         onSurface: AppColors.textPrimaryLight,
@@ -34,8 +53,8 @@ class AppTheme {
       ),
       
       // App Bar Theme
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.primary,
+      appBarTheme: AppBarTheme(
+        backgroundColor: primary,
         foregroundColor: AppColors.white,
         elevation: 0,
         centerTitle: true,
@@ -44,22 +63,22 @@ class AppTheme {
       ),
       
       // Bottom Navigation Bar Theme
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: AppColors.white,
-        selectedItemColor: AppColors.primary,
+        selectedItemColor: primary,
         unselectedItemColor: AppColors.grey500,
         type: BottomNavigationBarType.fixed,
         elevation: 8,
       ),
-      
+
       // Tab Bar Theme
-      tabBarTheme: const TabBarThemeData(
-        labelColor: AppColors.primary,
+      tabBarTheme: TabBarThemeData(
+        labelColor: primary,
         unselectedLabelColor: AppColors.grey500,
         labelStyle: AppTextStyles.tabLabel,
         unselectedLabelStyle: AppTextStyles.tabLabel,
         indicator: UnderlineTabIndicator(
-          borderSide: BorderSide(color: AppColors.primary, width: 2),
+          borderSide: BorderSide(color: primary, width: 2),
         ),
       ),
       
@@ -76,10 +95,10 @@ class AppTheme {
       // Elevated Button Theme
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
+          backgroundColor: primary,
           foregroundColor: AppColors.white,
           elevation: 2,
-          shadowColor: AppColors.primary.withValues(alpha: 0.3),
+          shadowColor: primary.withValues(alpha: 0.3),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
@@ -87,12 +106,12 @@ class AppTheme {
           textStyle: AppTextStyles.buttonMedium,
         ),
       ),
-      
+
       // Outlined Button Theme
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          side: const BorderSide(color: AppColors.primary),
+          foregroundColor: primary,
+          side: BorderSide(color: primary),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
@@ -100,11 +119,11 @@ class AppTheme {
           textStyle: AppTextStyles.buttonMedium,
         ),
       ),
-      
+
       // Text Button Theme
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: AppColors.primary,
+          foregroundColor: primary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
@@ -127,7 +146,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderSide: BorderSide(color: primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -147,7 +166,7 @@ class AppTheme {
       checkboxTheme: CheckboxThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppColors.primary;
+            return primary;
           }
           return Colors.transparent;
         }),
@@ -156,36 +175,36 @@ class AppTheme {
           borderRadius: BorderRadius.circular(4),
         ),
       ),
-      
+
       // Radio Theme
       radioTheme: RadioThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppColors.primary;
+            return primary;
           }
           return AppColors.grey400;
         }),
       ),
-      
+
       // Switch Theme
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppColors.primary;
+            return primary;
           }
           return AppColors.grey400;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppColors.primary.withValues(alpha: 0.5);
+            return primary.withValues(alpha: 0.5);
           }
           return AppColors.grey300;
         }),
       ),
-      
+
       // Floating Action Button Theme
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: AppColors.primary,
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: primary,
         foregroundColor: AppColors.white,
         elevation: 6,
       ),

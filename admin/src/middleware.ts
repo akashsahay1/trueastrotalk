@@ -14,7 +14,30 @@ const adminRoutes = ['/dashboard', '/accounts', '/sessions', '/products', '/orde
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
+  const method = request.method;
+
+  // Block POST requests probing for Server Actions (scanner/bot attacks)
+  if (method === 'POST') {
+    // Block all POST to root - this is an admin panel, no forms POST to root
+    if (pathname === '/') {
+      return new NextResponse(null, { status: 404 });
+    }
+    const serverActionProbes = [
+      '/_next/data', '/_next/refresh', '/_next/redirect', '/_next/turbopack',
+      '/_next/webpack-hmr', '/_next/server-actions', '/_next/flight',
+      '/_next/static', '/_next/server', '/_react/flight', '/_react_server'
+    ];
+    if (serverActionProbes.some(path => pathname.startsWith(path))) {
+      return new NextResponse(null, { status: 404 });
+    }
+  }
+
+  // Block common bot/scanner paths immediately (reduce log noise)
+  const botPaths = ['/blogs', '/buy', '/cart', '/goods', '/information', '/mails', '/more', '/news', '/shoppings', '/shops', '/wp-admin', '/wp-login', '/admin.php', '/.env', '/phpinfo'];
+  if (botPaths.some(path => pathname.startsWith(path))) {
+    return new NextResponse(null, { status: 404 });
+  }
+
   // Skip middleware for static files and API routes
   if (
     pathname.startsWith('/_next/') ||
@@ -60,9 +83,18 @@ export async function middleware(request: NextRequest) {
     try {
       const { payload } = await jwtVerify(token, JWT_SECRET);
       
-      // Check if user is admin
-      if (payload.user_type !== 'administrator') {
+      // Check if user is admin or manager
+      const allowedTypes = ['administrator', 'admin', 'manager'];
+      if (!allowedTypes.includes(payload.user_type as string)) {
         return NextResponse.redirect(new URL('/login', request.url));
+      }
+
+      // Restrict managers from accessing certain routes
+      const adminOnlyRoutes = ['/settings/general', '/accounts/admins'];
+      if (payload.user_type === 'manager') {
+        if (adminOnlyRoutes.some(route => pathname.startsWith(route))) {
+          return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
       }
 
       return NextResponse.next();
@@ -83,6 +115,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    // Match all paths except static assets and API routes
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };

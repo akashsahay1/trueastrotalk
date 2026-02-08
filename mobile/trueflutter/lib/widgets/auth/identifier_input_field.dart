@@ -160,11 +160,11 @@ class _IdentifierInputFieldState extends State<IdentifierInputField> {
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: AppColors.white,
             borderRadius: BorderRadius.circular(16),
-            border: widget.errorText != null
-                ? Border.all(color: AppColors.error, width: 1)
-                : null,
+            border: Border.all(
+              color: widget.errorText != null ? AppColors.error : AppColors.grey300,
+              width: 1,
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.06),
@@ -173,83 +173,89 @@ class _IdentifierInputFieldState extends State<IdentifierInputField> {
               ),
             ],
           ),
-          child: Row(
-            children: [
-              // Leading icon
-              Container(
-                padding: const EdgeInsets.all(16),
-                child: Icon(
-                  _getLeadingIcon(),
-                  color: AppColors.primary,
-                  size: 22,
-                ),
-              ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(15),
+            child: Container(
+              color: AppColors.white,
+              child: Row(
+                children: [
+                  // Leading icon
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    child: Icon(
+                      _getLeadingIcon(),
+                      color: AppColors.primary,
+                      size: 22,
+                    ),
+                  ),
 
-              // Country code dropdown for phone
-              if (_currentType == IdentifierType.phone) ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _selectedCountryCode,
-                      items: [
-                        DropdownMenuItem(value: '+91', child: Text('+91')),
-                        DropdownMenuItem(value: '+1', child: Text('+1')),
-                        DropdownMenuItem(value: '+44', child: Text('+44')),
-                        DropdownMenuItem(value: '+61', child: Text('+61')),
-                        DropdownMenuItem(value: '+971', child: Text('+971')),
-                      ],
-                      onChanged: widget.enabled
-                          ? (value) {
-                              if (value != null) {
-                                setState(() {
-                                  _selectedCountryCode = value;
-                                });
-                                _handleTextChange();
-                              }
-                            }
-                          : null,
+                  // Country code dropdown for phone
+                  if (_currentType == IdentifierType.phone) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedCountryCode,
+                          items: [
+                            DropdownMenuItem(value: '+91', child: Text('+91')),
+                            DropdownMenuItem(value: '+1', child: Text('+1')),
+                            DropdownMenuItem(value: '+44', child: Text('+44')),
+                            DropdownMenuItem(value: '+61', child: Text('+61')),
+                            DropdownMenuItem(value: '+971', child: Text('+971')),
+                          ],
+                          onChanged: widget.enabled
+                              ? (value) {
+                                  if (value != null) {
+                                    setState(() {
+                                      _selectedCountryCode = value;
+                                    });
+                                    _handleTextChange();
+                                  }
+                                }
+                              : null,
+                          style: AppTextStyles.bodyLarge.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      height: 24,
+                      width: 1,
+                      color: AppColors.grey300,
+                    ),
+                  ],
+
+                  // Text input field
+                  Expanded(
+                    child: TextField(
+                      controller: widget.controller,
+                      enabled: widget.enabled,
+                      keyboardType: _getKeyboardType(),
+                      inputFormatters: _getInputFormatters(),
                       style: AppTextStyles.bodyLarge.copyWith(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w500,
                       ),
+                      decoration: InputDecoration(
+                        hintText: _getHintText(),
+                        hintStyle: AppTextStyles.bodyLarge.copyWith(
+                          color: AppColors.textSecondary.withValues(alpha: 0.5),
+                        ),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 18,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                Container(
-                  height: 24,
-                  width: 1,
-                  color: AppColors.grey300,
-                ),
-              ],
-
-              // Text input field
-              Expanded(
-                child: TextField(
-                  controller: widget.controller,
-                  enabled: widget.enabled,
-                  keyboardType: _getKeyboardType(),
-                  inputFormatters: _getInputFormatters(),
-                  style: AppTextStyles.bodyLarge.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: _getHintText(),
-                    hintStyle: AppTextStyles.bodyLarge.copyWith(
-                      color: AppColors.textSecondary.withValues(alpha: 0.5),
-                    ),
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 18,
-                    ),
-                  ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
 

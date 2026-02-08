@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "node server.js",
     "dev:next": "next dev",
+    "dev:turbo": "next dev --turbopack",
     "dev:all": "npm run dev",
     "start:all": "npm run start",
     "build": "next build",

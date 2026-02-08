@@ -1392,27 +1392,53 @@ class UserApiService {
     }
   }
 
-  // Unified Authentication Methods (New)
+  // Unified Authentication Methods
 
-  /// Send OTP to email or phone for unified authentication
+  /// Send OTP to email or phone for authentication
+  /// For phone: use countryCode + phoneNumber
+  /// For email: use identifier + authType='email'
   Future<Map<String, dynamic>> sendUnifiedOTP({
-    required String identifier,
-    required String authType, // 'email' or 'phone'
+    String? identifier,
+    String? authType,
+    String? countryCode,
+    String? phoneNumber,
   }) async {
     try {
-      final response = await _dio.post(
-        ApiEndpoints.sendOtp,
-        data: {
+      // Build request data based on what's provided
+      Map<String, dynamic> requestData;
+
+      if (countryCode != null && phoneNumber != null) {
+        // New phone format: country_code + phone_number
+        requestData = {
+          'country_code': countryCode,
+          'phone_number': phoneNumber,
+        };
+      } else if (identifier != null && authType != null) {
+        // Legacy format: identifier + auth_type
+        requestData = {
           'identifier': identifier,
           'auth_type': authType,
-        },
+        };
+      } else {
+        return {
+          'success': false,
+          'error': 'Invalid parameters: provide countryCode+phoneNumber or identifier+authType',
+        };
+      }
+
+      final response = await _dio.post(
+        ApiEndpoints.sendOtp,
+        data: requestData,
       );
 
       if (response.statusCode == 200) {
         return {
           'success': true,
           'message': response.data['message'] ?? 'OTP sent successfully',
-          'otp_sent_to': response.data['otp_sent_to'] ?? identifier,
+          'country_code': response.data['country_code'],
+          'phone_number': response.data['phone_number'],
+          'identifier': response.data['identifier'],
+          'is_new_user': response.data['is_new_user'] ?? false,
           'expiry_seconds': response.data['expiry_seconds'] ?? 300,
           'testing_mode': response.data['testing_mode'] ?? false,
         };
@@ -1420,13 +1446,15 @@ class UserApiService {
         return {
           'success': false,
           'error': response.data['error'] ?? 'Failed to send OTP',
+          'error_code': response.data['error_code'],
         };
       }
     } on DioException catch (e) {
-      debugPrint('❌ Send Unified OTP error: ${e.response?.statusCode} - ${e.response?.data}');
+      debugPrint('❌ Send OTP error: ${e.response?.statusCode} - ${e.response?.data}');
       return {
         'success': false,
-        'error': e.response?.data['error'] ?? _handleDioException(e),
+        'error': e.response?.data?['error'] ?? _handleDioException(e),
+        'error_code': e.response?.data?['error_code'],
       };
     }
   }
@@ -1729,6 +1757,55 @@ class UserApiService {
       return {
         'success': false,
         'error': e.response?.data['error'] ?? _handleDioException(e),
+      };
+    }
+  }
+
+  /// Register astrologer with minimal info (name + phone only)
+  /// Used for simplified astrologer signup flow
+  Future<Map<String, dynamic>> registerAstrologerMinimal({
+    required String fullName,
+    required String phoneNumber,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiEndpoints.register,
+        data: {
+          'full_name': fullName,
+          'phone_number': phoneNumber,
+          'user_type': 'astrologer',
+          'auth_type': 'phone',
+          // Defaults for optional fields
+          'experience_years': 0,
+          'bio': '',
+          'languages': <String>[],
+          'skills': <String>[],
+        },
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final responseData = response.data['data'] ?? response.data;
+        final userData = responseData['user'] ?? responseData;
+        final user = User.fromJson(userData);
+
+        return {
+          'success': true,
+          'message': response.data['message'] ?? 'Account created successfully',
+          'user': user,
+          'access_token': responseData['access_token'] ?? responseData['token'] ?? '',
+          'refresh_token': responseData['refresh_token'] ?? '',
+        };
+      } else {
+        return {
+          'success': false,
+          'error': response.data['error'] ?? response.data['message'] ?? 'Failed to create account',
+        };
+      }
+    } on DioException catch (e) {
+      debugPrint('❌ Register astrologer minimal error: ${e.response?.statusCode} - ${e.response?.data}');
+      return {
+        'success': false,
+        'error': e.response?.data['error'] ?? e.response?.data['message'] ?? _handleDioException(e),
       };
     }
   }

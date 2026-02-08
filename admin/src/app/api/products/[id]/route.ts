@@ -52,7 +52,7 @@ export async function GET(
     const resolvedParams = await params;
     const productId = resolvedParams.id;
 
-    if (!productId || !ObjectId.isValid(productId)) {
+    if (!productId) {
       return NextResponse.json({
         success: false,
         error: 'Invalid product ID',
@@ -63,11 +63,27 @@ export async function GET(
     const productsCollection = await DatabaseService.getCollection('products');
     const reviewsCollection = await DatabaseService.getCollection('product_reviews');
 
-    // Get product
-    const product = await productsCollection.findOne({ 
-      _id: new ObjectId(productId),
-      is_active: true 
-    });
+    // Get product - support both custom product_id and MongoDB ObjectId
+    let product;
+    if (productId.startsWith('product_')) {
+      // Custom product_id format (e.g., "product_1756540783734_wxtlznqe")
+      product = await productsCollection.findOne({
+        product_id: productId,
+        is_active: true
+      });
+    } else if (ObjectId.isValid(productId)) {
+      // MongoDB ObjectId format
+      product = await productsCollection.findOne({
+        _id: new ObjectId(productId),
+        is_active: true
+      });
+    } else {
+      // Try as custom product_id anyway
+      product = await productsCollection.findOne({
+        product_id: productId,
+        is_active: true
+      });
+    }
 
     if (!product) {
       return NextResponse.json({
@@ -77,19 +93,19 @@ export async function GET(
       }, { status: 404 });
     }
 
-    // Get reviews for this product
+    // Get reviews for this product (use the product's custom product_id)
     const reviews = await reviewsCollection
-      .find({ product_id: productId })
+      .find({ product_id: product.product_id })
       .sort({ created_at: -1 })
       .limit(10)
       .toArray();
 
-    // Get related products from same category
+    // Get related products from same category (exclude current product by its _id)
     const relatedProducts = await productsCollection
-      .find({ 
+      .find({
         category: product.category,
-        _id: { $ne: new ObjectId(productId) },
-        is_active: true 
+        _id: { $ne: product._id },
+        is_active: true
       })
       .limit(6)
       .toArray();

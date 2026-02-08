@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Primary Brand Color - Red Theme
+  // Primary Brand Color - Red Theme (for Customers)
   static const Color primary = Color(0xFFFE0000); // Bright Red
   static const Color primaryLight = Color(0xFFFF4D4D); // Light Red
   static const Color primaryDark = Color(0xFFB30000); // Dark Red
+
+  // Astrologer Primary Color - Green Theme
+  static const Color astrologerPrimary = Color(0xFF00A765); // Emerald-500
+  static const Color astrologerPrimaryLight = Color(0xFF34D399); // Emerald-400
+  static const Color astrologerPrimaryDark = Color(0xFF035E3A); // Emerald-600
 
   // Secondary Colors - Golden/Cosmic Theme
   static const Color secondary = Color(0xFFF59E0B); // Amber-500
@@ -42,10 +47,15 @@ class AppColors {
   static const Color surfaceLight = Color(0xFFFFFFFF);
   static const Color surfaceDark = Color(0xFF1E1E1E);
 
-  // Gradient Colors for Mystical Theme
-  static const Color gradientStart = Color(0xFFFE0000); 
+  // Gradient Colors for Mystical Theme (Customer - Red)
+  static const Color gradientStart = Color(0xFFFE0000);
   static const Color gradientMiddle = Color(0xFFFF4D4D);
   static const Color gradientEnd = Color(0xFFB30000);
+
+  // Gradient Colors for Astrologer (Green)
+  static const Color astrologerGradientStart = Color(0xFF10B981);
+  static const Color astrologerGradientMiddle = Color(0xFF34D399);
+  static const Color astrologerGradientEnd = Color(0xFF059669);
 
   // Text Colors
   static const Color textPrimaryLight = Color(0xFF212121);
@@ -62,18 +72,24 @@ class AppColors {
   static const Color dividerDark = Color(0xFF616161);
 
   // Astrology Specific Colors
-  static const Color zodiacFire = Color(0xFFFF6B35); 
+  static const Color zodiacFire = Color(0xFFFF6B35);
   static const Color zodiacEarth = Color(
     0xFF8BC34A,
   ); // Taurus, Virgo, Capricorn
-  static const Color zodiacAir = Color(0xFF03DAC6); 
+  static const Color zodiacAir = Color(0xFF03DAC6);
   static const Color zodiacWater = Color(0xFF3F51B5);
 
-  // Chat Colors
+  // Chat Colors (Customer view - red bubbles for user messages)
   static const Color chatBubbleUser = Color(0xFFFE0000);
   static const Color chatBubbleAstrologer = Color(0xFFE0E0E0);
   static const Color chatBubbleUserText = Color(0xFFFFFFFF);
   static const Color chatBubbleAstrologerText = Color(0xFF212121);
+
+  // Chat Colors for Astrologer view (green bubbles for user messages)
+  static const Color astrologerChatBubbleUser = Color(0xFF10B981);
+  static const Color astrologerChatBubbleAstrologer = Color(0xFFE0E0E0);
+  static const Color astrologerChatBubbleUserText = Color(0xFFFFFFFF);
+  static const Color astrologerChatBubbleAstrologerText = Color(0xFF212121);
 
   // Status Colors for Astrologers
   static const Color onlineStatus = Color(0xFF4CAF50);

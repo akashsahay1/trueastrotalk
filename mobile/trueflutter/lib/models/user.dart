@@ -4,6 +4,7 @@ import 'enums.dart';
 class User {
   // Basic user fields
   final String id;
+  final String? countryCode;
   final String? phone;
   final String? email;
   final String name;
@@ -16,6 +17,8 @@ class User {
   final DateTime? verifiedAt;
   final String? verifiedBy;
   final String? rejectionReason;
+  final bool? emailVerified;  // Whether email is verified (OTP)
+  final bool? phoneVerified;  // Whether phone is verified (OTP)
 
   // Customer-specific fields
   final double? walletBalance;
@@ -71,6 +74,7 @@ class User {
   const User({
     // Basic user fields
     required this.id,
+    this.countryCode,
     this.phone,
     this.email,
     required this.name,
@@ -83,6 +87,8 @@ class User {
     this.verifiedAt,
     this.verifiedBy,
     this.rejectionReason,
+    this.emailVerified,
+    this.phoneVerified,
 
     // Customer-specific fields
     this.walletBalance,
@@ -158,6 +164,15 @@ class User {
         rethrow;
       }
       
+      String? testCountryCode;
+      try {
+        testCountryCode = json['country_code']?.toString();
+        debugPrint('✅ Country code parsing successful: $testCountryCode');
+      } catch (e) {
+        debugPrint('❌ Country code parsing failed: $e');
+        rethrow;
+      }
+
       try {
         testPhone = json['phone_number']?.toString();
         debugPrint('✅ Phone parsing successful: $testPhone');
@@ -221,6 +236,7 @@ class User {
       return User(
         // Basic user fields (using tested variables)
         id: testId,
+        countryCode: testCountryCode,
         phone: testPhone,
         email: testEmail,
         name: testName,
@@ -233,6 +249,8 @@ class User {
         verifiedAt: json['verified_at'] != null ? DateTime.parse(json['verified_at'].toString()) : null,
         verifiedBy: json['verified_by']?.toString(),
         rejectionReason: json['rejection_reason']?.toString(),
+        emailVerified: _parseBool(json['email_verified']),
+        phoneVerified: _parseBool(json['phone_verified']),
 
         // Customer-specific fields
         walletBalance: _parseDouble(json['wallet_balance']),
@@ -297,6 +315,7 @@ class User {
     return {
       // Basic user fields
       'id': id,
+      'country_code': countryCode,
       'phone': phone,
       'email': email,
       'name': name,
@@ -309,6 +328,8 @@ class User {
       'verified_at': verifiedAt?.toIso8601String(),
       'verified_by': verifiedBy,
       'rejection_reason': rejectionReason,
+      'email_verified': emailVerified,
+      'phone_verified': phoneVerified,
 
       // Customer-specific fields
       'wallet_balance': walletBalance,
@@ -365,6 +386,7 @@ class User {
 
   User copyWith({
     String? id,
+    String? countryCode,
     String? phone,
     String? email,
     String? name,
@@ -377,6 +399,8 @@ class User {
     DateTime? verifiedAt,
     String? verifiedBy,
     String? rejectionReason,
+    bool? emailVerified,
+    bool? phoneVerified,
 
     // Customer-specific fields
     double? walletBalance,
@@ -435,6 +459,7 @@ class User {
     return User(
       // Basic user fields
       id: id ?? this.id,
+      countryCode: countryCode ?? this.countryCode,
       phone: phone ?? this.phone,
       email: email ?? this.email,
       name: name ?? this.name,
@@ -447,6 +472,8 @@ class User {
       verifiedAt: verifiedAt ?? this.verifiedAt,
       verifiedBy: verifiedBy ?? this.verifiedBy,
       rejectionReason: rejectionReason ?? this.rejectionReason,
+      emailVerified: emailVerified ?? this.emailVerified,
+      phoneVerified: phoneVerified ?? this.phoneVerified,
 
       // Customer-specific fields
       walletBalance: walletBalance ?? this.walletBalance,
@@ -524,17 +551,26 @@ class User {
   bool get isAdmin => role == UserRole.administrator;
   bool get isManager => role == UserRole.manager;
 
-  bool get isEmailVerified => verificationStatus == VerificationStatus.verified;
+  // Email/phone OTP verification status
+  bool get isEmailOtpVerified => emailVerified == true;
+  bool get isPhoneOtpVerified => phoneVerified == true;
+
+  // Admin verification status (approval)
+  bool get isAdminVerified => verificationStatus == VerificationStatus.verified;
+
+  // Legacy getter - now uses admin verification
+  bool get isEmailVerified => isAdminVerified;
+
   bool get isActive => accountStatus == AccountStatus.active;
   bool get isInactive => accountStatus == AccountStatus.inactive;
   bool get isSuspended => accountStatus == AccountStatus.suspended;
   bool get isBanned => accountStatus == AccountStatus.banned;
 
   // For astrologers
-  bool get canProvideConsultations => isAstrologer && isActive && isEmailVerified && (isOnline ?? false);
+  bool get canProvideConsultations => isAstrologer && isActive && isAdminVerified && (isOnline ?? false);
 
   // For customers
-  bool get canBookConsultations => isCustomer && isActive && isEmailVerified;
+  bool get canBookConsultations => isCustomer && isActive;
 
   // Check if astrologer profile is complete
   bool get isProfileComplete {
@@ -548,8 +584,10 @@ class User {
         return true;
       }
       // For new/pending astrologers, check if required professional fields are filled
+      // Email is now required (verified via OTP) for profile completion
       return name.isNotEmpty &&
-          (phone != null || email != null) &&
+          email != null && email!.isNotEmpty &&  // Email required
+          isEmailOtpVerified &&                   // Email must be OTP verified
           bio != null && bio!.isNotEmpty &&
           (experienceYears != null && experienceYears! > 0) &&
           languages != null && languages!.isNotEmpty &&

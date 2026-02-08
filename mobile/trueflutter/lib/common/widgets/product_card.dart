@@ -3,7 +3,7 @@ import '../themes/app_colors.dart';
 import '../themes/text_styles.dart';
 import '../constants/dimensions.dart';
 import '../../models/product.dart';
-import '../../services/cart_service.dart';
+import '../../services/cart/cart_service.dart';
 import '../../services/service_locator.dart';
 
 class ProductCard extends StatefulWidget {

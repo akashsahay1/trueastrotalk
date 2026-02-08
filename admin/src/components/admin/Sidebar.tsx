@@ -2,9 +2,29 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [userType, setUserType] = useState<string>('');
+
+  useEffect(() => {
+    // Fetch user type from auth check API
+    const fetchUserType = async () => {
+      try {
+        const response = await fetch('/api/auth/check');
+        if (response.ok) {
+          const data = await response.json();
+          setUserType(data.userType || '');
+        }
+      } catch (error) {
+        console.error('Failed to fetch user type:', error);
+      }
+    };
+    fetchUserType();
+  }, []);
+
+  const isManager = userType === 'manager';
 
   const menuItems = [
     {
@@ -20,7 +40,8 @@ export default function Sidebar() {
         {
           title: 'Admins',
           href: '/accounts/admins',
-          active: pathname?.startsWith('/accounts/admins') || false
+          active: pathname?.startsWith('/accounts/admins') || false,
+          adminOnly: true
         },
         {
           title: 'Astrologers',
@@ -149,10 +170,11 @@ export default function Sidebar() {
       title: 'Settings',
       icon: 'fa-cogs',
       submenu: [
-				{
+        {
           title: 'General',
           href: '/settings/general',
-          active: pathname?.startsWith('/settings/general') || false
+          active: pathname?.startsWith('/settings/general') || false,
+          adminOnly: true
         },
         {
           title: 'Astrologers',
@@ -189,10 +211,12 @@ export default function Sidebar() {
                       </a>
                       <div id={`submenu-${index}`} className={`collapse submenu ${item.submenu.some(sub => sub.active) ? 'show' : ''}`}>
                         <ul className="nav flex-column">
-                          {item.submenu.map((subitem, subindex) => (
+                          {item.submenu
+                            .filter(subitem => !isManager || !subitem.adminOnly)
+                            .map((subitem, subindex) => (
                             <li key={subindex} className="nav-item">
-                              <Link 
-                                className='nav-link' 
+                              <Link
+                                className='nav-link'
                                 href={subitem.href}
                               >
                                 {subitem.title}

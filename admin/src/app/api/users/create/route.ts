@@ -106,6 +106,14 @@ export const POST = withSecurity(async (request: AuthenticatedNextRequest) => {
       );
     }
 
+    // Prevent managers from creating administrator accounts
+    if (request.user?.user_type === 'manager' && user_type === 'administrator') {
+      return NextResponse.json(
+        { error: 'Managers cannot create Administrator accounts' },
+        { status: 403 }
+      );
+    }
+
     // Additional validation for astrologers
     if (user_type === 'astrologer') {
       const {

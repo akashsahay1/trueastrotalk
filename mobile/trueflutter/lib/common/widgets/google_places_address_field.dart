@@ -355,7 +355,6 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
           labelStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryLight),
           hintStyle: AppTextStyles.bodyMedium.copyWith(
             color: AppColors.textSecondaryLight,
-            fontStyle: FontStyle.italic,
           ),
           prefixIcon: const Icon(
             Icons.location_on_outlined,
@@ -374,23 +373,23 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
               : null,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.borderLight),
+            borderSide: const BorderSide(color: AppColors.grey300, width: 0.5),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.borderLight),
+            borderSide: const BorderSide(color: AppColors.grey300, width: 0.5),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.primary, width: 2),
+            borderSide: const BorderSide(color: AppColors.grey300, width: 0.5),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.error, width: 2),
+            borderSide: const BorderSide(color: AppColors.grey300, width: 0.5),
           ),
           focusedErrorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.error, width: 2),
+            borderSide: const BorderSide(color: AppColors.grey300, width: 0.5),
           ),
           filled: true,
           fillColor: widget.enabled ? AppColors.white : AppColors.grey50,

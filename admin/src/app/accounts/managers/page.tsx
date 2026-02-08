@@ -400,10 +400,12 @@ export default function ManagersPage() {
                                   <div className="d-flex align-items-center">
                                     {user.profile_image ? (
                                       <Image
-                                        src={user.profile_image} 
+                                        src={user.profile_image}
                                         alt={user.full_name}
+                                        width={40}
+                                        height={40}
                                         className="rounded-circle mr-2"
-                                        style={{ width: '40px', height: '40px', objectFit: 'cover' }}
+                                        style={{ objectFit: 'cover' }}
                                       />
                                     ) : (
                                       <div className="avatar-xs rounded-circle bg-warning text-white d-flex align-items-center justify-content-center mr-2">

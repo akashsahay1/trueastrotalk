@@ -430,8 +430,9 @@ async function handleLogin(request: NextRequest): Promise<NextResponse> {
 
 
     // Prepare response based on user type
-    if (user.user_type === 'administrator') {
-      // Admin response with secure cookie
+    const adminPanelUserTypes = ['administrator', 'admin', 'manager'];
+    if (adminPanelUserTypes.includes(user.user_type)) {
+      // Admin/Manager response with secure cookie
       const response = NextResponse.json({
         success: true,
         user: {

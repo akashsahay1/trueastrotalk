@@ -330,6 +330,107 @@ class EmailService {
     });
   }
 
+  // Template: Admin notification for astrologer profile completion
+  getAstrologerProfileCompleteTemplate(astrologer: {
+    name: string;
+    email: string;
+    phone?: string;
+    userId: string;
+    experience?: number;
+    skills?: string;
+    languages?: string;
+  }): EmailTemplate {
+    return {
+      subject: `New Astrologer Application - ${astrologer.name}`,
+      html: `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>New Astrologer Application</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #000000; margin: 0; padding: 0; background: #f4f4f4; text-align: center;">
+          <div style="display: inline-block; max-width: 600px; margin: 60px auto 60px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: left;">
+            ${this.getEmailHeader()}
+
+            <div style="padding: 30px;">
+              <h2 style="color: #000000; margin: 0 0 20px 0; font-size: 18px;">New Astrologer Application Received</h2>
+
+              <div style="background: #fff8f8; border: 1px solid #FE0000; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <h3 style="margin: 0 0 15px 0; color: #FE0000;">Action Required</h3>
+                <p style="margin: 0; color: #000000;">A new astrologer has completed their profile and is waiting for your review and approval.</p>
+              </div>
+
+              <div style="background: #f8f8f8; padding: 20px; border-radius: 8px; border-left: 4px solid #FE0000; margin-bottom: 20px;">
+                <h3 style="margin: 0 0 15px 0; color: #000000;">Astrologer Details</h3>
+                <p style="margin: 8px 0; color: #000000;"><strong>Name:</strong> ${astrologer.name}</p>
+                <p style="margin: 8px 0; color: #000000;"><strong>Email:</strong> ${astrologer.email}</p>
+                <p style="margin: 8px 0; color: #000000;"><strong>Phone:</strong> ${astrologer.phone || 'N/A'}</p>
+                <p style="margin: 8px 0; color: #000000;"><strong>Experience:</strong> ${astrologer.experience || 0} years</p>
+                <p style="margin: 8px 0; color: #000000;"><strong>Skills:</strong> ${astrologer.skills || 'N/A'}</p>
+                <p style="margin: 8px 0; color: #000000;"><strong>Languages:</strong> ${astrologer.languages || 'N/A'}</p>
+              </div>
+
+              <div style="text-align: center; margin: 25px 0;">
+                <a href="${envConfig.NEXTAUTH_URL}/accounts/edit-user?id=${astrologer.userId}" style="display: inline-block; padding: 14px 28px; background: #FE0000; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Review Application</a>
+              </div>
+
+              <p style="color: #666666; font-size: 14px; text-align: center; margin: 20px 0 0 0;">
+                Please review the application and approve or reject it from the admin panel.
+              </p>
+            </div>
+
+            ${this.getEmailFooter()}
+          </div>
+        </body>
+        </html>
+      `,
+      text: `
+        New Astrologer Application - ${astrologer.name}
+
+        A new astrologer has completed their profile and is waiting for your review and approval.
+
+        Astrologer Details:
+        - Name: ${astrologer.name}
+        - Email: ${astrologer.email}
+        - Phone: ${astrologer.phone || 'N/A'}
+        - Experience: ${astrologer.experience || 0} years
+        - Skills: ${astrologer.skills || 'N/A'}
+        - Languages: ${astrologer.languages || 'N/A'}
+
+        Review Application: ${envConfig.NEXTAUTH_URL}/accounts/edit-user?id=${astrologer.userId}
+
+        Please review the application and approve or reject it from the admin panel.
+      `
+    };
+  }
+
+  // Send notification to all admins when astrologer profile is complete
+  async sendAstrologerProfileCompleteNotification(astrologer: {
+    name: string;
+    email: string;
+    phone?: string;
+    userId: string;
+    experience?: number;
+    skills?: string;
+    languages?: string;
+  }, adminEmails: string[]): Promise<boolean> {
+    if (adminEmails.length === 0) {
+      console.warn('No admin emails found for profile complete notification');
+      return false;
+    }
+
+    const template = this.getAstrologerProfileCompleteTemplate(astrologer);
+
+    return await this.sendEmail({
+      to: adminEmails,
+      subject: template.subject,
+      html: template.html,
+      text: template.text
+    });
+  }
+
   // Send welcome email to new user
   async sendWelcomeEmail(user: { name: string; email: string; user_type: string; createdAt?: string | Date }): Promise<boolean> {
     const template = this.getWelcomeEmailTemplate(user);

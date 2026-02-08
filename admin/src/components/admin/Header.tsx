@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface UserInfo {
   full_name: string;
@@ -13,10 +13,29 @@ interface UserInfo {
 export default function Header() {
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
-  const [userInfo] = useState<UserInfo>({
-    full_name: 'Administrator',
-    user_type: 'Administrator'
+  const [userInfo, setUserInfo] = useState<UserInfo>({
+    full_name: 'Loading...',
+    user_type: ''
   });
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const response = await fetch('/api/auth/check');
+        if (response.ok) {
+          const data = await response.json();
+          setUserInfo({
+            full_name: data.fullName || 'User',
+            user_type: data.userType || '',
+            profile_image: data.profileImage
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch user info:', error);
+      }
+    };
+    fetchUserInfo();
+  }, []);
 
 
   const handleLogout = async () => {

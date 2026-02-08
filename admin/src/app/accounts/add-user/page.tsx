@@ -65,6 +65,25 @@ function AddUserPageContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [defaultCommission, setDefaultCommission] = useState(25);
+  const [currentUserType, setCurrentUserType] = useState<string>('');
+
+  // Fetch current logged-in user's type
+  useEffect(() => {
+    const fetchCurrentUserType = async () => {
+      try {
+        const response = await fetch('/api/auth/check');
+        if (response.ok) {
+          const data = await response.json();
+          setCurrentUserType(data.userType || '');
+        }
+      } catch (error) {
+        console.error('Failed to fetch current user type:', error);
+      }
+    };
+    fetchCurrentUserType();
+  }, []);
+
+  const isCurrentUserManager = currentUserType === 'manager';
   
   const [formData, setFormData] = useState<FormData>({
     user_id: '',
@@ -590,14 +609,19 @@ function AddUserPageContent() {
                             className="custom-select" 
                             name="user_type" 
                             value={formData.user_type} 
-                            onChange={handleInputChange} 
+                            onChange={handleInputChange}
                             required
                           >
                             <option value="customer">Customer</option>
                             <option value="astrologer">Astrologer</option>
-                            <option value="administrator">Administrator</option>
+                            {!isCurrentUserManager && (
+                              <option value="administrator">Administrator</option>
+                            )}
                             <option value="manager">Manager</option>
                           </select>
+                          {isCurrentUserManager && formData.user_type === 'administrator' && (
+                            <small className="text-danger">You cannot create Administrator accounts</small>
+                          )}
                         </div>
 
                         {/* Full Name */}

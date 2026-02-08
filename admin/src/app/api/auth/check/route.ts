@@ -16,16 +16,18 @@ export async function GET(request: NextRequest) {
     // Verify the JWT token
     const { payload } = await jwtVerify(token, JWT_SECRET);
     
-    // Check if user is admin
-    if (payload.user_type !== 'administrator') {
+    // Check if user is admin or manager
+    const allowedTypes = ['administrator', 'admin', 'manager'];
+    if (!allowedTypes.includes(payload.user_type as string)) {
       return NextResponse.json({ authenticated: false }, { status: 401 });
     }
 
     // Return user info if authenticated
-    return NextResponse.json({ 
+    return NextResponse.json({
       authenticated: true,
       userId: payload.userId,
       userType: payload.user_type,
+      fullName: payload.full_name || 'User',
       email: payload.email
     });
 

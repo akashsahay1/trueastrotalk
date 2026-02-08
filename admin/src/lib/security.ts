@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import Joi from 'joi';
 import { NextRequest } from 'next/server';
 import crypto from 'crypto';
+import DatabaseService from './database';
 // import { jwtVerify } from 'jose';
 
 // Security configuration
@@ -429,6 +430,54 @@ export class SecurityMiddleware {
       throw new Error('Invalid authentication token');
     }
     return payload;
+  }
+
+  /**
+   * Authenticate request AND verify user still exists in database
+   * Returns 401 UNAUTHORIZED if user doesn't exist (account deleted)
+   * This should be used for all mobile app API endpoints
+   */
+  static async authenticateAndVerifyUser(request: NextRequest): Promise<{
+    payload: Record<string, unknown>;
+    user: Record<string, unknown>;
+  }> {
+    // First, verify the JWT token
+    const payload = await this.authenticateRequest(request);
+
+    // Get user_id from token payload
+    const userId = payload.userId || payload.user_id || payload.sub;
+    if (!userId) {
+      const error = new Error('Invalid token: missing user identifier');
+      (error as Error & { code?: string }).code = 'INVALID_TOKEN';
+      throw error;
+    }
+
+    // Check if user exists in database
+    const usersCollection = await DatabaseService.getCollection('users');
+    const user = await usersCollection.findOne({
+      $or: [
+        { user_id: userId },
+        { _id: typeof userId === 'string' && userId.length === 24 ? new (require('mongodb').ObjectId)(userId) : null }
+      ].filter(Boolean)
+    });
+
+    if (!user) {
+      // User has been deleted - throw specific error
+      const error = new Error('User account not found');
+      (error as Error & { code?: string }).code = 'USER_NOT_FOUND';
+      (error as Error & { status?: number }).status = 401;
+      throw error;
+    }
+
+    // Check if account is active
+    if (user.account_status === 'deleted' || user.account_status === 'banned') {
+      const error = new Error(`Account ${user.account_status}`);
+      (error as Error & { code?: string }).code = 'ACCOUNT_INACTIVE';
+      (error as Error & { status?: number }).status = 401;
+      throw error;
+    }
+
+    return { payload, user };
   }
 
   /**

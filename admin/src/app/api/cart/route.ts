@@ -25,8 +25,8 @@ export async function GET(request: NextRequest) {
     // Get product details for each cart item
     const cartWithProducts = await Promise.all(
       cartItems.map(async (cartItem) => {
-        const product = await productsCollection.findOne({ 
-          _id: new ObjectId(cartItem.product_id) 
+        const product = await productsCollection.findOne({
+          product_id: cartItem.product_id
         });
         
         return {
@@ -95,10 +95,10 @@ export async function POST(request: NextRequest) {
     const cartCollection = await DatabaseService.getCollection('cart_items');
     const productsCollection = await DatabaseService.getCollection('products');
 
-    // Check if product exists and is active
-    const product = await productsCollection.findOne({ 
-      _id: new ObjectId(product_id),
-      is_active: true 
+    // Check if product exists and is active (query by product_id, not _id)
+    const product = await productsCollection.findOne({
+      product_id: product_id,
+      is_active: true
     });
 
     if (!product) {
@@ -222,10 +222,10 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // Check product stock
-    const product = await productsCollection.findOne({ 
-      _id: new ObjectId(product_id),
-      is_active: true 
+    // Check product stock (query by product_id, not _id)
+    const product = await productsCollection.findOne({
+      product_id: product_id,
+      is_active: true
     });
 
     if (!product) {

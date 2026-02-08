@@ -6,6 +6,7 @@ import { cleanupUserFiles } from '@/lib/file-cleanup';
 import { emailService } from '@/lib/email-service';
 import { PasswordSecurity, SecurityMiddleware } from '@/lib/security';
 import { Media } from '@/models';
+import { validateAllRates, hasAtLeastOneRate, getDefaultRates } from '@/lib/rate-validation';
 
 /**
  * Log verification status change to audit log
@@ -171,6 +172,19 @@ export async function PUT(
       );
     }
 
+    // Prevent managers from setting user_type to administrator
+    try {
+      const currentUser = await SecurityMiddleware.authenticateRequest(request);
+      if (currentUser.userType === 'manager' && user_type === 'administrator') {
+        return NextResponse.json(
+          { error: 'Managers cannot set user type to Administrator' },
+          { status: 403 }
+        );
+      }
+    } catch {
+      // If auth fails, continue - the middleware should have already validated
+    }
+
     // Validate user type
     const validUserTypes = ['customer', 'astrologer', 'administrator', 'manager'];
     if (!validUserTypes.includes(user_type)) {
@@ -215,14 +229,16 @@ export async function PUT(
         );
       }
 
-      // Database-level validation: Ensure rates are reasonable
-      const callRate = parseFloat(call_rate);
-      const chatRate = parseFloat(chat_rate);
-      const videoRate = parseFloat(video_rate);
+      // Use centralized rate validation
+      const rateValidation = validateAllRates({
+        chat_rate,
+        call_rate,
+        video_rate,
+      });
 
-      if (callRate >= 200 || chatRate >= 200 || videoRate >= 200) {
+      if (!rateValidation.isValid) {
         return NextResponse.json(
-          { error: 'All rates must be under ₹200 per minute for astrologers' },
+          { error: rateValidation.errors.join(', ') },
           { status: 400 }
         );
       }
@@ -233,6 +249,71 @@ export async function PUT(
         if (!rejectionMessage || (typeof rejectionMessage === 'string' && rejectionMessage.trim() === '')) {
           return NextResponse.json(
             { error: 'Rejection reason is required when rejecting an astrologer account' },
+            { status: 400 }
+          );
+        }
+      }
+
+      // Validate profile is complete before approving astrologer
+      if (body.verification_status === 'verified') {
+        const missingForApproval: string[] = [];
+
+        // Check email
+        if (!email_address || (typeof email_address === 'string' && email_address.trim() === '')) {
+          missingForApproval.push('Email address');
+        }
+
+        // Check bio
+        if (!body.bio || (typeof body.bio === 'string' && body.bio.trim() === '')) {
+          missingForApproval.push('Bio/Description');
+        }
+
+        // Check skills (minimum 2 required)
+        const skillsArray = Array.isArray(body.skills) ? body.skills : [];
+        if (skillsArray.length < 2) {
+          missingForApproval.push('Skills (minimum 2 required)');
+        }
+
+        // Check languages (minimum 1 required)
+        const languagesValue = body.languages;
+        const hasLanguages = Array.isArray(languagesValue)
+          ? languagesValue.length > 0
+          : (typeof languagesValue === 'string' && languagesValue.trim() !== '');
+        if (!hasLanguages) {
+          missingForApproval.push('Languages (minimum 1 required)');
+        }
+
+        // Check rates using centralized validation
+        if (!hasAtLeastOneRate({
+          chat_rate: parseFloat(chat_rate) || 0,
+          call_rate: parseFloat(call_rate) || 0,
+          video_rate: parseFloat(video_rate) || 0,
+        })) {
+          missingForApproval.push('At least one service rate must be set');
+        }
+
+        // Check bank details
+        const bankDetails = body.bank_details || {};
+        if (!bankDetails.account_holder_name || bankDetails.account_holder_name.trim() === '') {
+          missingForApproval.push('Bank account holder name');
+        }
+        if (!bankDetails.account_number || bankDetails.account_number.trim() === '') {
+          missingForApproval.push('Bank account number');
+        }
+        if (!bankDetails.bank_name || bankDetails.bank_name.trim() === '') {
+          missingForApproval.push('Bank name');
+        }
+        if (!bankDetails.ifsc_code || bankDetails.ifsc_code.trim() === '') {
+          missingForApproval.push('IFSC code');
+        }
+
+        if (missingForApproval.length > 0) {
+          return NextResponse.json(
+            {
+              error: 'Cannot approve astrologer with incomplete profile',
+              missing_fields: missingForApproval,
+              message: `The following fields are required before approval: ${missingForApproval.join(', ')}`
+            },
             { status: 400 }
           );
         }
@@ -338,10 +419,10 @@ export async function PUT(
       qualifications: body.qualifications || [],
       skills: body.skills || [],
       languages: body.languages || [],
-      // Service rates charged to customers
-      call_rate: body.call_rate || 50,
-      chat_rate: body.chat_rate || 30,
-      video_rate: body.video_rate || 80,
+      // Service rates charged to customers (use centralized defaults)
+      call_rate: body.call_rate || getDefaultRates().call_rate,
+      chat_rate: body.chat_rate || getDefaultRates().chat_rate,
+      video_rate: body.video_rate || getDefaultRates().video_rate,
       experience_years: body.experience_years || 0,
       // Commission percentages
       commission_percentage: body.commission_percentage || existingUser.commission_percentage || { call: 25, chat: 25, video: 25 },
@@ -495,7 +576,7 @@ export async function DELETE(
 
     // Check if user exists
     const user = await usersCollection.findOne({ _id: new ObjectId(id) });
-    
+
     if (!user) {
       return NextResponse.json(
         { error: 'User not found' },
@@ -503,11 +584,14 @@ export async function DELETE(
       );
     }
 
+    // Note: User will be auto-logged out on next API call due to 401 USER_NOT_FOUND
+    // No need for socket push - the API auth middleware handles this
+
     // Clean up associated files before deleting user (using utility function)
-    await cleanupUserFiles(id, { 
-      deleteFromFilesystem: true, 
-      deleteFromDatabase: true, 
-      logActivity: true 
+    await cleanupUserFiles(id, {
+      deleteFromFilesystem: true,
+      deleteFromDatabase: true,
+      logActivity: true
     });
 
     // Delete user from database

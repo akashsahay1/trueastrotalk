@@ -37,9 +37,32 @@ const nextConfig: NextConfig = {
   // Bundle optimization
   // swcMinify is now default in Next.js 13+
   
+  // Standalone output for optimized production builds
+  output: 'standalone',
+
   // Experimental features for performance
   experimental: {
-    // Optimize CSS is now handled automatically
+    // Optimize package imports to tree-shake unused exports
+    optimizePackageImports: [
+      '@radix-ui/react-accordion',
+      '@radix-ui/react-alert-dialog',
+      '@radix-ui/react-avatar',
+      '@radix-ui/react-checkbox',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-label',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-select',
+      '@radix-ui/react-separator',
+      '@radix-ui/react-slot',
+      '@radix-ui/react-switch',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-toast',
+      '@radix-ui/react-tooltip',
+      'lucide-react',
+      'recharts',
+      'date-fns',
+    ],
   },
   
   // Support for CSS modules and global CSS
@@ -120,10 +143,13 @@ const nextConfig: NextConfig = {
     
     // Production optimizations
     if (!dev && !isServer) {
+      // Deterministic module IDs for consistent chunk hashes between builds
+      config.optimization.moduleIds = 'deterministic';
+
       // Tree shaking
       config.optimization.usedExports = true;
       config.optimization.sideEffects = false;
-      
+
       // Split chunks for better caching
       config.optimization.splitChunks = {
         chunks: 'all',

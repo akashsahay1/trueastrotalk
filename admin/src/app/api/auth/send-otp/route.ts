@@ -5,8 +5,6 @@ import { InputSanitizer } from '@/lib/security';
 import {
   generateOTP,
   getOTPExpiry,
-  formatPhoneNumber,
-  isValidPhoneNumber,
   isRateLimited,
   sendOTPSMS,
   OTP_BYPASS_MODE,
@@ -20,14 +18,11 @@ function isValidEmail(email: string): boolean {
 }
 
 // Normalize Gmail addresses by removing dots before @ and handling + aliases
-// Gmail ignores dots in the local part, so user.name@gmail.com = username@gmail.com
 function normalizeGmailAddress(email: string): string {
   const lowerEmail = email.toLowerCase().trim();
   const [localPart, domain] = lowerEmail.split('@');
 
-  // Only normalize for Gmail addresses
   if (domain === 'gmail.com' || domain === 'googlemail.com') {
-    // Remove dots from local part and strip anything after +
     const normalizedLocal = localPart.replace(/\./g, '').split('+')[0];
     return `${normalizedLocal}@${domain}`;
   }
@@ -40,7 +35,6 @@ function buildEmailQuery(email: string): object {
   const normalized = normalizeGmailAddress(email);
   const original = email.toLowerCase().trim();
 
-  // If it's a Gmail address, search for both normalized and original versions
   if (normalized !== original) {
     return {
       $or: [
@@ -84,271 +78,330 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const sanitizedBody = InputSanitizer.sanitizeMongoQuery(body);
+
+    // New format: country_code + phone_number separately
+    const countryCode = sanitizedBody.country_code as string | undefined;
+    const phoneNumber = sanitizedBody.phone_number as string | undefined;
+
+    // Legacy format support
     const identifier = sanitizedBody.identifier as string | undefined;
-    const auth_type = sanitizedBody.auth_type as string | undefined;
-    const phone_number = sanitizedBody.phone_number as string | undefined;
-
-    // Determine auth type and identifier
-    let authType = auth_type;
-    let userIdentifier: string | undefined = identifier || phone_number;
-
-    // Legacy support: if only phone_number is provided, assume phone auth
-    if (!identifier && phone_number) {
-      authType = 'phone';
-      userIdentifier = phone_number;
-    }
-
-    // Validate identifier
-    if (!userIdentifier) {
-      return NextResponse.json(
-        { success: false, error: 'Email or phone number is required' },
-        { status: 400 }
-      );
-    }
-
-    // Auto-detect auth type if not provided
-    if (!authType) {
-      authType = userIdentifier.includes('@') ? 'email' : 'phone';
-    }
+    const authType = sanitizedBody.auth_type as string | undefined;
 
     const usersCollection = await DatabaseService.getCollection('users');
-    let formattedIdentifier: string = userIdentifier;
-    let queryField: string;
     let otpSent = false;
 
-    if (authType === 'phone') {
-      // Phone authentication
-      formattedIdentifier = formatPhoneNumber(userIdentifier);
-      if (!isValidPhoneNumber(formattedIdentifier)) {
+    // Handle phone authentication (new clean format)
+    if (countryCode && phoneNumber) {
+      // Validate phone number is exactly 10 digits
+      const cleanPhone = phoneNumber.replace(/\D/g, '');
+      if (cleanPhone.length !== 10) {
         return NextResponse.json(
-          { success: false, error: 'Invalid phone number format' },
+          { success: false, error: 'Phone number must be exactly 10 digits' },
           { status: 400 }
         );
       }
-      queryField = 'phone_number';
-    } else if (authType === 'email') {
-      // Email authentication
-      formattedIdentifier = userIdentifier.trim().toLowerCase();
-      if (!isValidEmail(formattedIdentifier)) {
+
+      // Validate country code
+      if (!countryCode.startsWith('+')) {
+        return NextResponse.json(
+          { success: false, error: 'Country code must start with +' },
+          { status: 400 }
+        );
+      }
+
+      console.log(`🔍 send-otp: Looking for user with country_code=${countryCode}, phone_number=${cleanPhone}`);
+
+      // Query with exact match on both fields
+      let user = await usersCollection.findOne({
+        country_code: countryCode,
+        phone_number: cleanPhone,
+      });
+
+      // Fallback: Check old format where phone includes country code
+      if (!user) {
+        const fullPhone = `${countryCode}${cleanPhone}`;
+        console.log(`🔍 send-otp: Fallback - checking old format: ${fullPhone}`);
+        user = await usersCollection.findOne({
+          phone_number: { $in: [fullPhone, cleanPhone] }
+        });
+      }
+
+      if (user) {
+        console.log(`✅ User found: user_type=${user.user_type}, role=${user.role}`);
+
+        // Block admin/manager users
+        if (
+          user.user_type === 'administrator' ||
+          user.user_type === 'manager' ||
+          user.role === 'admin' ||
+          user.role === 'manager'
+        ) {
+          console.log(`🚫 Blocked: Admin/manager user cannot use mobile app`);
+          return NextResponse.json({
+            success: false,
+            error: 'Only customers and astrologers allowed',
+            error_code: 'ADMIN_NOT_ALLOWED',
+          }, { status: 403 });
+        }
+
+        // Check rate limiting
+        const requestCount = user.otp_request_count || 0;
+        const lastRequestTime = user.otp_last_request_time;
+
+        if (isRateLimited(lastRequestTime, requestCount)) {
+          const oneHourAgo = new Date();
+          oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+
+          if (lastRequestTime && lastRequestTime < oneHourAgo) {
+            await usersCollection.updateOne(
+              { _id: user._id },
+              { $set: { otp_request_count: 0, otp_last_request_time: null } }
+            );
+          } else {
+            return NextResponse.json({
+              success: false,
+              error: `Too many OTP requests. Please try again after 1 hour.`,
+            }, { status: 429 });
+          }
+        }
+
+        // Generate and send OTP
+        const otp = OTP_BYPASS_MODE ? '0000' : generateOTP();
+        const expiry = getOTPExpiry();
+        const now = new Date();
+
+        console.log(`🔑 Generated OTP: ${OTP_BYPASS_MODE ? otp : '****'} (bypass: ${OTP_BYPASS_MODE})`);
+
+        const fullPhoneForSMS = `${countryCode}${cleanPhone}`;
+        otpSent = await sendOTPSMS(fullPhoneForSMS, otp);
+
+        if (!otpSent && !OTP_BYPASS_MODE) {
+          return NextResponse.json(
+            { success: false, error: 'Failed to send OTP. Please try again.' },
+            { status: 500 }
+          );
+        }
+
+        // Update user record with OTP
+        await usersCollection.updateOne(
+          { _id: user._id },
+          {
+            $set: {
+              otp_code: otp,
+              otp_expiry: expiry,
+              otp_attempts: 0,
+              otp_sent_at: now,
+              otp_request_count: (user.otp_request_count || 0) + 1,
+              otp_last_request_time: now,
+              updated_at: now,
+              // Update to new format if using old format
+              country_code: countryCode,
+              phone_number: cleanPhone,
+            },
+          }
+        );
+
+        return NextResponse.json({
+          success: true,
+          message: 'OTP sent successfully',
+          is_new_user: false,
+          country_code: countryCode,
+          phone_number: cleanPhone,
+          expiry_seconds: 300,
+          testing_mode: OTP_BYPASS_MODE,
+          ...(OTP_BYPASS_MODE && { test_otp_hint: 'Use 0000 for testing' }),
+        });
+      } else {
+        // New user - create temporary record and send OTP
+        console.log(`📝 New user - creating temporary record`);
+
+        const otp = OTP_BYPASS_MODE ? '0000' : generateOTP();
+        const expiry = getOTPExpiry();
+        const now = new Date();
+
+        console.log(`🔑 Generated OTP: ${OTP_BYPASS_MODE ? otp : '****'} (bypass: ${OTP_BYPASS_MODE})`);
+
+        const fullPhoneForSMS = `${countryCode}${cleanPhone}`;
+        otpSent = await sendOTPSMS(fullPhoneForSMS, otp);
+
+        if (!otpSent && !OTP_BYPASS_MODE) {
+          return NextResponse.json(
+            { success: false, error: 'Failed to send OTP. Please try again.' },
+            { status: 500 }
+          );
+        }
+
+        // Create new user record
+        const timestamp = Date.now();
+        const randomStr = Math.random().toString(36).substring(2, 10);
+        const userId = `user_${timestamp}_${randomStr}`;
+
+        await usersCollection.insertOne({
+          user_id: userId,
+          country_code: countryCode,
+          phone_number: cleanPhone,
+          phone_verified: false,
+          user_type: 'customer',
+          auth_type: 'phone',
+          account_status: 'active',
+          verification_status: 'verified', // Customers are auto-verified (phone OTP or Google)
+          otp_code: otp,
+          otp_expiry: expiry,
+          otp_attempts: 0,
+          otp_sent_at: now,
+          otp_request_count: 1,
+          otp_last_request_time: now,
+          created_at: now,
+          updated_at: now,
+        });
+
+        return NextResponse.json({
+          success: true,
+          message: 'OTP sent successfully',
+          is_new_user: true,
+          country_code: countryCode,
+          phone_number: cleanPhone,
+          expiry_seconds: 300,
+          testing_mode: OTP_BYPASS_MODE,
+          ...(OTP_BYPASS_MODE && { test_otp_hint: 'Use 0000 for testing' }),
+        });
+      }
+    }
+
+    // Handle email authentication (legacy format)
+    if (authType === 'email' && identifier) {
+      const email = identifier.trim().toLowerCase();
+      if (!isValidEmail(email)) {
         return NextResponse.json(
           { success: false, error: 'Invalid email address format' },
           { status: 400 }
         );
       }
-      queryField = 'email_address';
-    } else {
-      return NextResponse.json(
-        { success: false, error: 'Invalid auth_type. Must be "email" or "phone"' },
-        { status: 400 }
-      );
-    }
 
-    // Check if already registered and verified
-    // For emails, use Gmail-aware query to handle dot aliases
-    const verifiedField = authType === 'phone' ? 'phone_verified' : 'email_verified';
-    let userQuery: object;
-    if (authType === 'email') {
-      userQuery = { ...buildEmailQuery(formattedIdentifier), [verifiedField]: true };
-    } else {
-      userQuery = { [queryField]: formattedIdentifier, [verifiedField]: true };
-    }
-    const _existingUser = await usersCollection.findOne(userQuery);
+      const emailQuery = buildEmailQuery(email);
+      let user = await usersCollection.findOne(emailQuery);
 
-    // For existing users, still send OTP (they might be logging in)
-    // We don't block OTP sending for existing users in unified flow
+      if (user) {
+        // Block admin/manager users
+        if (
+          user.user_type === 'administrator' ||
+          user.user_type === 'manager' ||
+          user.role === 'admin' ||
+          user.role === 'manager'
+        ) {
+          return NextResponse.json({
+            success: false,
+            error: 'Only customers and astrologers allowed',
+            error_code: 'ADMIN_NOT_ALLOWED',
+          }, { status: 403 });
+        }
 
-    // Get or create OTP tracking record
-    // For emails, use Gmail-aware query to find existing record
-    // For phone, try to find existing user regardless of verification status
-    // IMPORTANT: Prioritize customer/astrologer accounts over administrator accounts
-    let otpRecordQuery: object;
-    if (authType === 'email') {
-      otpRecordQuery = buildEmailQuery(formattedIdentifier);
-    } else {
-      otpRecordQuery = { [queryField]: formattedIdentifier };
-    }
-    console.log(`🔍 send-otp: Searching for ${authType} record with identifier: ${formattedIdentifier}`);
+        // Check rate limiting
+        const requestCount = user.otp_request_count || 0;
+        const lastRequestTime = user.otp_last_request_time;
 
-    // For phone auth, prioritize customer/astrologer over admin
-    let otpRecord = null;
-    if (authType === 'phone') {
-      // First try to find customer or astrologer
-      otpRecord = await usersCollection.findOne({
-        ...otpRecordQuery,
-        user_type: { $in: ['customer', 'astrologer'] }
-      });
+        if (isRateLimited(lastRequestTime, requestCount)) {
+          const oneHourAgo = new Date();
+          oneHourAgo.setHours(oneHourAgo.getHours() - 1);
 
-      // If not found, try any user with this phone
-      if (!otpRecord) {
-        otpRecord = await usersCollection.findOne(otpRecordQuery);
-      }
-    } else {
-      otpRecord = await usersCollection.findOne(otpRecordQuery);
-    }
+          if (lastRequestTime && lastRequestTime < oneHourAgo) {
+            await usersCollection.updateOne(
+              { _id: user._id },
+              { $set: { otp_request_count: 0, otp_last_request_time: null } }
+            );
+          } else {
+            return NextResponse.json({
+              success: false,
+              error: `Too many OTP requests. Please try again after 1 hour.`,
+            }, { status: 429 });
+          }
+        }
 
-    console.log(`🔍 send-otp: First query result: ${otpRecord ? 'FOUND' : 'NOT FOUND'}`);
-    if (otpRecord) {
-      console.log(`   - has full_name: ${!!otpRecord.full_name}`);
-      console.log(`   - has user_type: ${!!otpRecord.user_type}`);
-      console.log(`   - has role: ${!!otpRecord.role}`);
-    }
+        // Generate and send OTP
+        const otp = generateOTP();
+        const expiry = getOTPExpiry();
+        const now = new Date();
 
-    // If no exact match found for phone, try ALL possible phone number variations
-    if (!otpRecord && authType === 'phone') {
-      console.log(`🔍 send-otp: Trying alternative phone formats...`);
+        otpSent = await sendOTPEmail(email, otp);
 
-      // Build list of all possible variations
-      const phoneVariations = [formattedIdentifier];
-      const digitsOnly = formattedIdentifier.replace(/\D/g, '');
+        if (!otpSent && !OTP_BYPASS_MODE) {
+          return NextResponse.json(
+            { success: false, error: 'Failed to send OTP. Please try again.' },
+            { status: 500 }
+          );
+        }
 
-      // Add variations
-      if (digitsOnly.length === 10) {
-        phoneVariations.push(`+91${digitsOnly}`);
-        phoneVariations.push(`91${digitsOnly}`);
-        phoneVariations.push(digitsOnly);
-      } else if (digitsOnly.startsWith('91') && digitsOnly.length === 12) {
-        phoneVariations.push(`+${digitsOnly}`);
-        phoneVariations.push(digitsOnly);
-        phoneVariations.push(digitsOnly.substring(2)); // Remove 91
-      }
+        await usersCollection.updateOne(
+          { _id: user._id },
+          {
+            $set: {
+              otp_code: otp,
+              otp_expiry: expiry,
+              otp_attempts: 0,
+              otp_sent_at: now,
+              otp_request_count: (user.otp_request_count || 0) + 1,
+              otp_last_request_time: now,
+              updated_at: now,
+            },
+          }
+        );
 
-      console.log(`   - Trying variations: ${phoneVariations.join(', ')}`);
+        return NextResponse.json({
+          success: true,
+          message: 'OTP sent successfully',
+          is_new_user: false,
+          identifier: email,
+          auth_type: 'email',
+          expiry_seconds: 300,
+          testing_mode: OTP_BYPASS_MODE,
+        });
+      } else {
+        // New user
+        const otp = generateOTP();
+        const expiry = getOTPExpiry();
+        const now = new Date();
 
-      // Search for ANY of these variations, prioritizing customer/astrologer
-      otpRecord = await usersCollection.findOne({
-        phone_number: { $in: phoneVariations },
-        user_type: { $in: ['customer', 'astrologer'] }
-      });
+        otpSent = await sendOTPEmail(email, otp);
 
-      // If still not found, try any user type
-      if (!otpRecord) {
-        otpRecord = await usersCollection.findOne({
-          phone_number: { $in: phoneVariations }
+        if (!otpSent && !OTP_BYPASS_MODE) {
+          return NextResponse.json(
+            { success: false, error: 'Failed to send OTP. Please try again.' },
+            { status: 500 }
+          );
+        }
+
+        await usersCollection.insertOne({
+          email_address: email,
+          email_verified: false,
+          otp_code: otp,
+          otp_expiry: expiry,
+          otp_attempts: 0,
+          otp_sent_at: now,
+          otp_request_count: 1,
+          otp_last_request_time: now,
+          created_at: now,
+          updated_at: now,
+          phone_number: `+temp_${Date.now()}`,
+        });
+
+        return NextResponse.json({
+          success: true,
+          message: 'OTP sent successfully',
+          is_new_user: true,
+          identifier: email,
+          auth_type: 'email',
+          expiry_seconds: 300,
+          testing_mode: OTP_BYPASS_MODE,
         });
       }
-
-      console.log(`   - Result: ${otpRecord ? 'FOUND' : 'NOT FOUND'}`);
-      if (otpRecord) {
-        console.log(`   - Found with phone_number: ${otpRecord.phone_number}`);
-        console.log(`   - has full_name: ${!!otpRecord.full_name}`);
-        console.log(`   - has user_type: ${!!otpRecord.user_type}`);
-        console.log(`   - has role: ${!!otpRecord.role}`);
-      }
     }
 
-    // Check rate limiting
-    if (otpRecord) {
-      const requestCount = otpRecord.otp_request_count || 0;
-      const lastRequestTime = otpRecord.otp_last_request_time;
+    // No valid input provided
+    return NextResponse.json(
+      { success: false, error: 'Please provide country_code and phone_number, or identifier with auth_type' },
+      { status: 400 }
+    );
 
-      if (isRateLimited(lastRequestTime, requestCount)) {
-        const oneHourAgo = new Date();
-        oneHourAgo.setHours(oneHourAgo.getHours() - 1);
-
-        // Reset if more than 1 hour
-        if (lastRequestTime && lastRequestTime < oneHourAgo) {
-          // Use _id to update the exact record found (handles Gmail aliases correctly)
-          await usersCollection.updateOne(
-            { _id: otpRecord._id },
-            {
-              $set: {
-                otp_request_count: 0,
-                otp_last_request_time: null,
-              },
-            }
-          );
-        } else {
-          return NextResponse.json(
-            {
-              success: false,
-              error: `Too many OTP requests. Please try again after 1 hour. (Max ${MAX_OTP_REQUESTS_PER_HOUR} per hour)`,
-            },
-            { status: 429 }
-          );
-        }
-      }
-    }
-
-    // Generate OTP
-    // For phone auth in bypass mode, always use 0000 for easy testing
-    const otp = (OTP_BYPASS_MODE && authType === 'phone') ? '0000' : generateOTP();
-    const expiry = getOTPExpiry();
-    const now = new Date();
-
-    console.log(`🔑 Generated OTP for ${authType}: ${OTP_BYPASS_MODE ? otp : '****'} (bypass mode: ${OTP_BYPASS_MODE})`);
-
-    // Send OTP based on auth type
-    if (authType === 'phone') {
-      otpSent = await sendOTPSMS(formattedIdentifier, otp);
-    } else if (authType === 'email') {
-      otpSent = await sendOTPEmail(formattedIdentifier, otp);
-    }
-
-    if (!otpSent && !OTP_BYPASS_MODE) {
-      return NextResponse.json(
-        { success: false, error: `Failed to send OTP to ${authType}. Please try again.` },
-        { status: 500 }
-      );
-    }
-
-    // Update or create OTP record
-    if (otpRecord) {
-      // Update existing record using _id (handles Gmail aliases correctly)
-      const requestCount = (otpRecord.otp_request_count || 0) + 1;
-
-      await usersCollection.updateOne(
-        { _id: otpRecord._id },
-        {
-          $set: {
-            otp_code: otp,
-            otp_expiry: expiry,
-            otp_attempts: 0,
-            otp_sent_at: now,
-            otp_request_count: requestCount,
-            otp_last_request_time: now,
-            updated_at: now,
-          },
-        }
-      );
-    } else {
-      // Create new temporary record for OTP
-      const tempRecord: Record<string, unknown> = {
-        otp_code: otp,
-        otp_expiry: expiry,
-        otp_attempts: 0,
-        otp_sent_at: now,
-        otp_request_count: 1,
-        otp_last_request_time: now,
-        created_at: now,
-        updated_at: now,
-      };
-
-      if (authType === 'phone') {
-        tempRecord.phone_number = formattedIdentifier;
-        tempRecord.phone_verified = false;
-        tempRecord.full_name = 'Guest'; // Default name for phone signups
-        // Placeholder email to avoid unique index conflict
-        tempRecord.email_address = `${formattedIdentifier.replace(/\+/g, '')}@phone.trueastrotalk.com`;
-      } else {
-        tempRecord.email_address = formattedIdentifier;
-        tempRecord.email_verified = false;
-        // Placeholder phone to avoid unique index conflict
-        tempRecord.phone_number = `+temp_${Date.now()}`;
-      }
-
-      await usersCollection.insertOne(tempRecord);
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: 'OTP sent successfully',
-      otp_sent_to: formattedIdentifier,
-      identifier: formattedIdentifier,
-      auth_type: authType,
-      expiry_seconds: 300, // 5 minutes
-      testing_mode: OTP_BYPASS_MODE,
-      ...(OTP_BYPASS_MODE && { test_otp_hint: 'Use 0000 for testing' }),
-    });
   } catch (error) {
     console.error('❌ Error sending OTP:', error);
     return NextResponse.json(

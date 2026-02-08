@@ -330,18 +330,23 @@ export async function POST(request: NextRequest) {
     console.log(`   - role: ${otpRecord.role || 'MISSING'}`);
     console.log(`   - isFullyRegistered: ${isFullyRegistered}`);
 
-    // Update verification status - use _id for Gmail alias safety
+    // Update verification status and clean up OTP fields
     const verificationField = authType === 'email' ? 'email_verified' : 'phone_verified';
     await usersCollection.updateOne(
       { _id: otpRecord._id },
       {
         $set: {
           [verificationField]: true,
-          otp_code: null, // Clear OTP
-          otp_expiry: null,
-          otp_attempts: 0,
           verified_at: new Date(),
           updated_at: new Date(),
+        },
+        $unset: {
+          otp_code: '',
+          otp_expiry: '',
+          otp_attempts: '',
+          otp_sent_at: '',
+          otp_request_count: '',
+          otp_last_request_time: '',
         },
       }
     );
@@ -401,11 +406,11 @@ export async function POST(request: NextRequest) {
       // Default to 'customer' if no role is set (for incomplete profiles)
       const userType = user.user_type || user.role || 'customer';
 
-      // Generate JWT tokens with proper fallbacks
+      // Generate JWT tokens
       const tokenPayload = {
         userId: user.user_id || user._id.toString(),
         email: user.email_address || user.phone_number || `user_${user.user_id}@temp.com`,
-        full_name: user.full_name || 'User',
+        full_name: user.full_name,
         user_type: userType,
         account_status: user.account_status || 'active',
         session_id: crypto.randomUUID(),
@@ -425,7 +430,7 @@ export async function POST(request: NextRequest) {
       const userResponse = {
         id: user.user_id || user._id.toString(),
         user_id: user.user_id,
-        full_name: user.full_name || 'User', // Fallback name if missing
+        full_name: user.full_name,
         email_address: user.email_address,
         phone_number: user.phone_number,
         user_type: userType,
@@ -505,19 +510,66 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // User is not fully registered - return verification success only
-    // The client will navigate to signup completion screen
+    // User is not fully registered - log them in but indicate profile completion needed
     if (OTP_BYPASS_MODE && otp === '0000') {
       console.log('🔓 OTP bypass mode enabled - OTP 0000 accepted');
     }
+
+    // Fetch the updated user record
+    const newUser = await usersCollection.findOne({ _id: otpRecord._id });
+
+    if (!newUser) {
+      return NextResponse.json(
+        { success: false, error: 'User not found after verification' },
+        { status: 500 }
+      );
+    }
+
+    // Generate JWT tokens for the new user
+    const userType = newUser.user_type || 'customer';
+    const newTokenPayload = {
+      userId: newUser.user_id || newUser._id.toString(),
+      email: newUser.email_address || `${newUser.phone_number}@temp.trueastrotalk.com`,
+      full_name: newUser.full_name || '',
+      user_type: userType,
+      account_status: newUser.account_status || 'active',
+      session_id: crypto.randomUUID(),
+    };
+
+    const newAccessToken = JWTSecurity.generateAccessToken(newTokenPayload);
+    const newRefreshToken = JWTSecurity.generateRefreshToken({
+      userId: newUser.user_id || newUser._id.toString(),
+      session_id: newTokenPayload.session_id,
+    });
+
+    // Prepare user response for new user
+    const newUserResponse = {
+      id: newUser.user_id || newUser._id.toString(),
+      user_id: newUser.user_id,
+      full_name: newUser.full_name || null,
+      email_address: newUser.email_address || null,
+      phone_number: newUser.phone_number,
+      country_code: newUser.country_code,
+      user_type: userType,
+      auth_type: newUser.auth_type || authType,
+      account_status: newUser.account_status || 'active',
+      verification_status: newUser.verification_status || 'verified', // Customers are auto-verified
+      phone_verified: newUser.phone_verified,
+      email_verified: newUser.email_verified,
+      created_at: newUser.created_at,
+      updated_at: newUser.updated_at,
+      verified_at: newUser.verified_at,
+    };
 
     return NextResponse.json({
       success: true,
       message: 'OTP verified successfully',
       user_exists: false,
       requires_signup: true,
-      [queryField === 'phone_number' ? 'phone_number' : 'email_address']: formattedIdentifier,
-      [verificationField]: true,
+      requires_profile_completion: true,
+      user: newUserResponse,
+      access_token: newAccessToken,
+      refresh_token: newRefreshToken,
       auth_type: authType,
     });
   } catch (error) {

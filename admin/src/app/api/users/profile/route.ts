@@ -8,6 +8,35 @@ import {
   InputSanitizer
 } from '../../../../lib/security';
 import { Media } from '@/models';
+import { emailService } from '@/lib/email-service';
+import { validateAllRates, hasAtLeastOneRate } from '../../../../lib/rate-validation';
+
+// Helper function to check if astrologer profile is complete
+// This mirrors the Flutter User model's isProfileComplete getter
+function isAstrologerProfileComplete(user: Record<string, unknown>): boolean {
+  if (user.user_type !== 'astrologer') return false;
+
+  // If already verified by admin, consider complete
+  if (user.verification_status === 'verified') return true;
+
+  const hasName = Boolean(user.full_name && String(user.full_name).trim());
+  const hasEmail = Boolean(user.email_address && String(user.email_address).trim());
+  const hasEmailVerified = user.email_verified === true;
+  const hasBio = Boolean(user.bio && String(user.bio).trim());
+  const hasExperience = Boolean(user.experience_years && Number(user.experience_years) > 0);
+  const hasLanguages = Boolean(user.languages && String(user.languages).trim());
+  const hasSkills = Boolean(user.skills && String(user.skills).trim());
+
+  // Use centralized rate validation
+  const hasRates = hasAtLeastOneRate({
+    chat_rate: user.chat_rate as number | undefined,
+    call_rate: user.call_rate as number | undefined,
+    video_rate: user.video_rate as number | undefined,
+  });
+
+  return hasName && hasEmail && hasEmailVerified && hasBio &&
+         hasExperience && hasLanguages && hasSkills && hasRates;
+}
 
 // Helper function to get base URL for images
 function getBaseUrl(request: NextRequest): string {
@@ -38,11 +67,22 @@ export async function GET(request: NextRequest) {
   try {
     const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
-    // Authenticate user with enhanced security
-    let user;
+    // Authenticate user AND verify they still exist in database
+    // This will return 401 if user has been deleted
+    let authResult;
     try {
-      user = await SecurityMiddleware.authenticateRequest(request);
-    } catch {
+      authResult = await SecurityMiddleware.authenticateAndVerifyUser(request);
+    } catch (error) {
+      const err = error as Error & { code?: string; status?: number };
+      // User deleted or account inactive - return 401 to trigger auto-logout on client
+      if (err.code === 'USER_NOT_FOUND' || err.code === 'ACCOUNT_INACTIVE') {
+        return NextResponse.json({
+          success: false,
+          error: err.code,
+          message: err.message
+        }, { status: 401 });
+      }
+      // Other auth errors
       return NextResponse.json({
         success: false,
         error: 'AUTHENTICATION_REQUIRED',
@@ -50,31 +90,34 @@ export async function GET(request: NextRequest) {
       }, { status: 401 });
     }
 
-    // Get user from database with security checks
+    const { payload: user } = authResult;
+
+    // Get user from database with security checks (already verified exists, get full details)
     const usersCollection = await DatabaseService.getCollection('users');
     const mediaCollection = await DatabaseService.getCollection('media');
 
     const dbUser = await usersCollection.findOne(
-      { 
+      {
         user_id: user.userId as string,
         account_status: { $ne: 'banned' }
       },
-      { 
-        projection: { 
+      {
+        projection: {
           password: 0, // Never return password
           google_access_token: 0, // Don't expose tokens
           failed_login_attempts: 0,
           last_failed_login: 0
-        } 
+        }
       }
     );
 
     if (!dbUser) {
+      // User was deleted between auth check and this query - very rare race condition
       return NextResponse.json({
         success: false,
         error: 'USER_NOT_FOUND',
         message: 'User account not found or has been suspended'
-      }, { status: 404 });
+      }, { status: 401 });
     }
 
     // Check for required user_id field (data integrity check)
@@ -129,9 +172,12 @@ export async function GET(request: NextRequest) {
         user_type: dbUser.user_type,
         account_status: dbUser.account_status,
         verification_status: dbUser.verification_status || 'unverified',
+        rejection_reason: dbUser.verification_status_message || null,
         profile_image: profileImageUrl,
         wallet_balance: dbUser.wallet_balance || 0,
         is_verified: dbUser.is_verified || false,
+        email_verified: dbUser.email_verified || false,
+        phone_verified: dbUser.phone_verified || false,
         date_of_birth: dbUser.date_of_birth || '',
         birth_time: dbUser.birth_time || '',
         birth_place: dbUser.birth_place || '',
@@ -170,7 +216,10 @@ export async function GET(request: NextRequest) {
 
           // PAN card
           pan_card_url: panCardUrl,
-          pan_card_id: dbUser.pan_card_id
+          pan_card_id: dbUser.pan_card_id,
+
+          // Profile submission timestamp
+          profile_submitted_at: dbUser.profile_submitted_at || null
         })
       }
     });
@@ -190,17 +239,30 @@ export async function PUT(request: NextRequest) {
   try {
     const _ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
-    // Authenticate user with enhanced security
-    let user;
+    // Authenticate user AND verify they still exist in database
+    // This will return 401 if user has been deleted
+    let authResult;
     try {
-      user = await SecurityMiddleware.authenticateRequest(request);
-    } catch {
+      authResult = await SecurityMiddleware.authenticateAndVerifyUser(request);
+    } catch (error) {
+      const err = error as Error & { code?: string; status?: number };
+      // User deleted or account inactive - return 401 to trigger auto-logout on client
+      if (err.code === 'USER_NOT_FOUND' || err.code === 'ACCOUNT_INACTIVE') {
+        return NextResponse.json({
+          success: false,
+          error: err.code,
+          message: err.message
+        }, { status: 401 });
+      }
+      // Other auth errors
       return NextResponse.json({
         success: false,
         error: 'AUTHENTICATION_REQUIRED',
         message: 'Valid authentication token is required'
       }, { status: 401 });
     }
+
+    const user = authResult.payload;
 
     const contentType = request.headers.get('content-type');
     let updateData: Record<string, unknown> = {};
@@ -246,15 +308,24 @@ export async function PUT(request: NextRequest) {
       delete updateData.place_of_birth;
     }
     
+    // Handle verified email update
+    // Allow email_address update only if email_verified flag is sent (indicating OTP verification)
+    const isVerifiedEmailUpdate = updateData.email_verified === true && updateData.email_address;
+
     // Remove sensitive fields that shouldn't be updated via this endpoint
     const protectedFields = [
       '_id', 'password', 'user_type', 'account_status', 'verification_status',
-      'wallet_balance', 'created_at', 'email_address', 'is_verified',
+      'wallet_balance', 'created_at', 'is_verified',
       'login_count', 'failed_login_attempts', 'last_login', 'last_logout',
       'google_access_token', 'registration_ip', 'total_earnings',
       'approval_status', 'is_online'
     ];
-    
+
+    // Only protect email_address if it's not a verified email update
+    if (!isVerifiedEmailUpdate) {
+      protectedFields.push('email_address');
+    }
+
     protectedFields.forEach(field => delete updateData[field]);
 
     // Validate required fields based on user type
@@ -274,29 +345,30 @@ export async function PUT(request: NextRequest) {
 
     // Validate input data based on user type
     if (existingUser.user_type === 'astrologer') {
-      // Validate astrologer-specific fields - minimum ₹1 for all rates
-      if (updateData.call_rate !== undefined && (Number(updateData.call_rate) < 1 || Number(updateData.call_rate) > 10000)) {
+      // Validate astrologer rates using centralized validation
+      const rateValidation = validateAllRates({
+        chat_rate: updateData.chat_rate,
+        call_rate: updateData.call_rate,
+        video_rate: updateData.video_rate,
+      });
+
+      if (!rateValidation.isValid) {
         return NextResponse.json({
           success: false,
-          error: 'INVALID_CALL_RATE',
-          message: 'Call rate must be between ₹1 and ₹10,000 per minute'
+          error: 'INVALID_RATES',
+          message: rateValidation.errors.join(', ')
         }, { status: 400 });
       }
 
-      if (updateData.chat_rate !== undefined && (Number(updateData.chat_rate) < 1 || Number(updateData.chat_rate) > 10000)) {
-        return NextResponse.json({
-          success: false,
-          error: 'INVALID_CHAT_RATE',
-          message: 'Chat rate must be between ₹1 and ₹10,000 per minute'
-        }, { status: 400 });
+      // Apply sanitized rates
+      if (rateValidation.sanitizedRates.chat_rate !== undefined) {
+        updateData.chat_rate = rateValidation.sanitizedRates.chat_rate;
       }
-
-      if (updateData.video_rate !== undefined && (Number(updateData.video_rate) < 1 || Number(updateData.video_rate) > 10000)) {
-        return NextResponse.json({
-          success: false,
-          error: 'INVALID_VIDEO_RATE',
-          message: 'Video rate must be between ₹1 and ₹10,000 per minute'
-        }, { status: 400 });
+      if (rateValidation.sanitizedRates.call_rate !== undefined) {
+        updateData.call_rate = rateValidation.sanitizedRates.call_rate;
+      }
+      if (rateValidation.sanitizedRates.video_rate !== undefined) {
+        updateData.video_rate = rateValidation.sanitizedRates.video_rate;
       }
 
       if (updateData.experience_years && (Number(updateData.experience_years) < 0 || Number(updateData.experience_years) > 50)) {
@@ -369,6 +441,31 @@ export async function PUT(request: NextRequest) {
       await writeFile(filepath, buffer);
 
       imageUrl = `/uploads/${year}/${month}/${filename}`;
+
+      // Generate media_id for profile image
+      const profileMediaId = `media_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Add profile image to media library
+      const mediaCollection = await DatabaseService.getCollection('media');
+      await mediaCollection.insertOne({
+        media_id: profileMediaId,
+        filename: filename,
+        original_name: profileImageFile.name,
+        file_path: imageUrl,
+        file_size: profileImageFile.size,
+        mime_type: profileImageFile.type,
+        file_type: 'profile_image',
+        uploaded_by: user.userId as string,
+        associated_record: user.userId as string,
+        is_external: false,
+        uploaded_at: new Date(),
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+
+      // Save media_id to user record (this is what resolveProfileImage looks for)
+      updateData.profile_image_id = profileMediaId;
+      // Also keep the direct URL for backward compatibility
       updateData.profile_image = imageUrl;
     }
 
@@ -477,10 +574,26 @@ export async function PUT(request: NextRequest) {
     updateData.updated_at = new Date();
 
     // If uploading a new profile image, clean up the old one
-    if (imageUrl && existingUser.profile_image && existingUser.profile_image !== imageUrl) {
-      await deleteFile(existingUser.profile_image as string, { 
-        deleteFromFilesystem: true, 
-        logActivity: true 
+    if (imageUrl && existingUser.profile_image_id) {
+      try {
+        const mediaCollection = await DatabaseService.getCollection('media');
+        const oldMediaFile = await mediaCollection.findOne({ media_id: existingUser.profile_image_id });
+        if (oldMediaFile && oldMediaFile.file_path) {
+          await deleteFile(oldMediaFile.file_path as string, {
+            deleteFromFilesystem: true,
+            logActivity: true
+          });
+          // Delete old media record
+          await mediaCollection.deleteOne({ media_id: existingUser.profile_image_id });
+        }
+      } catch (error) {
+        console.error('Error cleaning up old profile image:', error);
+      }
+    } else if (imageUrl && existingUser.profile_image && existingUser.profile_image !== imageUrl) {
+      // Fallback for users with old profile_image field (not media_id)
+      await deleteFile(existingUser.profile_image as string, {
+        deleteFromFilesystem: true,
+        logActivity: true
       });
     }
 
@@ -497,26 +610,6 @@ export async function PUT(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // Add image to media library if uploaded
-    if (imageUrl && profileImageFile) {
-      const mediaCollection = await DatabaseService.getCollection('media');
-      const fileData = {
-        filename: path.basename(imageUrl),
-        original_name: profileImageFile.name,
-        file_path: imageUrl,
-        file_size: profileImageFile.size,
-        mime_type: profileImageFile.type,
-        file_type: 'profile_image',
-        uploaded_by: user.userId as string,
-        associated_record: user.userId as string,
-        is_external: false,
-        uploaded_at: new Date(),
-        created_at: new Date(),
-        updated_at: new Date()
-      };
-      await mediaCollection.insertOne(fileData);
-    }
-
     // Get updated user
     const updatedUser = await usersCollection.findOne(
       { user_id: user.userId as string },
@@ -524,11 +617,71 @@ export async function PUT(request: NextRequest) {
     );
 
     if (!updatedUser) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         success: false,
         error: 'User not found',
-        message: 'User account no longer exists' 
+        message: 'User account no longer exists'
       }, { status: 404 });
+    }
+
+    // Check if astrologer profile just became complete and send admin notification
+    // Only send if: was NOT complete before AND IS complete now
+    if (existingUser.user_type === 'astrologer') {
+      const wasProfileComplete = isAstrologerProfileComplete(existingUser as Record<string, unknown>);
+      const isProfileComplete = isAstrologerProfileComplete(updatedUser as unknown as Record<string, unknown>);
+
+      console.log(`📋 Profile completion check - Before: ${wasProfileComplete}, After: ${isProfileComplete}`);
+
+      if (!wasProfileComplete && isProfileComplete) {
+        console.log(`✅ Astrologer profile just completed for ${updatedUser.full_name}, setting profile_submitted_at and sending admin notification`);
+
+        // Set profile_submitted_at timestamp when profile becomes complete for the first time
+        if (!existingUser.profile_submitted_at) {
+          await usersCollection.updateOne(
+            { user_id: user.userId as string },
+            { $set: { profile_submitted_at: new Date() } }
+          );
+          console.log(`📅 Set profile_submitted_at for ${updatedUser.full_name}`);
+        }
+
+        // Fetch all admin users' emails
+        try {
+          const adminUsers = await usersCollection.find(
+            { user_type: 'admin', account_status: 'active' },
+            { projection: { email_address: 1 } }
+          ).toArray();
+
+          const adminEmails = adminUsers
+            .map(admin => admin.email_address)
+            .filter((email): email is string => Boolean(email));
+
+          console.log(`📧 Found ${adminEmails.length} admin(s) to notify: ${adminEmails.join(', ')}`);
+
+          if (adminEmails.length > 0) {
+            // Send notification asynchronously (don't block response)
+            emailService.sendAstrologerProfileCompleteNotification({
+              name: updatedUser.full_name as string,
+              email: updatedUser.email_address as string,
+              phone: updatedUser.phone_number as string | undefined,
+              userId: updatedUser.user_id as string,
+              experience: updatedUser.experience_years as number | undefined,
+              skills: updatedUser.skills as string | undefined,
+              languages: updatedUser.languages as string | undefined,
+            }, adminEmails).then(sent => {
+              if (sent) {
+                console.log(`✉️ Admin notification email sent successfully`);
+              } else {
+                console.warn(`⚠️ Failed to send admin notification email`);
+              }
+            }).catch(err => {
+              console.error(`❌ Error sending admin notification: ${err}`);
+            });
+          }
+        } catch (adminError) {
+          console.error('Error fetching admin users for notification:', adminError);
+          // Don't fail the request, just log the error
+        }
+      }
     }
 
     // Get base URL for image resolution
@@ -570,6 +723,7 @@ export async function PUT(request: NextRequest) {
         user_type: updatedUser!.user_type,
         account_status: updatedUser!.account_status,
         verification_status: updatedUser!.verification_status,
+        rejection_reason: updatedUser!.verification_status_message || null,
         profile_image: profileImageUrl, // Return full URL instead of relative path
         wallet_balance: updatedUser!.wallet_balance || 0,
         is_verified: updatedUser!.is_verified || false,

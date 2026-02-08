@@ -8,6 +8,7 @@ import '../../models/enums.dart';
 import '../../config/config.dart';
 import '../service_locator.dart';
 import '../local/local_storage_service.dart';
+import '../network/dio_client.dart';
 
 class SocketService extends ChangeNotifier {
   static SocketService? _instance;
@@ -249,6 +250,26 @@ class SocketService extends ChangeNotifier {
     
     _socket!.on('authentication_error', (data) {
       debugPrint('❌ Socket authentication error: $data');
+      // Check if error indicates user not found / deleted
+      final errorMsg = data?.toString().toLowerCase() ?? '';
+      if (errorMsg.contains('not found') ||
+          errorMsg.contains('invalid') ||
+          errorMsg.contains('expired') ||
+          errorMsg.contains('deleted')) {
+        debugPrint('🚨 Socket auth error indicates user issue - triggering forced logout');
+        if (DioClient.onAuthFailure != null) {
+          DioClient.onAuthFailure!('Socket authentication failed');
+        }
+      }
+    });
+
+    // Force logout event - triggered when admin deletes the user
+    _socket!.on('force_logout', (data) {
+      debugPrint('🚨 [SOCKET] Force logout received: $data');
+      final reason = data?['reason']?.toString() ?? 'Account deleted';
+      if (DioClient.onAuthFailure != null) {
+        DioClient.onAuthFailure!(reason);
+      }
     });
 
     // Chat events
